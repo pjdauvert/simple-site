@@ -1,0 +1,133 @@
+{
+  
+  "site": {
+    "name": "Simple Site",
+    "logoUrl": "/vite.svg",
+    "faviconUrl": "/vite.svg"
+  },
+  "themes": [
+    {
+      "name": "default",
+      "primaryColor": "#0076d2",
+      "secondaryColor": "#dc004e",
+      "linkColor": "#1976d2",
+      "linkHoverColor": "#115293",
+      "backgroundColor": "#ffffff",
+      "menuBackgroundColor": "#1976d2",
+      "menuHoverColor": "#115293"
+      
+    },
+    {
+      "name": "dark",
+      "primaryColor": "#90caf9",
+      "secondaryColor": "#f48fb1",
+      "linkColor": "#90caf9",
+      "linkHoverColor": "#64b5f6",
+      "backgroundColor": "#121212",
+      "menuBackgroundColor": "#1e1e1e",
+      "menuHoverColor": "#2c2c2c"
+    }
+  ],
+  "pages": [
+    {
+      "name": "page.home",
+      "title": "Home",
+      "route": "/",
+      "sections": [
+        {
+          "name": "page.home.hero",
+          "type": "hero",
+          "title": "Hero Title",
+          "subtitle": "Hero Subtitle",
+          "ctaLabel": "Hero CTA",
+          "ctaLink": "/"
+        },
+        {
+          "name": "page.home.text",
+          "type": "text",
+          "title": "Text Title",
+          "content": "Text Content",
+          "backgroundColor": "#f0f0f0",
+          "textColor": "#0000FF",
+          "imageUrl": "/images/text-background.jpg"
+        }
+      ]
+    },
+    {
+      "name": "page.calendar",
+      "title": "Calendar",
+      "route": "/calendar",
+      "sections": [
+        {
+          "name": "page.calendar.text",
+          "type": "text",
+          "title": "Calendar Title",
+          "content": "Calendar Content",
+          "backgroundColor": "#f0f0f0",
+          "textColor": "#FF0000"
+        }
+      ]
+    },
+    {
+      "name": "page.about",
+      "title": "About Us",
+      "route": "/about",
+      "sections": [
+        {
+          "type": "text",
+          "name": "page.about.text",
+          "title": "About Us Title",
+          "content": "About Us Content",
+          "backgroundColor": "#f0f0f0",
+          "textColor": "#FF0000"
+        }
+      ]
+    }
+  ],
+  "i18n": {
+    "en": {
+        "footer.copyright": "© 2025 Simple Site. All rights reserved.",
+        "footer.license": "Licensed under AGPL-3.0",
+        "language.switch": "Switch Language",
+        "theme.switch": "Switch Theme",
+      
+        "page.home.title": "Home",
+        "page.home.hero.title": "Welcome to Our Application",
+        "page.home.hero.subtitle": "A modern, themable, and multilingual web application built with React",
+        "page.home.hero.cta": "Get Started",
+        "page.home.text.title": "Home Page",
+        "page.home.text.content": "This is the home page. It is the main page of the website.",
+        
+        
+        "page.calendar.title": "Calendar",
+        "page.calendar.text.title": "Calendar",
+        "page.calendar.text.content": "This is the calendar page. Calendar functionality coming soon.",
+        
+        "page.about.title": "About Us",
+        "page.about.text.title": "About Us",
+        "page.about.text.content": "This is a modern mobile-first web application demonstrating React, Material-UI, theming, and internationalization with responsive design."
+    },
+    "fr": {
+        "footer.copyright": "© 2025 Simple Site. Tous droits réservés.",
+        "footer.license": "Sous licence AGPL-3.0",
+        "language.switch": "Changer de Langue",
+        "theme.switch": "Changer de Thème",
+
+        "page.home.title": "Accueil",
+        "page.home.hero.title": "Bienvenue dans Notre Application",
+        "page.home.hero.subtitle": "Une application web moderne, personnalisable et multilingue construite avec React",
+        "page.home.hero.cta": "Commencer",
+        "page.home.text.title": "Page d'Accueil",
+        "page.home.text.content": "Ceci est la page d'accueil. Elle est la page principale du site web.",
+        
+        "page.calendar.title": "Calendrier",
+        "page.calendar.text.title": "Calendrier",
+        "page.calendar.text.content": "Ceci est la page du calendrier. Fonctionnalité à venir prochainement.",
+        
+        "page.about.title": "À Propos",
+        "page.about.text.title": "À Propos",
+        "page.about.text.content": "Il s'agit d'une application web moderne construite avec une approche mobile-first, démontrant React, Material-UI, les thèmes et l'internationalisation avec un design réactif."
+    }
+  }
+}
+
