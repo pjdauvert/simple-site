@@ -46,57 +46,6 @@ This application follows a mobile-first approach with the following breakpoints:
 - **Touch-Friendly** - Appropriately sized touch targets for mobile devices
 - **Optimized Images** - Logo and icons scale appropriately
 
-## 📁 Project Structure
-
-```
-src/
-├── assets/              # Static assets (images, fonts)
-├── components/          # Reusable dumb components
-│   ├── Hero.tsx        # Mobile-responsive hero section
-│   └── index.ts
-├── features/            # Feature-specific modules
-│   ├── theme/          # Theme management
-│   │   ├── ThemeContext.ts
-│   │   ├── ThemeProvider.tsx
-│   │   ├── ThemeSwitcher.tsx
-│   │   ├── theme.interface.ts
-│   │   └── themes/
-│   │       ├── defaultTheme.json
-│   │       └── darkTheme.json
-│   └── i18n/           # Internationalization
-│       ├── IntlContext.ts
-│       ├── IntlProvider.tsx
-│       ├── LanguageSwitcher.tsx
-│       └── messages/
-│           ├── en.json
-│           └── fr.json
-├── hooks/              # Custom React hooks
-│   ├── useTheme.ts
-│   └── useIntl.ts
-├── layouts/            # Layout components with responsive breakpoints
-│   ├── MenuBar.tsx     # Responsive navigation (mobile + desktop)
-│   ├── Footer.tsx      # Responsive footer
-│   └── MainLayout.tsx
-├── pages/              # Page components with mobile-first design
-│   ├── Home.tsx
-│   ├── Calendar.tsx
-│   └── AboutUs.tsx
-├── services/           # API and external services
-├── styles/             # Global styles with mobile-first media queries
-│   └── global.css
-├── types/              # TypeScript type definitions
-│   ├── theme.interface.ts
-│   └── menu.interface.ts
-├── utils/              # Utility functions
-├── config/             # Configuration files
-│   └── menuConfig.json
-├── test/               # Test setup
-│   └── setup.ts
-├── App.tsx             # Main application component
-├── router.tsx          # React Router configuration
-└── main.tsx            # Application entry point
-```
-
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -184,44 +133,101 @@ npm run typecheck
 
 ## 🎨 Configuration
 
-### Theme Configuration
+All application configuration is centralized in a single file: **`src/config/siteConfig.json`**
 
-Themes are defined in JSON files located in `src/features/theme/themes/`. Each theme includes:
+This unified configuration approach includes:
+- Site metadata (name, logo, favicon)
+- Theme configurations (colors, styles)
+- Page definitions and content
+- Translations for all languages
 
-- `primaryColor` - Primary brand color
-- `secondaryColor` - Secondary accent color
-- `linkColor` - Default link color
-- `linkHoverColor` - Link hover state color
-- `backgroundColor` - Page background color
-- `menuBackgroundColor` - Navigation menu background
-- `menuHoverColor` - Menu item hover state
-- `logoUrl` - Logo image URL
+### Site Configuration Structure
 
-**Example theme file:**
 ```json
 {
-  "primaryColor": "#1976d2",
-  "secondaryColor": "#dc004e",
-  "linkColor": "#1976d2",
-  "linkHoverColor": "#115293",
-  "backgroundColor": "#ffffff",
-  "menuBackgroundColor": "#1976d2",
-  "menuHoverColor": "#115293",
-  "logoUrl": "/vite.svg"
+  "site": {
+    "name": "Simple Site",
+    "logoUrl": "/vite.svg",
+    "faviconUrl": "/vite.svg"
+  },
+  "themes": [
+    {
+      "name": "default",
+      "primaryColor": "#1976d2",
+      "secondaryColor": "#dc004e",
+      "linkColor": "#1976d2",
+      "linkHoverColor": "#115293",
+      "backgroundColor": "#ffffff",
+      "menuBackgroundColor": "#1976d2",
+      "menuHoverColor": "#115293"
+    },
+    {
+      "name": "dark",
+      "primaryColor": "#90caf9",
+      "secondaryColor": "#f48fb1",
+      "linkColor": "#90caf9",
+      "linkHoverColor": "#64b5f6",
+      "backgroundColor": "#121212",
+      "menuBackgroundColor": "#1e1e1e",
+      "menuHoverColor": "#2c2c2c"
+    }
+  ],
+  "pages": [
+    {
+      "name": "page.home",
+      "title": "Home",
+      "route": "/",
+      "sections": [
+        {
+          "name": "page.home.hero",
+          "type": "hero",
+          "title": "Hero Title",
+          "subtitle": "Hero Subtitle",
+          "ctaLabel": "Hero CTA",
+          "ctaLink": "/"
+        }
+      ]
+    }
+  ]
 }
 ```
 
-### Menu Configuration
+### Adding New Themes
 
-Menu items are defined in `src/config/menuConfig.json`:
+Simply add a new theme object to the `themes` array in `siteConfig.json`:
 
 ```json
 {
-  "items": [
+  "name": "custom",
+  "primaryColor": "#ff5722",
+  "secondaryColor": "#00bcd4",
+  "linkColor": "#ff5722",
+  "linkHoverColor": "#e64a19",
+  "backgroundColor": "#fafafa",
+  "menuBackgroundColor": "#ff5722",
+  "menuHoverColor": "#e64a19"
+}
+```
+
+The theme will automatically be available in the theme switcher.
+
+### Adding New Pages
+
+Add page definitions to the `pages` array in `siteConfig.json`:
+
+```json
+{
+  "name": "page.contact",
+  "title": "Contact",
+  "route": "/contact",
+  "sections": [
     {
-      "title": "Home",
-      "intlKey": "menu.home",
-      "route": "/"
+      "name": "page.contact.hero",
+      "type": "hero",
+      "title": "Contact Us",
+      "subtitle": "Get in touch",
+      "ctaLabel": "Send Message",
+      "ctaLink": "/contact#form"
     }
   ]
 }
@@ -229,27 +235,51 @@ Menu items are defined in `src/config/menuConfig.json`:
 
 ### Translations
 
-Translation files are located in `src/features/i18n/messages/`:
-- `en.json` - English translations
-- `fr.json` - French translations
+Translations are embedded in the page content using the `name` field as the i18n key. The application uses React Intl with fallback to the default text values defined in `siteConfig.json`.
 
-To add a new language:
-1. Create a new JSON file (e.g., `es.json`)
-2. Add translations for all keys
-3. Update `IntlProvider.tsx` and `IntlContext.ts` to include the new locale
+To add translations:
+1. Use the section `name` as the i18n key prefix (e.g., `page.home.hero`)
+2. Define default text in `siteConfig.json`
+3. Translations are automatically looked up using the pattern `{name}.{field}`
+
+Example:
+- Section name: `page.home.hero`
+- Title i18n key: `page.home.hero.title`
+- Subtitle i18n key: `page.home.hero.subtitle`
+- Fallback: Uses values from `siteConfig.json`
 
 ## 🏗️ Architecture
+
+### Centralized Configuration
+
+The application uses a **single source of truth** for all configuration:
+
+**`src/config/siteConfig.json`**
+- ✅ Site metadata (name, logo, favicon)
+- ✅ All theme configurations (dynamically loaded)
+- ✅ Page routes and content structure
+- ✅ Default translations and content
+- ✅ Section configurations (hero, text, etc.)
+
+This approach provides:
+- **Single File Management** - All site content in one place
+- **Type Safety** - TypeScript interfaces validate configuration
+- **Dynamic Loading** - Themes and pages automatically discovered
+- **Easy Maintenance** - No code changes needed for content updates
+- **Scalability** - Add unlimited themes, pages, and languages
 
 ### Smart vs Dumb Components
 
 **Smart Components** (Container): Manage state, side effects, and business logic
-- `App.tsx`
-- `AppThemeProvider`
-- `AppIntlProvider`
-- `MainLayout` (uses hooks)
+- `App.tsx` - Root application component
+- `AppThemeProvider` - Loads themes from `siteConfig.json` dynamically
+- `AppIntlProvider` - Manages internationalization state
+- `MainLayout` - Orchestrates layout with theme and config
+- `Page` - Dynamically renders page sections from configuration
 
 **Dumb Components** (Presentational): Receive props and render UI
-- `Hero` - Fully responsive hero section
+- `HeroSection` - Fully responsive hero section
+- `TextSection` - Configurable text content section
 - `MenuBar` - Adaptive navigation (mobile hamburger menu / desktop menu bar)
 - `Footer` - Responsive footer with flexbox layout
 
@@ -257,6 +287,45 @@ To add a new language:
 
 - `useAppTheme()` - Access theme state and switching functionality
 - `useAppIntl()` - Access language state and switching functionality
+
+### Dynamic Theme System
+
+Themes are **automatically extracted** from `siteConfig.json`:
+
+```typescript
+// No hardcoded themes - dynamically built from config
+const themeConfigs = siteConfig.themes.reduce(
+  (acc, theme) => {
+    const { name, ...themeConfig } = theme;
+    acc[name] = themeConfig;
+    return acc;
+  },
+  {}
+);
+```
+
+Benefits:
+- Add/remove themes without touching code
+- All theme names automatically available
+- Type-safe theme configuration
+- Runtime theme switching
+
+### Content-Driven Pages
+
+Pages are **dynamically generated** from `siteConfig.json`:
+
+```typescript
+// Routes automatically created from page configurations
+const routes = siteConfig.pages.map(page => ({
+  path: page.route,
+  element: <Page {...page} />
+}));
+```
+
+Each page section is rendered based on its `type`:
+- `hero` → `HeroSection` component
+- `text` → `TextSection` component
+- Extensible for new section types
 
 ### Mobile-First Development
 
