@@ -6,7 +6,8 @@ export interface PageConfiguration extends MenuItem {
 
 
 export interface PageSectionProps<T extends PageSectionType> {
-    name: string;
+    pageName: string;
+    sectionName: string;
     type: T;
 }
 

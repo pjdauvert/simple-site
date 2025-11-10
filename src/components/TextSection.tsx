@@ -4,22 +4,34 @@ import { FormattedMessage } from 'react-intl';
 import type { PageSectionProps, PageSectionType } from '../types/page.interface';
 
 export interface TextSectionProps extends PageSectionProps<typeof PageSectionType.TEXT> {
-    title?: string;
-    content?: string;
-    backgroundColor?: string;
-    textColor?: string;
-    imageUrl?: string;
+    content: {
+        title?: string;
+        paragraph?: string;
+    };
+    design: {
+        backgroundColor?: string;
+        textColor?: string;
+        imageUrl?: string;
+        imagePosition?: string;
+        imageSize?: string;
+    };
 }
 
-export const TextSection: React.FC<TextSectionProps> = ({ name, title, content, backgroundColor, textColor, imageUrl }) => {
+export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, design }) => {
   return (
-    <Box sx={{ backgroundColor, color: textColor, backgroundImage: imageUrl ? `url(${imageUrl})` : undefined, backgroundSize: imageUrl ? 'cover' : undefined, backgroundPosition: imageUrl ? 'center' : undefined }}>
+    <Box sx={{ 
+      backgroundColor: design.backgroundColor,
+      color: design.textColor,
+      backgroundImage: design.imageUrl ? `url(${design.imageUrl})` : undefined,
+      backgroundSize: design.imageSize ? design.imageSize : 'cover',
+      backgroundPosition: design.imagePosition ? design.imagePosition : 'center'
+      }}>
       <Container maxWidth="md">
         <Typography variant="h4">
-          <FormattedMessage id={`${name}.title`} defaultMessage={title} />
+          <FormattedMessage id={`${sectionName}.content.title`} defaultMessage={content.title} />
         </Typography>
         <Typography variant="body1">
-          <FormattedMessage id={`${name}.content`} defaultMessage={content} />
+          <FormattedMessage id={`${sectionName}.content.paragraph`} defaultMessage={content.paragraph} />
         </Typography>
       </Container>
     </Box>

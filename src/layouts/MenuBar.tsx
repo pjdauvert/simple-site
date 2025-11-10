@@ -82,7 +82,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems, logoUrl }) => {
                     },
                   }}
                 >
-                  <FormattedMessage id={`${item.name}.title`} defaultMessage={item.title} />
+                  <FormattedMessage id={`${item.pageName}.menuTitle`} defaultMessage={item.menuTitle} />
                 </Button>
               );
             })}
@@ -122,7 +122,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems, logoUrl }) => {
             onClick={handleMobileMenuClose}
             selected={location.pathname === item.route}
           >
-            <FormattedMessage id={`${item.name}.title`} defaultMessage={item.title} />
+            <FormattedMessage id={`${item.pageName}.menuTitle`} defaultMessage={item.menuTitle} />
           </MenuItem>
         ))}
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, py: 1, borderTop: 1, borderColor: 'divider', mt: 1 }}>

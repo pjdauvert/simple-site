@@ -1,6 +1,6 @@
 export interface MenuItem {
-  title: string;
-  name: string;
+  menuTitle: string;
+  pageName: string;
   route: string;
 }
 

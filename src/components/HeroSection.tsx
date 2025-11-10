@@ -4,13 +4,23 @@ import { FormattedMessage } from 'react-intl';
 import type { PageSectionProps, PageSectionType } from '../types/page.interface';
 
 export interface HeroSectionProps extends PageSectionProps<typeof PageSectionType.HERO> {
-  title?: string;
-  subtitle?: string;
-  ctaLabel?: string;
-  ctaLink?: string;
+  content: {
+    title?: string;
+    subtitle?: string;
+    ctaLabel?: string;
+    ctaLink?: string;
+  };
+  design: {
+    backgroundColor?: string;
+    textColor?: string;
+    imageUrl?: string;
+    imagePosition?: string;
+    imageSize?: string;
+    videoUrl?: string;
+  };
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ name, title, subtitle, ctaLabel, ctaLink }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content }) => {
   return (
     <Box
       sx={{
@@ -24,7 +34,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ name, title, subtitle,
       }}
     >
       <Container maxWidth="md">
-        {title && (
+        {content.title && (
           <Typography
             variant="h2"
             component="h1"
@@ -35,10 +45,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ name, title, subtitle,
               fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' },
             }}
           >
-            <FormattedMessage id={`${name}.title`} defaultMessage={title} />
+            <FormattedMessage id={`${sectionName}.content.title`} defaultMessage={content.title} />
           </Typography>
         )}
-        {subtitle && (
+        {content.subtitle && (
           <Typography
             variant="h5"
             component="p"
@@ -50,21 +60,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ name, title, subtitle,
               px: { xs: 1, sm: 2 },
             }}
           >
-            <FormattedMessage id={`${name}.subtitle`} defaultMessage={subtitle} />
+            <FormattedMessage id={`${sectionName}.content.subtitle`} defaultMessage={content.subtitle} />
           </Typography>
         )}
-        {ctaLabel && ctaLink && (
+        {content.ctaLabel && content.ctaLink && (
           <Button
             variant="contained"
             size="large"
-            href={ctaLink}
+            href={content.ctaLink}
             sx={{
               px: { xs: 3, sm: 4 },
               py: { xs: 1, sm: 1.5 },
               fontSize: { xs: '1rem', sm: '1.1rem' },
             }}
           >
-            <FormattedMessage id={`${name}.ctaLabel`} defaultMessage={ctaLabel} />
+            <FormattedMessage id={`${sectionName}.content.ctaLabel`} defaultMessage={content.ctaLabel} />
           </Button>
         )}
       </Container>
