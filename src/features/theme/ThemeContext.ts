@@ -1,11 +1,11 @@
 import { createContext } from 'react';
-import type { ThemeConfig, ThemeName } from './theme.interface';
+import type { ThemeConfig } from '../../types/theme.interface';
 
 export interface ThemeContextValue {
-  themeName: ThemeName;
+  themeName: string;
   themeConfig: ThemeConfig;
-  switchTheme: (theme: ThemeName) => void;
-  availableThemes: ThemeName[];
+  switchTheme: (theme: string) => void;
+  availableThemes: string[];
 }
 
 export const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);

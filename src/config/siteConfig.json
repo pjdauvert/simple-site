@@ -7,18 +7,7 @@
   },
   "themes": [
     {
-      "name": "default",
-      "primaryColor": "#0076d2",
-      "secondaryColor": "#dc004e",
-      "linkColor": "#1976d2",
-      "linkHoverColor": "#115293",
-      "backgroundColor": "#ffffff",
-      "menuBackgroundColor": "#1976d2",
-      "menuHoverColor": "#115293"
-      
-    },
-    {
-      "name": "dark",
+      "themeName": "Dark",
       "primaryColor": "#90caf9",
       "secondaryColor": "#f48fb1",
       "linkColor": "#90caf9",
@@ -26,6 +15,16 @@
       "backgroundColor": "#121212",
       "menuBackgroundColor": "#1e1e1e",
       "menuHoverColor": "#2c2c2c"
+    },
+    {
+      "themeName": "Dark Blue",
+      "primaryColor": "#64b5f6",
+      "secondaryColor": "#f48fb1",
+      "linkColor": "#64b5f6",
+      "linkHoverColor": "#90caf9",
+      "backgroundColor": "#0d1b2a",
+      "menuBackgroundColor": "#1b263b",
+      "menuHoverColor": "#415a77"
     }
   ],
   "pages": [

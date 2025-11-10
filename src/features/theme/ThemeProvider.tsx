@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import type { ThemeConfig, ThemeName } from './theme.interface';
+import type { ThemeConfig } from '../../types/theme.interface';
 import { ThemeContext } from './ThemeContext';
 import type { ThemeContextValue } from './ThemeContext';
 import siteConfig from '../../config/siteConfig.json';
@@ -12,26 +12,67 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+// Hardcoded Default theme
+const DEFAULT_THEME_NAME = 'Default';
+const DEFAULT_THEME_CONFIG: ThemeConfig = {
+  themeName: 'Default',
+  primaryColor: '#0076d2',
+  secondaryColor: '#dc004e',
+  linkColor: '#1976d2',
+  linkHoverColor: '#115293',
+  backgroundColor: '#ffffff',
+  menuBackgroundColor: '#1976d2',
+  menuHoverColor: '#115293',
+};
+
 // Dynamically build theme configurations from siteConfig
-const themeConfigs: Record<ThemeName, ThemeConfig> = siteConfig.themes.reduce(
+const configThemes: Record<string, ThemeConfig> = siteConfig.themes.reduce(
   (acc, theme) => {
-    const { name, ...themeConfig } = theme;
-    acc[name as ThemeName] = themeConfig as ThemeConfig;
+    const { themeName, ...themeConfig } = theme;
+    acc[themeName] = themeConfig as ThemeConfig;
     return acc;
   },
-  {} as Record<ThemeName, ThemeConfig>
+  {} as Record<string, ThemeConfig>
 );
 
+// Determine available themes based on config
+const configThemeNames = siteConfig.themes.map(theme => theme.themeName);
+
+// Build final theme configs and available themes based on the rules:
+// - 0 themes in config: use hardcoded Default
+// - 1 theme in config: override Default with that theme
+// - 2+ themes in config: list all themes in switcher
+let themeConfigs: Record<string, ThemeConfig>;
+let availableThemeNames: string[];
+
+if (configThemeNames.length === 0) {
+  // No themes in config: use hardcoded Default
+  themeConfigs = { [DEFAULT_THEME_NAME]: DEFAULT_THEME_CONFIG };
+  availableThemeNames = [DEFAULT_THEME_NAME];
+} else if (configThemeNames.length === 1) {
+  // One theme in config: override Default with that theme
+  themeConfigs = { [DEFAULT_THEME_NAME]: configThemes[configThemeNames[0]] };
+  availableThemeNames = [DEFAULT_THEME_NAME];
+} else {
+  // Multiple themes in config: list all themes
+  themeConfigs = configThemes;
+  availableThemeNames = configThemeNames;
+}
+
 export const AppThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [themeName, setThemeName] = useState<ThemeName>('default');
+  const [themeName, setThemeName] = useState<string>(availableThemeNames[0]);
   
   const themeConfig = useMemo(() => themeConfigs[themeName], [themeName]);
   
   const muiTheme: Theme = useMemo(
-    () =>
-      createTheme({
+    () => {
+      // Detect dark theme based on background color brightness
+      const isDark = themeConfig.backgroundColor.toLowerCase().includes('dark') ||
+                     parseInt(themeConfig.backgroundColor.replace('#', ''), 16) < 0x808080;
+      
+      return createTheme({
         palette: {
-          mode: themeName === 'dark' ? 'dark' : 'light',
+          mode: isDark ? 'dark' : 'light',
           primary: {
             main: themeConfig.primaryColor,
           },
@@ -72,11 +113,12 @@ export const AppThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => 
             xl: 1536,
           },
         },
-      }),
-    [themeConfig, themeName]
+      });
+    },
+    [themeConfig]
   );
 
-  const switchTheme = (newTheme: ThemeName) => {
+  const switchTheme = (newTheme: string) => {
     setThemeName(newTheme);
   };
 
@@ -84,7 +126,7 @@ export const AppThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => 
     themeName,
     themeConfig,
     switchTheme,
-    availableThemes: Object.keys(themeConfigs) as ThemeName[],
+    availableThemes: availableThemeNames,
   };
 
   return (

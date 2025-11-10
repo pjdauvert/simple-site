@@ -1,4 +1,5 @@
 export interface ThemeConfig {
+  themeName: string;
   primaryColor: string;
   secondaryColor: string;
   linkColor: string;
@@ -6,8 +7,6 @@ export interface ThemeConfig {
   backgroundColor: string;
   menuBackgroundColor: string;
   menuHoverColor: string;
-  logoUrl: string;
+  logoUrl?: string;
 }
-
-export type ThemeName = 'default' | 'dark';
 
