@@ -1,3 +1,4 @@
+import type { Breakpoint } from "@mui/material";
 import type { MenuItem } from "./menu.interface";
 
 export interface PageConfiguration extends MenuItem {
@@ -8,6 +9,7 @@ export interface PageConfiguration extends MenuItem {
 export interface PageSectionProps<T extends PageSectionType> {
     pageName: string;
     sectionName: string;
+    containerMaxWidth?: Breakpoint | false;
     type: T;
 }
 

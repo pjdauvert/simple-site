@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import type { ThemeConfig } from '../../types/theme.interface';
+import type { ThemeConfig, SiteThemeConfig } from '../../types/theme.interface';
 import { ThemeContext } from './ThemeContext';
 import type { ThemeContextValue } from './ThemeContext';
 import siteConfig from '../../config/siteConfig.json';
@@ -24,6 +24,9 @@ const DEFAULT_THEME_CONFIG: ThemeConfig = {
   menuBackgroundColor: '#1976d2',
   menuHoverColor: '#115293',
 };
+
+// General site theme configuration
+const siteThemeConfig: SiteThemeConfig = siteConfig.site as unknown as SiteThemeConfig;
 
 // Dynamically build theme configurations from siteConfig
 const configThemes: Record<string, ThemeConfig> = siteConfig.themes.reduce(
@@ -112,7 +115,7 @@ export const AppThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => 
             lg: 1200,
             xl: 1536,
           },
-        },
+        }
       });
     },
     [themeConfig]
@@ -125,6 +128,7 @@ export const AppThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => 
   const contextValue: ThemeContextValue = {
     themeName,
     themeConfig,
+    siteThemeConfig,
     switchTheme,
     availableThemes: availableThemeNames,
   };

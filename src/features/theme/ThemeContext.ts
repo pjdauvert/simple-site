@@ -1,9 +1,10 @@
 import { createContext } from 'react';
-import type { ThemeConfig } from '../../types/theme.interface';
+import type { SiteThemeConfig, ThemeConfig } from '../../types/theme.interface';
 
 export interface ThemeContextValue {
   themeName: string;
   themeConfig: ThemeConfig;
+  siteThemeConfig: SiteThemeConfig;
   switchTheme: (theme: string) => void;
   availableThemes: string[];
 }

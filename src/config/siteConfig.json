@@ -3,7 +3,8 @@
   "site": {
     "name": "Simple Site",
     "logoUrl": "/vite.svg",
-    "faviconUrl": "/vite.svg"
+    "faviconUrl": "/vite.svg",
+    "containerMaxWidth": "lg"
   },
   "themes": [
     {
@@ -56,7 +57,7 @@
           "type": "text",
           "content": {
             "title": "Text Title",
-            "content": "Text Content"
+            "paragraph": "Text Content"
           },
           "design": {
             "backgroundColor": "#f0f0f0",
@@ -68,7 +69,7 @@
           "type": "text",
           "content": {
             "title": "Text 2 Title",
-            "content": "Text 2 Content"
+            "paragraph": "Text 2 Content"
           },
           "design": {
             "backgroundColor": "#0000FF",
@@ -87,7 +88,7 @@
           "type": "text",
           "content": {
             "title": "Calendar Title",
-            "content": "Calendar Content"
+            "paragraph": "Calendar Content"
           },
           "design": {
             "backgroundColor": "#f0f0f0",
@@ -106,7 +107,7 @@
           "type": "text",
           "content": {
             "title": "About Us Title",
-            "content": "About Us Content"
+            "paragraph": "About Us Content"
           },
           "design": {
             "backgroundColor": "#f0f0f0",

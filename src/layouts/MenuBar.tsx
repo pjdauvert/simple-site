@@ -20,12 +20,11 @@ import { useAppTheme } from '../hooks/useTheme';
 
 interface MenuBarProps {
   menuItems: MenuItemType[];
-  logoUrl?: string;
 }
 
-export const MenuBar: React.FC<MenuBarProps> = ({ menuItems, logoUrl }) => {
+export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
   const location = useLocation();
-  const { themeConfig } = useAppTheme();
+  const { themeConfig, siteThemeConfig } = useAppTheme();
   const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState<null | HTMLElement>(null);
 
   const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -42,11 +41,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems, logoUrl }) => {
         <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 64 } }}>
           {/* Logo and Title */}
           <Box sx={{ display: 'flex', alignItems: 'center', mr: { xs: 'auto', md: 4 } }}>
-            {logoUrl && (
+            {siteThemeConfig.logoUrl && (
               <Box
                 component="img"
-                src={logoUrl}
-                alt="Logo"
+                src={siteThemeConfig.logoUrl}
+                alt={siteThemeConfig.siteName}
                 sx={{ height: { xs: 24, sm: 32 }, mr: 1 }}
               />
             )}
@@ -61,7 +60,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems, logoUrl }) => {
                 fontSize: { xs: '1rem', sm: '1.25rem' },
               }}
             >
-              Simple Site
+              {siteThemeConfig.siteName}
             </Typography>
           </Box>
 

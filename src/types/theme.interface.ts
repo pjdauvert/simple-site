@@ -1,3 +1,5 @@
+import type { Breakpoint } from "@mui/material";
+
 export interface ThemeConfig {
   themeName: string;
   primaryColor: string;
@@ -7,6 +9,11 @@ export interface ThemeConfig {
   backgroundColor: string;
   menuBackgroundColor: string;
   menuHoverColor: string;
-  logoUrl?: string;
 }
 
+export interface SiteThemeConfig {
+  siteName: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  containerMaxWidth?: Breakpoint | false;
+}

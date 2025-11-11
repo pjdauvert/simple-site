@@ -20,7 +20,7 @@ export interface HeroSectionProps extends PageSectionProps<typeof PageSectionTyp
   };
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, containerMaxWidth }) => {
   return (
     <Box
       sx={{
@@ -30,10 +30,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content }
         justifyContent: 'center',
         textAlign: 'center',
         py: { xs: 4, sm: 6, md: 8 },
-        px: { xs: 2, sm: 3 },
+        px: { xs: 2, sm: 3 }
       }}
     >
-      <Container maxWidth="md">
+      <Container maxWidth={containerMaxWidth}>
         {content.title && (
           <Typography
             variant="h2"
