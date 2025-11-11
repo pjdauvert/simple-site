@@ -1,10 +1,17 @@
-export interface MenuItem {
-  menuTitle: string;
-  pageName: string;
-  route: string;
-}
+import { z } from "zod";
 
-export interface MenuConfig {
-  items: MenuItem[];
-}
+// MenuItem schema
+export const MenuItemSchema = z.object({
+  menuTitle: z.string(),
+  pageName: z.string(),
+  route: z.string(),
+});
+
+export type MenuItem = z.infer<typeof MenuItemSchema>;
+
+export const MenuConfigSchema = z.object({
+  items: z.array(MenuItemSchema),
+});
+
+export type MenuConfig = z.infer<typeof MenuConfigSchema>;
 

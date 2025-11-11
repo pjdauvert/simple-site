@@ -3,34 +3,19 @@ import { Box, Container, Typography } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { FormattedMessage } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
-import type { PageSectionProps, PageSectionType } from '../types/page.interface';
-import { useAppTheme } from '../hooks/useTheme';
+import type { SectionProps, SectionTypesEnum } from '../../types/section.interface';
+import { useAppTheme } from '../../hooks/useTheme';
 
-export interface TextSectionProps extends PageSectionProps<typeof PageSectionType.TEXT> {
-    content: {
-        title?: string;
-        paragraph?: string;
-    };
-    design: {
-        backgroundColor?: string;
-        textColor?: string;
-        imageUrl?: string;
-        imagePosition?: 'left' | 'right';
-        imageSize?: 'cover' | 'contain';
-        parallax?: boolean;
-    };
-}
 
-export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, design, containerMaxWidth }) => {
-  const { themeConfig } = useAppTheme();
-  
+export const TextSection: React.FC<SectionProps<typeof SectionTypesEnum.TEXT>> = ({ sectionName, content, design }) => {
+  const { siteThemeConfig, themeConfig } = useAppTheme();
   // Determine colors: use design props if provided, otherwise fallback to theme
-  const backgroundColor = design.backgroundColor || themeConfig.backgroundColor;
-  const textColor = design.textColor || (backgroundColor === themeConfig.backgroundColor ? 'inherit' : undefined);
+  const backgroundColor = design?.backgroundColor || themeConfig.backgroundColor;
+  const textColor = design?.textColor || (backgroundColor === themeConfig.backgroundColor ? 'inherit' : undefined);
   
   // Determine if image should cover background or be positioned alongside content
-  const isCoverImage = design.imageUrl && design.imageSize === 'cover';
-  const isInlineImage = design.imageUrl && !isCoverImage;
+  const isCoverImage = design?.imageUrl && design?.imageSize === 'cover';
+  const isInlineImage = design?.imageUrl && !isCoverImage;
   
   // Content component
   const ContentBlock = (
@@ -104,7 +89,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
           alignItems: 'center',
         }}
       >
-        <Container maxWidth={containerMaxWidth}>
+        <Container maxWidth={siteThemeConfig.containerMaxWidth}>
           {ContentBlock}
         </Container>
       </Box>
@@ -117,7 +102,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
     
     return (
       <Box sx={{ backgroundColor, color: textColor, py: 4 }}>
-        <Container maxWidth={containerMaxWidth}>
+        <Container maxWidth={siteThemeConfig.containerMaxWidth}>
           <Grid container spacing={4} alignItems="center">
             {imageOnLeft && (
               <Grid size={{ xs: 12, md: 6 }}>
@@ -141,7 +126,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
   // No image case
   return (
     <Box sx={{ backgroundColor, color: textColor, py: 4 }}>
-      <Container maxWidth={containerMaxWidth}>
+      <Container maxWidth={siteThemeConfig.containerMaxWidth}>
         {ContentBlock}
       </Container>
     </Box>

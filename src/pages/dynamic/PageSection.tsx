@@ -1,20 +1,18 @@
 import React from 'react';
-import { type PageSectionProps, PageSectionType } from '../../types/page.interface';
-import { TextSection, type TextSectionProps } from '../../components/TextSection';
-import { HeroSection, type HeroSectionProps } from '../../components/HeroSection';
+import  { type SectionProps, SectionTypesEnum, type SectionType } from '../../types/section.interface';
+import { TextSection } from '../../components/sections/TextSection';
+import { HeroSection } from '../../components/sections/HeroSection';
 
 
-export const PageSection: React.FC<PageSectionProps<PageSectionType>> = ({ type, ...props }) => {
-  if (type === PageSectionType.HERO) {
-    return (
-      <HeroSection {...props as HeroSectionProps} />
-    );
+export const PageSection: React.FC<SectionProps<SectionType>> = (props) => {
+
+
+  if (props.type === SectionTypesEnum.HERO) {
+    return <HeroSection {...props} />;
   }
 
-  if (type === PageSectionType.TEXT) {
-    return (
-     <TextSection {...props as TextSectionProps} />
-    );
+  if (props.type === SectionTypesEnum.TEXT) {
+    return <TextSection {...props} />;
   }
 
   return null;

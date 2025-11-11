@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import type { ReactNode } from 'react';
 import { IntlProvider as ReactIntlProvider } from 'react-intl';
 import { IntlContext } from './IntlContext';
-import type { IntlContextValue, Locale } from './IntlContext';
-import siteConfig from '../../config/siteConfig.json';
+import type { IntlContextValue } from './IntlContext';
+import { useSiteConfig } from '../../hooks/useSiteConfig';
+import { I18nLocalesEnum, type Locale } from '../../types/i18n.interface';
 
 interface AppIntlProviderProps {
   children: ReactNode;
 }
 
 export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({ children }) => {
-  const [locale, setLocale] = useState<Locale>('en');
+  const { config } = useSiteConfig();
+  const [locale, setLocale] = useState<Locale>(I18nLocalesEnum.EN);
 
   const switchLanguage = (newLocale: Locale) => {
     setLocale(newLocale);
@@ -19,16 +21,13 @@ export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({ children }) =>
   const contextValue: IntlContextValue = {
     locale,
     switchLanguage,
-    availableLocales: Object.keys(siteConfig.i18n) as Locale[],
+    availableLocales: Object.keys(config.i18n) as Locale[],
   };
 
-  // Type assertion needed due to React 19 ReactNode type incompatibility with react-intl's bundled React 18 types
-  const childrenCompat = children as unknown as React.ReactNode;
-  
   return (
     <IntlContext.Provider value={contextValue}>
-      <ReactIntlProvider locale={locale} messages={siteConfig.i18n[locale as Locale]} defaultLocale="en">
-        {childrenCompat}
+      <ReactIntlProvider locale={locale} messages={config.i18n[locale]} defaultLocale="en">
+        {children}
       </ReactIntlProvider>
     </IntlContext.Provider>
   );

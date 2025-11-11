@@ -1,16 +1,19 @@
 import React from 'react';
-import { RouterProvider } from 'react-router-dom';
+import { SiteConfigProvider } from './features/config/SiteConfigProvider';
 import { AppThemeProvider } from './features/theme/ThemeProvider';
 import { AppIntlProvider } from './features/i18n/IntlProvider';
-import { router } from './router';
+import { AppRouter } from './router/AppRouter';
+import { Loading } from './components/Loading';
 
 const App: React.FC = () => {
   return (
-    <AppIntlProvider>
-      <AppThemeProvider>
-        <RouterProvider router={router} />
-      </AppThemeProvider>
-    </AppIntlProvider>
+    <SiteConfigProvider loadingComponent={<Loading message="Loading configuration..." />}>
+      <AppIntlProvider>
+        <AppThemeProvider>
+          <AppRouter />
+        </AppThemeProvider>
+      </AppIntlProvider>
+    </SiteConfigProvider>
   );
 };
 

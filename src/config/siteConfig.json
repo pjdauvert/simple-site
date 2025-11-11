@@ -1,7 +1,7 @@
 {
   
   "site": {
-    "name": "Simple Site",
+    "siteName": "Simple Site",
     "logoUrl": "/vite.svg",
     "faviconUrl": "/vite.svg",
     "containerMaxWidth": "lg"
@@ -42,14 +42,6 @@
             "subtitle": "Hero Subtitle",
             "ctaLabel": "Hero CTA",
             "ctaLink": "/"
-          },
-          "design": {
-            "backgroundColor": "#f0f0f0",
-            "textColor": "#0000FF",
-            "imageUrl": "/images/text-background.jpg",
-            "imagePosition": "center",
-            "imageSize": "cover",
-            "videoUrl": "/videos/hero-video.mp4"
           }
         },
         {
@@ -58,10 +50,6 @@
           "content": {
             "title": "Text Title",
             "paragraph": "Text Content"
-          },
-          "design": {
-            "backgroundColor": "#f0f0f0",
-            "textColor": "#0000FF"
           }
         },
         {
@@ -70,10 +58,6 @@
           "content": {
             "title": "Text 2 Title",
             "paragraph": "Text 2 Content"
-          },
-          "design": {
-            "backgroundColor": "#0000FF",
-            "textColor": "#f0f0f0"
           }
         }
       ]

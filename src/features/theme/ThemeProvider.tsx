@@ -6,7 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import type { ThemeConfig, SiteThemeConfig } from '../../types/theme.interface';
 import { ThemeContext } from './ThemeContext';
 import type { ThemeContextValue } from './ThemeContext';
-import siteConfig from '../../config/siteConfig.json';
+import { useSiteConfig } from '../../hooks/useSiteConfig';
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -25,47 +25,54 @@ const DEFAULT_THEME_CONFIG: ThemeConfig = {
   menuHoverColor: '#115293',
 };
 
-// General site theme configuration
-const siteThemeConfig: SiteThemeConfig = siteConfig.site as unknown as SiteThemeConfig;
-
-// Dynamically build theme configurations from siteConfig
-const configThemes: Record<string, ThemeConfig> = siteConfig.themes.reduce(
-  (acc, theme) => {
-    const { themeName, ...themeConfig } = theme;
-    acc[themeName] = themeConfig as ThemeConfig;
-    return acc;
-  },
-  {} as Record<string, ThemeConfig>
-);
-
-// Determine available themes based on config
-const configThemeNames = siteConfig.themes.map(theme => theme.themeName);
-
-// Build final theme configs and available themes based on the rules:
-// - 0 themes in config: use hardcoded Default
-// - 1 theme in config: override Default with that theme
-// - 2+ themes in config: list all themes in switcher
-let themeConfigs: Record<string, ThemeConfig>;
-let availableThemeNames: string[];
-
-if (configThemeNames.length === 0) {
-  // No themes in config: use hardcoded Default
-  themeConfigs = { [DEFAULT_THEME_NAME]: DEFAULT_THEME_CONFIG };
-  availableThemeNames = [DEFAULT_THEME_NAME];
-} else if (configThemeNames.length === 1) {
-  // One theme in config: override Default with that theme
-  themeConfigs = { [DEFAULT_THEME_NAME]: configThemes[configThemeNames[0]] };
-  availableThemeNames = [DEFAULT_THEME_NAME];
-} else {
-  // Multiple themes in config: list all themes
-  themeConfigs = configThemes;
-  availableThemeNames = configThemeNames;
-}
-
 export const AppThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  const { config } = useSiteConfig();
+
+  // General site theme configuration
+  const siteThemeConfig: SiteThemeConfig = config.site;
+
+  // Dynamically build theme configurations from config
+  const { themeConfigs, availableThemeNames } = useMemo(() => {
+    const configThemes: Record<string, ThemeConfig> = config.themes.reduce(
+      (acc, theme) => {
+        acc[theme.themeName] = theme;
+        return acc;
+      },
+      {} as Record<string, ThemeConfig>
+    );
+
+    const configThemeNames = config.themes.map(theme => theme.themeName);
+
+    // Build final theme configs and available themes based on the rules:
+    // - 0 themes in config: use hardcoded Default
+    // - 1 theme in config: override Default with that theme
+    // - 2+ themes in config: list all themes in switcher
+    let finalThemeConfigs: Record<string, ThemeConfig>;
+    let finalAvailableThemeNames: string[];
+
+    if (configThemeNames.length === 0) {
+      // No themes in config: use hardcoded Default
+      finalThemeConfigs = { [DEFAULT_THEME_NAME]: DEFAULT_THEME_CONFIG };
+      finalAvailableThemeNames = [DEFAULT_THEME_NAME];
+    } else if (configThemeNames.length === 1) {
+      // One theme in config: override Default with that theme
+      finalThemeConfigs = { [DEFAULT_THEME_NAME]: configThemes[configThemeNames[0]] };
+      finalAvailableThemeNames = [DEFAULT_THEME_NAME];
+    } else {
+      // Multiple themes in config: list all themes
+      finalThemeConfigs = configThemes;
+      finalAvailableThemeNames = configThemeNames;
+    }
+
+    return {
+      themeConfigs: finalThemeConfigs,
+      availableThemeNames: finalAvailableThemeNames,
+    };
+  }, [config.themes]);
+
   const [themeName, setThemeName] = useState<string>(availableThemeNames[0]);
   
-  const themeConfig = useMemo(() => themeConfigs[themeName], [themeName]);
+  const themeConfig = useMemo(() => themeConfigs[themeName], [themeName, themeConfigs]);
   
   const muiTheme: Theme = useMemo(
     () => {

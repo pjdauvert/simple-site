@@ -1,6 +1,5 @@
 import { createContext } from 'react';
-
-export type Locale = 'en' | 'fr';
+import type { Locale } from '../../types/i18n.interface';
 
 export interface IntlContextValue {
   locale: Locale;

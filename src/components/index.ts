@@ -1,3 +1,4 @@
-export { HeroSection } from './HeroSection';
-export { TextSection } from './TextSection';
+export { HeroSection } from './sections/HeroSection';
+export { TextSection } from './sections/TextSection';
+export { Loading } from './Loading';
 

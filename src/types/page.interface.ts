@@ -1,21 +1,10 @@
-import type { Breakpoint } from "@mui/material";
-import type { MenuItem } from "./menu.interface";
+import { MenuItemSchema } from "./menu.interface";
+import { z } from "zod";
+import { SectionPropsSchema } from "./section.interface";
 
-export interface PageConfiguration extends MenuItem {
-    sections: PageSectionProps<PageSectionType>[];
-}
+// PageConfiguration schema
+export const PageConfigurationSchema = MenuItemSchema.extend({
+    sections: z.array(SectionPropsSchema),
+  })
 
-
-export interface PageSectionProps<T extends PageSectionType> {
-    pageName: string;
-    sectionName: string;
-    containerMaxWidth?: Breakpoint | false;
-    type: T;
-}
-
-export const PageSectionType = {
-    HERO: 'hero',
-    TEXT: 'text',
-} as const;
-
-export type PageSectionType = typeof PageSectionType[keyof typeof PageSectionType];
+export type PageConfiguration = z.infer<typeof PageConfigurationSchema>;

@@ -1,26 +1,16 @@
 import React from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
-import type { PageSectionProps, PageSectionType } from '../types/page.interface';
+import type { SectionProps, SectionTypesEnum } from '../../types/section.interface';
+import { useAppTheme } from '../../hooks/useTheme';
 
-export interface HeroSectionProps extends PageSectionProps<typeof PageSectionType.HERO> {
-  content: {
-    title?: string;
-    subtitle?: string;
-    ctaLabel?: string;
-    ctaLink?: string;
-  };
-  design: {
-    backgroundColor?: string;
-    textColor?: string;
-    imageUrl?: string;
-    imagePosition?: string;
-    imageSize?: string;
-    videoUrl?: string;
-  };
-}
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, containerMaxWidth }) => {
+export const HeroSection: React.FC<SectionProps<typeof SectionTypesEnum.HERO>> = ({ sectionName, content, design }) => {
+  const { siteThemeConfig, themeConfig } = useAppTheme();
+  // Determine colors: use design props if provided, otherwise fallback to theme
+  const backgroundColor = design?.backgroundColor || themeConfig.backgroundColor;
+  const textColor = design?.textColor || (backgroundColor === themeConfig.backgroundColor ? 'inherit' : undefined);
+  
   return (
     <Box
       sx={{
@@ -30,10 +20,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
         justifyContent: 'center',
         textAlign: 'center',
         py: { xs: 4, sm: 6, md: 8 },
-        px: { xs: 2, sm: 3 }
+        px: { xs: 2, sm: 3 },
+        backgroundColor,
+        color: textColor,
       }}
     >
-      <Container maxWidth={containerMaxWidth}>
+      <Container maxWidth={siteThemeConfig.containerMaxWidth}>
         {content.title && (
           <Typography
             variant="h2"
@@ -52,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
           <Typography
             variant="h5"
             component="p"
-            color="text.secondary"
+            color={textColor}
             sx={{
               mb: { xs: 3, sm: 4 },
               lineHeight: 1.6,
