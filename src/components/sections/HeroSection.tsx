@@ -1,11 +1,11 @@
 import React from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
-import type { SectionProps, SectionTypesEnum } from '../../types/section.interface';
+import type { HeroSectionProps } from '../../types/section.interface';
 import { useAppTheme } from '../../hooks/useTheme';
 
 
-export const HeroSection: React.FC<SectionProps<typeof SectionTypesEnum.HERO>> = ({ sectionName, content, design }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, design }) => {
   const { siteThemeConfig, themeConfig } = useAppTheme();
   // Determine colors: use design props if provided, otherwise fallback to theme
   const backgroundColor = design?.backgroundColor || themeConfig.backgroundColor;

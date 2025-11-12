@@ -1,14 +1,15 @@
 # Simple Site
 
-A modern, mobile-first, themable, and multilingual web application built with React, TypeScript, and Material-UI.
+A modern, mobile-first, themable, and multilingual web application built with React, TypeScript, Material-UI, and Zod validation.
 
 ## 🚀 Features
 
 - 📱 **Mobile-First Responsive Design** - Optimized for mobile devices with proper breakpoints
-- 🎨 **Runtime Theme Switching** - Switch between light and dark themes on the fly
+- 🎨 **Runtime Theme Switching** - Switch between multiple themes on the fly
 - 🌍 **Multilingual Support** - Built-in internationalization with English and French
-- 🏗️ **Clean Architecture** - Separation of smart and dumb components
-- 🔒 **Type-Safe** - Full TypeScript support with strict mode enabled
+- 🏗️ **Clean Architecture** - Context-based configuration with async loading
+- ✅ **Runtime Validation** - Zod schemas for configuration validation
+- 📦 **Dynamic Routing** - Routes automatically generated from configuration
 - ✅ **Pre-commit Checks** - Automated linting and type checking before commits
 - 🧪 **Testing Setup** - Vitest configured with React Testing Library
 - ⚡ **Latest Node.js** - Using Node.js v24.11.0 LTS managed by nvm
@@ -17,10 +18,12 @@ A modern, mobile-first, themable, and multilingual web application built with Re
 ## 🛠️ Tech Stack
 
 - **React 19** - Latest version of the UI library with improved performance and features
-- **TypeScript** - Type safety with strict mode
+- **TypeScript** - Type safety with strict mode and discriminated unions
 - **Material-UI (MUI)** - Component library with responsive utilities
+- **Zod** - Runtime schema validation and type inference
 - **React Intl** - Internationalization
-- **React Router** - Client-side routing
+- **React Router** - Client-side routing with dynamic route generation
+- **React Markdown** - Markdown rendering support in text sections
 - **Vite** - Build tool and dev server
 - **Vitest** - Unit testing framework
 - **ESLint** - Code linting
@@ -135,10 +138,16 @@ npm run typecheck
 
 All application configuration is centralized in a single file: **`src/config/siteConfig.json`**
 
-This unified configuration approach includes:
-- Site metadata (name, logo, favicon)
+The configuration is:
+- ✅ **Loaded Asynchronously** - Simulates API loading with a loading screen
+- ✅ **Validated at Runtime** - Zod schemas ensure configuration correctness
+- ✅ **Type-Safe** - Full TypeScript type inference from Zod schemas
+- ✅ **Context-Based** - Injected throughout the app via React Context
+
+This unified configuration includes:
+- Site metadata (name, logo, favicon, container width)
 - Theme configurations (colors, styles)
-- Page definitions and content
+- Page definitions and content sections
 - Translations for all languages
 
 ### Site Configuration Structure
@@ -146,23 +155,14 @@ This unified configuration approach includes:
 ```json
 {
   "site": {
-    "name": "Simple Site",
+    "siteName": "Simple Site",
     "logoUrl": "/vite.svg",
-    "faviconUrl": "/vite.svg"
+    "faviconUrl": "/vite.svg",
+    "containerMaxWidth": "lg"
   },
   "themes": [
     {
-      "name": "default",
-      "primaryColor": "#1976d2",
-      "secondaryColor": "#dc004e",
-      "linkColor": "#1976d2",
-      "linkHoverColor": "#115293",
-      "backgroundColor": "#ffffff",
-      "menuBackgroundColor": "#1976d2",
-      "menuHoverColor": "#115293"
-    },
-    {
-      "name": "dark",
+      "themeName": "Dark",
       "primaryColor": "#90caf9",
       "secondaryColor": "#f48fb1",
       "linkColor": "#90caf9",
@@ -170,25 +170,63 @@ This unified configuration approach includes:
       "backgroundColor": "#121212",
       "menuBackgroundColor": "#1e1e1e",
       "menuHoverColor": "#2c2c2c"
+    },
+    {
+      "themeName": "Dark Blue",
+      "primaryColor": "#64b5f6",
+      "secondaryColor": "#f48fb1",
+      "linkColor": "#64b5f6",
+      "linkHoverColor": "#90caf9",
+      "backgroundColor": "#0d1b2a",
+      "menuBackgroundColor": "#1b263b",
+      "menuHoverColor": "#415a77"
     }
   ],
   "pages": [
     {
-      "name": "page.home",
-      "title": "Home",
+      "pageName": "page.home",
+      "menuTitle": "Home",
       "route": "/",
       "sections": [
         {
-          "name": "page.home.hero",
+          "sectionName": "hero",
           "type": "hero",
-          "title": "Hero Title",
-          "subtitle": "Hero Subtitle",
-          "ctaLabel": "Hero CTA",
-          "ctaLink": "/"
+          "content": {
+            "title": "Hero Title",
+            "subtitle": "Hero Subtitle",
+            "ctaLabel": "Get Started",
+            "ctaLink": "/"
+          },
+          "design": {
+            "backgroundColor": "#f0f0f0",
+            "textColor": "#0000FF"
+          }
+        },
+        {
+          "sectionName": "text",
+          "type": "text",
+          "content": {
+            "title": "Text Title",
+            "paragraph": "Text content with **markdown** support"
+          },
+          "design": {
+            "imageUrl": "/image.jpg",
+            "imagePosition": "left"
+          }
         }
       ]
     }
-  ]
+  ],
+  "i18n": {
+    "en": {
+      "page.home.menuTitle": "Home",
+      "page.home.hero.content.title": "Welcome"
+    },
+    "fr": {
+      "page.home.menuTitle": "Accueil",
+      "page.home.hero.content.title": "Bienvenue"
+    }
+  }
 }
 ```
 
@@ -198,7 +236,7 @@ Simply add a new theme object to the `themes` array in `siteConfig.json`:
 
 ```json
 {
-  "name": "custom",
+  "themeName": "Custom",
   "primaryColor": "#ff5722",
   "secondaryColor": "#00bcd4",
   "linkColor": "#ff5722",
@@ -209,7 +247,7 @@ Simply add a new theme object to the `themes` array in `siteConfig.json`:
 }
 ```
 
-The theme will automatically be available in the theme switcher.
+The configuration will be validated by Zod schemas, and the theme will automatically be available in the theme switcher.
 
 ### Adding New Pages
 
@@ -217,115 +255,252 @@ Add page definitions to the `pages` array in `siteConfig.json`:
 
 ```json
 {
-  "name": "page.contact",
-  "title": "Contact",
+  "pageName": "page.contact",
+  "menuTitle": "Contact",
   "route": "/contact",
   "sections": [
     {
-      "name": "page.contact.hero",
+      "sectionName": "hero",
       "type": "hero",
-      "title": "Contact Us",
-      "subtitle": "Get in touch",
-      "ctaLabel": "Send Message",
-      "ctaLink": "/contact#form"
+      "content": {
+        "title": "Contact Us",
+        "subtitle": "Get in touch",
+        "ctaLabel": "Send Message",
+        "ctaLink": "/contact#form"
+      },
+      "design": {
+        "backgroundColor": "#f0f0f0"
+      }
     }
   ]
 }
 ```
 
+Pages are validated at runtime and routes are automatically generated.
+
 ### Translations
 
-Translations are embedded in the page content using the `name` field as the i18n key. The application uses React Intl with fallback to the default text values defined in `siteConfig.json`.
+Translations are embedded in the page content using the site structure's field names as the i18n key. The application uses React Intl with fallback to the default text values defined in `siteConfig.json`.
 
-To add translations:
-1. Use the section `name` as the i18n key prefix (e.g., `page.home.hero`)
-2. Define default text in `siteConfig.json`
-3. Translations are automatically looked up using the pattern `{name}.{field}`
+Translation keys are automatically constructed using:
+```
+{pageName}.{sectionName}.content.{field}
+```
 
 Example:
-- Section name: `page.home.hero`
-- Title i18n key: `page.home.hero.title`
-- Subtitle i18n key: `page.home.hero.subtitle`
-- Fallback: Uses values from `siteConfig.json`
+- Page: `page.home`
+- Section: `hero`
+- Field: `title`
+- **Translation key**: `page.home.hero.content.title`
+
+Add translations in the `i18n` object:
+```json
+{
+  "i18n": {
+    "en": {
+      "page.home.hero.content.title": "Welcome to Our Site",
+      "page.home.hero.content.subtitle": "Modern React Application"
+    },
+    "fr": {
+      "page.home.hero.content.title": "Bienvenue sur Notre Site",
+      "page.home.hero.content.subtitle": "Application React Moderne"
+    }
+  }
+}
+```
+
+The application falls back to the content values in `siteConfig.json` if translations are missing.
 
 ## 🏗️ Architecture
 
-### Centralized Configuration
+### Async Configuration with Zod Validation
 
-The application uses a **single source of truth** for all configuration:
+The application loads configuration **asynchronously** with **runtime validation**:
 
-**`src/config/siteConfig.json`**
-- ✅ Site metadata (name, logo, favicon)
-- ✅ All theme configurations (dynamically loaded)
-- ✅ Page routes and content structure
-- ✅ Default translations and content
-- ✅ Section configurations (hero, text, etc.)
+**Key Features:**
+- ✅ **Async Loading** - Shows loading screen while config loads
+- ✅ **Runtime Validation** - Zod catches configuration errors
+- ✅ **Type Inference** - TypeScript types inferred from Zod schemas
+- ✅ **Context Injection** - Config available throughout the app
+- ✅ **Error Handling** - Graceful error display if config invalid
+- ✅ **Discriminated Unions** - Type-safe section rendering
 
-This approach provides:
-- **Single File Management** - All site content in one place
-- **Type Safety** - TypeScript interfaces validate configuration
-- **Dynamic Loading** - Themes and pages automatically discovered
-- **Easy Maintenance** - No code changes needed for content updates
-- **Scalability** - Add unlimited themes, pages, and languages
+### Configuration Flow
 
-### Smart vs Dumb Components
-
-**Smart Components** (Container): Manage state, side effects, and business logic
-- `App.tsx` - Root application component
-- `AppThemeProvider` - Loads themes from `siteConfig.json` dynamically
-- `AppIntlProvider` - Manages internationalization state
-- `MainLayout` - Orchestrates layout with theme and config
-- `Page` - Dynamically renders page sections from configuration
-
-**Dumb Components** (Presentational): Receive props and render UI
-- `HeroSection` - Fully responsive hero section
-- `TextSection` - Configurable text content section
-- `MenuBar` - Adaptive navigation (mobile hamburger menu / desktop menu bar)
-- `Footer` - Responsive footer with flexbox layout
-
-### Custom Hooks
-
-- `useAppTheme()` - Access theme state and switching functionality
-- `useAppIntl()` - Access language state and switching functionality
-
-### Dynamic Theme System
-
-Themes are **automatically extracted** from `siteConfig.json`:
-
-```typescript
-// No hardcoded themes - dynamically built from config
-const themeConfigs = siteConfig.themes.reduce(
-  (acc, theme) => {
-    const { name, ...themeConfig } = theme;
-    acc[name] = themeConfig;
-    return acc;
-  },
-  {}
-);
+```
+┌─────────────────────────────────────────┐
+│  App starts                             │
+│  ↓                                      │
+│  SiteConfigProvider loads config        │
+│  ↓                                      │
+│  Loading screen displayed               │
+│  ↓                                      │
+│  configService.loadSiteConfig()         │
+│  ↓                                      │
+│  Zod validation (SiteConfigSchema)      │
+│  ↓                                      │
+│  Config available in Context            │
+│  ↓                                      │
+│  ├─ IntlProvider (uses config.i18n)     │
+│  ├─ ThemeProvider (uses config.themes)  │
+│  └─ AppRouter (uses config.pages)       │
+└─────────────────────────────────────────┘
 ```
 
-Benefits:
-- Add/remove themes without touching code
-- All theme names automatically available
-- Type-safe theme configuration
-- Runtime theme switching
+### Adding New Section Types
 
-### Content-Driven Pages
+The application uses **discriminated unions** with Zod for type-safe section rendering. Here's how to add a new section type:
 
-Pages are **dynamically generated** from `siteConfig.json`:
+#### 1. Define Schema in `src/types/section.interface.ts`
 
 ```typescript
-// Routes automatically created from page configurations
-const routes = siteConfig.pages.map(page => ({
-  path: page.route,
-  element: <Page {...page} />
-}));
+// Add to SectionTypesEnum
+export const SectionTypesEnum = {
+  HERO: 'hero',
+  TEXT: 'text',
+  NEW: 'new', // ← Add new type
+} as const;
+
+// Create content schema
+const NewContentSchema = z.object({
+  title: z.string().optional(),
+  images: z.array(z.object({
+    url: z.string(),
+    alt: z.string(),
+  })),
+});
+
+// Create design schema (extends base)
+const NewDesignSchema = SectionDesignSchema.extend({
+  columns: z.number().optional(),
+  spacing: z.number().optional(),
+});
+
+// Create block schema with sectionName
+const NewSectionPropsSchema = BaseSectionPropsSchema.extend({
+  type: z.literal(SectionTypesEnum.NEW),
+  content: NewContentSchema,
+  design: NewDesignSchema.optional(),
+});
+
+export type NewSectionProps = z.infer<typeof NewSectionPropsSchema>;
 ```
 
-Each page section is rendered based on its `type`:
-- `hero` → `HeroSection` component
-- `text` → `TextSection` component
-- Extensible for new section types
+#### 2. Update Discriminated Union
+
+```typescript
+// Add to discriminated union
+export const SectionPropsSchema = z.discriminatedUnion('type', [
+  HeroSectionPropsSchema,
+  TextSectionPropsSchema,
+  NewSectionPropsSchema, // ← Add here
+]);
+
+// Update conditional type
+export type SectionProps<T extends SectionType> = 
+  T extends typeof SectionTypesEnum.HERO 
+    ? HeroSectionProps
+    : T extends typeof SectionTypesEnum.TEXT
+    ? TextSectionProps
+    : T extends typeof SectionTypesEnum.NEW
+    ? NewSectionProps // ← Add here
+    : never;
+```
+
+#### 3. Create Section Component
+
+Create `src/components/sections/NewSection.tsx`:
+
+```typescript
+import React from 'react';
+import { Container, Box } from '@mui/material';
+import type { NewSectionProps } from '../../types/section.interface';
+import { useAppTheme } from '../../hooks/useTheme';
+import { FormattedMessage } from 'react-intl';
+
+export const NewSection: React.FC<NewSectionProps> = ({
+  sectionName,
+  content,
+  design
+}) => {
+  const { siteThemeConfig, themeConfig } = useAppTheme();
+  return (
+    <Box>
+      <Container maxWidth={siteThemeConfig.containerMaxWidth}>
+        // use sectionName to contextualize i18n key
+        <FormattedMessage id={`${sectionName}.content.title`} defaultMessage={content.title} /> 
+        // your component here
+      </Container>
+    </Box>
+  );
+};
+```
+
+#### 4. Export from `src/components/index.ts`
+
+```typescript
+export { NewSection } from './sections/NewSection';
+```
+
+#### 5. Add to Router in `src/pages/dynamic/PageSection.tsx`
+
+```typescript
+import { NewSection } from '../../components';
+
+switch (type) {
+  case SectionTypesEnum.HERO:
+    return <HeroSection {...props} />;
+  case 'text':
+    return <TextSection {...props} />;
+  case 'new': // ← Add here
+    return <NewSection {...props} />;
+  default:
+    return null;
+}
+```
+
+#### 6. Add to Configuration
+
+Update `src/config/siteConfig.json`:
+
+```json
+{
+  "sections": [
+    {
+      "sectionName": "gallery",
+      "type": "gallery",
+      "content": {
+        "title": "Our Gallery",
+        "images": [
+          { "url": "/img1.jpg", "alt": "Image 1" },
+          { "url": "/img2.jpg", "alt": "Image 2" }
+        ]
+      },
+      "design": {
+        "columns": 3,
+        "spacing": 2,
+        "backgroundColor": "#f5f5f5"
+      }
+    }
+  ]
+}
+```
+
+#### 7. Add Translations (Optional)
+
+```json
+{
+  "i18n": {
+    "en": {
+      "page.home.gallery.content.title": "Photo Gallery"
+    },
+    "fr": {
+      "page.home.gallery.content.title": "Galerie de Photos"
+    }
+  }
+}
+```
+
 
 ### Mobile-First Development
 
@@ -369,16 +544,6 @@ Modern browsers that support ES6+ features and React 19:
 
 **Note**: React 19 requires more recent browser versions than React 18. Ensure your target audience uses modern browsers.
 
-## ⚠️ React 19 Compatibility Note
-
-This project uses **React 19** with `react-intl` which internally depends on React 18 types. Due to React 19's expanded `ReactNode` type (which includes `bigint`), there's a type incompatibility that is safely handled with type assertions in the `IntlProvider`.
-
-The build process has been optimized:
-- `npm run build` - Builds the production bundle (recommended)
-- `npm run build:check` - Builds with strict TypeScript project references (may show type warnings)
-- `npm run typecheck` - Type checking works correctly with `tsc --noEmit`
-
-This is a temporary compatibility issue that will be resolved when `react-intl` officially supports React 19.
 
 ## 📱 Mobile Testing Checklist
 
@@ -409,18 +574,13 @@ To test on real mobile devices on your local network:
 3. Access from mobile: `http://YOUR_IP:5173`
 4. Ensure your mobile device is on the same network
 
-## 📊 Performance
-
-- **Build Size**: ~505 KB (gzipped: ~162 KB)
-- **Mobile-First**: Optimized for mobile performance
-- **Code Splitting**: Consider implementing dynamic imports for larger apps
-- **Tree Shaking**: Enabled via Vite
-
 ## 🎯 Future Enhancements
 
-- [ ] Progressive Web App (PWA) support
-- [ ] Dark mode auto-detection based on system preferences
-- [ ] Additional language support
+- [ ] Assets management
+- [ ] Load configuration from API endpoint instead of JSON file
+- [ ] Load i18n resources asynchronously on language select
+- [ ] Configuration caching with cache invalidation
+- [ ] Additional section types (gallery, contact form, calendar, team, member, event, bibliography, etc.)
 - [ ] Advanced responsive images with srcset
-- [ ] Offline support with service workers
-- [ ] Performance monitoring
+- [ ] Configuration edition mechanism
+- [ ] Modules management (payment, authentication, external API access)

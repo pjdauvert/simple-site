@@ -3,11 +3,11 @@ import { Box, Container, Typography } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { FormattedMessage } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
-import type { SectionProps, SectionTypesEnum } from '../../types/section.interface';
+import type { TextSectionProps } from '../../types/section.interface';
 import { useAppTheme } from '../../hooks/useTheme';
 
 
-export const TextSection: React.FC<SectionProps<typeof SectionTypesEnum.TEXT>> = ({ sectionName, content, design }) => {
+export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, design }) => {
   const { siteThemeConfig, themeConfig } = useAppTheme();
   // Determine colors: use design props if provided, otherwise fallback to theme
   const backgroundColor = design?.backgroundColor || themeConfig.backgroundColor;

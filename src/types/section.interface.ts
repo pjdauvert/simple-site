@@ -45,13 +45,13 @@ const HeroDesignSchema = SectionDesignSchema.extend({
   parallax: z.boolean().optional(),
 });
 
-const HeroBlockSchema = BaseSectionPropsSchema.extend({
+const HeroSectionPropsSchema = BaseSectionPropsSchema.extend({
   type: z.literal(SectionTypesEnum.HERO),
   content: HeroContentSchema,
   design: HeroDesignSchema.optional(),
 });
 
-export type HeroBlock = z.infer<typeof HeroBlockSchema>;
+export type HeroSectionProps = z.infer<typeof HeroSectionPropsSchema>;
 
 // Text block
 const TextContentSchema = z.object({
@@ -67,13 +67,13 @@ const TextDesignSchema = SectionDesignSchema.extend({
   parallax: z.boolean().optional(),
 });
 
-const TextBlockSchema = BaseSectionPropsSchema.extend({
+const TextSectionPropsSchema = BaseSectionPropsSchema.extend({
   type: z.literal(SectionTypesEnum.TEXT),
   content: TextContentSchema,
   design: TextDesignSchema.optional(),
 });
 
-export type TextBlock = z.infer<typeof TextBlockSchema>;
+export type TextSectionProps = z.infer<typeof TextSectionPropsSchema>;
 
 /****************************************
 * PageSection props schema              *
@@ -86,14 +86,14 @@ export type SectionType = z.infer<typeof SectionTypeSchema>;
 
 // Union of all section types (discriminated union)
 export const SectionPropsSchema = z.discriminatedUnion('type', [
-  HeroBlockSchema,
-  TextBlockSchema,
+  HeroSectionPropsSchema,
+  TextSectionPropsSchema,
 ]);
 
 // Conditional type to get the correct props based on section type
-export type SectionProps<T extends SectionType = SectionType> = 
+export type SectionProps<T extends SectionType> = 
   T extends typeof SectionTypesEnum.HERO 
-    ? HeroBlock
+    ? HeroSectionProps
     : T extends typeof SectionTypesEnum.TEXT
-    ? TextBlock
+    ? TextSectionProps
     : never;
