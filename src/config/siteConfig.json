@@ -2,8 +2,8 @@
   
   "site": {
     "siteName": "Simple Site",
-    "logoUrl": "/vite.svg",
-    "faviconUrl": "/vite.svg",
+    "logoUrl": "images/logo.svg",
+    "faviconUrl": "images/favicon.svg",
     "containerMaxWidth": "lg"
   },
   "themes": [

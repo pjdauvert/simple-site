@@ -6,15 +6,13 @@ import { HeroSection } from '../../components/sections/HeroSection';
 
 export const PageSection: React.FC<SectionProps<SectionType>> = (props) => {
 
-
-  if (props.type === SectionTypesEnum.HERO) {
-    return <HeroSection {...props} />;
+  switch (props.type) {
+    case SectionTypesEnum.HERO:
+      return <HeroSection {...props} />;
+    case SectionTypesEnum.TEXT:
+      return <TextSection {...props} />;
+    default:
+      return null;
   }
-
-  if (props.type === SectionTypesEnum.TEXT) {
-    return <TextSection {...props} />;
-  }
-
-  return null;
 };
 

@@ -450,9 +450,9 @@ import { NewSection } from '../../components';
 switch (type) {
   case SectionTypesEnum.HERO:
     return <HeroSection {...props} />;
-  case 'text':
+  case SectionTypesEnum.TEXT:
     return <TextSection {...props} />;
-  case 'new': // ← Add here
+  case SectionTypesEnum.NEW: // ← Add here
     return <NewSection {...props} />;
   default:
     return null;
@@ -467,8 +467,8 @@ Update `src/config/siteConfig.json`:
 {
   "sections": [
     {
-      "sectionName": "gallery",
-      "type": "gallery",
+      "sectionName": "new-section",
+      "type": "new",
       "content": {
         "title": "Our Gallery",
         "images": [

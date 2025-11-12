@@ -1,5 +1,6 @@
 import type { Breakpoint } from "@mui/material";
 import { z } from "zod";
+import { UrlOrPathSchema } from "./url.interface";
 
 const breakpoints = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 
@@ -25,8 +26,8 @@ export type ThemeConfig = z.infer<typeof ThemeConfigSchema>;
 // SiteThemeConfig schema
 export const SiteThemeConfigSchema = z.object({
   siteName: z.string(),
-  logoUrl: z.string().optional(),
-  faviconUrl: z.string().optional(),
+  logoUrl: UrlOrPathSchema.optional(),
+  faviconUrl: UrlOrPathSchema.optional(),
   containerMaxWidth: z.union([BreakpointSchema, z.literal(false)]).optional(),
 });
 
