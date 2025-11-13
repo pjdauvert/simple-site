@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
-import type { HeroSectionProps } from '../../types/section.interface';
+import type { HeroSectionProps } from '../../types/sections/section.interface';
 import { useAppTheme } from '../../hooks/useTheme';
 
 

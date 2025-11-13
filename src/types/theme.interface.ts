@@ -1,12 +1,6 @@
-import type { Breakpoint } from "@mui/material";
 import { z } from "zod";
 import { UrlOrPathSchema } from "./url.interface";
-
-const breakpoints = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
-
-const BreakpointSchema = z.custom<Breakpoint>((value) => {
-  return typeof value === 'string' && breakpoints.includes(value as Breakpoint)
-})
+import { BreakpointSchema } from "./layout.interface";
 
 // ThemeConfig schema
 export const ThemeConfigSchema = z.object({

@@ -1,5 +1,6 @@
 import React from 'react';
-import  { type SectionProps, SectionTypesEnum, type SectionType } from '../../types/section.interface';
+import  { type SectionProps } from '../../types/page.interface';
+import { type SectionType, SectionTypesEnum } from '../../types/sections';
 import { TextSection } from '../../components/sections/TextSection';
 import { HeroSection } from '../../components/sections/HeroSection';
 
