@@ -81,7 +81,9 @@
                 "imageUrl": "images/icons/chart02.svg",
                 "imagePosition": "top",
                 "imageSize": "contain",
-                "imageAspectRatio": "1/1"
+                "imageAspectRatio": "1/1",
+                "imageMaxWidth": "120px",
+                "imageMaxHeight": "120px"
               },
               {
                 "verticalAlign": "top",
@@ -89,7 +91,9 @@
                 "imageUrl": "images/icons/smartphone-charts.svg",
                 "imagePosition": "top",
                 "imageSize": "contain",
-                "imageAspectRatio": "1/1"
+                "imageAspectRatio": "1/1",
+                "imageMaxWidth": "120px",
+                "imageMaxHeight": "120px"
               },
               {
                 "verticalAlign": "top",
@@ -97,7 +101,9 @@
                 "imageUrl": "images/icons/lamp.svg",
                 "imagePosition": "top",
                 "imageSize": "contain",
-                "imageAspectRatio": "1/1"
+                "imageAspectRatio": "1/1",
+                "imageMaxWidth": "120px",
+                "imageMaxHeight": "120px"
               }
             ]
           },
@@ -162,24 +168,36 @@
               {
                 "verticalAlign": "center",
                 "textAlign": "center",
-                "imageUrl": "images/icons/plant.svg"
+                "imageUrl": "images/icons/plant.svg",
+                "imagePosition": "top",
+                "imageMaxWidth": "80px",
+                "imageMaxHeight": "80px"
               },
               {
                 "verticalAlign": "center",
                 "textAlign": "center",
-                "imageUrl": "images/icons/globe.svg"
+                "imageUrl": "images/icons/globe.svg",
+                "imagePosition": "top",
+                "imageMaxWidth": "80px",
+                "imageMaxHeight": "80px"
               },
               {
                 "verticalAlign": "center",
                 "textAlign": "center",
                 "hideOnBreakpoints": ["xs", "sm"],
-                "imageUrl": "images/icons/support.svg"
+                "imageUrl": "images/icons/support.svg",
+                "imagePosition": "top",
+                "imageMaxWidth": "80px",
+                "imageMaxHeight": "80px"
               },
               {
                 "verticalAlign": "center",
                 "textAlign": "center",
                 "hideOnBreakpoints": ["xs", "sm"],
-                "imageUrl": "images/icons/gauge.svg"
+                "imageUrl": "images/icons/gauge.svg",
+                "imagePosition": "top",
+                "imageMaxWidth": "80px",
+                "imageMaxHeight": "80px"
               }
             ]
           },

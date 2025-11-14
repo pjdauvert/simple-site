@@ -20,6 +20,8 @@ const TextColumnDesignSchema = z.object({
     imageSize: SectionImageSizeSchema.optional(),
     imagePosition: SectionImagePositionSchema.optional(),
     imageAspectRatio: z.string().optional(),
+    imageMaxWidth: z.string().optional(),
+    imageMaxHeight: z.string().optional(),
   });
 
 export type TextColumnDesign = z.infer<typeof TextColumnDesignSchema>;
