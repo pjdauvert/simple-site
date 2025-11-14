@@ -10,38 +10,29 @@ export const BreakpointsEnum = {
 
   export const BreakpointSchema = z.enum(Object.values(BreakpointsEnum));
 
-  export const SectionImagePositionEnum = {
-    LEFT: 'left',
-    RIGHT: 'right',
-    TOP: 'top',
-    BOTTOM: 'bottom',
-    BACKGROUND: 'background',
-  } as const;
-  
-  export const SectionImagePositionSchema = z.enum(Object.values(SectionImagePositionEnum));
-  
-  const SectionImageSizeEnum = {
+  // Simplified media size for text sections
+  const MediaPositionEnum = {
     COVER: 'cover',
     CONTAIN: 'contain',
-    FILL: 'fill',
-    SCALE_DOWN: 'scale-down',
   } as const;
   
-  export const SectionImageSizeSchema = z.enum(Object.values(SectionImageSizeEnum));
-  
-  const ColumnVerticalAlignEnum = {
+  export const MediaPositionSchema = z.enum(Object.values(MediaPositionEnum));
+
+  // Media vertical alignment (top, middle, bottom)
+  const VerticalAlignEnum = {
     TOP: 'top',
-    CENTER: 'center',
+    MIDDLE: 'middle',
     BOTTOM: 'bottom',
     STRETCH: 'stretch',
   } as const;
   
-  export const ColumnVerticalAlignSchema = z.enum(Object.values(ColumnVerticalAlignEnum));
-
-  const TextAlignEnum = {
+  export const VerticalAlignSchema = z.enum(Object.values(VerticalAlignEnum));
+  
+  const HorizontalAlignEnum = {
     LEFT: 'left',
     CENTER: 'center',
     RIGHT: 'right',
+    SPAN: 'span',
   } as const;
   
-  export const TextAlignSchema = z.enum(Object.values(TextAlignEnum));
+  export const HorizontalAlignSchema = z.enum(Object.values(HorizontalAlignEnum));

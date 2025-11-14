@@ -72,38 +72,41 @@
           "sectionName": "features",
           "type": "text",
           "design": {
-            "backgroundColor": "#c5c5c5",
+            "backgroundUrl": "images/backgrounds/fields.jpg",
             "columnLayout": [1, 1, 1],
             "columnConfig": [
               {
-                "verticalAlign": "top",
-                "textAlign": "center",
-                "imageUrl": "images/icons/chart02.svg",
-                "imagePosition": "top",
-                "imageSize": "contain",
-                "imageAspectRatio": "1/1",
-                "imageMaxWidth": "120px",
-                "imageMaxHeight": "120px"
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "images/icons/chart02.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
               },
               {
-                "verticalAlign": "top",
-                "textAlign": "center",
-                "imageUrl": "images/icons/smartphone-charts.svg",
-                "imagePosition": "top",
-                "imageSize": "contain",
-                "imageAspectRatio": "1/1",
-                "imageMaxWidth": "120px",
-                "imageMaxHeight": "120px"
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "images/icons/smartphone-charts.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
               },
               {
-                "verticalAlign": "top",
-                "textAlign": "center",
-                "imageUrl": "images/icons/lamp.svg",
-                "imagePosition": "top",
-                "imageSize": "contain",
-                "imageAspectRatio": "1/1",
-                "imageMaxWidth": "120px",
-                "imageMaxHeight": "120px"
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "images/icons/lamp.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
               }
             ]
           },
@@ -134,13 +137,15 @@
             "columnConfig": [
               {
                 "hideOnBreakpoints": ["xs", "sm"],
-                "verticalAlign": "center",
-                "imageUrl": "images/backgrounds/fields.jpg",
-                "imageSize": "cover",
-                "imagePosition": "background"
+                "textVerticalAlign": "middle",
+                "media": {
+                  "url": "images/gallery/friends.jpg",
+                  "position": "cover",
+                  "verticalAlign": "middle"
+                }
               },
               {
-                "verticalAlign": "center"
+                "textVerticalAlign": "middle"
               }
             ]
           },
@@ -161,43 +166,56 @@
           "sectionName": "stats",
           "type": "text",
           "design": {
-            "backgroundColor": "#f5f5f5",
+            "backgroundUrl": "images/backgrounds/snowed-mountain.jpg",
+            "parallax": true,
             "textColor": "#000000",
             "columnLayout": [1, 1, 1, 1],
             "columnConfig": [
               {
-                "verticalAlign": "center",
-                "textAlign": "center",
-                "imageUrl": "images/icons/plant.svg",
-                "imagePosition": "top",
-                "imageMaxWidth": "80px",
-                "imageMaxHeight": "80px"
+                "textVerticalAlign": "middle",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "images/icons/plant.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "80px",
+                  "maxHeight": "80px"
+                }
               },
               {
-                "verticalAlign": "center",
-                "textAlign": "center",
-                "imageUrl": "images/icons/globe.svg",
-                "imagePosition": "top",
-                "imageMaxWidth": "80px",
-                "imageMaxHeight": "80px"
+                "textVerticalAlign": "middle",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "images/icons/globe.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "80px",
+                  "maxHeight": "80px"
+                }
               },
               {
-                "verticalAlign": "center",
-                "textAlign": "center",
+                "textVerticalAlign": "middle",
+                "textHorizontalAlign": "center",
                 "hideOnBreakpoints": ["xs", "sm"],
-                "imageUrl": "images/icons/support.svg",
-                "imagePosition": "top",
-                "imageMaxWidth": "80px",
-                "imageMaxHeight": "80px"
+                "media": {
+                  "url": "images/icons/support.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "80px",
+                  "maxHeight": "80px"
+                }
               },
               {
-                "verticalAlign": "center",
-                "textAlign": "center",
+                "textVerticalAlign": "middle",
+                "textHorizontalAlign": "center",
                 "hideOnBreakpoints": ["xs", "sm"],
-                "imageUrl": "images/icons/gauge.svg",
-                "imagePosition": "top",
-                "imageMaxWidth": "80px",
-                "imageMaxHeight": "80px"
+                "media": {
+                  "url": "images/icons/gauge.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "80px",
+                  "maxHeight": "80px"
+                }
               }
             ]
           },

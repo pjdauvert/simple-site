@@ -75,7 +75,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
                 sx={{
                   display: 'flex',
                   flexDirection: 'column',
-                  justifyContent: getAlignItems(col.design?.verticalAlign),
+                  justifyContent: getTextVerticalAlign(col.design?.textVerticalAlign),
                 }}
               >
                 {renderColumn(col, sectionName)}
@@ -87,8 +87,8 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
     </Box>
   );
   
-  // Helper: Get alignment for vertical align
-  function getAlignItems(align?: string): string {
+  // Helper: Get alignment for text vertical align
+  function getTextVerticalAlign(align?: string): string {
     switch (align) {
       case 'center':
         return 'center';
@@ -119,22 +119,22 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
   // Render individual column
   function renderColumn(col: ColumnWithConfig, sectionName: string) {
     const { content, design, index } = col;
-    const hasImage = design?.imageUrl;
-    const imagePosition = design?.imagePosition || 'top';
+    const media = design?.media;
+    const mediaPosition = media?.position || 'contain';
     
-    // If image is background, render differently
-    if (hasImage && imagePosition === 'background') {
+    // If media is cover, render as background with text overlay
+    if (media && mediaPosition === 'cover') {
       return (
         <Box
           sx={{
-            backgroundImage: `url(${design.imageUrl})`,
-            backgroundSize: design.imageSize || 'cover',
-            backgroundPosition: 'center',
+            backgroundImage: `url(${media.url})`,
+            backgroundSize: 'cover',
+            backgroundPosition: getMediaVerticalPosition(media.verticalAlign),
             borderRadius: 2,
             minHeight: '300px',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
+            justifyContent: getTextVerticalAlign(design?.textVerticalAlign),
             p: 3,
             color: 'white',
             textShadow: '0 2px 4px rgba(0,0,0,0.5)',
@@ -145,74 +145,64 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
       );
     }
     
-    // Image and content positioning
-    const imageBlock = hasImage ? renderImage(design) : null;
-    const contentBlock = renderColumnContent(content, index, sectionName, design);
-    
-    if (!hasImage) {
-      return contentBlock;
+    // If media is contain, render media above text
+    if (media && mediaPosition === 'contain') {
+      return (
+        <>
+          {renderMedia(media)}
+          {renderColumnContent(content, index, sectionName, design)}
+        </>
+      );
     }
     
-    // Layout based on image position
-    switch (imagePosition) {
+    // No media, just content
+    return renderColumnContent(content, index, sectionName, design);
+  }
+  
+  // Get background position based on media vertical alignment
+  function getMediaVerticalPosition(align?: string): string {
+    switch (align) {
       case 'top':
-        return (
-          <>
-            {imageBlock}
-            {contentBlock}
-          </>
-        );
+        return 'top';
       case 'bottom':
-        return (
-          <>
-            {contentBlock}
-            {imageBlock}
-          </>
-        );
-      case 'left':
-        return (
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Box sx={{ flex: '0 0 40%' }}>{imageBlock}</Box>
-            <Box sx={{ flex: '1' }}>{contentBlock}</Box>
-          </Box>
-        );
-      case 'right':
-        return (
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Box sx={{ flex: '1' }}>{contentBlock}</Box>
-            <Box sx={{ flex: '0 0 40%' }}>{imageBlock}</Box>
-          </Box>
-        );
+        return 'bottom';
+      case 'middle':
       default:
-        return (
-          <>
-            {imageBlock}
-            {contentBlock}
-          </>
-        );
+        return 'center';
     }
   }
   
-  // Render column image
-  function renderImage(design: TextColumnDesign) {
-    if (!design.imageUrl) return null;
+  // Render media (image) when size is 'contain'
+  function renderMedia(media: NonNullable<TextColumnDesign['media']>) {
+    const mediaHorizontalAlign = media.horizontalAlign || 'left';
     
-    const aspectRatio = design.imageAspectRatio || 'auto';
+    // Determine alignment CSS
+    const getAlignmentStyle = () => {
+      switch (mediaHorizontalAlign) {
+        case 'center':
+          return { marginLeft: 'auto', marginRight: 'auto', display: 'block' };
+        case 'right':
+          return { marginLeft: 'auto', display: 'block' };
+        case 'left':
+        default:
+          return { marginRight: 'auto', display: 'block' };
+      }
+    };
     
     return (
       <Box
         component="img"
-        src={design.imageUrl}
-        alt="Column image"
+        src={media.url}
+        alt="Column media"
         sx={{
           width: '100%',
           height: 'auto',
-          aspectRatio: aspectRatio !== 'auto' ? aspectRatio : undefined,
-          maxHeight: design.imageMaxHeight || (aspectRatio === 'auto' ? '400px' : undefined),
-          maxWidth: design.imageMaxWidth || undefined,
-          objectFit: design.imageSize || 'contain',
+          maxHeight: media.maxHeight || '400px',
+          maxWidth: media.maxWidth || undefined,
+          objectFit: 'contain',
           borderRadius: 2,
           mb: 2,
+          ...getAlignmentStyle(),
         }}
       />
     );
@@ -221,7 +211,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
   // Render column content (title + paragraph)
   function renderColumnContent(content: TextColumnContent, index: number, sectionName: string, design?: TextColumnDesign) {
     return (
-      <Box sx={{ textAlign: design?.textAlign || 'left' }}>
+      <Box sx={{ textAlign: design?.textHorizontalAlign || 'left' }}>
         {content.title && (
           <Typography variant="h4" component="h2" gutterBottom>
             <FormattedMessage 

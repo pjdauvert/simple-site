@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { BaseSectionDesignSchema, BaseSectionPropsSchema, SectionTypesEnum } from "./section.interface";
 import { UrlOrPathSchema } from "../url.interface";
-import { BreakpointSchema, SectionImageSizeSchema, SectionImagePositionSchema, ColumnVerticalAlignSchema, TextAlignSchema } from "../layout.interface";
+import { BreakpointSchema, VerticalAlignSchema, HorizontalAlignSchema, MediaPositionSchema } from "../layout.interface";
 
 // Text section schemas
 // Column schemas for multi-column layouts
@@ -11,17 +11,24 @@ const TextColumnContentSchema = z.object({
   });
 
 export type TextColumnContent = z.infer<typeof TextColumnContentSchema>;
+
+// Media schema for column images/backgrounds
+const MediaSchema = z.object({
+  url: UrlOrPathSchema,
+  position: MediaPositionSchema.optional(), // 'cover' or 'contain', defaults to 'contain'
+  verticalAlign: VerticalAlignSchema.optional(), // 'top', 'middle', 'bottom', 'stretch'
+  horizontalAlign: HorizontalAlignSchema.optional(), // 'left', 'center', 'right', 'span'
+  maxWidth: z.string().optional(), // e.g., "120px", "50%"
+  maxHeight: z.string().optional(), // e.g., "200px", "10rem"
+});
+
+export type Media = z.infer<typeof MediaSchema>;
   
 const TextColumnDesignSchema = z.object({
     hideOnBreakpoints: z.array(BreakpointSchema).optional(),
-    verticalAlign: ColumnVerticalAlignSchema.optional(),
-    textAlign: TextAlignSchema.optional(),
-    imageUrl: UrlOrPathSchema.optional(),
-    imageSize: SectionImageSizeSchema.optional(),
-    imagePosition: SectionImagePositionSchema.optional(),
-    imageAspectRatio: z.string().optional(),
-    imageMaxWidth: z.string().optional(),
-    imageMaxHeight: z.string().optional(),
+    textHorizontalAlign: HorizontalAlignSchema.optional(), // Horizontal text alignment
+    textVerticalAlign: VerticalAlignSchema.optional(), // Vertical text alignment
+    media: MediaSchema.optional(), // Media (image/background) configuration
   });
 
 export type TextColumnDesign = z.infer<typeof TextColumnDesignSchema>;
