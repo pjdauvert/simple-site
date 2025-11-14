@@ -37,3 +37,11 @@ export const BreakpointsEnum = {
   } as const;
   
   export const ColumnVerticalAlignSchema = z.enum(Object.values(ColumnVerticalAlignEnum));
+
+  const TextAlignEnum = {
+    LEFT: 'left',
+    CENTER: 'center',
+    RIGHT: 'right',
+  } as const;
+  
+  export const TextAlignSchema = z.enum(Object.values(TextAlignEnum));

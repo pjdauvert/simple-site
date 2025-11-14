@@ -2,8 +2,8 @@
   
   "site": {
     "siteName": "Simple Site",
-    "logoUrl": "images/logo.svg",
-    "faviconUrl": "images/favicon.svg",
+    "logoUrl": "images/vite.svg",
+    "faviconUrl": "images/vite.svg",
     "containerMaxWidth": "lg"
   },
   "themes": [
@@ -72,25 +72,29 @@
           "sectionName": "features",
           "type": "text",
           "design": {
+            "backgroundColor": "#c5c5c5",
             "columnLayout": [1, 1, 1],
             "columnConfig": [
               {
                 "verticalAlign": "top",
-                "imageUrl": "images/logo.svg",
+                "textAlign": "center",
+                "imageUrl": "images/icons/chart02.svg",
                 "imagePosition": "top",
                 "imageSize": "contain",
                 "imageAspectRatio": "1/1"
               },
               {
                 "verticalAlign": "top",
-                "imageUrl": "images/logo.svg",
+                "textAlign": "center",
+                "imageUrl": "images/icons/smartphone-charts.svg",
                 "imagePosition": "top",
                 "imageSize": "contain",
                 "imageAspectRatio": "1/1"
               },
               {
                 "verticalAlign": "top",
-                "imageUrl": "images/logo.svg",
+                "textAlign": "center",
+                "imageUrl": "images/icons/lamp.svg",
                 "imagePosition": "top",
                 "imageSize": "contain",
                 "imageAspectRatio": "1/1"
@@ -125,7 +129,7 @@
               {
                 "hideOnBreakpoints": ["xs", "sm"],
                 "verticalAlign": "center",
-                "imageUrl": "images/logo.svg",
+                "imageUrl": "images/backgrounds/fields.jpg",
                 "imageSize": "cover",
                 "imagePosition": "background"
               },
@@ -151,21 +155,31 @@
           "sectionName": "stats",
           "type": "text",
           "design": {
+            "backgroundColor": "#f5f5f5",
+            "textColor": "#000000",
             "columnLayout": [1, 1, 1, 1],
             "columnConfig": [
               {
-                "verticalAlign": "center"
-              },
-              {
-                "verticalAlign": "center"
+                "verticalAlign": "center",
+                "textAlign": "center",
+                "imageUrl": "images/icons/plant.svg"
               },
               {
                 "verticalAlign": "center",
-                "hideOnBreakpoints": ["xs", "sm"]
+                "textAlign": "center",
+                "imageUrl": "images/icons/globe.svg"
               },
               {
                 "verticalAlign": "center",
-                "hideOnBreakpoints": ["xs", "sm"]
+                "textAlign": "center",
+                "hideOnBreakpoints": ["xs", "sm"],
+                "imageUrl": "images/icons/support.svg"
+              },
+              {
+                "verticalAlign": "center",
+                "textAlign": "center",
+                "hideOnBreakpoints": ["xs", "sm"],
+                "imageUrl": "images/icons/gauge.svg"
               }
             ]
           },

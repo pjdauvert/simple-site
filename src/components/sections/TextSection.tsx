@@ -140,14 +140,14 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
             textShadow: '0 2px 4px rgba(0,0,0,0.5)',
           }}
         >
-          {renderColumnContent(content, index, sectionName)}
+          {renderColumnContent(content, index, sectionName, design)}
         </Box>
       );
     }
     
     // Image and content positioning
     const imageBlock = hasImage ? renderImage(design) : null;
-    const contentBlock = renderColumnContent(content, index, sectionName);
+    const contentBlock = renderColumnContent(content, index, sectionName, design);
     
     if (!hasImage) {
       return contentBlock;
@@ -218,9 +218,9 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
   }
   
   // Render column content (title + paragraph)
-  function renderColumnContent(content: TextColumnContent, index: number, sectionName: string) {
+  function renderColumnContent(content: TextColumnContent, index: number, sectionName: string, design?: TextColumnDesign) {
     return (
-      <Box>
+      <Box sx={{ textAlign: design?.textAlign || 'left' }}>
         {content.title && (
           <Typography variant="h4" component="h2" gutterBottom>
             <FormattedMessage 

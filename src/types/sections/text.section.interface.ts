@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { BaseSectionDesignSchema, BaseSectionPropsSchema, SectionTypesEnum } from "./section.interface";
 import { UrlOrPathSchema } from "../url.interface";
-import { BreakpointSchema, SectionImageSizeSchema, SectionImagePositionSchema, ColumnVerticalAlignSchema } from "../layout.interface";
+import { BreakpointSchema, SectionImageSizeSchema, SectionImagePositionSchema, ColumnVerticalAlignSchema, TextAlignSchema } from "../layout.interface";
 
 // Text section schemas
 // Column schemas for multi-column layouts
@@ -13,8 +13,9 @@ const TextColumnContentSchema = z.object({
 export type TextColumnContent = z.infer<typeof TextColumnContentSchema>;
   
 const TextColumnDesignSchema = z.object({
-      hideOnBreakpoints: z.array(BreakpointSchema).optional(),
+    hideOnBreakpoints: z.array(BreakpointSchema).optional(),
     verticalAlign: ColumnVerticalAlignSchema.optional(),
+    textAlign: TextAlignSchema.optional(),
     imageUrl: UrlOrPathSchema.optional(),
     imageSize: SectionImageSizeSchema.optional(),
     imagePosition: SectionImagePositionSchema.optional(),
