@@ -2,8 +2,8 @@
   
   "site": {
     "siteName": "Simple Site",
-    "logoUrl": "images/vite.svg",
-    "faviconUrl": "images/vite.svg",
+    "logoUrl": "https://ik.imagekit.io/lionbytes/simple-site/logo_256.png",
+    "faviconUrl": "https://ik.imagekit.io/lionbytes/simple-site/logo_256.png?tr=w-32,h-32,q-90,f-png",
     "containerMaxWidth": "lg"
   },
   "themes": [
@@ -72,14 +72,14 @@
           "sectionName": "features",
           "type": "text",
           "design": {
-            "backgroundUrl": "images/backgrounds/fields.jpg",
+            "backgroundUrl": "https://ik.imagekit.io/lionbytes/simple-site/backgrounds/fields.jpg",
             "columnLayout": [1, 1, 1],
             "columnConfig": [
               {
                 "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "images/icons/chart02.svg",
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/chart02.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "120px",
@@ -90,7 +90,7 @@
                 "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "images/icons/smartphone-charts.svg",
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/smartphone-charts.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "120px",
@@ -101,7 +101,7 @@
                 "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "images/icons/lamp.svg",
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/lamp.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "120px",
@@ -139,7 +139,7 @@
                 "hideOnBreakpoints": ["xs", "sm"],
                 "textVerticalAlign": "middle",
                 "media": {
-                  "url": "images/gallery/friends.jpg",
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/gallery/friends.jpg",
                   "position": "cover",
                   "verticalAlign": "middle"
                 }
@@ -166,7 +166,7 @@
           "sectionName": "stats",
           "type": "text",
           "design": {
-            "backgroundUrl": "images/backgrounds/snowed-mountain.jpg",
+            "backgroundUrl": "https://ik.imagekit.io/lionbytes/simple-site/backgrounds/snowed-mountain.jpg",
             "parallax": true,
             "textColor": "#000000",
             "columnLayout": [1, 1, 1, 1],
@@ -175,7 +175,7 @@
                 "textVerticalAlign": "middle",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "images/icons/plant.svg",
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/plant.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "80px",
@@ -186,19 +186,7 @@
                 "textVerticalAlign": "middle",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "images/icons/globe.svg",
-                  "position": "contain",
-                  "horizontalAlign": "center",
-                  "maxWidth": "80px",
-                  "maxHeight": "80px"
-                }
-              },
-              {
-                "textVerticalAlign": "middle",
-                "textHorizontalAlign": "center",
-                "hideOnBreakpoints": ["xs", "sm"],
-                "media": {
-                  "url": "images/icons/support.svg",
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/globe.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "80px",
@@ -210,7 +198,19 @@
                 "textHorizontalAlign": "center",
                 "hideOnBreakpoints": ["xs", "sm"],
                 "media": {
-                  "url": "images/icons/gauge.svg",
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/support.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "80px",
+                  "maxHeight": "80px"
+                }
+              },
+              {
+                "textVerticalAlign": "middle",
+                "textHorizontalAlign": "center",
+                "hideOnBreakpoints": ["xs", "sm"],
+                "media": {
+                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/gauge.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "80px",

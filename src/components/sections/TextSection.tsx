@@ -124,10 +124,11 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
     
     // If media is cover, render as background with text overlay
     if (media && mediaPosition === 'cover') {
+      const coverImageUrl = `${media.url}?tr=w-1200,q-80,f-auto`;
       return (
         <Box
           sx={{
-            backgroundImage: `url(${media.url})`,
+            backgroundImage: `url(${coverImageUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: getMediaVerticalPosition(media.verticalAlign),
             borderRadius: 2,
@@ -189,10 +190,24 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
       }
     };
     
+    // Extract dimensions for ImageKit transformation
+    const maxHeight = media.maxHeight ? parseInt(media.maxHeight) : 400;
+    const maxWidth = media.maxWidth ? parseInt(media.maxWidth) : null;
+    
+    // Build ImageKit transformation
+    let transformations = 'q-80,f-auto';
+    if (maxWidth) {
+      transformations += `,w-${maxWidth * 2}`; // 2x for retina
+    } else {
+      transformations += `,h-${maxHeight * 2}`; // 2x for retina
+    }
+    
+    const optimizedImageUrl = `${media.url}?tr=${transformations}`;
+    
     return (
       <Box
         component="img"
-        src={media.url}
+        src={optimizedImageUrl}
         alt="Column media"
         sx={{
           width: '100%',

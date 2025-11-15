@@ -44,7 +44,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
             {siteThemeConfig.logoUrl && (
               <Box
                 component="img"
-                src={siteThemeConfig.logoUrl}
+                src={`${siteThemeConfig.logoUrl}?tr=h-64,q-80,f-auto`}
                 alt={siteThemeConfig.siteName}
                 sx={{ height: { xs: 24, sm: 32 }, mr: 1 }}
               />
