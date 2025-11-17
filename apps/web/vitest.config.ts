@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 const sharedTypesRoot = fileURLToPath(new URL('../../libs/interfaces/src', import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react()] as any,
   resolve: {
     alias: {
       '@simple-site/interfaces': sharedTypesRoot,

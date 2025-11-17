@@ -9,7 +9,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "declarationMap": true,
-    "outDir": "../../dist/out-tsc/libs/interfaces",
+    "outDir": "../../dist/interfaces",
     "rootDir": "src",
     "stripInternal": true
   },
