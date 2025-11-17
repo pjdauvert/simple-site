@@ -1,0 +1,56 @@
+{
+  "name": "web",
+  "projectType": "application",
+  "sourceRoot": "apps/web/src",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite",
+        "cwd": "apps/web"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/apps/web"],
+      "options": {
+        "command": "vite build",
+        "cwd": "apps/web"
+      }
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite preview",
+        "cwd": "apps/web"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run",
+        "cwd": "apps/web"
+      }
+    },
+    "test-ui": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest --ui",
+        "cwd": "apps/web"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint apps/web/src libs/interfaces/src apps/functions/src"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/web/tsconfig.app.json --noEmit"
+      }
+    }
+  },
+  "tags": []
+}

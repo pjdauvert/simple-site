@@ -7,13 +7,8 @@ A modern, mobile-first, themable, and multilingual web application built with Re
 - 📱 **Mobile-First Responsive Design** - Optimized for mobile devices with proper breakpoints
 - 🎨 **Runtime Theme Switching** - Switch between multiple themes on the fly
 - 🌍 **Multilingual Support** - Built-in internationalization with English and French
-- 🏗️ **Clean Architecture** - Context-based configuration with async loading
-- ✅ **Runtime Validation** - Zod schemas for configuration validation
 - 📦 **Dynamic Routing** - Routes automatically generated from configuration
-- ✅ **Pre-commit Checks** - Automated linting and type checking before commits
-- 🧪 **Testing Setup** - Vitest configured with React Testing Library
-- ⚡ **Latest Node.js** - Using Node.js v24.11.0 LTS managed by nvm
-- 🚀 **React 19** - Using the latest React version with enhanced features
+
 
 ## 🛠️ Tech Stack
 
@@ -24,12 +19,67 @@ A modern, mobile-first, themable, and multilingual web application built with Re
 - **React Intl** - Internationalization
 - **React Router** - Client-side routing with dynamic route generation
 - **React Markdown** - Markdown rendering support in text sections
-- **Vite** - Build tool and dev server
+- **Vite + Nx** - Vite dev/build orchestrated via Nx run targets
 - **Vitest** - Unit testing framework
 - **ESLint** - Code linting
 - **Lefthook** - Git hooks manager
-- **Node.js 24.11.0 LTS** - Latest stable version via nvm
-- **npm 11.6.2** - Latest npm version
+- **Netlify Functions** - Serverless runtime for backend endpoints
+
+## 🧱 Workspace Layout
+
+This repository follows an Nx-style monorepo so frontend, shared contracts, and serverless functions live together:
+
+```
+.
+├─ apps/
+│  ├─ web/            # Vite React SPA (what runs in the browser)
+│  └─ functions/      # Netlify Functions in TypeScript
+├─ libs/
+│  └─ interfaces/     # Shared Zod schemas & TypeScript interfaces
+├─ netlify.toml       # Netlify build + redirects to /.netlify/functions/*
+├─ package.json       # Nx scripts (dev/build/test/lint/typecheck)
+└─ tsconfig.base.json # Path alias @simple-site/interfaces → libs/interfaces
+```
+
+Use the provided npm scripts (`npm run dev`, `npm run build`, `npm run test`, etc.) which delegate to Nx targets under the hood.
+
+## 🔁 Shared Interfaces & Validation
+
+All contracts live in `libs/interfaces` and are exported through the `@simple-site/interfaces` alias defined in `tsconfig.base.json`. The library contains:
+
+- Zod schemas for the site configuration (theme, layout, sections, i18n)
+- Section discriminated unions that drive rendering
+- Shared types for request/response payloads like the contact form
+
+Because our Netlify functions compile to native NodeNext ESM, the shared library also re-exports files with explicit `.js` extensions so the emitted JavaScript keeps working in Node without bundling.
+
+## ☁️ Serverless Functions
+
+`apps/functions` hosts TypeScript Netlify handlers compiled with `tsc`. Current endpoints:
+
+- `send-email` – validates contact form payloads and sends through Mailgun
+- `db-query` – fetches sample users from MongoDB with schema validation
+- `imagekit-sign` – generates upload signatures
+- `google-proxy` – safely proxies Google API calls with your server API key
+
+Environment variables are validated via `apps/functions/src/types/env.ts`. Set the following in Netlify (or your environment) before deploying:
+
+```
+MONGODB_URI
+MAILGUN_API_KEY
+MAILGUN_DOMAIN
+MAILGUN_TO_EMAIL
+IMAGEKIT_PRIVATE_KEY
+IMAGEKIT_PUBLIC_KEY
+IMAGEKIT_URL_ENDPOINT
+GOOGLE_API_KEY_SERVER
+AUTH0_DOMAIN
+AUTH0_CLIENT_ID
+AUTH0_CLIENT_SECRET
+AUTH0_REDIRECT_URI
+```
+
+Netlify reads the static site from `dist/apps/web` and functions from `dist/apps/functions` as defined in `netlify.toml`. Locally you can build both with `npm run build` which runs the Nx `run-many` target.
 
 ## 📱 Mobile-First Responsive Design
 
@@ -136,7 +186,7 @@ npm run typecheck
 
 ## 🎨 Configuration
 
-All application configuration is centralized in a single file: **`src/config/siteConfig.json`**
+All application configuration is centralized in a single file: **`apps/web/src/config/siteConfig.json`**
 
 The configuration is:
 - ✅ **Loaded Asynchronously** - Simulates API loading with a loading screen
@@ -248,6 +298,7 @@ Simply add a new theme object to the `themes` array in `siteConfig.json`:
 ```
 
 The configuration will be validated by Zod schemas, and the theme will automatically be available in the theme switcher.
+If no theme is provided, a default one is hardcoded and will be used. When only one theme is provided, then the theme swithcher will not appear.
 
 ### Adding New Pages
 
@@ -255,23 +306,11 @@ Add page definitions to the `pages` array in `siteConfig.json`:
 
 ```json
 {
-  "pageName": "page.contact",
-  "menuTitle": "Contact",
-  "route": "/contact",
+  "pageName": "page.contact", // used for i18n key override construction (see Translations)
+  "menuTitle": "Contact", // as it will appear in the site menu
+  "route": "/contact", //unique route name for the URL
   "sections": [
-    {
-      "sectionName": "hero",
-      "type": "hero",
-      "content": {
-        "title": "Contact Us",
-        "subtitle": "Get in touch",
-        "ctaLabel": "Send Message",
-        "ctaLink": "/contact#form"
-      },
-      "design": {
-        "backgroundColor": "#f0f0f0"
-      }
-    }
+    ... // add setions here
   ]
 }
 ```
@@ -288,9 +327,9 @@ Translation keys are automatically constructed using:
 ```
 
 Example:
-- Page: `page.home`
-- Section: `hero`
-- Field: `title`
+- Page name: `page.home`
+- Section name: `hero`
+- Content field name: `title`
 - **Translation key**: `page.home.hero.content.title`
 
 Add translations in the `i18n` object:
@@ -310,6 +349,7 @@ Add translations in the `i18n` object:
 ```
 
 The application falls back to the content values in `siteConfig.json` if translations are missing.
+If the section contains columns, then the key format becomes: `page.home.text.content.columns.0.title` (`text` type section)
 
 ## 🏗️ Architecture
 
@@ -323,7 +363,6 @@ The application loads configuration **asynchronously** with **runtime validation
 - ✅ **Type Inference** - TypeScript types inferred from Zod schemas
 - ✅ **Context Injection** - Config available throughout the app
 - ✅ **Error Handling** - Graceful error display if config invalid
-- ✅ **Discriminated Unions** - Type-safe section rendering
 
 ### Configuration Flow
 
@@ -351,7 +390,7 @@ The application loads configuration **asynchronously** with **runtime validation
 
 The application uses **discriminated unions** with Zod for type-safe section rendering. Here's how to add a new section type:
 
-#### 1. Define Schema in `src/types/section.interface.ts`
+#### 1. Define Schema in `libs/interfaces/src/sections/section.interface.ts`
 
 ```typescript
 // Add to SectionTypesEnum
@@ -409,12 +448,12 @@ export type SectionProps<T extends SectionType> =
 
 #### 3. Create Section Component
 
-Create `src/components/sections/NewSection.tsx`:
+Create `apps/web/src/components/sections/NewSection.tsx`:
 
 ```typescript
 import React from 'react';
 import { Container, Box } from '@mui/material';
-import type { NewSectionProps } from '../../types/section.interface';
+import type { NewSectionProps } from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useTheme';
 import { FormattedMessage } from 'react-intl';
 
@@ -436,13 +475,13 @@ export const NewSection: React.FC<NewSectionProps> = ({
 };
 ```
 
-#### 4. Export from `src/components/index.ts`
+#### 4. Export from `apps/web/src/components/index.ts`
 
 ```typescript
 export { NewSection } from './sections/NewSection';
 ```
 
-#### 5. Add to Router in `src/pages/dynamic/PageSection.tsx`
+#### 5. Add to Router in `apps/web/src/pages/dynamic/PageSection.tsx`
 
 ```typescript
 import { NewSection } from '../../components';
@@ -461,7 +500,7 @@ switch (type) {
 
 #### 6. Add to Configuration
 
-Update `src/config/siteConfig.json`:
+Update `apps/web/src/config/siteConfig.json`:
 
 ```json
 {
@@ -470,7 +509,7 @@ Update `src/config/siteConfig.json`:
       "sectionName": "new-section",
       "type": "new",
       "content": {
-        "title": "Our Gallery",
+        "title": "Our New section",
         "images": [
           { "url": "/img1.jpg", "alt": "Image 1" },
           { "url": "/img2.jpg", "alt": "Image 2" }
@@ -492,10 +531,10 @@ Update `src/config/siteConfig.json`:
 {
   "i18n": {
     "en": {
-      "page.home.gallery.content.title": "Photo Gallery"
+      "pageName.new-section.content.title": "Super Title of the new section"
     },
     "fr": {
-      "page.home.gallery.content.title": "Galerie de Photos"
+      "pageName.new-section.content.title": "Super titre de la nouvelle section"
     }
   }
 }
@@ -525,12 +564,6 @@ This project is licensed under the [AGPL-3.0 License](https://www.gnu.org/licens
 4. Test on multiple screen sizes
 5. Pre-commit hooks will run automatically to check code quality
 6. All commits must pass linting and type checking
-
-## 📄 Pages
-
-- **Home** (`/`) - Landing page with responsive hero section
-- **Calendar** (`/calendar`) - Calendar page with icon (placeholder)
-- **About Us** (`/about`) - About page with feature list
 
 ## 🌐 Browser Support
 

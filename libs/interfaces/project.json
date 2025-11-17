@@ -1,0 +1,15 @@
+{
+  "name": "interfaces",
+  "projectType": "library",
+  "sourceRoot": "libs/interfaces/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/out-tsc/libs/interfaces"],
+      "options": {
+        "command": "tsc -p libs/interfaces/tsconfig.lib.json"
+      }
+    }
+  },
+  "tags": []
+}

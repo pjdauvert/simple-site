@@ -1,0 +1,11 @@
+[build]
+  command = "nx run-many -t build --projects=web,functions"
+  publish = "dist/apps/web"
+
+[functions]
+  directory = "dist/apps/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
