@@ -25,3 +25,8 @@ coverage/
 # Cache
 .cache/
 .eslintcache
+
+# Nx
+.nx/cache/
+.nx/workspace-data/
+graph.json
