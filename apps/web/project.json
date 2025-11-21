@@ -42,7 +42,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint apps/web/src libs/interfaces/src apps/functions/src"
+        "command": "eslint apps/web/src"
       }
     },
     "typecheck": {
