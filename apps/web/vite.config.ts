@@ -25,13 +25,17 @@ export default defineConfig({
         // Manual chunk splitting strategy optimized for React 19
         manualChunks: (id) => {
           // React core libraries - must be together for React 19
-          if (id.includes('node_modules/react') || 
-              id.includes('node_modules/react-dom') || 
-              id.includes('node_modules/scheduler') ||
-              id.includes('node_modules/react-router-dom') || 
-              id.includes('node_modules/react-router') ||
-              id.includes('node_modules/@remix-run')) {
+          // Keep react, react-dom, and scheduler together to avoid loading issues
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') || 
+              id.includes('node_modules/scheduler/')) {
             return 'react-vendor';
+          }
+          
+          // React Router - separate from core React
+          if (id.includes('node_modules/react-router-dom') || 
+              id.includes('node_modules/react-router')) {
+            return 'react-router-vendor';
           }
           
           // Material-UI - large UI library, separate chunk
