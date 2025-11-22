@@ -22,20 +22,16 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        // Manual chunk splitting strategy
+        // Manual chunk splitting strategy optimized for React 19
         manualChunks: (id) => {
-          // React core libraries - rarely change, good for long-term caching
+          // React core libraries - must be together for React 19
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
-              id.includes('node_modules/scheduler')) {
-            return 'react-vendor';
-          }
-          
-          // React Router - routing logic in separate chunk
-          if (id.includes('node_modules/react-router-dom') || 
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/react-router-dom') || 
               id.includes('node_modules/react-router') ||
               id.includes('node_modules/@remix-run')) {
-            return 'router-vendor';
+            return 'react-vendor';
           }
           
           // Material-UI - large UI library, separate chunk
@@ -46,7 +42,8 @@ export default defineConfig({
           
           // React Intl - internationalization
           if (id.includes('node_modules/react-intl') || 
-              id.includes('node_modules/@formatjs')) {
+              id.includes('node_modules/@formatjs') ||
+              id.includes('node_modules/intl-messageformat')) {
             return 'intl-vendor';
           }
           
@@ -55,7 +52,10 @@ export default defineConfig({
               id.includes('node_modules/remark-') ||
               id.includes('node_modules/rehype-') ||
               id.includes('node_modules/unified') ||
-              id.includes('node_modules/micromark')) {
+              id.includes('node_modules/micromark') ||
+              id.includes('node_modules/hast-') ||
+              id.includes('node_modules/mdast-') ||
+              id.includes('node_modules/unist-')) {
             return 'markdown-vendor';
           }
           
@@ -68,5 +68,10 @@ export default defineConfig({
     },
     // Increase chunk size warning limit (we're splitting now)
     chunkSizeWarningLimit: 600,
+    // Ensure proper module format for React 19
+    target: 'es2020',
+    modulePreload: {
+      polyfill: true,
+    },
   },
 });
