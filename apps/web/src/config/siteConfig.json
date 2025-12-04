@@ -1,5 +1,5 @@
 {
-  
+
   "site": {
     "siteName": "Simple Site",
     "logoUrl": "https://ik.imagekit.io/lionbytes/simple-site/logo_256.png",
@@ -280,92 +280,5 @@
         }
       ]
     }
-  ],
-  "i18n": {
-    "en": {
-        "footer.copyright": "© 2025 Simple Site. All rights reserved.",
-        "footer.license": "Licensed under AGPL-3.0",
-        "language.switch": "Switch Language",
-        "theme.switch": "Switch Theme",
-      
-        "page.home.menuTitle": "Home",
-        "page.home.hero.content.title": "Welcome to Our Application",
-        "page.home.hero.content.subtitle": "A modern, themable, and multilingual web application built with React",
-        "page.home.hero.content.ctaLabel": "Get Started",
-        "page.home.text.content.columns.0.title": "Home Page",
-        "page.home.text.content.columns.0.paragraph": "This is the home page. It is the main page of the website.",
-        "page.home.text2.content.columns.0.title": "This is the second text section",
-        "page.home.text2.content.columns.0.paragraph": "This is the second text section content of the home page",
-        
-        "page.home.features.content.columns.0.title": "Fast Performance",
-        "page.home.features.content.columns.0.paragraph": "Lightning-fast load times and optimized performance for the best user experience.",
-        "page.home.features.content.columns.1.title": "Modern Design",
-        "page.home.features.content.columns.1.paragraph": "Beautiful, responsive design that works seamlessly across all devices.",
-        "page.home.features.content.columns.2.title": "Easy to Use",
-        "page.home.features.content.columns.2.paragraph": "Intuitive interface that makes navigation and interaction effortless.",
-        
-        "page.home.image_text.content.columns.1.title": "Our Story",
-        "page.home.image_text.content.columns.1.paragraph": "We started with a vision to create something extraordinary. Our team combines passion with expertise to deliver exceptional results. This section demonstrates how images can be hidden on mobile for a cleaner experience.",
-        
-        "page.home.stats.content.columns.0.title": "1000+",
-        "page.home.stats.content.columns.0.paragraph": "Happy Customers",
-        "page.home.stats.content.columns.1.title": "50+",
-        "page.home.stats.content.columns.1.paragraph": "Countries Worldwide",
-        "page.home.stats.content.columns.2.title": "24/7",
-        "page.home.stats.content.columns.2.paragraph": "Customer Support",
-        "page.home.stats.content.columns.3.title": "99.9%",
-        "page.home.stats.content.columns.3.paragraph": "Uptime Guarantee",
-        
-        "page.calendar.menuTitle": "Calendar",
-        "page.calendar.text.content.columns.0.title": "Calendar",
-        "page.calendar.text.content.columns.0.paragraph": "This is the calendar page. Calendar functionality coming soon.",
-        
-        "page.about.menuTitle": "About Us",
-        "page.about.text.content.columns.0.title": "About Us",
-        "page.about.text.content.columns.0.paragraph": "This is a modern mobile-first web application demonstrating React, Material-UI, theming, and internationalization with responsive design."
-    },
-    "fr": {
-        "footer.copyright": "© 2025 Simple Site. Tous droits réservés.",
-        "footer.license": "Sous licence AGPL-3.0",
-        "language.switch": "Changer de Langue",
-        "theme.switch": "Changer de Thème",
-
-        "page.home.menuTitle": "Accueil",
-        "page.home.hero.content.title": "Bienvenue dans Notre Application",
-        "page.home.hero.content.subtitle": "Une application web moderne, personnalisable et multilingue construite avec React",
-        "page.home.hero.content.ctaLabel": "Commencer",
-        "page.home.text.content.columns.0.title": "Page d'Accueil",
-        "page.home.text.content.columns.0.paragraph": "Ceci est la page d'accueil. Elle est la page principale du site web.",
-        "page.home.text2.content.columns.0.title": "Ceci est le deuxième titre de texte",
-        "page.home.text2.content.columns.0.paragraph": "Ceci est la deuxième section de texte de la page d'accueil",
-        
-        "page.home.features.content.columns.0.title": "Performance Rapide",
-        "page.home.features.content.columns.0.paragraph": "Temps de chargement ultra-rapides et performances optimisées pour la meilleure expérience utilisateur.",
-        "page.home.features.content.columns.1.title": "Design Moderne",
-        "page.home.features.content.columns.1.paragraph": "Design magnifique et réactif qui fonctionne parfaitement sur tous les appareils.",
-        "page.home.features.content.columns.2.title": "Facile à Utiliser",
-        "page.home.features.content.columns.2.paragraph": "Interface intuitive qui rend la navigation et l'interaction sans effort.",
-        
-        "page.home.image_text.content.columns.1.title": "Notre Histoire",
-        "page.home.image_text.content.columns.1.paragraph": "Nous avons commencé avec la vision de créer quelque chose d'extraordinaire. Notre équipe combine passion et expertise pour fournir des résultats exceptionnels. Cette section démontre comment les images peuvent être masquées sur mobile pour une expérience plus épurée.",
-        
-        "page.home.stats.content.columns.0.title": "1000+",
-        "page.home.stats.content.columns.0.paragraph": "Clients Satisfaits",
-        "page.home.stats.content.columns.1.title": "50+",
-        "page.home.stats.content.columns.1.paragraph": "Pays dans le Monde",
-        "page.home.stats.content.columns.2.title": "24/7",
-        "page.home.stats.content.columns.2.paragraph": "Support Client",
-        "page.home.stats.content.columns.3.title": "99.9%",
-        "page.home.stats.content.columns.3.paragraph": "Garantie de Disponibilité",
-
-        "page.calendar.menuTitle": "Calendrier",
-        "page.calendar.text.content.columns.0.title": "Calendrier",
-        "page.calendar.text.content.columns.0.paragraph": "Ceci est la page du calendrier. Fonctionnalité à venir prochainement.",
-              
-        "page.about.menuTitle": "À Propos",
-        "page.about.text.content.columns.0.title": "À Propos",
-        "page.about.text.content.columns.0.paragraph": "Il s'agit d'une application web moderne construite avec une approche mobile-first, démontrant React, Material-UI, les thèmes et l'internationalisation avec un design réactif."
-    }
-  }
+  ]
 }
-
