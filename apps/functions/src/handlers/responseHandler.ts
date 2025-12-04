@@ -1,3 +1,4 @@
+import type { ApiResponseErrorPayload, ApiResponseSuccessPayload } from "@simple-site/interfaces";
 import type { ApiErrorResponse } from "../errors/error";
 
   /**
@@ -8,7 +9,11 @@ import type { ApiErrorResponse } from "../errors/error";
     path?: string,
     headers?: Record<string, string>
   ): Response {
-    const errorJson = error.toJSON();
+    const errorJson: ApiResponseErrorPayload = 
+    {
+      ok: false,
+      ...error.toJSON(),
+    };
     if (path) {
       errorJson.path = path;
     }
@@ -28,18 +33,21 @@ import type { ApiErrorResponse } from "../errors/error";
   /**
    * Create response with proper formatting
    */
-  export function createSuccessResponse(
-    payload: unknown,
+  export function createSuccessResponse<T>(
+    payload: T,
     status: number = 200,
     headers?: Record<string, string>,
-  ): Response {
-  
+  ): Response { 
+    const successJson: ApiResponseSuccessPayload<T> = {
+      ok: true,
+      data: payload,
+    };
     const responseHeaders = {
       'Content-Type': 'application/json',
       ...headers,
     };
   
-    return new Response(JSON.stringify(payload), {
+    return new Response(JSON.stringify(successJson), {
       status,
       headers: responseHeaders,
     });
