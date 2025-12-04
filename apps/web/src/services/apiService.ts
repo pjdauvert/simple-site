@@ -1,4 +1,4 @@
-import type { ApiResponsePayload, ApiResponseSuccessPayload, ApiResponseErrorPayload } from "@simple-site/interfaces";
+import type { ApiResponsePayload, ApiResponseSuccessPayload, ApiResponseErrorPayload, ApiBaseResponse } from "@simple-site/interfaces";
 import { ErrorCode } from "@simple-site/interfaces";
 /**
  * API Caller Service
@@ -89,19 +89,24 @@ const callApi = async <RequestPayloadType, ResponsePayloadType>(params: ApiCalle
     const response = await fetch(url, options);
 
     // Try to parse JSON response
-    let responsePayload: ApiResponsePayload<ResponsePayloadType>;
     const contentType = response.headers.get('content-type');
     
     if (contentType?.includes('application/json')) {
-      responsePayload = await response.json() as ApiResponseSuccessPayload<ResponsePayloadType>;
+      const jsonResponse = await response.json() as ApiBaseResponse;
+      
+      // Check the ok field to determine if it's a success or error response
+      if (jsonResponse.ok) {
+        return jsonResponse as ApiResponseSuccessPayload<ResponsePayloadType>;
+      } else {
+        return jsonResponse as ApiResponseErrorPayload;
+      }
     } else {
       // For non-JSON responses, return the text as data
-      responsePayload = {
+      return {
         ok: response.ok,
         data: await response.text() as ResponsePayloadType,
       } as ApiResponseSuccessPayload<ResponsePayloadType>;
     }
-    return responsePayload;
   } catch (error) {
     return {
       ok: false,
