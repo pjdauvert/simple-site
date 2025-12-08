@@ -6,8 +6,13 @@
     "build": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/dist/interfaces"],
+      "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/tsconfig.lib.json"],
       "options": {
-        "command": "tsc -p libs/interfaces/tsconfig.lib.json"
+        "commands": [
+          "rm -f node_modules/.tmp/tsconfig.interfaces.tsbuildinfo",
+          "tsc -p libs/interfaces/tsconfig.lib.json"
+        ],
+        "parallel": false
       }
     },
     "lint": {
