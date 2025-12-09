@@ -1,5 +1,6 @@
-import type { SiteConfig } from '@simple-site/interfaces';
+import type { ApiResponseErrorPayload, ApiResponseSuccessPayload, SiteConfig } from '@simple-site/interfaces';
 import { SiteConfigSchema } from '@simple-site/interfaces';
+import apiService from './apiService';
 /**
  * Simulates loading configuration from an API endpoint
  * In a real application, this would be a fetch call to an API
@@ -10,13 +11,12 @@ export async function loadSiteConfig(): Promise<SiteConfig> {
   
   // In production, this would be: return fetch('/api/config').then(res => res.json());
   // For now, we dynamically import the JSON file
-  const config = await import('../config/siteConfig.json');
-  
-  // Validate configuration with Zod - this ensures runtime type safety
-  // The parse() method will throw a ZodError if validation fails
-  const validatedConfig = SiteConfigSchema.parse(config.default);
-  
-  // Safe cast: Zod has validated the structure matches our schema
-  // This bridges the Zod-inferred type to our TypeScript interface
-  return validatedConfig as SiteConfig;
+  const response = await apiService.get<SiteConfig>('config');
+
+  // Manage error message display
+  if (!response.ok) {
+    const error = (response as ApiResponseErrorPayload).message;
+    throw new Error(error);
+  }
+  return SiteConfigSchema.parse((response as ApiResponseSuccessPayload<SiteConfig>).data);
 }
