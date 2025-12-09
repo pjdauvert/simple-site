@@ -51,7 +51,7 @@ export abstract class BaseHandler {
         });
     }
 
-    private handleError(error: unknown, path?: string): Response {
+    protected handleError(error: unknown, path?: string): Response {
         console.error('Unhandled error:', error);
     
         if (error instanceof ApiErrorResponse) {
