@@ -2,53 +2,59 @@ import type { RequestHandler } from 'src/types/server-types';
 import { BaseHandler } from '../handlers/BaseHandler';
 import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
-import { SiteConfigSchema } from '@simple-site/interfaces';
+import { type SiteConfig, SiteConfigSchema } from '@simple-site/interfaces';
+import { seedBlob } from './seed/seedBlob';
 
 export class ConfigModule extends BaseHandler {
 
-    private readonly CONFIG_KEY = 'config';
-
-    private getStoredConfig = async (configStore: Store, path: string = '') => {
-        const storedConfig = await configStore.get(this.CONFIG_KEY);
+    private getStoredConfig = async (store: Store, storeKey: string, path: string = '') => {
+        const storedConfig = await store.get(storeKey);
         if (!storedConfig) {
-            throw ErrorResponses.notFound(`Store key ${this.CONFIG_KEY}`, path);
+            throw ErrorResponses.notFound(`Store key ${storeKey}`, path);
         }
         return SiteConfigSchema.parse(JSON.parse(String(storedConfig)));
     }
 
-    private getConfig = async (configStore: Store, path: string = '') => {
-        const storedConfig = await this.getStoredConfig(configStore, path);
-        return this.createSuccessResponse(storedConfig);
+    private getConfig = async (store: Store, storeKey: string, path: string = '') => {
+        const storedConfig = await this.getStoredConfig(store, storeKey, path);
+        return this.createSuccessResponse<SiteConfig>(storedConfig);
     }
 
-    private setConfig = async (configStore: Store, siteConfig: string, path: string = '') => {
-        if (!siteConfig) {
+    private setConfig = async (store: Store, storeKey: string, body?: string, path: string = '') => {
+        if (!body) {
             throw ErrorResponses.invalidRequest('Request body is required', path);
         }
-        SiteConfigSchema.parse(siteConfig);
+        const config = SiteConfigSchema.parse(body);
 
         // Store the configuration
-        await configStore.set(this.CONFIG_KEY, siteConfig);
+        await store.set(storeKey, JSON.stringify(config));
         return this.createSuccessResponse({ message: 'Configuration updated successfully' });
     }
 
     override handle: RequestHandler = async (request) => {
+        const path = request.url;
+        if(request.headers.get('Content-Type') !== 'application/json') {
+            throw ErrorResponses.invalidRequest('Invalid content type', path);
+        }
         // Get the store name from the environment
-        
+        const storeName = `${process.env.APP_NAME}-store`;
+        const storeKey = 'config';
         try {
-            const configStore = getStore(`${process.env.APP_NAME}-store`);
+            const store = getStore(storeName);
+            // Seed the blob if it does not exist
+            await seedBlob(store, 'siteConfig.json', SiteConfigSchema, storeKey);
 
             if (request.method === 'GET') {
-                return this.getConfig(configStore, request.url);
+                return this.getConfig(store, storeKey, path);
             } else if (request.method === 'POST') {
                 // Read and parse the request body
                 const body = await request.text();
-                return this.setConfig(configStore, body);
+                return this.setConfig(store, storeKey, body, path);
             } else {
-                throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST'], request.url);
+                throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST'], path);
             }
         } catch (error) {
-            return this.handleError(error, request.url);
+            return this.handleError(error, path);
         }
     }
 }

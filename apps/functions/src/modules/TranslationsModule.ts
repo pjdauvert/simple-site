@@ -3,36 +3,37 @@ import { BaseHandler } from '../handlers/BaseHandler';
 import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
 import { I18nDictionarySchema, I18nLocalesEnum, I18nSchema, type I18nDictionary, type Locale } from '@simple-site/interfaces';
+import { seedBlob } from './seed/seedBlob';
 
 
 export class TranslationsModule extends BaseHandler {
 
-    private getStoredTranslations = async (configStore: Store, storeKey: string, path: string = '') => {
-        const storedTranslations = await configStore.get(storeKey);
+    private getStoredTranslations = async (store: Store, storeKey: string, path: string = '') => {
+        const storedTranslations = await store.get(storeKey);
         if (!storedTranslations) {
             throw ErrorResponses.notFound(`Store key ${storeKey}`, path);
         }
         return I18nSchema.parse(JSON.parse(String(storedTranslations)));
     }
     
-    private getTranslations = async (configStore: Store, storeKey: string, language: Locale, path: string = '') => {
-        const translations = await this.getStoredTranslations(configStore, storeKey, path);
+    private getTranslations = async (store: Store, storeKey: string, language: Locale, path: string = '') => {
+        const translations = await this.getStoredTranslations(store, storeKey, path);
         return this.createSuccessResponse<I18nDictionary>(translations[language]);
     }
 
-    private setTranslations = async (configStore: Store, body: string, storeKey: string, language: Locale, path: string = '') => {
-        if (!body || body.trim() === '') {
+    private setTranslations = async (store: Store, storeKey: string, language: Locale, body?: I18nDictionary,path: string = '') => {
+        if (!body) {
             throw ErrorResponses.invalidRequest(`Request body is empty`, path);
         }
         // Parse the request body and validate it against the I18nDictionarySchema
         const dictionary = I18nDictionarySchema.parse(body);
-        const translations = await this.getStoredTranslations(configStore, storeKey, path);
+        const translations = await this.getStoredTranslations(store, storeKey, path);
         // Merge the new dictionary with the existing translations
         translations[language] = { ...translations[language], ...dictionary };
         // Store the translation dictionary for the given locale
-        await configStore.set(storeKey, JSON.stringify(translations));
+        await store.set(storeKey, JSON.stringify(translations));
 
-        return this.createSuccessResponse({ message: 'Configuration updated successfully' });
+        return this.createSuccessResponse({ message: `${language} translations updated successfully` });
     }
 
     override handle: RequestHandler = async (request, context) => {
@@ -45,17 +46,20 @@ export class TranslationsModule extends BaseHandler {
             throw ErrorResponses.invalidRequest(`Invalid language: ${language}`, request.url);
         }
         // Get the store name from the environment
-        const STORE_NAME = `${process.env.APP_NAME}-store`;
-        const configStore = getStore(STORE_NAME);
+        const storeName = `${process.env.APP_NAME}-store`;
         const storeKey = 'translations';
+        // Seed the blob if it does not exist
+        const store = getStore(storeName);
+        // Seed the translations blob if it does not exist
+        await seedBlob(store, 'i18n.json', I18nSchema, storeKey);
 
-
+        // Get the translations
         if (request.method === 'GET') {
-            return this.getTranslations(configStore, storeKey, language, request.url);
+            return this.getTranslations(store, storeKey, language, request.url);
         } else if (request.method === 'POST') {
             // Read and parse the request body
-            const body = await request.text();
-            return this.setTranslations(configStore, body, storeKey, language, request.url);
+            const body = await request.json() as I18nDictionary;
+            return this.setTranslations(store, storeKey, language, body, request.url);
         } else {
             throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST'], request.url);
         }
