@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions';
-import { TranslationsModule } from './modules';
+import { TranslationsModule } from './handlers/TranslationsModule';
 import type { RequestHandler } from './types/server-types';
 
 export const config: Config = {

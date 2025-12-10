@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'src/types/server-types';
-import { BaseHandler } from '../handlers/BaseHandler';
+import { BaseHandler } from './BaseHandler';
 import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
 import { type SiteConfig, SiteConfigSchema } from '@simple-site/interfaces';
@@ -37,7 +37,7 @@ export class ConfigModule extends BaseHandler {
             throw ErrorResponses.invalidRequest('Invalid content type', path);
         }
         // Get the store name from the environment
-        const storeName = `${process.env.APP_NAME}-store`;
+        const storeName = `${Netlify.env.get('APP_NAME')}-store`;
         const storeKey = 'config';
         try {
             const store = getStore(storeName);
