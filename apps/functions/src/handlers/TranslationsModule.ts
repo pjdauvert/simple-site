@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'src/types/server-types';
-import { BaseHandler } from '../handlers/BaseHandler';
+import { BaseHandler } from './BaseHandler';
 import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
 import { I18nDictionarySchema, I18nLocalesEnum, I18nSchema, type I18nDictionary, type Locale } from '@simple-site/interfaces';
@@ -46,7 +46,7 @@ export class TranslationsModule extends BaseHandler {
             throw ErrorResponses.invalidRequest(`Invalid language: ${language}`, request.url);
         }
         // Get the store name from the environment
-        const storeName = `${process.env.APP_NAME}-store`;
+        const storeName = `${Netlify.env.get('APP_NAME')}-store`;
         const storeKey = 'translations';
         // Seed the blob if it does not exist
         const store = getStore(storeName);
