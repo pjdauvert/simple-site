@@ -1,37 +1,38 @@
-# Implementation Plan: Simple Site — Baseline
+# Implementation Plan: Simple Site — Baseline (Post-API Refactor)
 
-**Branch**: `main` | **Date**: 2026-03-27 | **Spec**: `specs/000-baseline/spec.md`
+**Branch**: `docs/spec-kit-baseline` | **Date**: 2026-04-08 | **Spec**: `specs/000-baseline/spec.md`
+**Input**: Feature specification from `/specs/000-baseline/spec.md`
 
 ## Summary
 
-A config-driven, themable, multilingual React SPA deployed on Netlify. Pages and sections are defined in a single JSON configuration, validated at runtime via Zod, and rendered dynamically through a discriminated-union section system. A serverless Netlify Functions backend provides a CRUD API for config management.
+A config-driven, themable, multilingual React SPA deployed on Netlify. Pages and sections are defined in a single JSON configuration, validated at runtime via Zod, and rendered dynamically through a discriminated-union section system. A serverless Netlify Functions backend provides CRUD APIs for config and i18n management, backed by Netlify Blobs.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x (strict mode)  
-**Primary Dependencies**: React 19, MUI 6, react-intl 7, react-router-dom 7, react-markdown 10, Zod 4  
-**Storage**: Netlify Blobs (serverless KV), JSON config file (static fallback)  
+**Primary Dependencies**: React 19, MUI 6, react-intl 7, react-router-dom 7, react-markdown 10, Zod 4, `@netlify/functions`, `@netlify/blobs`  
+**Storage**: Netlify Blobs (serverless KV) for `siteConfig` and `i18n` resources  
 **Testing**: Vitest + React Testing Library  
 **Target Platform**: Modern browsers (ES2020+), Netlify hosting  
 **Project Type**: Web application (SPA + serverless functions)  
 **Build System**: Vite (web), tsc (functions), Nx (orchestration)  
-**Performance Goals**: < 2s FMP on 3G, Lighthouse mobile ≥ 80  
-**Constraints**: No server-side rendering, no database, no auth (yet)  
+**Performance Goals**: < 2s FMP on 3G, Lighthouse mobile ≥ 80, API latency < 200ms (p95)  
+**Constraints**: No server-side rendering, no traditional database, no auth (yet) on public APIs  
 
 ## Constitution Check
 
 | Principle | Status |
 |-----------|--------|
-| I. Configuration-Driven Architecture | ✅ All content in siteConfig.json |
-| II. Type Safety End-to-End | ✅ Zod schemas → inferred types, runtime validation |
+| I. Configuration-Driven Architecture | ✅ All content fetched from API based on JSON config |
+| II. Type Safety End-to-End | ✅ Zod schemas → inferred types, runtime validation on fetched data |
 | III. Mobile-First Responsive | ✅ MUI sx prop with breakpoint objects throughout |
-| IV. Separation of Concerns | ✅ libs/interfaces, apps/web, apps/functions |
-| V. Internationalization by Default | ✅ react-intl with deterministic keys |
-| VI. Section Extensibility Pattern | ✅ 7-step recipe documented, discriminated union |
-| VII. Lazy Loading & Performance | ✅ React.lazy sections, manual chunk splitting |
-| VIII. Serverless Backend Convention | ✅ withErrorHandler, standardized responses |
-| IX. Testing Standards | ✅ Vitest, schema validation tests present |
-| X. Simplicity & YAGNI | ✅ React Context only, minimal deps |
+| IV. Separation of Concerns | ✅ libs/interfaces, apps/web, apps/functions, clean API boundary |
+| V. Internationalization by Default | ✅ react-intl with deterministic keys, translations fetched from API |
+| VI. Section Extensibility Pattern | ✅ 7-step recipe still applies, now with API integration |
+| VII. Lazy Loading & Performance | ✅ React.lazy sections, manual chunk splitting, API caching opportunity |
+| VIII. Serverless Backend Convention | ✅ withErrorHandler, modular handlers, standardized responses, Netlify Blobs |
+| IX. Testing Standards | ✅ Vitest, API service tests added |
+| X. Simplicity & YAGNI | ✅ React Context, minimal deps, justified API layer |
 
 ## Project Structure
 
@@ -40,11 +41,13 @@ A config-driven, themable, multilingual React SPA deployed on Netlify. Pages and
 ```
 .specify/
 ├── memory/
-│   └── constitution.md        # Project principles
+│   └── constitution.md          # Project principles
 ├── specs/
 │   └── 000-baseline/
-│       ├── spec.md             # This feature spec (retroactive)
-│       └── plan.md             # This implementation plan
+│       ├── spec.md             # This feature spec (retroactive, updated)
+│       ├── plan.md             # This implementation plan (updated)
+│       ├── data-model.md       # Data model (updated)
+│       └── research.md         # Tech stack assessment + future enhancements (updated)
 └── templates/                  # Spec-kit templates (if needed)
 ```
 
@@ -60,27 +63,28 @@ A config-driven, themable, multilingual React SPA deployed on Netlify. Pages and
 │   │   └── src/
 │   │       ├── main.tsx              # Entry point
 │   │       ├── App.tsx               # Root: SiteConfigProvider → IntlProvider → ThemeProvider → Router
-│   │       ├── config/
-│   │       │   └── siteConfig.json   # THE config — all content, themes, pages, i18n
+│   │       ├── config/               # Removed static siteConfig.json
 │   │       ├── services/
-│   │       │   ├── configService.ts      # Async config loader + Zod validation
-│   │       │   └── configService.test.ts # Schema validation tests
+│   │       │   ├── apiService.ts         # Generic API client for GET/POST
+│   │       │   ├── apiService.test.ts    # Tests for apiService
+│   │       │   ├── configService.ts      # Fetches SiteConfig via apiService
+│   │       │   └── initService.ts        # Handles initial setup/seeding (e.g. Netlify Blobs)
 │   │       ├── features/
 │   │       │   ├── config/
 │   │       │   │   ├── SiteConfigContext.ts   # React Context definition
-│   │       │   │   └── SiteConfigProvider.tsx # Async loader with loading/error states
+│   │       │   │   └── SiteConfigProvider.tsx # Async loader from API with loading/error states
 │   │       │   ├── theme/
 │   │       │   │   ├── ThemeContext.ts         # Theme context type
 │   │       │   │   ├── ThemeProvider.tsx       # MUI theme builder from config
 │   │       │   │   └── ThemeSwitcher.tsx       # Theme dropdown (hidden if < 2 themes)
 │   │       │   └── i18n/
 │   │       │       ├── IntlContext.ts          # Locale context type
-│   │       │       ├── IntlProvider.tsx        # react-intl wrapper
+│   │       │       ├── IntlProvider.tsx        # react-intl wrapper, fetches translations from API
 │   │       │       └── LanguageSwitcher.tsx    # Language dropdown
 │   │       ├── hooks/
 │   │       │   ├── useSiteConfig.ts   # Context accessor
 │   │       │   ├── useTheme.ts        # Theme context accessor
-│   │       │   ├── useIntl.ts         # Intl context accessor
+│   │       │   └── useIntl.ts         # Intl context accessor
 │   │       │   └── useFavicon.ts      # Dynamic favicon setter
 │   │       ├── layouts/
 │   │       │   ├── MainLayout.tsx     # AppBar + main + Footer
@@ -104,15 +108,22 @@ A config-driven, themable, multilingual React SPA deployed on Netlify. Pages and
 │   │           └── .gitkeep
 │   └── functions/                     # Netlify Functions (serverless)
 │       ├── src/
-│       │   ├── config.mts             # GET/POST /api/config handler
+│       │   ├── config.mts             # Handles /api/config GET/POST with Netlify Blobs
+│       │   ├── translations.mts       # Handles /api/translations GET/POST with Netlify Blobs
 │       │   ├── handlers/
-│       │   │   ├── moduleHandler.ts   # Module env validation wrapper
-│       │   │   └── responseHandler.ts # Standardized success/error responses
-│       │   ├── errors/
-│       │   │   ├── error.ts           # ApiErrorResponse class + ErrorResponses factory
-│       │   │   └── errorHandler.ts    # withErrorHandler wrapper
-│       │   └── types/
-│       │       └── server-types.ts    # RequestHandler type
+│   │   │       ├── BaseHandler.ts         # Generic handler interface and base class
+│   │   │       ├── ConfigModule.ts        # Config API logic
+│   │   │       ├── TranslationsModule.ts  # Translations API logic
+│   │   │       └── responseHandler.ts     # Standardized success responses
+│   │   ├── errors/
+│   │   │   ├── error.ts           # ApiErrorResponse class + ErrorResponses factory
+│   │   │   └── errorHandler.ts    # withErrorHandler HOF
+│   │   ├── types/
+│   │   │   └── server-types.ts    # RequestHandler type
+│   │   └── handlers/seed/
+│   │       ├── seedBlob.ts          # Utility to seed Netlify Blobs with default data
+│   │       ├── i18n.json            # Default i18n seed data
+│   │       └── siteConfig.json      # Default siteConfig seed data
 │       ├── tsconfig.json
 │       └── tsconfig.build.json
 ├── libs/
@@ -120,13 +131,14 @@ A config-driven, themable, multilingual React SPA deployed on Netlify. Pages and
 │       ├── src/
 │       │   ├── index.ts               # Barrel export
 │       │   ├── site.interface.ts      # SiteConfigSchema (root)
+│       │   ├── i18n.interface.ts      # I18nLocalesEnum, I18nSchema (updated for API)
+│       │   ├── api.interface.ts       # New ApiRequest, ApiResponse types for functions
 │       │   ├── page.interface.ts      # PageConfiguration, SectionProps discriminated union
 │       │   ├── menu.interface.ts      # MenuItem
 │       │   ├── theme.interface.ts     # ThemeConfig, SiteThemeConfig
-│       │   ├── i18n.interface.ts      # I18nLocalesEnum, I18nSchema
 │       │   ├── layout.interface.ts    # Breakpoints, MediaPosition, Alignment enums
 │       │   ├── url.interface.ts       # UrlOrPathSchema (RFC 3986 + local paths)
-│       │   ├── contact.interface.ts   # ContactRequest/Response schemas
+│       │   └── contact.interface.ts   # ContactRequest/Response schemas
 │       │   └── sections/
 │       │       ├── index.ts
 │       │       ├── section.interface.ts     # BaseSectionPropsSchema, SectionTypesEnum
@@ -144,21 +156,21 @@ A config-driven, themable, multilingual React SPA deployed on Netlify. Pages and
 
 ## Architecture Decisions
 
-### 1. Single JSON Config
-All site content, themes, pages, sections, and translations live in one `siteConfig.json`. This enables a future admin UI to manage the entire site by editing one blob. The trade-off is file size — acceptable for < 100 pages.
+### 1. API-Driven Config & Translations
+Both `siteConfig` and `i18n` resources are now fetched from dedicated Netlify Functions (`/api/config`, `/api/translations`). This centralizes data management, enables dynamic updates without redeploying the frontend, and lays the groundwork for a future admin UI. The trade-off is increased network overhead on initial load, mitigated by browser caching and future blob caching.
 
-### 2. Discriminated Union Sections
-Sections use `z.discriminatedUnion('type', [...])` enabling compile-time exhaustiveness checking and runtime Zod validation. Adding a section type requires updating the union — the compiler catches missing cases.
+### 2. Modular Netlify Functions
+Netlify Functions are organized into `handlers/` with `BaseHandler`, `ConfigModule`, `TranslationsModule`. This promotes reusability, testability, and clear separation of concerns for each API endpoint. Each module handles its own business logic and Netlify Blob interactions.
 
-### 3. React Context over Redux/Zustand
-Three contexts (config, theme, i18n) are sufficient for the current scope. No cross-cutting state management needed. Revisit if section count > 50 or deep nesting causes re-render issues.
+### 3. Netlify Blobs for Persistent Storage
+`siteConfig` and `i18n` data are stored in Netlify Blobs, providing a simple, serverless key-value store. This eliminates the need for a separate database and aligns with Netlify's ecosystem. Initial data is seeded via `initService` on the frontend and `seedBlob` function on the backend if blobs are empty.
 
-### 4. Netlify Blobs for Config Storage
-Simple KV store with no provisioning. Sufficient for single-tenant config management. Not suitable for multi-tenant or high-write workloads.
+### 4. Client-Side API Service
+A new `apiService.ts` centralizes all API calls from the frontend, providing a consistent interface for `GET` and `POST` requests. This decouples components from direct fetch calls and simplifies error handling.
 
-### 5. Chunk Splitting Strategy
-Manual `manualChunks` in Vite config to separate React core, MUI, intl, and markdown into parallel-loadable chunks. This prevents a single monolithic vendor bundle.
+### 5. Removed Static Config File
+The static `apps/web/src/config/siteConfig.json` is removed from the frontend app and moved to `apps/functions/src/handlers/seed/siteConfig.json` to act as initial seed data for Netlify Blobs.
 
 ## Complexity Tracking
 
-No constitution violations identified.
+No constitution violations identified with the updated architecture.
