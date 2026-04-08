@@ -15,7 +15,7 @@ build/
 npm-debug.log*
 
 # Editor directories and files
-.vscode/*
+.vscode
 .idea
 .DS_Store
 
@@ -27,9 +27,9 @@ coverage/
 .eslintcache
 
 # Nx
-.nx/cache/
-.nx/workspace-data/
+.nx
 graph.json
 
-# Netlify CLI state
+# Netlify
 .netlify
+deno.lock

@@ -18,7 +18,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <SiteConfigProvider loadingComponent={<Loading message="Loading configuration..." />}>
-      <AppIntlProvider>
+      <AppIntlProvider loadingComponent={<Loading message="Loading translations..." />}>
         <AppThemeProvider>
           <AppContent />
         </AppThemeProvider>

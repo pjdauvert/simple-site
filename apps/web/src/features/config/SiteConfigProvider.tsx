@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { SiteConfigContext } from './SiteConfigContext';
 import type { SiteConfigContextValue } from './SiteConfigContext';
 import type { SiteConfig } from '@simple-site/interfaces';
-import { loadSiteConfig } from '../../services/configService';
+import { loadSiteConfig } from '../../services/initService';
 
 interface SiteConfigProviderProps {
   children: ReactNode;
