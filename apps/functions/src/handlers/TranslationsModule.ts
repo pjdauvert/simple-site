@@ -42,22 +42,25 @@ export class TranslationsModule extends BaseHandler {
         if(!language || !Object.values(I18nLocalesEnum).includes(language)) {
             throw ErrorResponses.invalidRequest(`Invalid language: ${language}`, request.url);
         }
-        // Get the store name from the environment
         const storeName = `${Netlify.env.get('APP_NAME')}-store`;
         const storeKey = 'translations';
-        const store = getStore(storeName);
-        await seedBlob(store, 'i18n.json', I18nSchema, storeKey);
+        try {
+            const store = getStore(storeName);
+            await seedBlob(store, 'i18n.json', I18nSchema, storeKey);
 
-        if (request.method === 'GET') {
-            return this.getTranslations(store, storeKey, language, request.url);
-        } else if (request.method === 'POST') {
-            if (request.headers.get('Content-Type') !== 'application/json') {
-                throw ErrorResponses.invalidRequest('Invalid content type', request.url);
+            if (request.method === 'GET') {
+                return this.getTranslations(store, storeKey, language, request.url);
+            } else if (request.method === 'POST') {
+                if (request.headers.get('Content-Type') !== 'application/json') {
+                    throw ErrorResponses.invalidRequest('Invalid content type', request.url);
+                }
+                const body = await request.json() as I18nDictionary;
+                return this.setTranslations(store, storeKey, language, body, request.url);
+            } else {
+                throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST'], request.url);
             }
-            const body = await request.json() as I18nDictionary;
-            return this.setTranslations(store, storeKey, language, body, request.url);
-        } else {
-            throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST'], request.url);
+        } catch (error) {
+            return this.handleError(error, request.url);
         }
     }
 }
