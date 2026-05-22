@@ -82,7 +82,8 @@ export abstract class BaseHandler {
                 return this.handleError(error, request.url);
             }
         } else {
-            return this.createErrorResponse(ErrorResponses.internalError(), `Unhandled request(${this.constructor.name}): ${request.method} ${request.url}`);
+            console.error(`Unhandled request: ${this.constructor.name} ${request.method} ${request.url}`);
+            return this.createErrorResponse(ErrorResponses.internalError());
         }
     }
 }
