@@ -47,11 +47,15 @@ export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({
   };
 
   if (error) {
+    // KNOWN LIMITATION: this error screen is always rendered in English regardless of user
+    // locale. Localising it would require a synchronous fallback message bundle loaded before
+    // the async translation fetch — complexity not warranted at this stage. Accepted trade-off:
+    // the i18n layer has failed, so no translated string is available anyway.
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '100vh',
         flexDirection: 'column',
         padding: '20px'
