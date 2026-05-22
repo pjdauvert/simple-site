@@ -1,6 +1,103 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { ZodError } from 'zod';
 import apiService from './apiService';
-import { ErrorCode } from '@simple-site/interfaces';
+import { ErrorCode, SiteConfigSchema } from '@simple-site/interfaces';
+
+const minimalTheme = {
+  themeName: 'Dark',
+  primaryColor: '#000',
+  secondaryColor: '#fff',
+  linkColor: '#000',
+  linkHoverColor: '#333',
+  backgroundColor: '#111',
+  menuBackgroundColor: '#222',
+  menuHoverColor: '#333',
+};
+
+const minimalPage = {
+  menuTitle: 'Home',
+  pageName: 'page.home',
+  route: '/',
+  sections: [],
+};
+
+const validConfig = {
+  site: { siteName: 'Test Site' },
+  themes: [minimalTheme],
+  pages: [minimalPage],
+};
+
+describe('SiteConfigSchema', () => {
+  it('parses a valid minimal config', () => {
+    const result = SiteConfigSchema.parse(validConfig);
+    expect(result.site.siteName).toBe('Test Site');
+    expect(result.themes).toHaveLength(1);
+    expect(result.pages).toHaveLength(1);
+  });
+
+  it('parses a config with a hero section', () => {
+    const config = {
+      ...validConfig,
+      pages: [{
+        ...minimalPage,
+        sections: [{
+          sectionName: 'hero',
+          type: 'hero',
+          content: { title: 'Welcome', subtitle: 'Sub' },
+        }],
+      }],
+    };
+    const result = SiteConfigSchema.parse(config);
+    expect(result.pages[0].sections).toHaveLength(1);
+  });
+
+  it('accepts empty themes and pages arrays', () => {
+    const result = SiteConfigSchema.parse({ site: { siteName: 'Bare' }, themes: [], pages: [] });
+    expect(result.themes).toHaveLength(0);
+    expect(result.pages).toHaveLength(0);
+  });
+
+  it('accepts optional site fields (logoUrl, faviconUrl, containerMaxWidth)', () => {
+    const config = {
+      ...validConfig,
+      site: {
+        siteName: 'Test',
+        logoUrl: '/logo.svg',
+        faviconUrl: '/favicon.ico',
+        containerMaxWidth: 'lg',
+      },
+    };
+    expect(() => SiteConfigSchema.parse(config)).not.toThrow();
+  });
+
+  it('throws ZodError when site.siteName is missing', () => {
+    const config = { ...validConfig, site: {} };
+    expect(() => SiteConfigSchema.parse(config)).toThrow(ZodError);
+  });
+
+  it('throws ZodError when a required theme field is missing', () => {
+    const themeWithoutColor = { ...minimalTheme, primaryColor: undefined };
+    const config = { ...validConfig, themes: [themeWithoutColor] };
+    expect(() => SiteConfigSchema.parse(config)).toThrow(ZodError);
+  });
+
+  it('throws ZodError when a required page field is missing', () => {
+    const pageWithoutRoute = { ...minimalPage, route: undefined };
+    const config = { ...validConfig, pages: [pageWithoutRoute] };
+    expect(() => SiteConfigSchema.parse(config)).toThrow(ZodError);
+  });
+
+  it('throws ZodError for an unknown section type', () => {
+    const config = {
+      ...validConfig,
+      pages: [{
+        ...minimalPage,
+        sections: [{ sectionName: 'unknown', type: 'gallery', content: {} }],
+      }],
+    };
+    expect(() => SiteConfigSchema.parse(config)).toThrow(ZodError);
+  });
+});
 
 // Mock fetch globally
 const mockFetch = vi.fn();
