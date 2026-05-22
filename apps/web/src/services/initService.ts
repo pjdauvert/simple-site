@@ -30,21 +30,22 @@ export async function loadTranslations(locale: Locale): Promise<I18nDictionary> 
 export const LOCALE_KEY = 'app.locale';
 
 export function initLocale(): Locale {
-  // Get the locale from the local storage
+  if (typeof window === 'undefined') {
+    // SSR / non-browser environment: localStorage and navigator are unavailable.
+    // Return the default locale so any future SSR adoption does not crash.
+    return I18nLocalesEnum.EN;
+  }
+
   let locale = localStorage.getItem(LOCALE_KEY) as Locale | null;
   if (!locale) {
-    // Get the browser locale
     const browserLocale =
       (navigator.languages && navigator.languages.length > 0
         ? navigator.languages[0]
         : navigator.language) || I18nLocalesEnum.EN;
-    // Normalize the locale
     locale = browserLocale.split('-')[0] as Locale;
-    // Check if the locale is supported
     if (!Object.values(I18nLocalesEnum).includes(locale)) {
       locale = I18nLocalesEnum.EN;
     }
-    // Save the locale to the local storage
     localStorage.setItem(LOCALE_KEY, locale);
   }
   return locale;
