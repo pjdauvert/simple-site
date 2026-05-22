@@ -1,5 +1,4 @@
 import type { ApiResponsePayload, ApiResponseSuccessPayload, ApiResponseErrorPayload, ApiBaseResponse } from "@simple-site/interfaces";
-import { ErrorCode } from "@simple-site/interfaces";
 /**
  * API Caller Service
  * Handles all API requests to the site's backend functions
@@ -108,13 +107,8 @@ const callApi = async <RequestPayloadType, ResponsePayloadType>(params: ApiCalle
       } as ApiResponseSuccessPayload<ResponsePayloadType>;
     }
   } catch (error) {
-    return {
-      ok: false,
-      code: ErrorCode.NETWORK_ERROR,
-      message: `API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      timestamp: new Date().toISOString(),
-      path: url,
-    } as ApiResponseErrorPayload;
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`API unreachable (${url}): ${message}`);
   }
 }
 

@@ -363,31 +363,20 @@ describe('ApiService', () => {
   });
 
   describe('Network error handling', () => {
-    it('should return error payload for network failures', async () => {
+    it('should throw when fetch fails', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const result = await apiService.get('test');
-
-      expect(result).toMatchObject({
-        ok: false,
-        code: ErrorCode.NETWORK_ERROR,
-        message: 'API request failed: Network error',
-        path: 'https://example.com/api/test',
-      });
-      expect(result).toHaveProperty('timestamp');
+      await expect(apiService.get('test')).rejects.toThrow(
+        'API unreachable (https://example.com/api/test): Network error'
+      );
     });
 
-    it('should return error payload with unknown error message for non-Error exceptions', async () => {
+    it('should throw with unknown error message for non-Error exceptions', async () => {
       mockFetch.mockRejectedValueOnce('Some string error');
 
-      const result = await apiService.get('test');
-
-      expect(result).toMatchObject({
-        ok: false,
-        code: ErrorCode.NETWORK_ERROR,
-        message: 'API request failed: Unknown error',
-        path: 'https://example.com/api/test',
-      });
+      await expect(apiService.get('test')).rejects.toThrow(
+        'API unreachable (https://example.com/api/test): Unknown error'
+      );
     });
   });
 
