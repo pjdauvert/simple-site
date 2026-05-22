@@ -55,16 +55,83 @@ Because our Netlify functions compile to native NodeNext ESM, the shared library
 
 ## ☁️ Serverless Functions
 
-`apps/functions` hosts TypeScript Netlify handlers compiled with `tsc`. Current endpoints:
+`apps/functions` hosts TypeScript Netlify handlers compiled with `tsc`. All endpoints are accessible under `/api/*` (redirected to `/.netlify/functions/*` by `netlify.toml`). All endpoints require a `Content-Type: application/json` header.
 
-- `send-email` – validates contact form payloads and sends through Mailgun
-- `db-query` – fetches sample users from MongoDB with schema validation
-- `imagekit-sign` – generates upload signatures
-- `google-proxy` – safely proxies Google API calls with your server API key
+### Endpoints
 
-Environment variables are validated via `apps/functions/src/types/env.ts`. Set the following in Netlify (or your environment) before deploying:
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/config` | Retrieve the full site configuration |
+| POST | `/api/config` | Replace the site configuration |
+| GET | `/api/translations/:language` | Retrieve translation dictionary for a locale |
+| POST | `/api/translations/:language` | Merge translations for a locale |
+| POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
+| GET | `/api/db-query` | Fetch sample users from MongoDB |
+| GET | `/api/imagekit-sign` | Generate an ImageKit upload signature |
+| GET | `/api/google-proxy` | Proxy a Google API call with the server API key |
+
+#### `GET /api/config`
+
+Returns the full `SiteConfig` stored in Netlify Blobs. On first call the blob is seeded from the bundled `siteConfig.json`.
+
+```json
+// 200 OK
+{ "ok": true, "data": { /* SiteConfig */ } }
+```
+
+#### `POST /api/config`
+
+Replaces the stored site configuration. The body must be a valid `SiteConfig` JSON object (validated via Zod).
+
+```json
+// Request body
+{ /* SiteConfig */ }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Configuration updated successfully" } }
+```
+
+#### `GET /api/translations/:language`
+
+Returns the translation dictionary for the requested locale. Supported values for `:language`: `en`, `fr`.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "page.home.hero.content.title": "Welcome", /* ... */ } }
+```
+
+#### `POST /api/translations/:language`
+
+Merges the provided key/value pairs into the stored dictionary for the given locale. Existing keys are overwritten; absent keys are preserved.
+
+```json
+// Request body — record of dotted translation keys to string values
+{ "page.home.hero.content.title": "Welcome to Our Site" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "en translations updated successfully" } }
+```
+
+#### Error response shape
+
+All errors follow a consistent structure:
+
+```json
+{ "ok": false, "code": "INVALID_REQUEST", "message": "...", "timestamp": "...", "path": "..." }
+```
+
+Common status codes: `400` (bad request / invalid content type / bad locale), `404` (store key not found), `405` (method not allowed), `500` (internal / configuration error).
+
+### Storage
+
+`/api/config` and `/api/translations/:language` use **Netlify Blobs** (store name: `{APP_NAME}-store`). On first access the blob is seeded automatically from the bundled seed files — no manual setup required.
+
+### Environment variables
+
+Set the following in Netlify (or your local environment) before deploying:
 
 ```
+APP_NAME                 # Used to namespace the Netlify Blobs store
 MONGODB_URI
 MAILGUN_API_KEY
 MAILGUN_DOMAIN
