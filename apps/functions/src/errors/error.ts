@@ -89,4 +89,3 @@ import { ErrorCode, type ApiError } from "@simple-site/interfaces";
     methodNotAllowed: (method: string, allowed?: string[], path?: string) =>
       new ApiErrorResponse(405, ErrorCode.METHOD_NOT_ALLOWED, `Method ${method} not allowed`, allowed ? { allowedMethods: allowed } : undefined, path),
   };
-    
