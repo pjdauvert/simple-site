@@ -38,6 +38,11 @@ export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({
     localStorage.setItem(LOCALE_KEY, newLocale);
   };
 
+  // INTENTIONAL: available locales are derived from the compile-time enum rather than from the
+  // API config. This is a deliberate trade-off: the API translations endpoint is keyed by locale,
+  // so accepting an arbitrary runtime locale would require the frontend to handle unknown locales
+  // gracefully (missing translations, fallback logic, etc.). Adding a new locale therefore
+  // requires a code change to I18nLocalesEnum — which is the correct gate for that work.
   const availableLocales = Object.values(I18nLocalesEnum) as Locale[];
 
   const contextValue: IntlContextValue = {
