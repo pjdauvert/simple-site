@@ -9,10 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@simple-site/interfaces": ["libs/interfaces/src/index.ts"],
-      "@simple-site/interfaces/*": ["libs/interfaces/src/*"]
+      "@simple-site/interfaces": ["./libs/interfaces/src/index.ts"],
+      "@simple-site/interfaces/*": ["./libs/interfaces/src/*"]
     }
   }
 }

@@ -1,4 +1,4 @@
-import type { RequestHandler } from 'src/types/server-types';
+import type { RequestHandler } from '../types/server-types';
 import { BaseHandler } from './BaseHandler';
 import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
