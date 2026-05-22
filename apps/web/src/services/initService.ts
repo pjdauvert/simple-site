@@ -37,7 +37,7 @@ export function initLocale(): Locale {
   }
 
   let locale = localStorage.getItem(LOCALE_KEY) as Locale | null;
-  if (!locale) {
+  if (!locale || !Object.values(I18nLocalesEnum).includes(locale)) {
     const browserLocale =
       (navigator.languages && navigator.languages.length > 0
         ? navigator.languages[0]
