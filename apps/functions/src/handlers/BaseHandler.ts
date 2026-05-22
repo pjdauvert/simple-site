@@ -35,8 +35,8 @@ export abstract class BaseHandler {
     /**
    * Create response with proper formatting
    */
-    protected createSuccessResponse = <ReponsePayloadType>( payload: ReponsePayloadType, status: number = 200, headers?: Record<string, string>): Response => {
-        const successJson: ApiResponseSuccessPayload<ReponsePayloadType> = {
+    protected createSuccessResponse = <ResponsePayloadType>( payload: ResponsePayloadType, status: number = 200, headers?: Record<string, string>): Response => {
+        const successJson: ApiResponseSuccessPayload<ResponsePayloadType> = {
             ok: true,
             data: payload,
         };
