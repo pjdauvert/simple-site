@@ -18,19 +18,18 @@ const seedFiles: Record<string, unknown> = {
 };
 
 export const seedBlob = async (store: Store, fromFile: string, schema: z.ZodSchema, key: string) => {
+    if (Netlify.env.get('CONTEXT') !== 'dev') return;
+
     const data = await store.get(key);
-    if (Netlify.env.get('CONTEXT') === 'dev' && !data) {
+    if (!data) {
         console.log(`Seeding blob store with data from ${fromFile}`);
         const blobData = seedFiles[fromFile];
-        
+
         if (!blobData) {
             throw new Error(`Seed file "${fromFile}" not found. Available files: ${Object.keys(seedFiles).join(', ')}`);
         }
 
-        // Parse the blob data with the schema
         const parsedData = schema.parse(blobData);
-
-        // Seed the blob
         await store.set(key, JSON.stringify(parsedData));
         console.log(`✅ Seeded ${key} to store`);
     }
