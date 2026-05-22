@@ -37,9 +37,6 @@ export class TranslationsModule extends BaseHandler {
     }
 
     override handle: RequestHandler = async (request, context) => {
-        if(request.headers.get('Content-Type') !== 'application/json') {
-            throw ErrorResponses.invalidRequest('Invalid content type', request.url);
-        }
         const language = context.params.language as Locale;
 
         if(!language || !Object.values(I18nLocalesEnum).includes(language)) {
@@ -48,16 +45,15 @@ export class TranslationsModule extends BaseHandler {
         // Get the store name from the environment
         const storeName = `${Netlify.env.get('APP_NAME')}-store`;
         const storeKey = 'translations';
-        // Seed the blob if it does not exist
         const store = getStore(storeName);
-        // Seed the translations blob if it does not exist
         await seedBlob(store, 'i18n.json', I18nSchema, storeKey);
 
-        // Get the translations
         if (request.method === 'GET') {
             return this.getTranslations(store, storeKey, language, request.url);
         } else if (request.method === 'POST') {
-            // Read and parse the request body
+            if (request.headers.get('Content-Type') !== 'application/json') {
+                throw ErrorResponses.invalidRequest('Invalid content type', request.url);
+            }
             const body = await request.json() as I18nDictionary;
             return this.setTranslations(store, storeKey, language, body, request.url);
         } else {

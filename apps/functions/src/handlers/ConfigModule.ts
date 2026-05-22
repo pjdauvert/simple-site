@@ -33,9 +33,6 @@ export class ConfigModule extends BaseHandler {
 
     override handle: RequestHandler = async (request) => {
         const path = request.url;
-        if(request.headers.get('Content-Type') !== 'application/json') {
-            throw ErrorResponses.invalidRequest('Invalid content type', path);
-        }
         // Get the store name from the environment
         const storeName = `${Netlify.env.get('APP_NAME')}-store`;
         const storeKey = 'config';
@@ -47,6 +44,9 @@ export class ConfigModule extends BaseHandler {
             if (request.method === 'GET') {
                 return this.getConfig(store, storeKey, path);
             } else if (request.method === 'POST') {
+                if (request.headers.get('Content-Type') !== 'application/json') {
+                    throw ErrorResponses.invalidRequest('Invalid content type', path);
+                }
                 // Read and parse the request body
                 const body = await request.text();
                 return this.setConfig(store, storeKey, body, path);
