@@ -24,7 +24,7 @@ export class ConfigModule extends BaseHandler {
         if (!body) {
             throw ErrorResponses.invalidRequest('Request body is required', path);
         }
-        const config = SiteConfigSchema.parse(body);
+        const config = SiteConfigSchema.parse(JSON.parse(body));
 
         // Store the configuration
         await store.set(storeKey, JSON.stringify(config));
