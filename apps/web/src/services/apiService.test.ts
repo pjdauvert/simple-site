@@ -3,6 +3,12 @@ import { ZodError } from 'zod';
 import apiService from './apiService';
 import { ErrorCode, SiteConfigSchema } from '@simple-site/interfaces';
 
+vi.mock('../features/auth/AuthProvider', () => ({
+  getNetlifyToken: vi.fn(() => null),
+}));
+import { getNetlifyToken } from '../features/auth/AuthProvider';
+const mockGetToken = vi.mocked(getNetlifyToken);
+
 const minimalTheme = {
   themeName: 'Dark',
   primaryColor: '#000',
@@ -106,6 +112,7 @@ global.fetch = mockFetch;
 describe('ApiService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetToken.mockReturnValue(null);
     // Mock window.location
     Object.defineProperty(window, 'location', {
       value: {
@@ -176,7 +183,23 @@ describe('ApiService', () => {
       );
     });
 
-    it('should add Authorization header when token is available', async () => {
+    it('omits Authorization header when no session', async () => {
+      mockGetToken.mockReturnValue(null);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ ok: true, data: {} }),
+      });
+
+      await apiService.get('test');
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(options.headers).not.toHaveProperty('Authorization');
+    });
+
+    it('adds Authorization header when session token exists', async () => {
+      mockGetToken.mockReturnValue('real-jwt-token');
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -190,7 +213,7 @@ describe('ApiService', () => {
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer mock-bearer-token-for-development',
+            Authorization: 'Bearer real-jwt-token',
           }),
         })
       );
