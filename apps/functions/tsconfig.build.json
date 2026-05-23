@@ -4,6 +4,9 @@
     "noEmit": false,
     "outDir": "../../dist/apps/functions",
     "sourceMap": true,
-    "declaration": false
+    "declaration": false,
+    "paths": {
+      "@simple-site/interfaces": ["../../dist/interfaces/index.d.ts"]
+    }
   }
 }

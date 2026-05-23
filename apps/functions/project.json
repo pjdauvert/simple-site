@@ -6,16 +6,19 @@
     "build": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/dist/apps/functions"],
+      "dependsOn": ["^build"],
       "options": {
         "command": "tsc -p apps/functions/tsconfig.build.json"
       }
     },
     "typecheck": {
       "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
       "options": {
         "command": "tsc -p apps/functions/tsconfig.json --noEmit"
       }
     }
   },
+  "implicitDependencies": ["interfaces"],
   "tags": []
 }

@@ -7,3 +7,4 @@ export * from './site.interface.js';
 export * from './theme.interface.js';
 export * from './url.interface.js';
 export * from './sections/index.js';
+export * from './api.interface.js';

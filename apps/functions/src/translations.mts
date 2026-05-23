@@ -1,13 +1,13 @@
 import type { Config } from '@netlify/functions';
-import { ConfigModule } from './handlers/ConfigModule';
+import { TranslationsModule } from './handlers/TranslationsModule';
 import type { RequestHandler } from './types/server-types';
 
 export const config: Config = {
   method: ['GET', 'POST'],
-  path: '/api/config',
+  path: '/api/translations/:language',
 };
 
-const handlerChain = new ConfigModule();
+const handlerChain = new TranslationsModule();
 
 const handler: RequestHandler = async (request, context) => {
   if (request.method === 'GET') {
@@ -19,4 +19,3 @@ const handler: RequestHandler = async (request, context) => {
 };
 
 export default handler;
-
