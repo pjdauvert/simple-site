@@ -253,28 +253,31 @@ npm run typecheck
 
 ## 🎨 Configuration
 
-All application configuration is centralized in a single file: **`apps/web/src/config/siteConfig.json`**
+Site configuration and translations are stored in **Netlify Blobs** and fetched at runtime via the serverless API. There is no static config file bundled with the frontend.
 
 The configuration is:
-- ✅ **Loaded Asynchronously** - Simulates API loading with a loading screen
+- ✅ **API-Driven** - Fetched from `GET /api/config` on app start
 - ✅ **Validated at Runtime** - Zod schemas ensure configuration correctness
 - ✅ **Type-Safe** - Full TypeScript type inference from Zod schemas
 - ✅ **Context-Based** - Injected throughout the app via React Context
 
-This unified configuration includes:
+The site configuration covers:
 - Site metadata (name, logo, favicon, container width)
 - Theme configurations (colors, styles)
 - Page definitions and content sections
-- Translations for all languages
+
+Translations are managed separately — see [Translations](#translations) below.
 
 ### Site Configuration Structure
+
+The seed file at `apps/functions/src/handlers/seed/siteConfig.json` defines the initial config loaded into Netlify Blobs on first dev request. The schema is validated by `SiteConfigSchema`.
 
 ```json
 {
   "site": {
     "siteName": "Simple Site",
-    "logoUrl": "/vite.svg",
-    "faviconUrl": "/vite.svg",
+    "logoUrl": "/logo.svg",
+    "faviconUrl": "/favicon.ico",
     "containerMaxWidth": "lg"
   },
   "themes": [
@@ -287,16 +290,6 @@ This unified configuration includes:
       "backgroundColor": "#121212",
       "menuBackgroundColor": "#1e1e1e",
       "menuHoverColor": "#2c2c2c"
-    },
-    {
-      "themeName": "Dark Blue",
-      "primaryColor": "#64b5f6",
-      "secondaryColor": "#f48fb1",
-      "linkColor": "#64b5f6",
-      "linkHoverColor": "#90caf9",
-      "backgroundColor": "#0d1b2a",
-      "menuBackgroundColor": "#1b263b",
-      "menuHoverColor": "#415a77"
     }
   ],
   "pages": [
@@ -313,43 +306,19 @@ This unified configuration includes:
             "subtitle": "Hero Subtitle",
             "ctaLabel": "Get Started",
             "ctaLink": "/"
-          },
-          "design": {
-            "backgroundColor": "#f0f0f0",
-            "textColor": "#0000FF"
-          }
-        },
-        {
-          "sectionName": "text",
-          "type": "text",
-          "content": {
-            "title": "Text Title",
-            "paragraph": "Text content with **markdown** support"
-          },
-          "design": {
-            "imageUrl": "/image.jpg",
-            "imagePosition": "left"
           }
         }
       ]
     }
-  ],
-  "i18n": {
-    "en": {
-      "page.home.menuTitle": "Home",
-      "page.home.hero.content.title": "Welcome"
-    },
-    "fr": {
-      "page.home.menuTitle": "Accueil",
-      "page.home.hero.content.title": "Bienvenue"
-    }
-  }
+  ]
 }
 ```
 
+To update the live configuration, `POST /api/config` with a full valid `SiteConfig` JSON body.
+
 ### Adding New Themes
 
-Simply add a new theme object to the `themes` array in `siteConfig.json`:
+Add a new theme object to the `themes` array in the seed file (`apps/functions/src/handlers/seed/siteConfig.json`) or POST it via `/api/config`:
 
 ```json
 {
@@ -365,11 +334,11 @@ Simply add a new theme object to the `themes` array in `siteConfig.json`:
 ```
 
 The configuration will be validated by Zod schemas, and the theme will automatically be available in the theme switcher.
-If no theme is provided, a default one is hardcoded and will be used. When only one theme is provided, then the theme swithcher will not appear.
+If no theme is provided, a default one is hardcoded and will be used. When only one theme is provided, then the theme switcher will not appear.
 
 ### Adding New Pages
 
-Add page definitions to the `pages` array in `siteConfig.json`:
+Add page definitions to the `pages` array in the seed file or POST via `/api/config`:
 
 ```json
 {
@@ -386,9 +355,14 @@ Pages are validated at runtime and routes are automatically generated.
 
 ### Translations
 
-Translations are embedded in the page content using the site structure's field names as the i18n key. The application uses React Intl with fallback to the default text values defined in `siteConfig.json`.
+Translations are stored separately from the site configuration in their own Netlify Blobs entry, seeded from `apps/functions/src/handlers/seed/i18n.json`. The frontend fetches them at runtime via `GET /api/translations/:language` whenever the active locale changes.
 
-Translation keys are automatically constructed using:
+The application uses React Intl and falls back to the content values defined in the site configuration if a translation key is missing.
+
+#### Translation key format
+
+Keys are automatically constructed from the page/section structure:
+
 ```
 {pageName}.{sectionName}.content.{field}
 ```
@@ -399,58 +373,67 @@ Example:
 - Content field name: `title`
 - **Translation key**: `page.home.hero.content.title`
 
-Add translations in the `i18n` object:
-```json
-{
-  "i18n": {
-    "en": {
-      "page.home.hero.content.title": "Welcome to Our Site",
-      "page.home.hero.content.subtitle": "Modern React Application"
-    },
-    "fr": {
-      "page.home.hero.content.title": "Bienvenue sur Notre Site",
-      "page.home.hero.content.subtitle": "Application React Moderne"
-    }
-  }
-}
+For `text` sections with columns the key includes the column index:
+```
+page.home.text.content.columns.0.title
 ```
 
-The application falls back to the content values in `siteConfig.json` if translations are missing.
-If the section contains columns, then the key format becomes: `page.home.text.content.columns.0.title` (`text` type section)
+#### Adding or updating translations
+
+Update the seed file (`apps/functions/src/handlers/seed/i18n.json`) for local dev, or push changes to the live store via the API:
+
+```bash
+# Add/update English keys
+curl -X POST https://<your-site>/api/translations/en \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page.home.hero.content.title": "Welcome to Our Site",
+    "page.home.hero.content.subtitle": "Modern React Application"
+  }'
+```
+
+Supported locales: `en`, `fr`. Adding a new locale requires extending `I18nLocalesEnum` in `libs/interfaces/src/i18n.interface.ts`.
 
 ## 🏗️ Architecture
 
-### Async Configuration with Zod Validation
+### API-Driven Configuration with Zod Validation
 
-The application loads configuration **asynchronously** with **runtime validation**:
+The application fetches both configuration and translations from the serverless API at runtime:
 
 **Key Features:**
-- ✅ **Async Loading** - Shows loading screen while config loads
-- ✅ **Runtime Validation** - Zod catches configuration errors
+- ✅ **API-Driven** - Config and translations fetched from Netlify Functions
+- ✅ **Runtime Validation** - Zod catches schema errors on every response
 - ✅ **Type Inference** - TypeScript types inferred from Zod schemas
-- ✅ **Context Injection** - Config available throughout the app
-- ✅ **Error Handling** - Graceful error display if config invalid
+- ✅ **Context Injection** - Config and locale available throughout the app
+- ✅ **Error Handling** - Graceful error display if fetch or validation fails
 
 ### Configuration Flow
 
 ```
-┌─────────────────────────────────────────┐
-│  App starts                             │
-│  ↓                                      │
-│  SiteConfigProvider loads config        │
-│  ↓                                      │
-│  Loading screen displayed               │
-│  ↓                                      │
-│  configService.loadSiteConfig()         │
-│  ↓                                      │
-│  Zod validation (SiteConfigSchema)      │
-│  ↓                                      │
-│  Config available in Context            │
-│  ↓                                      │
-│  ├─ IntlProvider (uses config.i18n)     │
-│  ├─ ThemeProvider (uses config.themes)  │
-│  └─ AppRouter (uses config.pages)       │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  App starts                                      │
+│  ↓                                               │
+│  SiteConfigProvider                              │
+│  ↓                                               │
+│  Loading screen displayed                        │
+│  ↓                                               │
+│  GET /api/config → Zod (SiteConfigSchema)        │
+│  ↓                                               │
+│  Config available in Context                     │
+│  ↓                                               │
+│  ├─ ThemeProvider (uses config.themes)           │
+│  └─ AppRouter    (uses config.pages)             │
+└──────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────┐
+│  AppIntlProvider (locale from localStorage)      │
+│  ↓                                               │
+│  GET /api/translations/:locale                   │
+│    → Zod (I18nDictionarySchema)                  │
+│  ↓                                               │
+│  ReactIntlProvider with fetched messages         │
+│  (re-fetches on every locale switch)             │
+└──────────────────────────────────────────────────┘
 ```
 
 ### Adding New Section Types
@@ -567,44 +550,35 @@ switch (type) {
 
 #### 6. Add to Configuration
 
-Update `apps/web/src/config/siteConfig.json`:
+Add the new section to the relevant page in the seed file (`apps/functions/src/handlers/seed/siteConfig.json`) for local dev, or POST the updated config via `/api/config` for the live environment:
 
 ```json
 {
-  "sections": [
-    {
-      "sectionName": "new-section",
-      "type": "new",
-      "content": {
-        "title": "Our New section",
-        "images": [
-          { "url": "/img1.jpg", "alt": "Image 1" },
-          { "url": "/img2.jpg", "alt": "Image 2" }
-        ]
-      },
-      "design": {
-        "columns": 3,
-        "spacing": 2,
-        "backgroundColor": "#f5f5f5"
-      }
-    }
-  ]
+  "sectionName": "new-section",
+  "type": "new",
+  "content": {
+    "title": "Our New section",
+    "images": [
+      { "url": "/img1.jpg", "alt": "Image 1" },
+      { "url": "/img2.jpg", "alt": "Image 2" }
+    ]
+  },
+  "design": {
+    "columns": 3,
+    "spacing": 2,
+    "backgroundColor": "#f5f5f5"
+  }
 }
 ```
 
 #### 7. Add Translations (Optional)
 
-```json
-{
-  "i18n": {
-    "en": {
-      "pageName.new-section.content.title": "Super Title of the new section"
-    },
-    "fr": {
-      "pageName.new-section.content.title": "Super titre de la nouvelle section"
-    }
-  }
-}
+Add translation keys to the seed file (`apps/functions/src/handlers/seed/i18n.json`) for local dev, or push them to the live store via the API:
+
+```bash
+curl -X POST https://<your-site>/api/translations/en \
+  -H "Content-Type: application/json" \
+  -d '{ "pageName.new-section.content.title": "Super Title of the new section" }'
 ```
 
 
@@ -677,8 +651,6 @@ To test on real mobile devices on your local network:
 ## 🎯 Future Enhancements
 
 - [ ] Assets management
-- [ ] Load configuration from API endpoint instead of JSON file
-- [ ] Load i18n resources asynchronously on language select
 - [ ] Configuration caching with cache invalidation
 - [ ] Additional section types (gallery, contact form, calendar, team, member, event, bibliography, etc.)
 - [ ] Advanced responsive images with srcset
