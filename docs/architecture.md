@@ -14,6 +14,7 @@
 | Tests | Vitest |
 | Linting | ESLint + Lefthook git hooks |
 | Backend | Netlify Functions (TypeScript, NodeNext ESM) |
+| Auth | Netlify Identity + gotrue-js |
 | Storage | Netlify Blobs |
 
 ## Monorepo Layout
@@ -96,3 +97,26 @@ sx={{
   padding:  { xs: 2,      sm: 3,         md: 4 },
 }}
 ```
+
+## Authentication Flow
+
+The admin area is protected by Netlify Identity. The flow:
+
+```
+User visits /admin
+  → ProtectedRoute checks AuthContext
+  → No session → redirect to /admin/login
+  → User submits credentials
+  → gotrue-js calls /.netlify/identity
+  → JWT stored in memory (GoTrue singleton)
+  → Redirect to /admin → "Hello {name}"
+
+POST /api/config or /api/translations/:language
+  → Authorization: Bearer <jwt> header sent by apiService
+  → Netlify edge verifies JWT → context.clientContext.user populated
+  → AuthHandler checks context.clientContext.user
+  → Absent → 401 UNAUTHORIZED
+  → Present → delegates to ConfigModule / TranslationsModule
+```
+
+The GoTrue singleton (`AuthProvider.tsx`) exposes `getNetlifyToken()` at module level so `apiService.ts` can read the current access token without being inside a React component tree.

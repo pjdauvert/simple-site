@@ -83,9 +83,42 @@ All responses — success and error — share the same top-level shape:
 | Status | When |
 |--------|------|
 | `400` | Missing / invalid body, invalid locale, wrong Content-Type on POST |
+| `401` | Missing or invalid Netlify Identity JWT on a protected endpoint |
 | `404` | Blob store key not found |
 | `405` | HTTP method not allowed for this endpoint |
 | `500` | Internal error, Zod schema violation in stored data |
+
+---
+
+## Authentication
+
+Netlify Identity is used to protect mutation endpoints. Before deploying:
+
+1. Enable Identity in the Netlify dashboard: **Site settings → Identity → Enable Identity**
+2. Invite the admin user: **Identity tab → Invite users**
+
+### Protected endpoints
+
+The following endpoints require a valid Netlify Identity JWT in the `Authorization` header:
+
+| Method | Path | Auth required |
+|--------|------|---------------|
+| POST | `/api/config` | ✓ |
+| POST | `/api/translations/:language` | ✓ |
+
+All `GET` endpoints remain public.
+
+**Request header:**
+```
+Authorization: Bearer <netlify-identity-access-token>
+```
+
+The token is obtained via the Netlify Identity service at `/.netlify/identity` (handled automatically by `AuthProvider` in the frontend).
+
+**Unauthenticated POST requests return:**
+```json
+{ "ok": false, "code": "UNAUTHORIZED", "message": "Authentication required", "timestamp": "..." }
+```
 
 ---
 
@@ -109,10 +142,6 @@ IMAGEKIT_PRIVATE_KEY
 IMAGEKIT_PUBLIC_KEY
 IMAGEKIT_URL_ENDPOINT
 GOOGLE_API_KEY_SERVER
-AUTH0_DOMAIN
-AUTH0_CLIENT_ID
-AUTH0_CLIENT_SECRET
-AUTH0_REDIRECT_URI
 ```
 
 Netlify reads the static site from `dist/apps/web` and functions from `dist/apps/functions` as defined in `netlify.toml`. Run `npm run build` locally to produce both artefacts.
