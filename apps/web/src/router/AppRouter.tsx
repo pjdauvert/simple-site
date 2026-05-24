@@ -4,6 +4,9 @@ import { MainLayout } from '../layouts/MainLayout';
 import { Page } from '../pages/dynamic/Page';
 import type { MenuItem, PageConfiguration } from '@simple-site/interfaces';
 import { useSiteConfig } from '../hooks/useSiteConfig';
+import { LoginPage } from '../pages/admin/LoginPage';
+import { AdminPage } from '../pages/admin/AdminPage';
+import { ProtectedRoute } from './ProtectedRoute';
 
 export const AppRouter: React.FC = () => {
   const { config } = useSiteConfig();
@@ -22,11 +25,21 @@ export const AppRouter: React.FC = () => {
       };
     }
 
-    return createBrowserRouter(
-      config.pages.map((pageConfiguration) => 
-        makePageRoute(pageConfiguration)
-      )
-    );
+    return createBrowserRouter([
+      ...config.pages.map(makePageRoute),
+      {
+        path: '/admin/login',
+        element: <LoginPage />,
+      },
+      {
+        path: '/admin',
+        element: (
+          <ProtectedRoute>
+            <AdminPage />
+          </ProtectedRoute>
+        ),
+      },
+    ]);
   }, [config.pages]);
 
   return <RouterProvider router={router} />;

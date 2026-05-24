@@ -1,4 +1,5 @@
 import type { Config } from '@netlify/functions';
+import { AuthHandler } from './handlers/AuthHandler';
 import { ConfigModule } from './handlers/ConfigModule';
 import type { RequestHandler } from './types/server-types';
 
@@ -7,16 +8,14 @@ export const config: Config = {
   path: '/api/config',
 };
 
-const handlerChain = new ConfigModule();
+const configModule = new ConfigModule();
+const protectedChain = new AuthHandler(configModule);
 
 const handler: RequestHandler = async (request, context) => {
   if (request.method === 'GET') {
-    return handlerChain.handle(request, context);
-  } else {
-    // chain handler with auth protection
-    return handlerChain.handle(request, context);
+    return configModule.handle(request, context);
   }
+  return protectedChain.handle(request, context);
 };
 
 export default handler;
-

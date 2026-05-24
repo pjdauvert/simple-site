@@ -2,6 +2,7 @@ import React from 'react';
 import { SiteConfigProvider } from './features/config/SiteConfigProvider';
 import { AppThemeProvider } from './features/theme/ThemeProvider';
 import { AppIntlProvider } from './features/i18n/IntlProvider';
+import { AuthProvider } from './features/auth/AuthProvider';
 import { AppRouter } from './router/AppRouter';
 import { Loading } from './components/Loading';
 import { useFavicon } from './hooks/useFavicon';
@@ -19,9 +20,11 @@ const App: React.FC = () => {
   return (
     <SiteConfigProvider loadingComponent={<Loading message="Loading configuration..." />}>
       <AppIntlProvider loadingComponent={<Loading message="Loading translations..." />}>
-        <AppThemeProvider>
-          <AppContent />
-        </AppThemeProvider>
+        <AuthProvider>
+          <AppThemeProvider>
+            <AppContent />
+          </AppThemeProvider>
+        </AuthProvider>
       </AppIntlProvider>
     </SiteConfigProvider>
   );

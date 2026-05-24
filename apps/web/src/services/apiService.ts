@@ -1,4 +1,5 @@
 import type { ApiResponsePayload, ApiResponseSuccessPayload, ApiResponseErrorPayload, ApiBaseResponse } from "@simple-site/interfaces";
+import { getNetlifyToken } from '../features/auth/AuthProvider';
 /**
  * API Caller Service
  * Handles all API requests to the site's backend functions
@@ -15,13 +16,8 @@ export type ApiCallerParams<RequestPayloadType>  = {
   payload?: RequestPayloadType;
 }
 
-/**
- * Mock function to get the auth token
- * TODO: Replace with actual auth context when implemented
- */
 function getAuthToken(): string | null {
-  // Mocked token for development - will be replaced with actual auth
-  return 'mock-bearer-token-for-development';
+  return getNetlifyToken();
 }
 
 /**
