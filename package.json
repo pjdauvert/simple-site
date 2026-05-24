@@ -23,7 +23,7 @@
     "@mui/material": "^6.1.10",
     "@netlify/blobs": "^10.7.4",
     "@netlify/functions": "^5.2.0",
-    "gotrue-js": "^1.0.1",
+    "@netlify/identity": "^1.2.0",
     "node-fetch": "^3.3.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

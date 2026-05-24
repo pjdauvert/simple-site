@@ -1,29 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { AuthProvider, getNetlifyToken } from './AuthProvider';
 import { useAuth } from '../../hooks/useAuth';
-import type { User } from 'gotrue-js';
+import type { User } from '@netlify/identity';
 
-const { mockCurrentUser, mockLogin, mockLogout } = vi.hoisted(() => ({
-  mockCurrentUser: vi.fn<() => User | null>().mockReturnValue(null),
-  mockLogin: vi.fn<(email: string, password: string, remember?: boolean) => Promise<User>>(),
+const { mockGetUser, mockLogin, mockLogout, mockOnAuthChange } = vi.hoisted(() => ({
+  mockGetUser: vi.fn<() => Promise<User | null>>().mockResolvedValue(null),
+  mockLogin: vi.fn<(email: string, password: string) => Promise<User>>(),
   mockLogout: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  mockOnAuthChange: vi.fn().mockReturnValue(() => {}),
 }));
 
-vi.mock('gotrue-js', () => ({
-  default: vi.fn(() => ({
-    currentUser: mockCurrentUser,
-    login: mockLogin,
-  })),
+vi.mock('@netlify/identity', () => ({
+  getUser: mockGetUser,
+  login: mockLogin,
+  logout: mockLogout,
+  onAuthChange: mockOnAuthChange,
 }));
 
-const mockUser = {
+const mockUser: User = {
   id: 'u1',
   email: 'a@b.com',
-  user_metadata: { full_name: 'Alice' },
-  token: { access_token: 'tok' },
-  logout: mockLogout,
-} as unknown as User;
+  name: 'Alice',
+} as User;
 
 function TestConsumer() {
   const { user, isLoading, login, logout } = useAuth();
@@ -38,9 +37,14 @@ function TestConsumer() {
 }
 
 beforeEach(() => {
-  mockCurrentUser.mockReturnValue(null);
+  mockGetUser.mockResolvedValue(null);
   mockLogin.mockReset();
   mockLogout.mockReset().mockResolvedValue(undefined);
+  mockOnAuthChange.mockReturnValue(() => {});
+});
+
+afterEach(() => {
+  document.cookie = 'nf_jwt=; Max-Age=0';
 });
 
 describe('AuthProvider', () => {
@@ -55,7 +59,7 @@ describe('AuthProvider', () => {
   });
 
   it('user is hydrated from existing session', async () => {
-    mockCurrentUser.mockReturnValue(mockUser);
+    mockGetUser.mockResolvedValue(mockUser);
     render(
       <AuthProvider>
         <TestConsumer />
@@ -116,7 +120,7 @@ describe('AuthProvider', () => {
   });
 
   it('logout() clears user', async () => {
-    mockCurrentUser.mockReturnValue(mockUser);
+    mockGetUser.mockResolvedValue(mockUser);
     render(
       <AuthProvider>
         <TestConsumer />
@@ -131,12 +135,11 @@ describe('AuthProvider', () => {
   });
 
   it('getNetlifyToken() returns null when no session', () => {
-    mockCurrentUser.mockReturnValue(null);
     expect(getNetlifyToken()).toBeNull();
   });
 
   it('getNetlifyToken() returns token when session exists', () => {
-    mockCurrentUser.mockReturnValue(mockUser);
+    document.cookie = 'nf_jwt=tok';
     expect(getNetlifyToken()).toBe('tok');
   });
 });
