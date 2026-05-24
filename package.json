@@ -12,7 +12,7 @@
     "build:functions": "nx run functions:build",
     "lint": "nx run web:lint",
     "typecheck": "nx run-many -t typecheck --projects=web,functions",
-    "test": "nx run web:test",
+    "test": "nx run-many -t test --projects=web,functions",
     "test:ui": "nx run web:test-ui",
     "preview": "nx run web:preview"
   },
