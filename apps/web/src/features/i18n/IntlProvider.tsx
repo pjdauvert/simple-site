@@ -6,32 +6,33 @@ import type { IntlContextValue } from './IntlContext';
 import { I18nLocalesEnum, type I18nDictionary, type Locale } from '@simple-site/interfaces';
 import { initLocale, loadTranslations, LOCALE_KEY } from '../../services/initService';
 
-interface AppIntlProviderProps {
+interface BaseIntlProviderProps {
   children: ReactNode;
+  loadMessages: (locale: Locale) => Promise<I18nDictionary>;
   loadingComponent?: ReactNode;
+  renderError?: (error: Error) => ReactNode;
 }
 
-export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({ 
-  children, 
-  loadingComponent 
+export const BaseIntlProvider: React.FC<BaseIntlProviderProps> = ({
+  children,
+  loadMessages,
+  loadingComponent,
+  renderError,
 }) => {
   const [locale, setLocale] = useState<Locale>(initLocale());
   const [messages, setMessages] = useState<I18nDictionary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    setIsLoading(true);
-    loadTranslations(locale)
-      .then(loadedMessages => {
-        setMessages(loadedMessages);
-        setIsLoading(false);
-      })
+    setMessages(null);
+    setError(null);
+    loadMessages(locale)
+      .then(m => setMessages(m))
       .catch(err => {
-        setError(err);
-        setIsLoading(false);
+        setError(err instanceof Error ? err : new Error(String(err)));
+        setMessages({});
       });
-  }, [locale]);
+  }, [locale, loadMessages]);
 
   const switchLanguage = (newLocale: Locale) => {
     setLocale(newLocale);
@@ -43,47 +44,53 @@ export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({
   // so accepting an arbitrary runtime locale would require the frontend to handle unknown locales
   // gracefully (missing translations, fallback logic, etc.). Adding a new locale therefore
   // requires a code change to I18nLocalesEnum — which is the correct gate for that work.
-  const availableLocales = Object.values(I18nLocalesEnum) as Locale[];
-
   const contextValue: IntlContextValue = {
     locale,
     switchLanguage,
-    availableLocales,
+    availableLocales: Object.values(I18nLocalesEnum) as Locale[],
   };
 
-  if (error) {
-    // KNOWN LIMITATION: this error screen is always rendered in English regardless of user
-    // locale. Localising it would require a synchronous fallback message bundle loaded before
-    // the async translation fetch — complexity not warranted at this stage. Accepted trade-off:
-    // the i18n layer has failed, so no translated string is available anyway.
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        flexDirection: 'column',
-        padding: '20px'
-      }}>
-        <h1>Error Loading Translations</h1>
-        <p>{error.message}</p>
-      </div>
-    );
-  }
-
-  if (isLoading || !messages) {
-    return <>{loadingComponent}</>;
-  }
+  if (error && renderError) return <>{renderError(error)}</>;
+  if (messages === null && loadingComponent) return <>{loadingComponent}</>;
 
   return (
     <IntlContext.Provider value={contextValue}>
-      <ReactIntlProvider
-        locale={locale}
-        messages={messages}
-        defaultLocale="en"
-      >
+      <ReactIntlProvider locale={locale} messages={messages ?? {}} defaultLocale="en">
         {children}
       </ReactIntlProvider>
     </IntlContext.Provider>
   );
 };
+
+const renderTranslationError = (error: Error): ReactNode => (
+  // KNOWN LIMITATION: this error screen is always rendered in English regardless of user
+  // locale. Localising it would require a synchronous fallback message bundle loaded before
+  // the async translation fetch — complexity not warranted at this stage. Accepted trade-off:
+  // the i18n layer has failed, so no translated string is available anyway.
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    flexDirection: 'column',
+    padding: '20px'
+  }}>
+    <h1>Error Loading Translations</h1>
+    <p>{error.message}</p>
+  </div>
+);
+
+interface AppIntlProviderProps {
+  children: ReactNode;
+  loadingComponent?: ReactNode;
+}
+
+export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({ children, loadingComponent }) => (
+  <BaseIntlProvider
+    loadMessages={loadTranslations}
+    loadingComponent={loadingComponent}
+    renderError={renderTranslationError}
+  >
+    {children}
+  </BaseIntlProvider>
+);
