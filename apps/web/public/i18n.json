@@ -1,0 +1,10 @@
+{
+  "en": {
+    "footer.copyright": "© Simple Site. All rights reserved.",
+    "footer.license": "License AGPL-3.0"
+  },
+  "fr": {
+    "footer.copyright": "© Simple Site. Tous droits réservés.",
+    "footer.license": "Licence AGPL-3.0"
+  }
+}

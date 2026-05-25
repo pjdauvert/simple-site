@@ -1,46 +1,27 @@
 import React, { useMemo } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { Page } from '../pages/dynamic/Page';
-import type { MenuItem, PageConfiguration } from '@simple-site/interfaces';
+import type { MenuItem } from '@simple-site/interfaces';
 import { useSiteConfig } from '../hooks/useSiteConfig';
-import { LoginPage } from '../pages/admin/LoginPage';
-import { AdminPage } from '../pages/admin/AdminPage';
-import { ProtectedRoute } from './ProtectedRoute';
 
 export const AppRouter: React.FC = () => {
   const { config } = useSiteConfig();
 
-  const router = useMemo(() => {
-    const menuItems: MenuItem[] = config.pages.map(({ pageName, route, menuTitle }) => ({
-      menuTitle,
-      pageName,
-      route,
-    }));
+  const menuItems: MenuItem[] = useMemo(
+    () => config.pages.map(({ pageName, route, menuTitle }) => ({ menuTitle, pageName, route })),
+    [config.pages]
+  );
 
-    function makePageRoute(pageConfiguration: PageConfiguration) {
-      return {
-        path: pageConfiguration.route,
-        element: <MainLayout menuItems={menuItems}><Page {...pageConfiguration} /></MainLayout>,
-      };
-    }
-
-    return createBrowserRouter([
-      ...config.pages.map(makePageRoute),
-      {
-        path: '/admin/login',
-        element: <LoginPage />,
-      },
-      {
-        path: '/admin',
-        element: (
-          <ProtectedRoute>
-            <AdminPage />
-          </ProtectedRoute>
-        ),
-      },
-    ]);
-  }, [config.pages]);
-
-  return <RouterProvider router={router} />;
+  return (
+    <Routes>
+      {config.pages.map(page => (
+        <Route
+          key={page.route}
+          path={page.route}
+          element={<MainLayout menuItems={menuItems}><Page {...page} /></MainLayout>}
+        />
+      ))}
+    </Routes>
+  );
 };
