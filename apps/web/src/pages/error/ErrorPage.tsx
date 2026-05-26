@@ -1,4 +1,3 @@
-import { MainLayout } from '../../layouts/MainLayout';
 import { Box } from '@mui/material';
 
 export type ErrorPageProps = {
@@ -12,11 +11,17 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({ title, message }) => {
   // the async translation fetch — complexity not warranted at this stage. Accepted trade-off:
   // the i18n layer has failed, so no translated string is available anyway.
   return (
-    <MainLayout menuItems={[]}>
-      <Box sx={{ p: { xs: 2, sm: 4 } }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+      }}
+    >
+      <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 4 } }}>
         <h1>{title}</h1>
         <p>{message}</p>
       </Box>
-    </MainLayout>
+    </Box>
   );
 };

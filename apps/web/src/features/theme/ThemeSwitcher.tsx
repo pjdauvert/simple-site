@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import { Palette } from '@mui/icons-material';
 import { FormattedMessage } from 'react-intl';
-import { useAppTheme } from '../../hooks/useTheme';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 export const ThemeSwitcher: React.FC = () => {
   const { themeName, switchTheme, availableThemes } = useAppTheme();
