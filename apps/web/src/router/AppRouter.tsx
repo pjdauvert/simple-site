@@ -6,8 +6,10 @@ import type { MenuItem } from '@simple-site/interfaces';
 import { useSiteConfig } from '../hooks/useSiteConfig';
 
 export const AppRouter: React.FC = () => {
-  const { config } = useSiteConfig();
-
+  const siteContext = useSiteConfig();
+  if (!siteContext) throw new Error('AppRouter must be called within <SiteConfigProvider>');
+  const { config } = siteContext;
+   
   const menuItems: MenuItem[] = useMemo(
     () => config.pages.map(({ pageName, route, menuTitle }) => ({ menuTitle, pageName, route })),
     [config.pages]

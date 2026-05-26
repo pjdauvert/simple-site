@@ -3,25 +3,13 @@ import type { ReactNode } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import type { ThemeConfig, SiteThemeConfig } from '@simple-site/interfaces';
+import type { ThemeConfig, SiteConfig } from '@simple-site/interfaces';
 import { ThemeContext } from './ThemeContext';
 import type { ThemeContextValue } from './ThemeContext';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
+import { useFavicon } from '../../hooks/useFavicon';
 
-const DEFAULT_THEME_NAME = 'Default';
-
-const DEFAULT_THEME_CONFIG: ThemeConfig = {
-  themeName: 'Default',
-  primaryColor: '#0076d2',
-  secondaryColor: '#dc004e',
-  linkColor: '#1976d2',
-  linkHoverColor: '#115293',
-  backgroundColor: '#ffffff',
-  menuBackgroundColor: '#1976d2',
-  menuHoverColor: '#115293',
-};
-
-const DEFAULT_SITE_THEME: SiteThemeConfig = { siteName: '' };
+import { DEFAULT_SITE } from './DefaultThemes';
 
 function buildMuiTheme(themeConfig: ThemeConfig): Theme {
   const isDark = themeConfig.backgroundColor.toLowerCase().includes('dark') ||
@@ -74,66 +62,41 @@ const ThemeRenderer = ({
   </ThemeContext.Provider>
 );
 
-interface StaticThemeProviderProps {
-  children: ReactNode;
-  themeConfig?: ThemeConfig;
-  siteThemeConfig?: SiteThemeConfig;
-}
-
-export const StaticThemeProvider: React.FC<StaticThemeProviderProps> = ({
-  children,
-  themeConfig = DEFAULT_THEME_CONFIG,
-  siteThemeConfig = DEFAULT_SITE_THEME,
-}) => {
-  const muiTheme = useMemo(() => buildMuiTheme(themeConfig), [themeConfig]);
-  const contextValue: ThemeContextValue = {
-    themeName: themeConfig.themeName,
-    themeConfig,
-    siteThemeConfig,
-    switchTheme: () => {},
-    availableThemes: [themeConfig.themeName],
-  };
-  return <ThemeRenderer contextValue={contextValue} muiTheme={muiTheme}>{children}</ThemeRenderer>;
-};
-
-interface AppThemeProviderProps {
+interface ThemeProviderProps {
   children: ReactNode;
 }
 
-export const AppThemeProvider: React.FC<AppThemeProviderProps> = ({ children }) => {
-  const { config } = useSiteConfig();
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  const siteContext = useSiteConfig();
+  const siteConfig: SiteConfig = siteContext?.config ?? DEFAULT_SITE;
 
-  const siteThemeConfig: SiteThemeConfig = config.site;
-
-  // Build theme configurations from config:
-  // - 0 themes: use DEFAULT_THEME_CONFIG
-  // - 1 theme: override Default with that theme
+    // Build theme configurations from config:
+  // - 0 themes: use default theming
+  // - 1 theme: use the theme with no switcheable themes
   // - 2+ themes: list all themes in switcher
   const { themeConfigs, availableThemeNames } = useMemo(() => {
-    const names = config.themes.map(t => t.themeName);
-    if (names.length === 0) {
-      return { themeConfigs: { [DEFAULT_THEME_NAME]: DEFAULT_THEME_CONFIG }, availableThemeNames: [DEFAULT_THEME_NAME] };
-    }
-    if (names.length === 1) {
-      return { themeConfigs: { [DEFAULT_THEME_NAME]: config.themes[0] }, availableThemeNames: [DEFAULT_THEME_NAME] };
+    const siteThemes = Object.fromEntries(siteConfig.themes.map(t => [t.themeName, t]))
+    if (siteConfig.themes.length === 1) {
+      return { themeConfigs: {}, availableThemeNames: [] };
     }
     return {
-      themeConfigs: Object.fromEntries(config.themes.map(t => [t.themeName, t])),
-      availableThemeNames: names,
+      themeConfigs: siteThemes,
+      availableThemeNames: Object.keys(siteThemes),
     };
-  }, [config.themes]);
+  }, [siteConfig.themes]);
 
   const [themeName, setThemeName] = useState<string>(availableThemeNames[0]);
   const themeConfig = useMemo(() => themeConfigs[themeName], [themeName, themeConfigs]);
   const muiTheme = useMemo(() => buildMuiTheme(themeConfig), [themeConfig]);
+  useFavicon(siteConfig.site.faviconUrl);
 
   const contextValue: ThemeContextValue = {
     themeName,
     themeConfig,
-    siteThemeConfig,
+    siteThemeConfig: siteConfig.site,
     switchTheme: setThemeName,
     availableThemes: availableThemeNames,
   };
 
-  return <ThemeRenderer contextValue={contextValue} muiTheme={muiTheme}>{children}</ThemeRenderer>;
+  return <ThemeRenderer contextValue={contextValue} muiTheme={muiTheme}>{ children }</ThemeRenderer>;
 };

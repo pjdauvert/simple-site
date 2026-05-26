@@ -1,9 +1,13 @@
 {
   "en": {
+    "language.switch": "Switch Language",
+    "theme.switch": "Switch Theme",
     "footer.copyright": "© Simple Site. All rights reserved.",
     "footer.license": "License AGPL-3.0"
   },
   "fr": {
+    "language.switch": "Changer de Langue",
+    "theme.switch": "Changer de Thème",
     "footer.copyright": "© Simple Site. Tous droits réservés.",
     "footer.license": "Licence AGPL-3.0"
   }

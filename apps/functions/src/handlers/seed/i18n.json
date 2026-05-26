@@ -1,10 +1,5 @@
 {
   "en": {
-    "footer.copyright": "© 2025 Simple Site. All rights reserved.",
-    "footer.license": "Licensed under AGPL-3.0",
-    "language.switch": "Switch Language",
-    "theme.switch": "Switch Theme",
-
     "page.home.menuTitle": "Home",
     "page.home.hero.content.title": "Welcome to Our Application",
     "page.home.hero.content.subtitle": "A modern, themable, and multilingual web application built with React",
@@ -42,11 +37,6 @@
     "page.about.text.content.columns.0.paragraph": "This is a modern mobile-first web application demonstrating React, Material-UI, theming, and internationalization with responsive design."
   },
   "fr": {
-    "footer.copyright": "© 2025 Simple Site. Tous droits réservés.",
-    "footer.license": "Sous licence AGPL-3.0",
-    "language.switch": "Changer de Langue",
-    "theme.switch": "Changer de Thème",
-
     "page.home.menuTitle": "Accueil",
     "page.home.hero.content.title": "Bienvenue dans Notre Application",
     "page.home.hero.content.subtitle": "Une application web moderne, personnalisable et multilingue construite avec React",

@@ -1,6 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { AdminShell } from './router/AdminShell';
-import { PublicShell } from './router/PublicShell';
+import { AdminShell } from './router/Shell';
+import { PublicShell } from './router/Shell';
 import { LoginPage } from './pages/admin/LoginPage';
 import { AdminPage } from './pages/admin/AdminPage';
 import { ProtectedRoute } from './router/ProtectedRoute';

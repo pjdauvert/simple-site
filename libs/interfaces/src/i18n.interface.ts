@@ -19,3 +19,4 @@ export type I18nDictionary = z.infer<typeof I18nDictionarySchema>;
 
 // i18n schema
 export const I18nSchema = z.record(I18nLocaleSchema, I18nDictionarySchema);
+export type I18n = z.infer<typeof I18nSchema>;
