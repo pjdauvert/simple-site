@@ -1,12 +1,13 @@
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import netlify from '@netlify/vite-plugin';
 
 const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
 const sharedTypesRoot = fileURLToPath(new URL('../../libs/interfaces/src', import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), netlify()],
   resolve: {
     alias: {
       '@simple-site/interfaces': sharedTypesRoot,
@@ -55,11 +56,19 @@ export default defineConfig({
           if (id.includes('node_modules/react-markdown') ||
               id.includes('node_modules/remark-') ||
               id.includes('node_modules/rehype-') ||
-              id.includes('node_modules/unified') ||
+              id.includes('node_modules/unified/') ||
               id.includes('node_modules/micromark') ||
               id.includes('node_modules/hast-') ||
               id.includes('node_modules/mdast-') ||
-              id.includes('node_modules/unist-')) {
+              id.includes('node_modules/unist-util-') ||
+              id.includes('node_modules/vfile') ||
+              id.includes('node_modules/bail') ||
+              id.includes('node_modules/trough') ||
+              id.includes('node_modules/devlop') ||
+              id.includes('node_modules/decode-named-character-reference') ||
+              id.includes('node_modules/character-entities') ||
+              id.includes('node_modules/property-information') ||
+              id.includes('node_modules/web-namespaces')) {
             return 'markdown-vendor';
           }
           

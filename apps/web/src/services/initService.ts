@@ -1,6 +1,7 @@
 import type { ApiResponseErrorPayload, ApiResponseSuccessPayload, I18nDictionary, Locale, SiteConfig } from '@simple-site/interfaces';
 import { I18nDictionarySchema, I18nLocalesEnum, SiteConfigSchema } from '@simple-site/interfaces';
 import apiService from './apiService';
+
 /**
  * Simulates loading configuration from an API endpoint
  * In a real application, this would be a fetch call to an API

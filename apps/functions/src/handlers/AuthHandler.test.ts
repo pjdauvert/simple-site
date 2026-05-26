@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Context } from '@netlify/functions';
 import { AuthHandler } from './AuthHandler';
 import { ErrorCode } from '@simple-site/interfaces';
@@ -7,12 +7,18 @@ function makeContext(user?: Record<string, unknown>): Context {
   return { clientContext: user ? { user } : undefined } as unknown as Context;
 }
 
-
 function makeRequest(method = 'POST'): Request {
   return new Request('https://example.com/api/config', { method });
 }
 
 describe('AuthHandler', () => {
+  beforeEach(() => {
+    vi.stubGlobal('Netlify', { env: { get: vi.fn().mockReturnValue('production') } });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   it('returns 401 when clientContext is undefined', async () => {
     const handler = new AuthHandler();
     const response = await handler.handle(makeRequest(), makeContext());

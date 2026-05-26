@@ -3,34 +3,54 @@ import type { ReactNode } from 'react';
 import { IntlProvider as ReactIntlProvider } from 'react-intl';
 import { IntlContext } from './IntlContext';
 import type { IntlContextValue } from './IntlContext';
-import { I18nLocalesEnum, type I18nDictionary, type Locale } from '@simple-site/interfaces';
-import { initLocale, loadTranslations, LOCALE_KEY } from '../../services/initService';
+import { I18nLocalesEnum, I18nSchema } from '@simple-site/interfaces';
+import type { I18nDictionary, Locale } from '@simple-site/interfaces';
+import { initLocale, LOCALE_KEY } from '../../services/initService';
+import { ErrorPage } from '../../pages/error/ErrorPage' 
+import { Loading } from '../../components/Loading';
+import staticTranslations from '../i18n/i18n.json';
 
-interface AppIntlProviderProps {
+const getLocalizedStaticMessages = (locale: Locale): I18nDictionary => {
+  const staticMessages = I18nSchema.parse(staticTranslations);
+  return staticMessages[locale];
+}  
+
+interface IntlProviderProps {
+  loadTranslations?: (locale: Locale) => Promise<I18nDictionary>;
   children: ReactNode;
-  loadingComponent?: ReactNode;
 }
 
-export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({ 
-  children, 
-  loadingComponent 
+export const IntlProvider: React.FC<IntlProviderProps> = ({
+  loadTranslations,
+  children
 }) => {
-  const [locale, setLocale] = useState<Locale>(initLocale());
+  const initialLocale = initLocale();
+  const [locale, setLocale] = useState<Locale>(initialLocale);
   const [messages, setMessages] = useState<I18nDictionary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(loadTranslations))
 
   useEffect(() => {
+    setMessages(null);
+    setError(null);
     setIsLoading(true);
-    loadTranslations(locale)
-      .then(loadedMessages => {
-        setMessages(loadedMessages);
+    try{
+      const staticMessages = getLocalizedStaticMessages(locale);
+      if(loadTranslations) { 
+        loadTranslations(locale)
+          .then(m => { 
+            setMessages({...staticMessages, ...m}); 
+            setIsLoading(false); 
+          });
+      } else {
+        setMessages(staticMessages);
         setIsLoading(false);
-      })
-      .catch(err => {
-        setError(err);
-        setIsLoading(false);
-      });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+      setMessages({});
+      setIsLoading(false);
+    }
   }, [locale]);
 
   const switchLanguage = (newLocale: Locale) => {
@@ -43,46 +63,19 @@ export const AppIntlProvider: React.FC<AppIntlProviderProps> = ({
   // so accepting an arbitrary runtime locale would require the frontend to handle unknown locales
   // gracefully (missing translations, fallback logic, etc.). Adding a new locale therefore
   // requires a code change to I18nLocalesEnum — which is the correct gate for that work.
-  const availableLocales = Object.values(I18nLocalesEnum) as Locale[];
-
   const contextValue: IntlContextValue = {
     locale,
     switchLanguage,
-    availableLocales,
+    availableLocales: Object.values(I18nLocalesEnum) as Locale[],
   };
 
-  if (error) {
-    // KNOWN LIMITATION: this error screen is always rendered in English regardless of user
-    // locale. Localising it would require a synchronous fallback message bundle loaded before
-    // the async translation fetch — complexity not warranted at this stage. Accepted trade-off:
-    // the i18n layer has failed, so no translated string is available anyway.
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        flexDirection: 'column',
-        padding: '20px'
-      }}>
-        <h1>Error Loading Translations</h1>
-        <p>{error.message}</p>
-      </div>
-    );
-  }
-
-  if (isLoading || !messages) {
-    return <>{loadingComponent}</>;
-  }
+  if (error) return <ErrorPage title='Error loading translations' message={error.message} />;
+  if (messages === null && isLoading) return <Loading message="Loading translations..." />;
 
   return (
     <IntlContext.Provider value={contextValue}>
-      <ReactIntlProvider
-        locale={locale}
-        messages={messages}
-        defaultLocale="en"
-      >
-        {children}
+      <ReactIntlProvider locale={locale} messages={messages ?? {}} defaultLocale="en">
+        { children }
       </ReactIntlProvider>
     </IntlContext.Provider>
   );

@@ -10,11 +10,11 @@
     "build": "nx run-many -t build --projects=web,functions",
     "build:web": "nx run web:build",
     "build:functions": "nx run functions:build",
-    "lint": "nx run web:lint",
+    "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck --projects=web,functions",
-    "test": "nx run web:test",
+    "test": "nx run-many -t test --projects=web,functions",
     "test:ui": "nx run web:test-ui",
-    "preview": "nx run web:preview"
+    "preview": "nx run-many -t build --projects=web,functions && netlify dev"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
@@ -50,6 +50,7 @@
     "globals": "^16.5.0",
     "jsdom": "^26.0.0",
     "lefthook": "^1.9.5",
+    "netlify-cli": "26.0.2",
     "nx": "^20.8.4",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.59.2",

@@ -88,6 +88,8 @@ describe('LoginPage', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /sign in/i })).toBeDisabled()
     );
-    resolveLogin();
+    await act(async () => {
+      resolveLogin();
+    });
   });
 });

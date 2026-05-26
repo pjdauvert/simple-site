@@ -16,7 +16,7 @@ import { FormattedMessage } from 'react-intl';
 import type { MenuItem as MenuItemType } from '@simple-site/interfaces';
 import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '../features/i18n/LanguageSwitcher';
-import { useAppTheme } from '../hooks/useTheme';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 interface MenuBarProps {
   menuItems: MenuItemType[];
@@ -37,7 +37,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
 
   return (
     <AppBar position="sticky">
-      <Container maxWidth="lg">
+      <Container maxWidth={siteThemeConfig.containerMaxWidth}>
         <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 64 } }}>
           {/* Logo and Title */}
           <Box sx={{ display: 'flex', alignItems: 'center', mr: { xs: 'auto', md: 4 } }}>
