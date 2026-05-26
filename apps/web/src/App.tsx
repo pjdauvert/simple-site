@@ -1,33 +1,25 @@
-import React from 'react';
-import { SiteConfigProvider } from './features/config/SiteConfigProvider';
-import { AppThemeProvider } from './features/theme/ThemeProvider';
-import { AppIntlProvider } from './features/i18n/IntlProvider';
-import { AuthProvider } from './features/auth/AuthProvider';
-import { AppRouter } from './router/AppRouter';
-import { Loading } from './components/Loading';
-import { useFavicon } from './hooks/useFavicon';
-import { useAppTheme } from './hooks/useTheme';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AdminShell } from './router/Shell';
+import { PublicShell } from './router/Shell';
+import { LoginPage } from './pages/admin/LoginPage';
+import { AdminPage } from './pages/admin/AdminPage';
+import { ProtectedRoute } from './router/ProtectedRoute';
 
-// Inner component that has access to the theme context
-const AppContent: React.FC = () => {
-  const { siteThemeConfig } = useAppTheme();
-  useFavicon(siteThemeConfig.faviconUrl);
+const router = createBrowserRouter([
+  {
+    path: '/admin',
+    element: <AdminShell />,
+    children: [
+      { index: true, element: <ProtectedRoute><AdminPage /></ProtectedRoute> },
+      { path: 'login', element: <LoginPage /> },
+    ],
+  },
+  {
+    path: '*',
+    element: <PublicShell />,
+  },
+]);
 
-  return <AppRouter />;
-};
-
-const App: React.FC = () => {
-  return (
-    <SiteConfigProvider loadingComponent={<Loading message="Loading configuration..." />}>
-      <AppIntlProvider loadingComponent={<Loading message="Loading translations..." />}>
-        <AuthProvider>
-          <AppThemeProvider>
-            <AppContent />
-          </AppThemeProvider>
-        </AuthProvider>
-      </AppIntlProvider>
-    </SiteConfigProvider>
-  );
-};
+const App = () => <RouterProvider router={router} />;
 
 export default App;

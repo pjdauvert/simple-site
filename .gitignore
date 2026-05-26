@@ -33,3 +33,6 @@ graph.json
 # Netlify
 .netlify
 deno.lock
+
+#continue.dev
+.continue

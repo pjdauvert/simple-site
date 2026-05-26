@@ -3,22 +3,24 @@ import type { ReactNode } from 'react';
 import { SiteConfigContext } from './SiteConfigContext';
 import type { SiteConfigContextValue } from './SiteConfigContext';
 import type { SiteConfig } from '@simple-site/interfaces';
-import { loadSiteConfig } from '../../services/initService';
+import { ErrorPage } from '../../pages/error/ErrorPage'
+import { Loading } from '../../components';
 
 interface SiteConfigProviderProps {
   children: ReactNode;
-  loadingComponent?: ReactNode;
+  loadSiteConfig?: () => Promise<SiteConfig>;
 }
 
 export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ 
-  children, 
-  loadingComponent 
+  children,
+  loadSiteConfig
 }) => {
   const [config, setConfig] = useState<SiteConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(loadSiteConfig));
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if(loadSiteConfig) {
     loadSiteConfig()
       .then(loadedConfig => {
         setConfig(loadedConfig);
@@ -28,26 +30,15 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({
         setError(err);
         setIsLoading(false);
       });
+    }
   }, []);
 
   if (error) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        flexDirection: 'column',
-        padding: '20px'
-      }}>
-        <h1>Error Loading Configuration</h1>
-        <p>{error.message}</p>
-      </div>
-    );
+    return <ErrorPage title="Error Loading Configuration" message={error.message} />;
   }
 
   if (isLoading || !config) {
-    return <>{loadingComponent}</>;
+    return <Loading message="Loading configuration..." />;
   }
 
   const contextValue: SiteConfigContextValue = {

@@ -5,6 +5,13 @@
 [functions]
   directory = "dist/apps/functions"
 
+[dev]
+  # netlify dev proxies localhost:8888 → Vite on 5173, and serves functions at /api/*
+  command = "nx run web:dev"
+  targetPort = 5173
+  port = 8888
+  autoLaunch = false
+
 [[redirects]]
   from = "/admin"
   to = "/index.html"

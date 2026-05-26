@@ -4,7 +4,7 @@ import Grid from '@mui/material/Grid2';
 import { FormattedMessage } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
 import type { TextColumnContent, TextColumnDesign, TextSectionProps } from '@simple-site/interfaces';
-import { useAppTheme } from '../../hooks/useTheme';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 interface ColumnWithConfig {
   content: TextColumnContent;

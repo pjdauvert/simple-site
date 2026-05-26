@@ -25,7 +25,47 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+// ---------------------------------------------------------------------------
+// Mock provider — used locally when VITE_AUTH_BYPASS=true
+// Stores the mock user in sessionStorage so it survives hot-reloads but not
+// full browser restarts (avoids stale state across dev sessions).
+// ---------------------------------------------------------------------------
+
+const MOCK_USER_KEY = '__dev_mock_user__';
+
+function MockAuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(MOCK_USER_KEY);
+      return raw ? (JSON.parse(raw) as AuthUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const login = async (email: string): Promise<void> => {
+    const mockUser: AuthUser = { id: 'dev-user-id', email, name: 'Dev User' };
+    sessionStorage.setItem(MOCK_USER_KEY, JSON.stringify(mockUser));
+    setUser(mockUser);
+  };
+
+  const logout = async (): Promise<void> => {
+    sessionStorage.removeItem(MOCK_USER_KEY);
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading: false, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Real provider — uses @netlify/identity (production + Netlify preview envs)
+// ---------------------------------------------------------------------------
+
+function RealAuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,4 +94,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Public export — delegates to mock or real based on env var
+// ---------------------------------------------------------------------------
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  if (import.meta.env.VITE_AUTH_BYPASS === 'true') {
+    return <MockAuthProvider>{children}</MockAuthProvider>;
+  }
+  return <RealAuthProvider>{children}</RealAuthProvider>;
 }

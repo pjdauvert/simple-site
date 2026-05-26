@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
 import type { HeroSectionProps } from '@simple-site/interfaces';
-import { useAppTheme } from '../../hooks/useTheme';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, design }) => {
