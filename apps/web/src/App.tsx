@@ -2,10 +2,10 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AdminShell } from './router/Shell';
 import { PublicShell } from './router/Shell';
 import { NetlifyCallbackHandler } from './features/auth/NetlifyCallbackHandler';
-import { LoginPage } from './pages/admin/LoginPage';
+import { LoginPage } from './pages/auth/LoginPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+import { AcceptInvitePage } from './pages/auth/AcceptInvitePage';
 import { AdminPage } from './pages/admin/AdminPage';
-import { ResetPasswordPage } from './pages/admin/ResetPasswordPage';
-import { AcceptInvitePage } from './pages/admin/AcceptInvitePage';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 const router = createBrowserRouter([
