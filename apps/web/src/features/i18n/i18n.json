@@ -3,12 +3,24 @@
     "language.switch": "Switch Language",
     "theme.switch": "Switch Theme",
     "footer.copyright": "© Simple Site. All rights reserved.",
-    "footer.license": "License AGPL-3.0"
+    "footer.license": "License AGPL-3.0",
+    "login.title": "Admin Sign In",
+    "login.email": "Email",
+    "login.password": "Password",
+    "login.submit": "Sign In",
+    "login.email.invalid": "Enter a valid email address",
+    "login.error.generic": "Login failed"
   },
   "fr": {
     "language.switch": "Changer de Langue",
     "theme.switch": "Changer de Thème",
     "footer.copyright": "© Simple Site. Tous droits réservés.",
-    "footer.license": "Licence AGPL-3.0"
+    "footer.license": "Licence AGPL-3.0",
+    "login.title": "Connexion Admin",
+    "login.email": "E-mail",
+    "login.password": "Mot de passe",
+    "login.submit": "Se connecter",
+    "login.email.invalid": "Entrez une adresse e-mail valide",
+    "login.error.generic": "Échec de la connexion"
   }
 }
