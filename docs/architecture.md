@@ -14,7 +14,7 @@
 | Tests | Vitest |
 | Linting | ESLint + Lefthook git hooks |
 | Backend | Netlify Functions (TypeScript, NodeNext ESM) |
-| Auth | Netlify Identity + gotrue-js |
+| Auth | Netlify Identity (`@netlify/identity`) |
 | Storage | Netlify Blobs |
 
 ## Monorepo Layout
@@ -100,23 +100,61 @@ sx={{
 
 ## Authentication Flow
 
-The admin area is protected by Netlify Identity. The flow:
+The admin area is protected by [Netlify Identity](https://docs.netlify.com/security/secure-access-to-sites/identity/) via the `@netlify/identity` library. There are two distinct entry points: email/password login, and email link callbacks (recovery, invite, confirmation, email-change, OAuth).
+
+### Normal login
 
 ```
 User visits /admin
   → ProtectedRoute checks AuthContext
   → No session → redirect to /admin/login
-  → User submits credentials
-  → gotrue-js calls /.netlify/identity
-  → JWT stored in memory (GoTrue singleton)
-  → Redirect to /admin → "Hello {name}"
+  → LoginPage calls login(email, password)
+  → @netlify/identity POSTs to /.netlify/identity/token
+  → nf_jwt + nf_refresh cookies set; 'login' event fired
+  → RealAuthProvider.onAuthChange updates user in context
+  → Navigate to /admin
+```
 
-POST /api/config or /api/translations/:language
-  → Authorization: Bearer <jwt> header sent by apiService
+### Email link callbacks (`NetlifyCallbackHandler`)
+
+Netlify Identity emails (invitations, password recovery, confirmations, email-change verifications) redirect the user to the site root with an auth token in the URL hash. `NetlifyCallbackHandler` wraps the `/` route in `App.tsx` and processes these tokens on page load via `handleAuthCallback()`.
+
+```
+User clicks email link → lands on /#<type>_token=...
+  → NetlifyCallbackHandler detects auth hash
+  → calls handleAuthCallback()
+  → result.type determines the next page:
+
+  ┌──────────────────┬─────────────────────────────────────────────┐
+  │ result.type      │ Destination                                 │
+  ├──────────────────┼─────────────────────────────────────────────┤
+  │ oauth            │ /admin  (OAuth provider login complete)      │
+  │ confirmation     │ /admin  (email confirmed, user logged in)    │
+  │ email_change     │ /admin  (new email verified, user logged in) │
+  │ recovery         │ /admin/reset-password                       │
+  │ invite           │ /admin/accept-invite?token=<token>          │
+  └──────────────────┴─────────────────────────────────────────────┘
+```
+
+**Recovery** (`/admin/reset-password`): The user is already authenticated but has not set a password yet. `ResetPasswordPage` calls `updateUser({ password })`. The `user_updated` event propagates back through `onAuthChange`, keeping `AuthContext` in sync.
+
+**Invite** (`/admin/accept-invite?token=…`): The user has no session. `AcceptInvitePage` reads the token from query params and calls `acceptInvite(token, password)`, which logs the user in on success.
+
+### Session hydration
+
+`RealAuthProvider` (in `AuthProvider.tsx`) subscribes to `onAuthChange` for the lifetime of the app, keeping `AuthContext` current across all flows. On reload, it calls `getUser()`, which hydrates from the `nf_jwt` cookie set by the identity library. `getNetlifyToken()` is exported at module level so `apiService.ts` can read the current JWT outside the React component tree.
+
+### API protection
+
+```
+POST /api/config  or  POST /api/translations/:language
+  → Authorization: Bearer <nf_jwt> sent by apiService
   → Netlify edge verifies JWT → context.clientContext.user populated
   → AuthHandler checks context.clientContext.user
   → Absent → 401 UNAUTHORIZED
   → Present → delegates to ConfigModule / TranslationsModule
 ```
 
-The GoTrue singleton (`AuthProvider.tsx`) exposes `getNetlifyToken()` at module level so `apiService.ts` can read the current access token without being inside a React component tree.
+### Local dev bypass
+
+Set `VITE_AUTH_BYPASS=true` to activate `MockAuthProvider`, which stores a mock user in `sessionStorage`. No Netlify Identity endpoint is contacted. Any email value is accepted as login.
