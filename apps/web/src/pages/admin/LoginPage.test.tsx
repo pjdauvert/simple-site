@@ -2,9 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { IntlProvider } from 'react-intl';
 import { AuthContext } from '../../features/auth/AuthContext';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
 import { LoginPage } from './LoginPage';
+import staticTranslations from '../../features/i18n/i18n.json';
+
+const VALID_EMAIL = 'user@example.com';
 
 function renderWithAuth(
   ui: React.ReactElement,
@@ -17,14 +21,16 @@ function renderWithAuth(
     logout: vi.fn(),
   };
   return render(
-    <MemoryRouter initialEntries={['/admin/login']}>
-      <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
-        <Routes>
-          <Route path="/admin/login" element={ui} />
-          <Route path="/admin" element={<div>Admin Page</div>} />
-        </Routes>
-      </AuthContext.Provider>
-    </MemoryRouter>
+    <IntlProvider locale="en" messages={staticTranslations.en} defaultLocale="en">
+      <MemoryRouter initialEntries={['/admin/login']}>
+        <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
+          <Routes>
+            <Route path="/admin/login" element={ui} />
+            <Route path="/admin" element={<div>Admin Page</div>} />
+          </Routes>
+        </AuthContext.Provider>
+      </MemoryRouter>
+    </IntlProvider>
   );
 }
 
@@ -46,7 +52,7 @@ describe('LoginPage', () => {
     const mockLogin = vi.fn().mockResolvedValue(undefined);
     renderWithAuth(<LoginPage />, { login: mockLogin });
     fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'user@example.com' },
+      target: { value: VALID_EMAIL },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
       target: { value: 'secret' },
@@ -54,12 +60,15 @@ describe('LoginPage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     });
-    expect(mockLogin).toHaveBeenCalledWith('user@example.com', 'secret');
+    expect(mockLogin).toHaveBeenCalledWith(VALID_EMAIL, 'secret');
   });
 
   it('shows error alert when login() rejects', async () => {
     const mockLogin = vi.fn().mockRejectedValue(new Error('Invalid credentials'));
     renderWithAuth(<LoginPage />, { login: mockLogin });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: VALID_EMAIL },
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     });
@@ -69,6 +78,9 @@ describe('LoginPage', () => {
   it('navigates to /admin after successful login', async () => {
     const mockLogin = vi.fn().mockResolvedValue(undefined);
     renderWithAuth(<LoginPage />, { login: mockLogin });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: VALID_EMAIL },
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     });
@@ -82,6 +94,9 @@ describe('LoginPage', () => {
     });
     const mockLogin = vi.fn().mockReturnValue(pendingLogin);
     renderWithAuth(<LoginPage />, { login: mockLogin });
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: VALID_EMAIL },
+    });
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     });
@@ -91,5 +106,31 @@ describe('LoginPage', () => {
     await act(async () => {
       resolveLogin();
     });
+  });
+
+  it('shows field-level error on blur when email is invalid', async () => {
+    renderWithAuth(<LoginPage />);
+    const emailInput = screen.getByLabelText(/email/i);
+    await act(async () => {
+      fireEvent.change(emailInput, { target: { value: 'not-an-email' } });
+      fireEvent.focusOut(emailInput);
+    });
+    await waitFor(() =>
+      expect(screen.getByText('Enter a valid email address')).toBeInTheDocument()
+    );
+  });
+
+  it('prevents submit and shows field error when email is invalid', async () => {
+    const mockLogin = vi.fn();
+    renderWithAuth(<LoginPage />, { login: mockLogin });
+    const emailInput = screen.getByLabelText(/email/i);
+    await act(async () => {
+      fireEvent.change(emailInput, { target: { value: 'bad-email' } });
+      fireEvent.submit(emailInput.closest('form')!);
+    });
+    expect(mockLogin).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByText('Enter a valid email address')).toBeInTheDocument()
+    );
   });
 });
