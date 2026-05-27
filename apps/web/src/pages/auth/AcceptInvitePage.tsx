@@ -26,7 +26,7 @@ export const AcceptInvitePage: React.FC = () => {
       setError(
         err instanceof Error && err.message
           ? err.message
-          : intl.formatMessage({ id: 'accept-invite.error.generic' }),
+          : intl.formatMessage({ id: 'acceptInvite.error.generic' }),
       );
     } finally {
       setLoading(false);
@@ -44,7 +44,7 @@ export const AcceptInvitePage: React.FC = () => {
     >
       <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 } }}>
         <Typography variant="h5" sx={{ mb: 3 }}>
-          <FormattedMessage id="accept-invite.title" />
+          <FormattedMessage id="acceptInvite.title" />
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -53,7 +53,7 @@ export const AcceptInvitePage: React.FC = () => {
         )}
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
-            label={intl.formatMessage({ id: 'accept-invite.password' })}
+            label={intl.formatMessage({ id: 'acceptInvite.password' })}
             type="password"
             fullWidth
             size="medium"
@@ -68,7 +68,7 @@ export const AcceptInvitePage: React.FC = () => {
             disabled={loading}
             sx={{ minHeight: 44 }}
           >
-            <FormattedMessage id="accept-invite.submit" />
+            <FormattedMessage id="acceptInvite.submit" />
           </Button>
         </Box>
       </Paper>

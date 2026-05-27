@@ -28,7 +28,7 @@ export const ResetPasswordPage: React.FC = () => {
       setError(
         err instanceof Error && err.message
           ? err.message
-          : intl.formatMessage({ id: 'reset-password.error.generic' }),
+          : intl.formatMessage({ id: 'resetPassword.error.generic' }),
       );
     } finally {
       setLoading(false);
@@ -46,7 +46,7 @@ export const ResetPasswordPage: React.FC = () => {
     >
       <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 } }}>
         <Typography variant="h5" sx={{ mb: 3 }}>
-          <FormattedMessage id="reset-password.title" />
+          <FormattedMessage id="resetPassword.title" />
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -55,7 +55,7 @@ export const ResetPasswordPage: React.FC = () => {
         )}
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
-            label={intl.formatMessage({ id: 'reset-password.password' })}
+            label={intl.formatMessage({ id: 'resetPassword.password' })}
             type="password"
             fullWidth
             size="medium"
@@ -70,7 +70,7 @@ export const ResetPasswordPage: React.FC = () => {
             disabled={loading}
             sx={{ minHeight: 44 }}
           >
-            <FormattedMessage id="reset-password.submit" />
+            <FormattedMessage id="resetPassword.submit" />
           </Button>
         </Box>
       </Paper>

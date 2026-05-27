@@ -10,14 +10,14 @@
     "login.submit": "Sign In",
     "login.email.invalid": "Enter a valid email address",
     "login.error.generic": "Login failed",
-    "reset-password.title": "Set New Password",
-    "reset-password.password": "New Password",
-    "reset-password.submit": "Set Password",
-    "reset-password.error.generic": "Failed to set password",
-    "accept-invite.title": "Set Up Your Account",
-    "accept-invite.password": "Password",
-    "accept-invite.submit": "Accept Invitation",
-    "accept-invite.error.generic": "Failed to accept invitation"
+    "resetPassword.title": "Set New Password",
+    "resetPassword.password": "New Password",
+    "resetPassword.submit": "Set Password",
+    "resetPassword.error.generic": "Failed to set password",
+    "acceptInvite.title": "Set Up Your Account",
+    "acceptInvite.password": "Password",
+    "acceptInvite.submit": "Accept Invitation",
+    "acceptInvite.error.generic": "Failed to accept invitation"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -30,13 +30,13 @@
     "login.submit": "Se connecter",
     "login.email.invalid": "Entrez une adresse e-mail valide",
     "login.error.generic": "Échec de la connexion",
-    "reset-password.title": "Définir un nouveau mot de passe",
-    "reset-password.password": "Nouveau mot de passe",
-    "reset-password.submit": "Définir le mot de passe",
-    "reset-password.error.generic": "Impossible de définir le mot de passe",
-    "accept-invite.title": "Configurer votre compte",
-    "accept-invite.password": "Mot de passe",
-    "accept-invite.submit": "Accepter l'invitation",
-    "accept-invite.error.generic": "Impossible d'accepter l'invitation"
+    "resetPassword.title": "Définir un nouveau mot de passe",
+    "resetPassword.password": "Nouveau mot de passe",
+    "resetPassword.submit": "Définir le mot de passe",
+    "resetPassword.error.generic": "Impossible de définir le mot de passe",
+    "acceptInvite.title": "Configurer votre compte",
+    "acceptInvite.password": "Mot de passe",
+    "acceptInvite.submit": "Accepter l'invitation",
+    "acceptInvite.error.generic": "Impossible d'accepter l'invitation"
   }
 }
