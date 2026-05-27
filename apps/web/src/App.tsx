@@ -1,17 +1,26 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AdminShell } from './router/Shell';
 import { PublicShell } from './router/Shell';
+import { NetlifyCallbackHandler } from './features/auth/NetlifyCallbackHandler';
 import { LoginPage } from './pages/admin/LoginPage';
 import { AdminPage } from './pages/admin/AdminPage';
+import { ResetPasswordPage } from './pages/admin/ResetPasswordPage';
+import { AcceptInvitePage } from './pages/admin/AcceptInvitePage';
 import { ProtectedRoute } from './router/ProtectedRoute';
 
 const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <NetlifyCallbackHandler><PublicShell /></NetlifyCallbackHandler>
+  },
   {
     path: '/admin',
     element: <AdminShell />,
     children: [
       { index: true, element: <ProtectedRoute><AdminPage /></ProtectedRoute> },
       { path: 'login', element: <LoginPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
+      { path: 'accept-invite', element: <AcceptInvitePage /> },
     ],
   },
   {
