@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { SiteConfigProvider } from '../features/config/SiteConfigProvider';
 import { IntlProvider } from '../features/i18n/IntlProvider';
 import { AuthProvider } from '../features/auth/AuthProvider';
+import { CallbackHandler } from '../features/auth/CallbackHandler';
 import { ThemeProvider } from '../features/theme/ThemeProvider';
 import { AppRouter } from './AppRouter';
 import { loadSiteConfig, loadTranslations } from '../services/initService';
@@ -11,7 +12,9 @@ export const PublicShell = () => (
     <IntlProvider loadTranslations={loadTranslations}>
       <AuthProvider>
         <ThemeProvider>
-          <AppRouter />
+          <CallbackHandler>
+            <AppRouter />
+          </CallbackHandler>
         </ThemeProvider>
       </AuthProvider>
     </IntlProvider>
