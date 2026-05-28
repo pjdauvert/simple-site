@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 export type ErrorPageProps = {
     title: string;
@@ -19,8 +19,8 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({ title, message }) => {
       }}
     >
       <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 4 } }}>
-        <h1>{title}</h1>
-        <p>{message}</p>
+        <Typography variant="h4" style={{ marginBottom: '0.5rem' }}>{title}</Typography>
+        <Typography variant="body1" color="text.secondary">{message}</Typography>
       </Box>
     </Box>
   );

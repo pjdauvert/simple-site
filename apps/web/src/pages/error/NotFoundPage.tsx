@@ -10,7 +10,7 @@ export const NotFoundPage: React.FC = () => (
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 2,
+      gap: 3,
       p: { xs: 2, sm: 4 },
     }}
   >
