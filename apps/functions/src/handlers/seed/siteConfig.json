@@ -32,7 +32,7 @@
     {
       "pageName": "page.home",
       "menuTitle": "Home",
-      "route": "/",
+      "route": "/home",
       "sections": [
         {
           "sectionName": "hero",
