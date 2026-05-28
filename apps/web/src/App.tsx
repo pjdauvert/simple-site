@@ -1,31 +1,51 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { AdminShell } from './router/Shell';
-import { PublicShell } from './router/Shell';
 import { NetlifyCallbackHandler } from './features/auth/NetlifyCallbackHandler';
-import { LoginPage } from './pages/auth/LoginPage';
-import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
-import { AcceptInvitePage } from './pages/auth/AcceptInvitePage';
-import { AdminPage } from './pages/admin/AdminPage';
-import { ProtectedRoute } from './router/ProtectedRoute';
+import { SiteConfigProvider } from './features/config/SiteConfigProvider';
+import { IntlProvider } from './features/i18n/IntlProvider';
+import { AuthProvider } from './features/auth/AuthProvider';
+import { ThemeProvider } from './features/theme/ThemeProvider';
+import { AppRouter } from './router/AppRouter';
+import { loadSiteConfig, loadTranslations, type TranslationLoaderType } from './services/initService';
+import { AuthRouter } from './router/AuthRouter';
+import { AdminRouter } from './router/AdminRouter';
+import type { ReactNode } from 'react';
+
+
+type ShellProps = {
+  children: ReactNode;
+  translationsLoader?: TranslationLoaderType
+}
+const Shell: React.FC<ShellProps> = ({ children, translationsLoader }) => (
+  <IntlProvider loadTranslations={translationsLoader}>
+    <AuthProvider>
+      <ThemeProvider>
+        { children }
+      </ThemeProvider>
+    </AuthProvider>
+  </IntlProvider>
+);
+
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <NetlifyCallbackHandler><PublicShell /></NetlifyCallbackHandler>
+    Component: NetlifyCallbackHandler
   },
   {
-    path: '/admin',
-    element: <AdminShell />,
-    children: [
-      { index: true, element: <ProtectedRoute><AdminPage /></ProtectedRoute> },
-      { path: 'login', element: <LoginPage /> },
-      { path: 'reset-password', element: <ResetPasswordPage /> },
-      { path: 'accept-invite', element: <AcceptInvitePage /> },
-    ],
+    path: '/auth/*',
+    element:<Shell><AuthRouter /></Shell>,
+  },{
+    path: '/admin/*',
+    element: <Shell><AdminRouter /></Shell>,
   },
   {
     path: '*',
-    element: <PublicShell />,
+    element: 
+      <SiteConfigProvider loadSiteConfig={loadSiteConfig}>
+        <Shell translationsLoader={loadTranslations}>
+          <AppRouter />
+        </Shell>
+      </SiteConfigProvider>
   },
 ]);
 

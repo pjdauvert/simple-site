@@ -33,22 +33,21 @@ export const IntlProvider: React.FC<IntlProviderProps> = ({
   useEffect(() => {
     setMessages(null);
     setError(null);
-    setIsLoading(true);
     try{
       const staticMessages = getLocalizedStaticMessages(locale);
       if(loadTranslations) { 
+        setIsLoading(true);
         loadTranslations(locale)
           .then(m => { 
             setMessages({...staticMessages, ...m}); 
-            setIsLoading(false); 
           });
       } else {
         setMessages(staticMessages);
-        setIsLoading(false);
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
       setMessages({});
+    }finally {
       setIsLoading(false);
     }
   }, [locale]);

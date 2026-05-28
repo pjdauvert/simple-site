@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
 import { useIntl, FormattedMessage } from 'react-intl';
 import { acceptInvite } from '@netlify/identity';
+import { loginPath, loggedPath } from '../../features/auth/auth.constants';
 
 export const AcceptInvitePage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -13,7 +14,7 @@ export const AcceptInvitePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (!token) return <Navigate to="/admin/login" replace />;
+  if (!token) return <Navigate to={loginPath} replace />;
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -21,7 +22,7 @@ export const AcceptInvitePage: React.FC = () => {
     setError(null);
     try {
       await acceptInvite(token, password);
-      navigate('/admin');
+      navigate(loggedPath);
     } catch (err) {
       setError(
         err instanceof Error && err.message
@@ -34,14 +35,7 @@ export const AcceptInvitePage: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <Box sx={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 } }}>
         <Typography variant="h5" sx={{ mb: 3 }}>
           <FormattedMessage id="acceptInvite.title" />

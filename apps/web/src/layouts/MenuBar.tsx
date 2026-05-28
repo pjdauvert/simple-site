@@ -10,13 +10,14 @@ import {
   Menu,
   MenuItem,
 } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { Logout as LogoutIcon, Menu as MenuIcon } from '@mui/icons-material';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { FormattedMessage } from 'react-intl';
+import { useIntl, FormattedMessage } from 'react-intl';
 import type { MenuItem as MenuItemType } from '@simple-site/interfaces';
 import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '../features/i18n/LanguageSwitcher';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useAuth } from '../hooks/useAuth';
 
 interface MenuBarProps {
   menuItems: MenuItemType[];
@@ -24,6 +25,8 @@ interface MenuBarProps {
 
 export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
   const location = useLocation();
+  const intl = useIntl();
+  const { user, logout } = useAuth();
   const { themeConfig, siteThemeConfig } = useAppTheme();
   const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState<null | HTMLElement>(null);
 
@@ -102,6 +105,15 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
             <LanguageSwitcher />
             <ThemeSwitcher />
+            {user && (
+              <IconButton
+                color="inherit"
+                onClick={logout}
+                aria-label={intl.formatMessage({ id: 'auth.logout' })}
+              >
+                <LogoutIcon />
+              </IconButton>
+            )}
           </Box>
         </Toolbar>
       </Container>
@@ -124,6 +136,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
             <FormattedMessage id={`${item.pageName}.menuTitle`} defaultMessage={item.menuTitle} />
           </MenuItem>
         ))}
+        {user && (
+          <MenuItem onClick={() => { logout(); handleMobileMenuClose(); }}>
+            <FormattedMessage id="auth.logout" />
+          </MenuItem>
+        )}
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, py: 1, borderTop: 1, borderColor: 'divider', mt: 1 }}>
           <LanguageSwitcher />
           <ThemeSwitcher />
