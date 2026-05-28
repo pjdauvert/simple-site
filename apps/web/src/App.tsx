@@ -35,7 +35,7 @@ const router = createBrowserRouter([
     path: '/auth/*',
     element:<Shell><AuthRouter /></Shell>,
   },{
-    path: '/admin/*',
+    path: '/manage/*',
     element: <Shell><AdminRouter /></Shell>,
   },
   {

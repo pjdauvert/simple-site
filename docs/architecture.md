@@ -105,14 +105,14 @@ The admin area is protected by [Netlify Identity](https://docs.netlify.com/secur
 ### Normal login
 
 ```
-User visits /admin
+User visits /manage
   → ProtectedRoute checks AuthContext
-  → No session → redirect to /admin/login
+  → No session → redirect to /auth
   → LoginPage calls login(email, password)
   → @netlify/identity POSTs to /.netlify/identity/token
   → nf_jwt + nf_refresh cookies set; 'login' event fired
   → RealAuthProvider.onAuthChange updates user in context
-  → Navigate to /admin
+  → Navigate to /manage
 ```
 
 ### Email link callbacks (`NetlifyCallbackHandler`)
@@ -128,17 +128,17 @@ User clicks email link → lands on /#<type>_token=...
   ┌──────────────────┬─────────────────────────────────────────────┐
   │ result.type      │ Destination                                 │
   ├──────────────────┼─────────────────────────────────────────────┤
-  │ oauth            │ /admin  (OAuth provider login complete)      │
-  │ confirmation     │ /admin  (email confirmed, user logged in)    │
-  │ email_change     │ /admin  (new email verified, user logged in) │
-  │ recovery         │ /admin/reset-password                       │
-  │ invite           │ /admin/accept-invite?token=<token>          │
+  │ oauth            │ /manage  (OAuth provider login complete)     │
+  │ confirmation     │ /manage  (email confirmed, user logged in)   │
+  │ email_change     │ /manage  (new email verified, user logged in)│
+  │ recovery         │ /auth/reset-password                        │
+  │ invite           │ /auth/accept-invite?token=<token>           │
   └──────────────────┴─────────────────────────────────────────────┘
 ```
 
-**Recovery** (`/admin/reset-password`): The user is already authenticated but has not set a password yet. `ResetPasswordPage` calls `updateUser({ password })`. The `user_updated` event propagates back through `onAuthChange`, keeping `AuthContext` in sync.
+**Recovery** (`/auth/reset-password`): The user is already authenticated but has not set a password yet. `ResetPasswordPage` calls `updateUser({ password })`. The `user_updated` event propagates back through `onAuthChange`, keeping `AuthContext` in sync.
 
-**Invite** (`/admin/accept-invite?token=…`): The user has no session. `AcceptInvitePage` reads the token from query params and calls `acceptInvite(token, password)`, which logs the user in on success.
+**Invite** (`/auth/accept-invite?token=…`): The user has no session. `AcceptInvitePage` reads the token from query params and calls `acceptInvite(token, password)`, which logs the user in on success.
 
 ### Session hydration
 
