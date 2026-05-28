@@ -83,7 +83,7 @@ function buildMuiTheme(themeConfig: ThemeConfig): Theme {
       },
       MuiAppBar: {
         styleOverrides: {
-          root: { backgroundColor: themeConfig.menuBackgroundColor },
+          root: { backgroundColor: themeConfig.menuBackgroundColor, borderRadius: 0 },
         },
       },
       MuiButton: {

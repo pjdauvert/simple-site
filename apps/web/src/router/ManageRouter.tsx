@@ -1,14 +1,14 @@
 import { Routes, Route } from "react-router-dom";
-import { AdminPage } from "../pages/admin/AdminPage";
+import { ManagePage } from "../pages/admin/ManagePage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { MainLayout } from "../layouts/MainLayout";
 
-export const AdminRouter: React.FC = () => {
+export const ManageRouter: React.FC = () => {
   return (
     <ProtectedRoute>
       <MainLayout menuItems={[]}>
         <Routes>
-          <Route index element={<AdminPage />} />
+          <Route index element={<ManagePage />} />
         </Routes>
       </MainLayout>
     </ProtectedRoute>

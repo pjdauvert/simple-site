@@ -7,7 +7,7 @@ import { ThemeProvider } from './features/theme/ThemeProvider';
 import { AppRouter } from './router/AppRouter';
 import { loadSiteConfig, loadTranslations, type TranslationLoaderType } from './services/initService';
 import { AuthRouter } from './router/AuthRouter';
-import { AdminRouter } from './router/AdminRouter';
+import { ManageRouter } from './router/ManageRouter';
 import type { ReactNode } from 'react';
 
 
@@ -36,7 +36,7 @@ const router = createBrowserRouter([
     element:<Shell><AuthRouter /></Shell>,
   },{
     path: '/manage/*',
-    element: <Shell><AdminRouter /></Shell>,
+    element: <Shell><ManageRouter /></Shell>,
   },
   {
     path: '*',

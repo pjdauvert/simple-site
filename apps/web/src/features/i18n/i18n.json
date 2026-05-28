@@ -22,7 +22,9 @@
     "acceptInvite.title": "Set Up Your Account",
     "acceptInvite.password": "Password",
     "acceptInvite.submit": "Accept Invitation",
-    "acceptInvite.error.generic": "Failed to accept invitation"
+    "acceptInvite.error.generic": "Failed to accept invitation",
+    "page.manage.greetings": "Hello {user}",
+    "page.manage.disclaimer": "Here you can manage the entire configuration of your site"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -47,6 +49,8 @@
     "acceptInvite.title": "Configurer votre compte",
     "acceptInvite.password": "Mot de passe",
     "acceptInvite.submit": "Accepter l'invitation",
-    "acceptInvite.error.generic": "Impossible d'accepter l'invitation"
+    "acceptInvite.error.generic": "Impossible d'accepter l'invitation",
+    "page.manage.greetings": "Bonjour {user}",
+    "page.manage.disclaimer": "Ici tu peux gérer toute la configuration de ton site"
   }
 }

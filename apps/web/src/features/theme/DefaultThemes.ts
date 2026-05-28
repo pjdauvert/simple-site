@@ -17,15 +17,15 @@ const DEFAULT_DARK_THEME: ThemeConfig = {
 
 const DEFAULT_LIGHT_THEME: ThemeConfig = {
   themeName: 'Light',
-  primaryColor: '#FF4D6D',
-  secondaryColor: '#29B5F0',
+  primaryColor: '#29B5F0',
+  secondaryColor: '#FF4D6D',
   tertiaryColor: '#9BD83C',
   tertiaryHoverColor: '#82C62F',
   surfaceColor: '#FFFFFF',
   linkColor: '#FF4D6D',
   linkHoverColor: '#E0304F',
   backgroundColor: '#F7F8FB',
-  menuBackgroundColor: '#FF4D6D',
+  menuBackgroundColor: '#BCE5FC',
   menuHoverColor: 'rgba(255,255,255,0.10)',
 };
 
