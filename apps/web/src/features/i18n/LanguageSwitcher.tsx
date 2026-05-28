@@ -1,12 +1,11 @@
 import React from 'react';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import { Language } from '@mui/icons-material';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage } from 'react-intl';
 import { useAppIntl } from '../../hooks/useIntl';
 
 export const LanguageSwitcher: React.FC = () => {
   const { locale, switchLanguage, availableLocales } = useAppIntl();
-  const intl = useIntl();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -22,8 +21,13 @@ export const LanguageSwitcher: React.FC = () => {
     handleClose();
   };
 
-  const getLanguageLabel = (loc: string): string =>
-    intl.formatMessage({ id: `language.${loc}`, defaultMessage: loc });
+  const getLanguageLabel = (loc: string): string => {
+    const labels: Record<string, string> = {
+      en: 'English',
+      fr: 'Français',
+    };
+    return labels[loc] || loc;
+  };
 
   return (
     <>
