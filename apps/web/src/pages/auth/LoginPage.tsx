@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
 import { useIntl, FormattedMessage } from 'react-intl';
 import { useAuth } from '../../hooks/useAuth';
+import { loggedPath } from '../../features/auth/auth.constants';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,7 +17,7 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to="/admin" replace />;
+  if (user) return <Navigate to={loggedPath} replace />;
 
   const isValidEmail = (value: string) => EMAIL_REGEX.test(value);
 
@@ -31,7 +32,7 @@ export const LoginPage: React.FC = () => {
     setError(null);
     try {
       await login(email, password);
-      navigate('/admin');
+      navigate(loggedPath);
     } catch (err) {
       setError(
         err instanceof Error && err.message
@@ -44,14 +45,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <Box sx={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 } }}>
         <Typography variant="h5" sx={{ mb: 3 }}>
           <FormattedMessage id="login.title" />
