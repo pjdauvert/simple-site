@@ -5,7 +5,7 @@ import { useIntl, FormattedMessage } from 'react-intl';
 import { updateUser } from '@netlify/identity';
 import { useAuth } from '../../hooks/useAuth';
 import { Loading } from '../../components/Loading';
-import { PasswordStrengthField } from '../../components/PasswordStrengthField';
+import { PasswordStrengthField } from '../../features/auth/PasswordStrengthField';
 import { loginPath, loggedPath } from '../../features/auth/auth.constants';
 
 export const ResetPasswordPage: React.FC = () => {
