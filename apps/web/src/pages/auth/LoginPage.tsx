@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { Navigate, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Alert, Box, Button, Link, Paper, TextField, Typography } from '@mui/material';
 import { useIntl, FormattedMessage } from 'react-intl';
 import { useAuth } from '../../hooks/useAuth';
-import { loggedPath } from '../../features/auth/auth.constants';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { loggedPath, forgotPasswordPath } from '../../features/auth/auth.constants';
+import { isValidEmail } from '../../features/auth/auth.utils';
 
 export const LoginPage: React.FC = () => {
   const { user, login } = useAuth();
@@ -18,8 +17,6 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   if (user) return <Navigate to={loggedPath} replace />;
-
-  const isValidEmail = (value: string) => EMAIL_REGEX.test(value);
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -75,8 +72,13 @@ export const LoginPage: React.FC = () => {
             size="medium"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3, minHeight: 44 }}
+            sx={{ mb: 1, minHeight: 44 }}
           />
+          <Box sx={{ textAlign: 'right', mb: 2 }}>
+            <Link component={RouterLink} to={forgotPasswordPath} variant="body2">
+              <FormattedMessage id="login.forgotPassword" />
+            </Link>
+          </Box>
           <Button
             type="submit"
             variant="contained"
