@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Paper, Typography } from '@mui/material';
 import { useIntl, FormattedMessage } from 'react-intl';
 import { acceptInvite } from '@netlify/identity';
+import { PasswordStrengthField } from '../../components/PasswordStrengthField';
 import { loginPath, loggedPath } from '../../features/auth/auth.constants';
 
 export const AcceptInvitePage: React.FC = () => {
@@ -11,6 +12,7 @@ export const AcceptInvitePage: React.FC = () => {
   const navigate = useNavigate();
   const intl = useIntl();
   const [password, setPassword] = useState('');
+  const [passwordValid, setPasswordValid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +20,7 @@ export const AcceptInvitePage: React.FC = () => {
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
+    if (!passwordValid) return;
     setLoading(true);
     setError(null);
     try {
@@ -46,20 +49,16 @@ export const AcceptInvitePage: React.FC = () => {
           </Alert>
         )}
         <Box component="form" onSubmit={handleSubmit}>
-          <TextField
+          <PasswordStrengthField
             label={intl.formatMessage({ id: 'acceptInvite.password' })}
-            type="password"
-            fullWidth
-            size="medium"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3, minHeight: 44 }}
+            onChange={(pwd, valid) => { setPassword(pwd); setPasswordValid(valid); }}
+            disabled={loading}
           />
           <Button
             type="submit"
             variant="contained"
             fullWidth
-            disabled={loading}
+            disabled={loading || !passwordValid}
             sx={{ minHeight: 44 }}
           >
             <FormattedMessage id="acceptInvite.submit" />
