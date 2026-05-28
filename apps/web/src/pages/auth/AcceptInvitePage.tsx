@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Paper, Typography } from '@mui/material';
 import { useIntl, FormattedMessage } from 'react-intl';
 import { acceptInvite } from '@netlify/identity';
-import { PasswordStrengthField } from '../../components/PasswordStrengthField';
+import { PasswordStrengthField } from '../../features/auth/PasswordStrengthField';
 import { loginPath, loggedPath } from '../../features/auth/auth.constants';
 
 export const AcceptInvitePage: React.FC = () => {
