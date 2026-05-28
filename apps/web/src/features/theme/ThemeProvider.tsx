@@ -8,6 +8,7 @@ import { ThemeContext } from './ThemeContext';
 import type { ThemeContextValue } from './ThemeContext';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useFavicon } from '../../hooks/useFavicon';
+import { initTheme, THEME_KEY } from '../../services/initService';
 
 import { DEFAULT_SITE } from './DefaultThemes';
 
@@ -85,16 +86,21 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
   }, [siteConfig.themes]);
 
-  const [themeName, setThemeName] = useState<string>(availableThemeNames[0]);
+  const [themeName, setThemeName] = useState<string>(() => initTheme(availableThemeNames));
   const themeConfig = useMemo(() => themeConfigs[themeName], [themeName, themeConfigs]);
   const muiTheme = useMemo(() => buildMuiTheme(themeConfig), [themeConfig]);
   useFavicon(siteConfig.site.faviconUrl);
+
+  const switchTheme = (name: string) => {
+    setThemeName(name);
+    localStorage.setItem(THEME_KEY, name);
+  };
 
   const contextValue: ThemeContextValue = {
     themeName,
     themeConfig,
     siteThemeConfig: siteConfig.site,
-    switchTheme: setThemeName,
+    switchTheme,
     availableThemes: availableThemeNames,
   };
 

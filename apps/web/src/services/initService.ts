@@ -30,6 +30,19 @@ export const loadTranslations: TranslationLoaderType = async (locale) => {
 
 export const LOCALE_KEY = 'app.locale';
 
+export const THEME_KEY = 'app.theme';
+
+export const initTheme = (availableThemes: string[]): string => {
+  if (typeof window === 'undefined' || availableThemes.length === 0) {
+    return availableThemes[0] ?? '';
+  }
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved && availableThemes.includes(saved)) {
+    return saved;
+  }
+  return availableThemes[0];
+};
+
 export const initLocale = () => {
   if (typeof window === 'undefined') {
     // SSR / non-browser environment: localStorage and navigator are unavailable.
