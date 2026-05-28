@@ -1,9 +1,11 @@
 import React from 'react';
 import { Box, Container, Typography, Link } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 
 export const Footer: React.FC = () => {
+  const { siteThemeConfig } = useAppTheme();
   return (
     <Box
       component="footer"
@@ -15,7 +17,7 @@ export const Footer: React.FC = () => {
         borderColor: 'divider',
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth={siteThemeConfig.containerMaxWidth}>
         <Box
           sx={{
             display: 'flex',

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { Navigate, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Alert, Box, Button, Link, Paper, TextField, Typography } from '@mui/material';
 import { useIntl, FormattedMessage } from 'react-intl';
 import { useAuth } from '../../hooks/useAuth';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { loggedPath, forgotPasswordPath } from '../../features/auth/auth.constants';
+import { isValidEmail } from '../../features/auth/auth.utils';
 
 export const LoginPage: React.FC = () => {
   const { user, login } = useAuth();
@@ -16,9 +16,7 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to="/admin" replace />;
-
-  const isValidEmail = (value: string) => EMAIL_REGEX.test(value);
+  if (user) return <Navigate to={loggedPath} replace />;
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -31,7 +29,7 @@ export const LoginPage: React.FC = () => {
     setError(null);
     try {
       await login(email, password);
-      navigate('/admin');
+      navigate(loggedPath);
     } catch (err) {
       setError(
         err instanceof Error && err.message
@@ -44,15 +42,8 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 } }}>
+    <Box sx={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h5" sx={{ mb: 3 }}>
           <FormattedMessage id="login.title" />
         </Typography>
@@ -81,8 +72,13 @@ export const LoginPage: React.FC = () => {
             size="medium"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3, minHeight: 44 }}
+            sx={{ mb: 1, minHeight: 44 }}
           />
+          <Box sx={{ textAlign: 'right', mb: 2 }}>
+            <Link component={RouterLink} to={forgotPasswordPath} variant="body2">
+              <FormattedMessage id="login.forgotPassword" />
+            </Link>
+          </Box>
           <Button
             type="submit"
             variant="contained"

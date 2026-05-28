@@ -3,24 +3,30 @@ import type { SiteConfig, SiteThemeConfig, ThemeConfig } from "@simple-site/inte
 
 const DEFAULT_DARK_THEME: ThemeConfig = {
   themeName: 'Dark',
-  primaryColor: "#90caf9",
-  secondaryColor: "#f48fb1",
-  linkColor: "#90caf9",
-  linkHoverColor: "#64b5f6",
-  backgroundColor: "#121212",
-  menuBackgroundColor: "#1e1e1e",
-  menuHoverColor: "#2c2c2c"
+  primaryColor: '#FF8FAB',
+  secondaryColor: '#78D4F8',
+  tertiaryColor: '#C4EC6E',
+  tertiaryHoverColor: '#9BD83C',
+  surfaceColor: '#1E2129',
+  linkColor: '#FF8FAB',
+  linkHoverColor: '#FFB3C2',
+  backgroundColor: '#161A20',
+  menuBackgroundColor: '#1E2129',
+  menuHoverColor: 'rgba(255,255,255,0.08)',
 };
 
 const DEFAULT_LIGHT_THEME: ThemeConfig = {
   themeName: 'Light',
-  primaryColor: '#0076d2',
-  secondaryColor: '#dc004e',
-  linkColor: '#1976d2',
-  linkHoverColor: '#115293',
-  backgroundColor: '#ffffff',
-  menuBackgroundColor: '#1976d2',
-  menuHoverColor: '#115293',
+  primaryColor: '#29B5F0',
+  secondaryColor: '#FF4D6D',
+  tertiaryColor: '#9BD83C',
+  tertiaryHoverColor: '#82C62F',
+  surfaceColor: '#FFFFFF',
+  linkColor: '#FF4D6D',
+  linkHoverColor: '#E0304F',
+  backgroundColor: '#F7F8FB',
+  menuBackgroundColor: '#BCE5FC',
+  menuHoverColor: 'rgba(255,255,255,0.10)',
 };
 
 const DEFAULT_SITE_CONFIG: SiteThemeConfig = { 

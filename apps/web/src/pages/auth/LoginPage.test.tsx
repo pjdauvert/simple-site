@@ -7,6 +7,7 @@ import { AuthContext } from '../../features/auth/AuthContext';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
 import { LoginPage } from './LoginPage';
 import staticTranslations from '../../features/i18n/i18n.json';
+import {loggedPath, loginPath} from '../../features/auth/auth.constants'
 
 const VALID_EMAIL = 'user@example.com';
 
@@ -22,11 +23,11 @@ function renderWithAuth(
   };
   return render(
     <IntlProvider locale="en" messages={staticTranslations.en} defaultLocale="en">
-      <MemoryRouter initialEntries={['/admin/login']}>
+      <MemoryRouter initialEntries={[loginPath]}>
         <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
           <Routes>
-            <Route path="/admin/login" element={ui} />
-            <Route path="/admin" element={<div>Admin Page</div>} />
+            <Route path={loginPath} element={ui} />
+            <Route path={loggedPath} element={<div>Admin Page</div>} />
           </Routes>
         </AuthContext.Provider>
       </MemoryRouter>

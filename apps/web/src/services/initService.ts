@@ -2,11 +2,9 @@ import type { ApiResponseErrorPayload, ApiResponseSuccessPayload, I18nDictionary
 import { I18nDictionarySchema, I18nLocalesEnum, SiteConfigSchema } from '@simple-site/interfaces';
 import apiService from './apiService';
 
-/**
- * Simulates loading configuration from an API endpoint
- * In a real application, this would be a fetch call to an API
- */
-export async function loadSiteConfig(): Promise<SiteConfig> {
+export type SiteConfigLoaderType = () => Promise<SiteConfig>;
+
+export const loadSiteConfig: SiteConfigLoaderType = async () => {
   const response = await apiService.get<SiteConfig>('config');
 
   // Manage error message display
@@ -17,7 +15,9 @@ export async function loadSiteConfig(): Promise<SiteConfig> {
   return SiteConfigSchema.parse((response as ApiResponseSuccessPayload<SiteConfig>).data);
 }
 
-export async function loadTranslations(locale: Locale): Promise<I18nDictionary> {
+export type TranslationLoaderType = (locale: Locale) => Promise<I18nDictionary>;
+
+export const loadTranslations: TranslationLoaderType = async (locale) => {
   const response = await apiService.get<I18nDictionary>(`translations/${locale}`);
 
   // Manage error message display
@@ -30,7 +30,20 @@ export async function loadTranslations(locale: Locale): Promise<I18nDictionary> 
 
 export const LOCALE_KEY = 'app.locale';
 
-export function initLocale(): Locale {
+export const THEME_KEY = 'app.theme';
+
+export const initTheme = (availableThemes: string[]): string => {
+  if (typeof window === 'undefined' || availableThemes.length === 0) {
+    return availableThemes[0] ?? '';
+  }
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved && availableThemes.includes(saved)) {
+    return saved;
+  }
+  return availableThemes[0];
+};
+
+export const initLocale = () => {
   if (typeof window === 'undefined') {
     // SSR / non-browser environment: localStorage and navigator are unavailable.
     // Return the default locale so any future SSR adoption does not crash.

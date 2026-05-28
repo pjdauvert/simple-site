@@ -14,12 +14,12 @@ export const Loading: React.FC<LoadingProps> = ({ message = 'Loading...' }) => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: '#121212',
-        color: '#fff',
+        bgcolor: 'background.default',
+        color: 'text.primary',
         gap: 3,
       }}
     >
-      <CircularProgress size={60} sx={{ color: '#90caf9' }} />
+      <CircularProgress size={60} color="primary" />
       <Typography variant="h5" component="div">
         {message}
       </Typography>

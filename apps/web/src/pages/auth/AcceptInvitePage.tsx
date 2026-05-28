@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Paper, Typography } from '@mui/material';
 import { useIntl, FormattedMessage } from 'react-intl';
 import { acceptInvite } from '@netlify/identity';
+import { PasswordStrengthField } from '../../features/auth/PasswordStrengthField';
+import { loginPath, loggedPath } from '../../features/auth/auth.constants';
 
 export const AcceptInvitePage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -10,18 +12,20 @@ export const AcceptInvitePage: React.FC = () => {
   const navigate = useNavigate();
   const intl = useIntl();
   const [password, setPassword] = useState('');
+  const [passwordValid, setPasswordValid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (!token) return <Navigate to="/admin/login" replace />;
+  if (!token) return <Navigate to={loginPath} replace />;
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
+    if (!passwordValid) return;
     setLoading(true);
     setError(null);
     try {
       await acceptInvite(token, password);
-      navigate('/admin');
+      navigate(loggedPath);
     } catch (err) {
       setError(
         err instanceof Error && err.message
@@ -34,15 +38,8 @@ export const AcceptInvitePage: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 } }}>
+    <Box sx={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h5" sx={{ mb: 3 }}>
           <FormattedMessage id="acceptInvite.title" />
         </Typography>
@@ -52,20 +49,16 @@ export const AcceptInvitePage: React.FC = () => {
           </Alert>
         )}
         <Box component="form" onSubmit={handleSubmit}>
-          <TextField
+          <PasswordStrengthField
             label={intl.formatMessage({ id: 'acceptInvite.password' })}
-            type="password"
-            fullWidth
-            size="medium"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3, minHeight: 44 }}
+            onChange={(pwd, valid) => { setPassword(pwd); setPasswordValid(valid); }}
+            disabled={loading}
           />
           <Button
             type="submit"
             variant="contained"
             fullWidth
-            disabled={loading}
+            disabled={loading || !passwordValid}
             sx={{ minHeight: 44 }}
           >
             <FormattedMessage id="acceptInvite.submit" />

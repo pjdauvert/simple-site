@@ -34,5 +34,9 @@ graph.json
 .netlify
 deno.lock
 
-#continue.dev
+# Continue.dev
 .continue
+
+# Playwright
+.playwright
+.playwright-cli
