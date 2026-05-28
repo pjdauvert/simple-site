@@ -4,7 +4,7 @@ import { fireEvent } from '@testing-library/dom';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
-import { AdminPage } from './AdminPage';
+import { ManagePage } from './ManagePage';
 
 vi.mock('../../layouts/MainLayout', () => ({
   MainLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -31,14 +31,14 @@ function renderWithAuth(
 
 describe('AdminPage', () => {
   it("shows Hello {name} when user has a name", () => {
-    renderWithAuth(<AdminPage />, {
+    renderWithAuth(<ManagePage />, {
       user: { id: 'u1', name: 'Alice', email: 'a@b.com' },
     });
     expect(screen.getByText('Hello Alice')).toBeInTheDocument();
   });
 
   it('falls back to email when name is absent', () => {
-    renderWithAuth(<AdminPage />, {
+    renderWithAuth(<ManagePage />, {
       user: { id: 'u1', email: 'a@b.com' },
     });
     expect(screen.getByText('Hello a@b.com')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('AdminPage', () => {
 
   it('calls logout() on button click', () => {
     const mockLogout = vi.fn();
-    renderWithAuth(<AdminPage />, {
+    renderWithAuth(<ManagePage />, {
       user: { id: 'u1', email: 'a@b.com' },
       logout: mockLogout,
     });

@@ -38,7 +38,7 @@ export const ResetPasswordPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 } }}>
+      <Paper sx={{ p: { xs: 3, sm: 4 }, width: { xs: '100%', sm: 400 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h5" sx={{ mb: 3 }}>
           <FormattedMessage id="resetPassword.title" />
         </Typography>

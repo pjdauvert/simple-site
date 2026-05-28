@@ -11,6 +11,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { Logout as LogoutIcon, Menu as MenuIcon } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useIntl, FormattedMessage } from 'react-intl';
 import type { MenuItem as MenuItemType } from '@simple-site/interfaces';
@@ -27,6 +28,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
   const location = useLocation();
   const intl = useIntl();
   const { user, logout } = useAuth();
+  const theme = useTheme();
   const { themeConfig, siteThemeConfig } = useAppTheme();
   const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState<null | HTMLElement>(null);
 
@@ -78,7 +80,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
                   to={item.route}
                   sx={{
                     color: 'inherit',
-                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                    backgroundColor: isActive ? alpha(theme.palette.common.white, 0.1) : 'transparent',
                     '&:hover': {
                       backgroundColor: themeConfig.menuHoverColor,
                     },
