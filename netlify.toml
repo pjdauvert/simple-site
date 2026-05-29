@@ -7,10 +7,14 @@
 
 [dev]
   # netlify dev proxies localhost:8888 → Vite on 5173, and serves functions at /api/*
+  # publish points to the source public dir (no _redirects there) so the SPA
+  # fallback in dist/apps/web/_redirects does not intercept Vite's virtual
+  # module paths (@vite/client, @react-refresh, /src/*).
   command = "nx run web:dev"
   targetPort = 5173
   port = 8888
   autoLaunch = false
+  publish = "apps/web/public"
 
 # API requests go to Netlify Functions
 [[redirects]]
@@ -19,8 +23,6 @@
   status = 200
   force = true
 
-# All other requests serve the React app (SPA fallback — must be last)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# SPA fallback is emitted into dist/apps/web/_redirects by the Vite build plugin
+# (see apps/web/vite.config.ts). Not listed here to avoid intercepting Vite's
+# virtual modules (@vite/client, @react-refresh, /src/*) in netlify dev.

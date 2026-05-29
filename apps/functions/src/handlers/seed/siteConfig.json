@@ -1,12 +1,21 @@
 {
-
   "site": {
     "siteName": "Simple Site",
-    "logoUrl": "https://ik.imagekit.io/lionbytes/simple-site/logo_256.png",
-    "faviconUrl": "https://ik.imagekit.io/lionbytes/simple-site/logo_256.png?tr=w-32,h-32,q-90,f-png",
+    "logoUrl": "/logo.svg",
+    "faviconUrl": "/favicon.ico",
     "containerMaxWidth": "lg"
   },
   "themes": [
+    {
+      "themeName": "Light",
+      "primaryColor": "#1976d2",
+      "secondaryColor": "#9c27b0",
+      "linkColor": "#1976d2",
+      "linkHoverColor": "#1565c0",
+      "backgroundColor": "#ffffff",
+      "menuBackgroundColor": "#f5f5f5",
+      "menuHoverColor": "#e0e0e0"
+    },
     {
       "themeName": "Dark",
       "primaryColor": "#90caf9",
@@ -16,16 +25,6 @@
       "backgroundColor": "#121212",
       "menuBackgroundColor": "#1e1e1e",
       "menuHoverColor": "#2c2c2c"
-    },
-    {
-      "themeName": "Dark Blue",
-      "primaryColor": "#64b5f6",
-      "secondaryColor": "#f48fb1",
-      "linkColor": "#64b5f6",
-      "linkHoverColor": "#90caf9",
-      "backgroundColor": "#0d1b2a",
-      "menuBackgroundColor": "#1b263b",
-      "menuHoverColor": "#415a77"
     }
   ],
   "pages": [
@@ -38,48 +37,42 @@
           "sectionName": "hero",
           "type": "hero",
           "content": {
-            "title": "Hero Title",
-            "subtitle": "Hero Subtitle",
-            "ctaLabel": "Hero CTA",
-            "ctaLink": "/"
+            "title": "Your Site, Your Rules",
+            "subtitle": "A free, open-source no-code page builder. Customize everything from your admin panel — no developer needed.",
+            "ctaLabel": "Start Customizing",
+            "ctaLink": "/manage"
+          },
+          "design": {
+            "imageUrl": "/images/backgrounds/hero-welcome.jpg"
           }
         },
         {
-          "sectionName": "text",
-          "type": "text",
-          "content": {
-            "columns": [
-              {
-                "title": "Text Title",
-                "paragraph": "Text Content"
-              }
-            ]
-          }
-        },
-        {
-          "sectionName": "text2",
-          "type": "text",
-          "content": {
-            "columns": [
-              {
-                "title": "Text 2 Title",
-                "paragraph": "Text 2 Content"
-              }
-            ]
-          }
-        },
-        {
-          "sectionName": "features",
+          "sectionName": "intro",
           "type": "text",
           "design": {
-            "backgroundUrl": "https://ik.imagekit.io/lionbytes/simple-site/backgrounds/fields.jpg",
+            "backgroundColor": "#f5f5f5",
+            "textColor": "#000000"
+          },
+          "content": {
+            "columns": [
+              {
+                "title": "Everything You Need to Build Your Online Presence",
+                "paragraph": "Simple Site is a modular, multilingual web platform built on Netlify. Manage your pages, content, media and translations from a single admin panel — without touching a line of code."
+              }
+            ]
+          }
+        },
+        {
+          "sectionName": "featuresA",
+          "type": "text",
+          "design": {
             "columnLayout": [1, 1, 1],
             "columnConfig": [
               {
                 "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/chart02.svg",
+                  "url": "/images/icons/page-builder.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "120px",
@@ -90,7 +83,7 @@
                 "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/smartphone-charts.svg",
+                  "url": "/images/icons/palette.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "120px",
@@ -101,7 +94,7 @@
                 "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/lamp.svg",
+                  "url": "/images/icons/translate.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
                   "maxWidth": "120px",
@@ -113,108 +106,70 @@
           "content": {
             "columns": [
               {
-                "title": "Feature 1",
-                "paragraph": "Description of feature 1"
+                "title": "Modular Page Builder",
+                "paragraph": "Build pages by composing sections — hero banners, text blocks, feature grids and more. Arrange and configure each element to match your vision."
               },
               {
-                "title": "Feature 2",
-                "paragraph": "Description of feature 2"
+                "title": "Theming",
+                "paragraph": "Apply pre-built color themes or define your own palette. Your brand identity, applied consistently across every page."
               },
               {
-                "title": "Feature 3",
-                "paragraph": "Description of feature 3"
+                "title": "Translations",
+                "paragraph": "Reach audiences in multiple languages. Manage all translations from the admin panel and let visitors switch language instantly."
               }
             ]
           }
         },
         {
-          "sectionName": "image_text",
+          "sectionName": "featuresB",
           "type": "text",
           "design": {
-            "columnLayout": [1, 2],
             "backgroundColor": "#f5f5f5",
-            "textColor": "#000000",
-            "columnConfig": [
-              {
-                "hideOnBreakpoints": ["xs", "sm"],
-                "textVerticalAlign": "middle",
-                "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/gallery/friends.jpg",
-                  "position": "cover",
-                  "verticalAlign": "middle"
-                }
-              },
-              {
-                "textVerticalAlign": "middle"
-              }
-            ]
-          },
-          "content": {
-            "columns": [
-              {
-                "title": "",
-                "paragraph": ""
-              },
-              {
-                "title": "Our Story",
-                "paragraph": "This is where we tell our story with an image on the left that disappears on mobile devices."
-              }
-            ]
-          }
-        },
-        {
-          "sectionName": "stats",
-          "type": "text",
-          "design": {
-            "backgroundUrl": "https://ik.imagekit.io/lionbytes/simple-site/backgrounds/snowed-mountain.jpg",
-            "parallax": true,
             "textColor": "#000000",
             "columnLayout": [1, 1, 1, 1],
             "columnConfig": [
               {
-                "textVerticalAlign": "middle",
+                "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/plant.svg",
+                  "url": "/images/icons/email.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
-                  "maxWidth": "80px",
-                  "maxHeight": "80px"
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
                 }
               },
               {
-                "textVerticalAlign": "middle",
+                "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
                 "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/globe.svg",
+                  "url": "/images/icons/team.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
-                  "maxWidth": "80px",
-                  "maxHeight": "80px"
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
                 }
               },
               {
-                "textVerticalAlign": "middle",
+                "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
-                "hideOnBreakpoints": ["xs", "sm"],
                 "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/support.svg",
+                  "url": "/images/icons/images.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
-                  "maxWidth": "80px",
-                  "maxHeight": "80px"
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
                 }
               },
               {
-                "textVerticalAlign": "middle",
+                "textVerticalAlign": "top",
                 "textHorizontalAlign": "center",
-                "hideOnBreakpoints": ["xs", "sm"],
                 "media": {
-                  "url": "https://ik.imagekit.io/lionbytes/simple-site/icons/gauge.svg",
+                  "url": "/images/icons/gallery.svg",
                   "position": "contain",
                   "horizontalAlign": "center",
-                  "maxWidth": "80px",
-                  "maxHeight": "80px"
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
                 }
               }
             ]
@@ -222,20 +177,81 @@
           "content": {
             "columns": [
               {
-                "title": "1000+",
-                "paragraph": "Happy Customers"
+                "title": "Contact Form",
+                "paragraph": "Receive messages directly in your inbox. The contact form is backed by a serverless function — no third-party service required."
               },
               {
-                "title": "50+",
-                "paragraph": "Countries"
+                "title": "Team & Bios",
+                "paragraph": "Showcase your people. Create member profiles with photos, roles and short bios, and present them with dedicated section modules."
               },
               {
-                "title": "24/7",
-                "paragraph": "Support"
+                "title": "Image Library",
+                "paragraph": "Manage all your visual assets in one place. Images are automatically resized for the web so your pages stay fast on every device."
               },
               {
-                "title": "99.9%",
-                "paragraph": "Uptime"
+                "title": "Galleries",
+                "paragraph": "Create image galleries with configurable layouts. Perfect for showcasing portfolios, products or photo stories."
+              }
+            ]
+          }
+        },
+        {
+          "sectionName": "featuresC",
+          "type": "text",
+          "design": {
+            "backgroundUrl": "/images/backgrounds/features-parallax.jpg",
+            "parallax": true,
+            "textColor": "#ffffff",
+            "columnLayout": [1, 1, 1],
+            "columnConfig": [
+              {
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "/images/icons/calendar.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
+              },
+              {
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "/images/icons/book.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
+              },
+              {
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "/images/icons/projects.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
+              }
+            ]
+          },
+          "content": {
+            "columns": [
+              {
+                "title": "Events & News",
+                "paragraph": "Keep your audience up to date. Publish news articles and manage upcoming events with dedicated modules."
+              },
+              {
+                "title": "Publications",
+                "paragraph": "Share reports, articles and documents. Organize your content library and give readers easy access to every publication."
+              },
+              {
+                "title": "Projects",
+                "paragraph": "Present your work and achievements. A dedicated projects module lets you highlight case studies, initiatives and results."
               }
             ]
           }
@@ -243,37 +259,91 @@
       ]
     },
     {
-      "pageName": "page.calendar",
-      "menuTitle": "Calendar",
-      "route": "/calendar",
+      "pageName": "page.getStarted",
+      "menuTitle": "Get Started",
+      "route": "/get-started",
       "sections": [
         {
-          "sectionName": "text",
+          "sectionName": "hero",
+          "type": "hero",
+          "content": {
+            "title": "Up and Running in Minutes",
+            "subtitle": "Simple Site is free to host on Netlify and designed for anyone — no technical background required."
+          },
+          "design": {
+            "imageUrl": "/images/backgrounds/get-started.jpg"
+          }
+        },
+        {
+          "sectionName": "overview",
           "type": "text",
+          "design": {
+            "backgroundColor": "#f5f5f5",
+            "textColor": "#000000"
+          },
           "content": {
             "columns": [
               {
-                "title": "Calendar Title",
-                "paragraph": "Calendar Content"
+                "title": "How Simple Site Works",
+                "paragraph": "Simple Site runs entirely on Netlify — a free, professional hosting platform. Your content lives in Netlify Blob Storage and is served through a fast global CDN. The admin panel lets you manage your site without writing a single line of code. Fork the repository, connect it to Netlify, and you are ready to publish."
               }
             ]
           }
-        }
-      ]
-    },
-    {
-      "pageName": "page.about",
-      "menuTitle": "About Us",
-      "route": "/about",
-      "sections": [
+        },
         {
-          "sectionName": "text",
+          "sectionName": "steps",
           "type": "text",
+          "design": {
+            "columnLayout": [1, 1, 1],
+            "columnConfig": [
+              {
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "/images/icons/netlify.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
+              },
+              {
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "/images/icons/identity.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
+              },
+              {
+                "textVerticalAlign": "top",
+                "textHorizontalAlign": "center",
+                "media": {
+                  "url": "/images/icons/github.svg",
+                  "position": "contain",
+                  "horizontalAlign": "center",
+                  "maxWidth": "120px",
+                  "maxHeight": "120px"
+                }
+              }
+            ]
+          },
           "content": {
             "columns": [
               {
-                "title": "About Us Title",
-                "paragraph": "About Us Content"
+                "title": "1. Create a Netlify Account",
+                "paragraph": "Sign up at netlify.com for free. Netlify handles hosting, serverless functions and secure content storage — all in one platform with a generous free tier."
+              },
+              {
+                "title": "2. Enable Netlify Identity",
+                "paragraph": "Activate Netlify Identity in your project settings to secure the admin panel. Invite yourself as the first admin user — no extra configuration required."
+              },
+              {
+                "title": "3. Fork on GitHub",
+                "paragraph": "Fork the Simple Site repository to your GitHub account, then connect it to Netlify with one click. Every push to your main branch deploys automatically to production."
               }
             ]
           }

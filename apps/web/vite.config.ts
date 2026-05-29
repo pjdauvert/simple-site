@@ -6,8 +6,20 @@ import netlify from '@netlify/vite-plugin';
 const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
 const sharedTypesRoot = fileURLToPath(new URL('../../libs/interfaces/src', import.meta.url));
 
+const netlifyRedirectsPlugin = (): import('vite').Plugin => ({
+  name: 'netlify-spa-redirects',
+  apply: 'build',
+  generateBundle() {
+    this.emitFile({
+      type: 'asset',
+      fileName: '_redirects',
+      source: '/*    /index.html    200\n',
+    });
+  },
+});
+
 export default defineConfig({
-  plugins: [react(), netlify()],
+  plugins: [react(), netlify(), netlifyRedirectsPlugin()],
   resolve: {
     alias: {
       '@simple-site/interfaces': sharedTypesRoot,
