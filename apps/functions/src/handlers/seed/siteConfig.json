@@ -39,11 +39,35 @@
           "content": {
             "title": "Your Site, Your Rules",
             "subtitle": "A free, open-source no-code page builder. Customize everything from your admin panel — no developer needed.",
-            "ctaLabel": "Start Customizing",
-            "ctaLink": "/manage"
+            "ctaButtons": [
+              { "label": "Start Customizing", "link": "/manage", "variant": "contained" },
+              { "label": "Learn More", "link": "/get-started", "variant": "outlined" }
+            ],
+            "featuringItems": [
+              { "label": "Hosting", "value": "Netlify" },
+              { "label": "Framework", "value": "React + MUI" },
+              { "label": "License", "value": "AGPL-3.0" }
+            ]
           },
           "design": {
-            "imageUrl": "/images/backgrounds/hero-welcome.jpg"
+            "layout": "split",
+            "columnLayout": [1.1, 1],
+            "artworkSide": "right",
+            "artwork": {
+              "imageUrl": "/logo.svg",
+              "alt": "Simple Site logomark",
+              "verticalAlign": "middle",
+              "horizontalAlign": "center",
+              "imageStyle": { "style": { "width": "240px", "height": "240px" } }
+            },
+            "artworkStyle": {
+              "style": {
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "minHeight": "420px"
+              }
+            }
           }
         },
         {
@@ -270,9 +294,7 @@
             "title": "Up and Running in Minutes",
             "subtitle": "Simple Site is free to host on Netlify and designed for anyone — no technical background required."
           },
-          "design": {
-            "imageUrl": "/images/backgrounds/get-started.jpg"
-          }
+          "design": {}
         },
         {
           "sectionName": "overview",
