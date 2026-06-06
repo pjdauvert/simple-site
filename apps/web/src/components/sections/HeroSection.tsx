@@ -44,18 +44,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
     </Box>
   );
 
-  if (design?.layout === 'split') {
-    const [leftRatio, rightRatio] = design.columnLayout ?? [1.1, 1];
+  const isSplit = design?.layout === 'split';
+
+  let inner: React.ReactNode;
+
+  if (isSplit) {
+    const [leftRatio, rightRatio] = design!.columnLayout ?? [1.1, 1];
     const total     = leftRatio + rightRatio;
     const leftSize  = Math.round((leftRatio  / total) * 12);
     const rightSize = Math.round((rightRatio / total) * 12);
-    const artworkSide = design.artworkSide ?? 'right';
-    const artwork = design.artwork;
+    const artworkSide = design!.artworkSide ?? 'right';
+    const artwork = design!.artwork;
 
     const contentPane = (
       <Grid size={{ xs: 12, md: leftSize }}
         sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
-        style={zoneStyle(design.contentStyle)}>
+        style={zoneStyle(design!.contentStyle)}>
         {content.title && (
           <Typography variant="h2" component="h1" gutterBottom
             sx={{ fontWeight: 700, mb: { xs: 2, sm: 3 }, fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } }}>
@@ -76,7 +80,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
     const artworkPane = (
       <Grid size={{ xs: 12, md: rightSize }}
         sx={{ display: 'flex', alignItems: FLEX_ALIGN[artwork?.verticalAlign ?? ''] ?? 'center', justifyContent: FLEX_JUSTIFY[artwork?.horizontalAlign ?? ''] ?? 'center' }}
-        style={zoneStyle(design.artworkStyle)}>
+        style={zoneStyle(design!.artworkStyle)}>
         {artwork && (
           <Box component="img" src={artwork.imageUrl} alt={artwork.alt ?? ''}
             style={zoneStyle(artwork.imageStyle)}
@@ -85,30 +89,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       </Grid>
     );
 
-    return (
-      <Box id={sectionName} component="section"
-        sx={{ py: { xs: 6, sm: 8, md: 10 }, px: { xs: 2, sm: 3 }, backgroundColor, color: textColor }}
-        style={zoneStyle(design.sectionStyle)}>
-        <Container maxWidth={siteThemeConfig.containerMaxWidth}>
-          <Grid container spacing={7} alignItems="center">
-            {artworkSide === 'right' ? <>{contentPane}{artworkPane}</> : <>{artworkPane}{contentPane}</>}
-          </Grid>
-        </Container>
-      </Box>
+    inner = (
+      <Grid container spacing={7} alignItems="center">
+        {artworkSide === 'right' ? <>{contentPane}{artworkPane}</> : <>{artworkPane}{contentPane}</>}
+      </Grid>
     );
-  }
-
-  // Centered layout (default)
-  return (
-    <Box id={sectionName} component="section"
-      sx={{
-        minHeight: { xs: '50vh', sm: '55vh', md: '60vh' },
-        display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
-        py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 },
-        backgroundColor, color: textColor,
-      }}
-      style={zoneStyle(design?.sectionStyle)}>
-      <Container maxWidth={siteThemeConfig.containerMaxWidth}>
+  } else {
+    inner = (
+      <>
         {content.title && (
           <Typography variant="h2" component="h1" gutterBottom
             sx={{ fontWeight: 700, mb: { xs: 2, sm: 3 }, fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' } }}>
@@ -122,6 +110,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
           </Typography>
         )}
         {ctaRow}
+      </>
+    );
+  }
+
+  return (
+    <Box id={sectionName} component="section"
+      sx={{
+        ...(!isSplit && { minHeight: { xs: '50vh', sm: '55vh', md: '60vh' }, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }),
+        py: isSplit ? { xs: 6, sm: 8, md: 10 } : { xs: 4, sm: 6, md: 8 },
+        px: { xs: 2, sm: 3 },
+        backgroundColor, color: textColor,
+      }}
+      style={zoneStyle(design?.sectionStyle)}>
+      <Container maxWidth={siteThemeConfig.containerMaxWidth}>
+        {inner}
       </Container>
     </Box>
   );
