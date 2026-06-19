@@ -16,12 +16,6 @@ function getVisibleLayout(layout: number[], allCount: number, visibleIndices: nu
   return visibleRatios.map(r => Math.round((r / total) * 12));
 }
 
-function imageKitUrl(url: string, maxWidth?: string, maxHeight?: string): string {
-  const w = maxWidth  ? parseInt(maxWidth)  : null;
-  const h = maxHeight ? parseInt(maxHeight) : 400;
-  const tr = w ? `q-80,f-auto,w-${w * 2}` : `q-80,f-auto,h-${h * 2}`;
-  return `${url}?tr=${tr}`;
-}
 
 export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, design }) => {
   const { siteThemeConfig, themeConfig } = useAppTheme();
@@ -74,7 +68,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
     const justify = IMG_JUSTIFY[media.horizontalAlign ?? ''] ?? '0 auto 0 0';
     return (
       <Box component="img"
-        src={imageKitUrl(media.url, media.maxWidth, media.maxHeight)}
+        src={media.url}
         alt="Column media"
         sx={{
           width: '100%', height: 'auto', display: 'block',
@@ -98,7 +92,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
         sx={{ display: 'flex', flexDirection: 'column', justifyContent: VERT_ALIGN[colDesign?.textVerticalAlign ?? ''] ?? 'flex-start' }}>
         {media?.position === 'cover' ? (
           <Box sx={{
-            backgroundImage: `url(${imageKitUrl(media.url, '1200')})`,
+            backgroundImage: `url(${media.url})`,
             backgroundSize: 'cover',
             backgroundPosition: MEDIA_VERT[media.verticalAlign ?? ''] ?? 'center',
             borderRadius: 2, minHeight: '300px',
