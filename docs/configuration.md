@@ -37,13 +37,18 @@ Each theme object:
   "secondaryColor": "#f48fb1",
   "linkColor": "#90caf9",
   "linkHoverColor": "#64b5f6",
+  "textColor": "#ffffff",
   "backgroundColor": "#121212",
   "menuBackgroundColor": "#1e1e1e",
+  "menuTextColor": "#ffffff",
   "menuHoverColor": "#2c2c2c"
 }
 ```
 
-All fields are required. The theme will be validated by Zod and automatically appear in the theme switcher. Rules:
+The theme will be validated by Zod and automatically appear in the theme switcher. Rules:
+- `textColor` (optional) sets the default body/content text color. If omitted, MUI's default for the theme mode is used. Individual sections can still override it via their own `textColor`.
+- `menuTextColor` (optional) sets the menu bar text and icon color (site title, nav links, action icons). If omitted, it falls back to `textColor`, then to the MUI default. Set it explicitly to ensure the menu contrasts with `menuBackgroundColor`.
+- All other fields are required.
 - If no theme is provided, a hardcoded default is used.
 - If only one theme is provided, the theme switcher is hidden.
 

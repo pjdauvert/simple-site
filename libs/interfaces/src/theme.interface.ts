@@ -12,8 +12,10 @@ export const ThemeConfigSchema = z.object({
   surfaceColor: z.string().optional(),
   linkColor: z.string(),
   linkHoverColor: z.string(),
+  textColor: z.string().optional(),
   backgroundColor: z.string(),
   menuBackgroundColor: z.string(),
+  menuTextColor: z.string().optional(),
   menuHoverColor: z.string(),
 });
 

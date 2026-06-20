@@ -40,6 +40,7 @@ function buildMuiTheme(themeConfig: ThemeConfig): Theme {
   const tertiaryMain = themeConfig.tertiaryColor ?? themeConfig.primaryColor;
   const tertiaryDark = themeConfig.tertiaryHoverColor ?? tertiaryMain;
   const paperBg = themeConfig.surfaceColor ?? themeConfig.backgroundColor;
+  const menuTextColor = themeConfig.menuTextColor ?? themeConfig.textColor;
 
   return createTheme({
     palette: {
@@ -51,6 +52,7 @@ function buildMuiTheme(themeConfig: ThemeConfig): Theme {
         default: themeConfig.backgroundColor,
         paper: paperBg,
       },
+      ...(themeConfig.textColor ? { text: { primary: themeConfig.textColor } } : {}),
     },
     typography: {
       fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
@@ -83,7 +85,11 @@ function buildMuiTheme(themeConfig: ThemeConfig): Theme {
       },
       MuiAppBar: {
         styleOverrides: {
-          root: { backgroundColor: themeConfig.menuBackgroundColor, borderRadius: 0 },
+          root: {
+            backgroundColor: themeConfig.menuBackgroundColor,
+            ...(menuTextColor ? { color: menuTextColor } : {}),
+            borderRadius: 0,
+          },
         },
       },
       MuiButton: {
