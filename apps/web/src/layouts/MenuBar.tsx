@@ -80,7 +80,9 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
                   to={item.route}
                   sx={{
                     color: 'inherit',
-                    backgroundColor: isActive ? alpha(theme.palette.common.white, 0.1) : 'transparent',
+                    backgroundColor: isActive
+                      ? alpha(themeConfig.menuTextColor ?? theme.palette.text.primary, 0.08)
+                      : 'transparent',
                     '&:hover': {
                       backgroundColor: themeConfig.menuHoverColor,
                     },

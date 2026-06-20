@@ -10,8 +10,10 @@ const DEFAULT_DARK_THEME: ThemeConfig = {
   surfaceColor: '#1E2129',
   linkColor: '#FF8FAB',
   linkHoverColor: '#FFB3C2',
+  textColor: '#E6EAF2',
   backgroundColor: '#161A20',
   menuBackgroundColor: '#1E2129',
+  menuTextColor: '#FFFFFF',
   menuHoverColor: 'rgba(255,255,255,0.08)',
 };
 
@@ -24,8 +26,10 @@ const DEFAULT_LIGHT_THEME: ThemeConfig = {
   surfaceColor: '#FFFFFF',
   linkColor: '#FF4D6D',
   linkHoverColor: '#E0304F',
+  textColor: '#1A2230',
   backgroundColor: '#F7F8FB',
   menuBackgroundColor: '#BCE5FC',
+  menuTextColor: '#0B3A56',
   menuHoverColor: 'rgba(255,255,255,0.10)',
 };
 
