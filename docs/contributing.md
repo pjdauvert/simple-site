@@ -48,6 +48,17 @@ Before merging any UI change:
 
 ## Troubleshooting
 
+### Seed changes not reflected locally
+
+Edits to `apps/functions/src/handlers/seed/*.json` (e.g. `siteConfig.json`) only seed
+the local Netlify blob store when a blob does **not** already exist. An existing local
+blob keeps serving the old data. Clear the local blobs so they re-seed on the next
+`netlify dev` request:
+
+```bash
+npm run blobs:clear
+```
+
 ### Node.js version issues
 
 ```bash
