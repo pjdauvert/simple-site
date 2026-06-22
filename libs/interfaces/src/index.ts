@@ -1,6 +1,7 @@
 export * from './contact.interface.js';
 export * from './i18n.interface.js';
 export * from './layout.interface.js';
+export * from './media.interface.js';
 export * from './menu.interface.js';
 export * from './page.interface.js';
 export * from './site.interface.js';
