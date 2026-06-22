@@ -14,7 +14,9 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | POST | `/api/translations/:language` | Merge translations for a locale |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
 | GET | `/api/db-query` | Fetch sample users from MongoDB |
-| GET | `/api/imagekit-sign` | Generate an ImageKit upload signature |
+| POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin) |
+| GET | `/api/media` | List media assets (admin) |
+| DELETE | `/api/media/:fileId` | Delete a media asset (admin) |
 | GET | `/api/google-proxy` | Proxy a Google API call with the server API key |
 
 ---
@@ -66,6 +68,47 @@ Merges the provided key/value pairs into the stored dictionary for the given loc
 
 ---
 
+### Media (ImageKit)
+
+All `/api/media*` routes are **admin-only** (wrapped in `AuthHandler`) and served by a single function, `apps/functions/src/media.mts`. The ImageKit **private key never leaves the server** — it signs upload tokens and authenticates the Management API. See [media.md](media.md) for the end-to-end flow.
+
+#### `POST /api/media/upload-auth`
+
+Mints a short-lived JWT authorizing a single **browser → ImageKit** [Upload File V2](https://imagekit.io/docs/api-reference/upload-file/upload-file-v2) request. The token signs the *entire* upload payload, so the client must echo `uploadPayload` verbatim as multipart fields.
+
+```json
+// Request body
+{ "fileName": "photo.jpg", "tags": ["optional", "tags"] }
+
+// 200 OK — token is HS256, kid = public key, exp ≤ iat + 3600s
+{ "ok": true, "data": {
+  "token": "<jwt>",
+  "expire": 1735689600,
+  "publicKey": "public_xxx",
+  "uploadPayload": { "fileName": "photo.jpg", "folder": "/media", "useUniqueFileName": "true" }
+} }
+```
+
+#### `GET /api/media`
+
+Proxies the ImageKit Management API (HTTP Basic auth) to list assets. Query params: `type` (`all` | `image` | `video`, default `all`), `limit` (default 50), `skip`, `searchQuery`.
+
+```json
+// 200 OK
+{ "ok": true, "data": [ { "fileId": "...", "name": "photo.jpg", "url": "https://ik.imagekit.io/...", "thumbnail": "...", "mime": "image/jpeg", "size": 12345 } ] }
+```
+
+#### `DELETE /api/media/:fileId`
+
+Permanently deletes an asset (and all versions) via the Management API.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "Media deleted successfully" } }
+```
+
+---
+
 ## Response Envelope
 
 All responses — success and error — share the same top-level shape:
@@ -105,8 +148,11 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 |--------|------|---------------|
 | POST | `/api/config` | ✓ |
 | POST | `/api/translations/:language` | ✓ |
+| POST | `/api/media/upload-auth` | ✓ |
+| GET | `/api/media` | ✓ |
+| DELETE | `/api/media/:fileId` | ✓ |
 
-All `GET` endpoints remain public.
+All `GET` endpoints are public **except** `/api/media` (admin-only media management).
 
 **Request header:**
 ```
