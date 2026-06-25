@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createHmac } from 'node:crypto';
 import type { UploadPayload } from '@simple-site/interfaces';
-import { basicAuthHeader, getImageKitEnv, signUploadToken } from './imagekitClient';
+import { basicAuthHeader, getImageKitEnv, resolveFolderPath, signUploadToken } from './imagekitClient';
 
 const decode = (part: string) => JSON.parse(Buffer.from(part, 'base64url').toString());
 
@@ -20,12 +20,20 @@ describe('imagekitClient', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   describe('getImageKitEnv', () => {
-    it('returns the configured credentials', () => {
+    it('returns the configured credentials and a normalised root dir', () => {
+      stubEnv({ ...ENV, IMAGEKIT_ROOT_DIR: 'simple-site/' });
       expect(getImageKitEnv()).toEqual({
         privateKey: 'private_test_key',
         publicKey: 'public_test_key',
         urlEndpoint: 'https://ik.imagekit.io/demo',
+        rootDir: '/simple-site',
       });
+    });
+
+    it('treats a missing or "/" root dir as the account root', () => {
+      expect(getImageKitEnv().rootDir).toBe('');
+      stubEnv({ ...ENV, IMAGEKIT_ROOT_DIR: '/' });
+      expect(getImageKitEnv().rootDir).toBe('');
     });
 
     it('throws a 500 configuration error when keys are missing', () => {
@@ -36,6 +44,25 @@ describe('imagekitClient', () => {
       } catch (e) {
         expect((e as { statusCode: number }).statusCode).toBe(500);
       }
+    });
+  });
+
+  describe('resolveFolderPath', () => {
+    it('scopes a relative path under the root dir', () => {
+      const env = { ...getImageKitEnv(), rootDir: '/simple-site' };
+      expect(resolveFolderPath(env, '/products')).toBe('/simple-site/products');
+      expect(resolveFolderPath(env, '')).toBe('/simple-site');
+    });
+
+    it('returns "/" for an empty root and empty path', () => {
+      const env = { ...getImageKitEnv(), rootDir: '' };
+      expect(resolveFolderPath(env, '')).toBe('/');
+      expect(resolveFolderPath(env, '/products')).toBe('/products');
+    });
+
+    it('rejects path traversal', () => {
+      const env = { ...getImageKitEnv(), rootDir: '/simple-site' };
+      expect(() => resolveFolderPath(env, '/../secrets')).toThrowError();
     });
   });
 

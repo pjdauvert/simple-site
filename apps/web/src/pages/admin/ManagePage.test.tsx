@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { fireEvent } from '@testing-library/dom';
 import { MemoryRouter } from 'react-router-dom';
+import { IntlProvider } from 'react-intl';
 import { AuthContext } from '../../features/auth/AuthContext';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
+import messages from '../../features/i18n/i18n.json';
 import { ManagePage } from './ManagePage';
 
 vi.mock('../../layouts/MainLayout', () => ({
@@ -22,15 +23,17 @@ function renderWithAuth(
   };
   return render(
     <MemoryRouter>
-      <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
-        {ui}
-      </AuthContext.Provider>
+      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
+        <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
+          {ui}
+        </AuthContext.Provider>
+      </IntlProvider>
     </MemoryRouter>
   );
 }
 
-describe('AdminPage', () => {
-  it("shows Hello {name} when user has a name", () => {
+describe('ManagePage', () => {
+  it('shows Hello {name} when user has a name', () => {
     renderWithAuth(<ManagePage />, {
       user: { id: 'u1', name: 'Alice', email: 'a@b.com' },
     });
@@ -44,13 +47,12 @@ describe('AdminPage', () => {
     expect(screen.getByText('Hello a@b.com')).toBeInTheDocument();
   });
 
-  it('calls logout() on button click', () => {
-    const mockLogout = vi.fn();
+  it('renders the dashboard disclaimer', () => {
     renderWithAuth(<ManagePage />, {
       user: { id: 'u1', email: 'a@b.com' },
-      logout: mockLogout,
     });
-    fireEvent.click(screen.getByRole('button', { name: /log out/i }));
-    expect(mockLogout).toHaveBeenCalledOnce();
+    expect(
+      screen.getByText('Here you can manage the entire configuration of your site')
+    ).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import { ErrorCode } from '@simple-site/interfaces';
 const ENV: Record<string, string> = {
   IMAGEKIT_PRIVATE_KEY: 'private_test_key',
   IMAGEKIT_PUBLIC_KEY: 'public_test_key',
+  IMAGEKIT_ROOT_DIR: '/root',
 };
 
 const stubEnv = (env: Record<string, string | undefined> = ENV) =>
@@ -31,22 +32,33 @@ describe('MediaModule', () => {
   beforeEach(() => stubEnv());
   afterEach(() => vi.unstubAllGlobals());
 
-  it('POST /api/media/upload-auth returns a signed token + canonical payload', async () => {
+  it('POST /api/media/upload-auth scopes the upload folder under the root + path', async () => {
     const res = await new MediaModule().handle(
-      jsonRequest('https://site.test/api/media/upload-auth', 'POST', { fileName: 'pic.jpg', tags: ['a', 'b'] }),
+      jsonRequest('https://site.test/api/media/upload-auth', 'POST', {
+        fileName: 'pic.jpg',
+        path: '/products',
+        tags: ['a', 'b'],
+      }),
       makeContext(),
     );
     expect(res.status).toBe(200);
     const body = await readJson(res);
-    expect(body.ok).toBe(true);
     expect(body.data.publicKey).toBe('public_test_key');
     expect(typeof body.data.token).toBe('string');
     expect(body.data.uploadPayload).toMatchObject({
       fileName: 'pic.jpg',
-      folder: '/media',
+      folder: '/root/products',
       useUniqueFileName: 'true',
       tags: 'a,b',
     });
+  });
+
+  it('defaults the upload folder to the root when no path is given', async () => {
+    const res = await new MediaModule().handle(
+      jsonRequest('https://site.test/api/media/upload-auth', 'POST', { fileName: 'pic.jpg' }),
+      makeContext(),
+    );
+    expect((await readJson(res)).data.uploadPayload.folder).toBe('/root');
   });
 
   it('returns a 500 configuration error when ImageKit keys are missing', async () => {
@@ -59,30 +71,77 @@ describe('MediaModule', () => {
     expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
   });
 
-  it('GET /api/media lists mapped files and filters videos by mime', async () => {
+  it('GET /api/media returns folders + files and filters videos by mime', async () => {
     mockFetch(() => ({
       ok: true,
       status: 200,
       json: async () => [
-        { fileId: '1', name: 'a.png', filePath: '/media/a.png', url: 'https://ik/a.png', fileType: 'image', mime: 'image/png' },
-        { fileId: '2', name: 'b.mp4', filePath: '/media/b.mp4', url: 'https://ik/b.mp4', fileType: 'non-image', mime: 'video/mp4' },
+        { type: 'folder', folderId: 'f1', name: 'products', folderPath: '/root/products' },
+        { type: 'file', fileId: '1', name: 'a.png', filePath: '/root/a.png', url: 'https://ik/a.png', mime: 'image/png' },
+        { type: 'file', fileId: '2', name: 'b.mp4', filePath: '/root/b.mp4', url: 'https://ik/b.mp4', mime: 'video/mp4' },
       ],
     }));
 
     const all = await new MediaModule().handle(jsonRequest('https://site.test/api/media', 'GET'), makeContext());
-    expect((await readJson(all)).data).toHaveLength(2);
+    const allData = (await readJson(all)).data;
+    expect(allData.folders).toEqual([{ folderId: 'f1', name: 'products', path: '/products' }]);
+    expect(allData.files).toHaveLength(2);
 
     const videos = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media?type=video', 'GET'),
       makeContext(),
     );
-    const data = (await readJson(videos)).data;
-    expect(data).toHaveLength(1);
-    expect(data[0].fileId).toBe('2');
+    const videoData = (await readJson(videos)).data;
+    expect(videoData.files).toHaveLength(1);
+    expect(videoData.files[0].fileId).toBe('2');
+    expect(videoData.folders).toHaveLength(1); // folders shown regardless of filter
+  });
+
+  it('GET /api/media requests the resolved folder path', async () => {
+    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 200, json: async () => [] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await new MediaModule().handle(
+      jsonRequest('https://site.test/api/media?path=/products', 'GET'),
+      makeContext(),
+    );
+    const calledUrl = fetchSpy.mock.calls[0][0] as string;
+    // Literal slashes preserved (ImageKit does not decode %2F).
+    expect(calledUrl).toContain('path=/root/products');
+  });
+
+  it('POST /api/media/folder creates a folder under the resolved parent path', async () => {
+    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 201, json: async () => ({}) }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const res = await new MediaModule().handle(
+      jsonRequest('https://site.test/api/media/folder', 'POST', { name: 'new', path: '/products' }),
+      makeContext(),
+    );
+    expect(res.status).toBe(200);
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.imagekit.io/v1/folder');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ folderName: 'new', parentFolderPath: '/root/products' });
+  });
+
+  it('DELETE /api/media/folder deletes the resolved folder path', async () => {
+    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 204, json: async () => ({}) }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const res = await new MediaModule().handle(
+      jsonRequest('https://site.test/api/media/folder?path=/products', 'DELETE'),
+      makeContext(),
+    );
+    expect(res.status).toBe(200);
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.imagekit.io/v1/folder');
+    expect(init.method).toBe('DELETE');
+    expect(JSON.parse(init.body as string)).toEqual({ folderPath: '/root/products' });
   });
 
   it('DELETE /api/media/:fileId removes the file', async () => {
-    const fetchSpy = vi.fn(async () => ({ ok: true, status: 204, json: async () => ({}) }));
+    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 204, json: async () => ({}) }));
     vi.stubGlobal('fetch', fetchSpy);
 
     const res = await new MediaModule().handle(
@@ -90,7 +149,6 @@ describe('MediaModule', () => {
       makeContext({ fileId: 'file_123' }),
     );
     expect(res.status).toBe(200);
-    expect((await readJson(res)).ok).toBe(true);
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://api.imagekit.io/v1/files/file_123',
       expect.objectContaining({ method: 'DELETE' }),

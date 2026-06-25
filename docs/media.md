@@ -1,6 +1,6 @@
 # Media Management (ImageKit)
 
-The admin **Media** page (`/manage/media`) lets you upload, browse, and delete images and videos. Media is stored and served by [ImageKit](https://imagekit.io). This page documents the integration and how to configure it.
+The admin **Media** page (`/manage/media`) lets you upload, browse, and delete images and videos, and organise them into folders. Media is stored and served by [ImageKit](https://imagekit.io). This page documents the integration and how to configure it.
 
 ## Why ImageKit + direct upload
 
@@ -16,9 +16,16 @@ Set these in Netlify (**Site settings → Environment variables**) or a local `.
 IMAGEKIT_PRIVATE_KEY     # Server-side only. Signs V2 tokens, authenticates the Management API.
 IMAGEKIT_PUBLIC_KEY      # Embedded in the token header (kid) to identify the account.
 IMAGEKIT_URL_ENDPOINT    # https://ik.imagekit.io/<your_imagekit_id>
+IMAGEKIT_ROOT_DIR        # Optional base folder all media is scoped under, e.g. /simple-site
 ```
 
-Find these in your ImageKit dashboard under **Developer options → API keys**.
+Find the keys in your ImageKit dashboard under **Developer options → API keys**.
+
+### Root directory
+
+`IMAGEKIT_ROOT_DIR` is a server-side base folder that scopes **every** media operation — uploads, listing, and folder create/delete are all resolved relative to it. It is created automatically on first upload. The browser only ever sees paths **relative** to this root (the admin breadcrumb's "Home" is the root), so the absolute ImageKit layout stays a server concern and media can be re-homed by changing one env var. Leave it blank or `/` to use the ImageKit account root.
+
+Relative paths are sanitised server-side (`..` traversal is rejected) before being joined to the root.
 
 ## Upload flow (V2)
 
@@ -30,7 +37,8 @@ Find these in your ImageKit dashboard under **Developer options → API keys**.
 └───────────────┬────────────────────────────────────────────────────┘
                 │
 ┌─ Netlify Function (MediaModule) ───────────────────────────────────┐
-│ 3. Build canonical uploadPayload (folder /media, useUniqueFileName) │
+│ 3. Resolve folder = IMAGEKIT_ROOT_DIR + current path                │
+│    Build canonical uploadPayload (folder, useUniqueFileName)        │
 │ 4. Sign JWT with IMAGEKIT_PRIVATE_KEY:                              │
 │      header  { alg: HS256, typ: JWT, kid: IMAGEKIT_PUBLIC_KEY }     │
 │      payload { ...uploadPayload, iat, exp }   (exp ≤ iat + 3600s)   │
@@ -43,18 +51,24 @@ Find these in your ImageKit dashboard under **Developer options → API keys**.
 │      multipart: file + uploadPayload fields + token                 │
 │      (XMLHttpRequest reports upload progress)                       │
 │ 7. ImageKit verifies the JWT signs the exact payload → stores file  │
-│ 8. MediaPage re-lists media via GET /api/media                      │
+│ 8. MediaPage shows the file from the upload response (see below)    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 Because the JWT signs the whole payload, the client must send **exactly** the `uploadPayload` the server returned — hence the server returns the canonical payload and the client echoes it verbatim.
 
-## Browse & delete
+## Browse, folders & delete
 
-- **List** — `GET /api/media` proxies the ImageKit Management API with HTTP Basic auth (private key as username). The UI filter (`all` / `image` / `video`) maps to the ImageKit `fileType` query (`image` / `non-image`); videos are further narrowed by MIME type. Each item is rendered from the `url`/`thumbnail` the API returns, so no public key or URL endpoint is needed in the browser.
-- **Delete** — `DELETE /api/media/:fileId` permanently removes a file and all its versions. The UI confirms before deleting.
+- **List** — `GET /api/media?path=<relative>&type=<all|image|video>` proxies the ImageKit Management API (`GET /v1/files?type=all`, HTTP Basic auth) for the folder at `path`, and returns `{ folders, files }`. The UI filter narrows **files** (videos by MIME type); folders are always shown so you can navigate. Each item renders from the `url`/`thumbnail` the API returns, so no public key or URL endpoint is needed in the browser.
+- **Folders** — `POST /api/media/folder { name, path }` creates a folder; `DELETE /api/media/folder?path=<relative>` deletes a folder **and all its contents** (confirmed in the UI). The Media page provides breadcrumb navigation, a "New folder" action, and per-folder delete.
+- **Delete file** — `DELETE /api/media/:fileId` permanently removes a file and all its versions.
 
 See [api.md](api.md#media-imagekit) for request/response shapes.
+
+### Two ImageKit quirks worth knowing
+
+- **`path` must keep literal slashes.** ImageKit's list API does **not** URL-decode `%2F`, so the function builds the `path` query with literal `/` separators (segment names are still encoded). Passing a `URLSearchParams`-encoded path silently returns zero results.
+- **The list index is eventually consistent.** A file is not guaranteed to appear in `GET /v1/files` for ~1–2 s after upload. So after an upload the UI shows the new file directly from the **V2 upload response** (which already contains `fileId`/`url`) rather than re-listing — no refresh needed.
 
 ## Code map
 
@@ -72,6 +86,6 @@ See [api.md](api.md#media-imagekit) for request/response shapes.
 
 ## Notes & limits
 
-- Uploads land in the `/media` folder with `useUniqueFileName` enabled.
+- Uploads land in the currently-browsed folder (under `IMAGEKIT_ROOT_DIR`) with `useUniqueFileName` enabled.
 - Upload tokens expire after 30 minutes (`exp = iat + 1800`, within ImageKit's 3600 s cap).
-- The current version uploads to a fixed folder and does not yet support folder navigation, tag editing, or search UI — these can be layered on the existing `searchQuery` support in `GET /api/media`.
+- Tag editing and a search UI are not built yet — they can be layered on the `tags` upload field and the ImageKit `searchQuery` parameter.

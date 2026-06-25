@@ -1,21 +1,24 @@
 import type {
   ApiResponseErrorPayload,
   ApiResponseSuccessPayload,
+  CreateFolderRequest,
   MediaFile,
+  MediaListResult,
   MediaType,
   UploadAuthRequest,
   UploadAuthResponse,
 } from '@simple-site/interfaces';
-import { MediaListResponseSchema, UploadAuthResponseSchema } from '@simple-site/interfaces';
+import { MediaFileSchema, MediaListResultSchema, UploadAuthResponseSchema } from '@simple-site/interfaces';
 import apiService from './apiService';
 
 /**
  * Media service.
  *
- * Browse/delete go through our authenticated Netlify function (`/api/media`).
- * Uploads go browser → ImageKit directly (Upload File V2), authorized by a JWT
- * minted by `/api/media/upload-auth`. The ImageKit private key never reaches
- * the browser.
+ * Browse/delete and folder operations go through our authenticated Netlify
+ * function (`/api/media*`). Uploads go browser → ImageKit directly (Upload File
+ * V2), authorized by a JWT minted by `/api/media/upload-auth`. All paths are
+ * relative to the server-side root directory; the private key never reaches the
+ * browser.
  */
 
 /** ImageKit Upload File V2 endpoint. */
@@ -26,10 +29,12 @@ const unwrap = <T>(response: ApiResponseSuccessPayload<T> | ApiResponseErrorPayl
   return (response as ApiResponseSuccessPayload<T>).data;
 };
 
-/** Lists media, optionally filtered to images or videos. */
-export const listMedia = async (type: MediaType = 'all'): Promise<MediaFile[]> => {
-  const response = await apiService.get<MediaFile[]>(`media?type=${encodeURIComponent(type)}`);
-  return MediaListResponseSchema.parse(unwrap(response));
+/** Lists the sub-folders and files of a folder (relative to the root dir). */
+export const listMedia = async (path = '', type: MediaType = 'all'): Promise<MediaListResult> => {
+  const query = new URLSearchParams({ type });
+  if (path) query.set('path', path);
+  const response = await apiService.get<MediaListResult>(`media?${query.toString()}`);
+  return MediaListResultSchema.parse(unwrap(response));
 };
 
 /** Permanently deletes a media file by its ImageKit fileId. */
@@ -38,21 +43,60 @@ export const deleteMedia = async (fileId: string): Promise<void> => {
   if (!response.ok) throw new Error((response as ApiResponseErrorPayload).message);
 };
 
+/** Creates a folder `name` inside `path` (relative to the root dir). */
+export const createFolder = async (name: string, path = ''): Promise<void> => {
+  const response = await apiService.post<CreateFolderRequest, { message: string }>('media/folder', {
+    name,
+    path,
+  });
+  if (!response.ok) throw new Error((response as ApiResponseErrorPayload).message);
+};
+
+/** Deletes a folder and all its contents (path relative to the root dir). */
+export const deleteFolder = async (path: string): Promise<void> => {
+  const response = await apiService.delete(`media/folder?path=${encodeURIComponent(path)}`);
+  if (!response.ok) throw new Error((response as ApiResponseErrorPayload).message);
+};
+
 /** Requests a short-lived V2 upload token + the exact payload to send. */
-const getUploadAuth = async (fileName: string, tags?: string[]): Promise<UploadAuthResponse> => {
+const getUploadAuth = async (
+  fileName: string,
+  path?: string,
+  tags?: string[],
+): Promise<UploadAuthResponse> => {
   const response = await apiService.post<UploadAuthRequest, UploadAuthResponse>('media/upload-auth', {
     fileName,
+    path,
     tags,
   });
   return UploadAuthResponseSchema.parse(unwrap(response));
 };
 
-/** Uploads a single file directly to ImageKit (V2), reporting 0–100 progress. */
+/** Maps an ImageKit V2 upload response to a MediaFile (response uses `thumbnailUrl`). */
+const toMediaFile = (raw: Record<string, unknown>): MediaFile =>
+  MediaFileSchema.parse({
+    fileId: raw.fileId,
+    name: raw.name,
+    filePath: raw.filePath,
+    url: raw.url,
+    thumbnail: raw.thumbnailUrl ?? raw.thumbnail,
+    fileType: raw.fileType,
+    mime: raw.mime,
+    height: raw.height,
+    width: raw.width,
+    size: raw.size,
+  });
+
+/**
+ * Uploads a single file directly to ImageKit (V2), reporting 0–100 progress.
+ * Resolves with the uploaded asset so the UI can display it immediately
+ * (ImageKit's list index is eventually consistent).
+ */
 const uploadToImageKit = (
   file: File,
   auth: UploadAuthResponse,
   onProgress?: (percent: number) => void,
-): Promise<void> =>
+): Promise<MediaFile> =>
   new Promise((resolve, reject) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -72,7 +116,11 @@ const uploadToImageKit = (
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
+        try {
+          resolve(toMediaFile(JSON.parse(xhr.responseText)));
+        } catch {
+          reject(new Error('Upload succeeded but the response could not be parsed'));
+        }
         return;
       }
       let message = `Upload failed (${xhr.status})`;
@@ -88,11 +136,12 @@ const uploadToImageKit = (
     xhr.send(formData);
   });
 
-/** Orchestrates a single upload: fetch a token, then upload to ImageKit. */
+/** Orchestrates a single upload into `path`: fetch a token, then upload to ImageKit. */
 export const uploadMedia = async (
   file: File,
+  path?: string,
   onProgress?: (percent: number) => void,
-): Promise<void> => {
-  const auth = await getUploadAuth(file.name);
-  await uploadToImageKit(file, auth, onProgress);
+): Promise<MediaFile> => {
+  const auth = await getUploadAuth(file.name, path);
+  return uploadToImageKit(file, auth, onProgress);
 };

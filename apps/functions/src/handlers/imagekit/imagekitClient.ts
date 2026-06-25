@@ -14,10 +14,18 @@ export interface ImageKitEnv {
   privateKey: string;
   publicKey: string;
   urlEndpoint?: string;
+  /** Normalised base folder for all media: leading slash, no trailing slash, or '' for the account root. */
+  rootDir: string;
 }
 
+/** Normalises a folder path: single leading slash, no trailing slash. Empty → ''. */
+const normalizeDir = (dir: string): string => {
+  const trimmed = `/${dir}`.replace(/\/+/g, '/').replace(/\/$/, '');
+  return trimmed === '/' ? '' : trimmed;
+};
+
 /**
- * Reads ImageKit credentials from the function environment.
+ * Reads ImageKit credentials + root directory from the function environment.
  * @throws ApiErrorResponse (500 CONFIGURATION_ERROR) when keys are missing.
  */
 export const getImageKitEnv = (path?: string): ImageKitEnv => {
@@ -36,7 +44,21 @@ export const getImageKitEnv = (path?: string): ImageKitEnv => {
     privateKey,
     publicKey,
     urlEndpoint: Netlify.env.get('IMAGEKIT_URL_ENDPOINT'),
+    rootDir: normalizeDir(Netlify.env.get('IMAGEKIT_ROOT_DIR') ?? ''),
   };
+};
+
+/**
+ * Resolves a client-supplied relative path to an absolute ImageKit folder path,
+ * scoped under the configured root directory. Rejects path traversal.
+ * @throws ApiErrorResponse (400) when the relative path escapes the root.
+ */
+export const resolveFolderPath = (env: ImageKitEnv, relPath = '', path?: string): string => {
+  if (relPath.includes('..')) {
+    throw ErrorResponses.invalidRequest('Invalid folder path', path);
+  }
+  const absolute = `${env.rootDir}${normalizeDir(relPath)}`.replace(/\/+/g, '/').replace(/\/$/, '');
+  return absolute === '' ? '/' : absolute;
 };
 
 /** HTTP Basic auth header for the Management API (private key as username, no password). */

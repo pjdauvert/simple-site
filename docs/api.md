@@ -15,8 +15,10 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
 | GET | `/api/db-query` | Fetch sample users from MongoDB |
 | POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin) |
-| GET | `/api/media` | List media assets (admin) |
-| DELETE | `/api/media/:fileId` | Delete a media asset (admin) |
+| GET | `/api/media` | List a folder's sub-folders + files (admin) |
+| POST | `/api/media/folder` | Create a folder (admin) |
+| DELETE | `/api/media/folder` | Delete a folder and its contents (admin) |
+| DELETE | `/api/media/:fileId` | Delete a media file (admin) |
 | GET | `/api/google-proxy` | Proxy a Google API call with the server API key |
 
 ---
@@ -70,37 +72,61 @@ Merges the provided key/value pairs into the stored dictionary for the given loc
 
 ### Media (ImageKit)
 
-All `/api/media*` routes are **admin-only** (wrapped in `AuthHandler`) and served by a single function, `apps/functions/src/media.mts`. The ImageKit **private key never leaves the server** — it signs upload tokens and authenticates the Management API. See [media.md](media.md) for the end-to-end flow.
+All `/api/media*` routes are **admin-only** (wrapped in `AuthHandler`) and served by a single function, `apps/functions/src/media.mts`. The ImageKit **private key never leaves the server** — it signs upload tokens and authenticates the Management API. Every `path` is **relative** to the server-side `IMAGEKIT_ROOT_DIR`. See [media.md](media.md) for the end-to-end flow and the root-directory model.
 
 #### `POST /api/media/upload-auth`
 
-Mints a short-lived JWT authorizing a single **browser → ImageKit** [Upload File V2](https://imagekit.io/docs/api-reference/upload-file/upload-file-v2) request. The token signs the *entire* upload payload, so the client must echo `uploadPayload` verbatim as multipart fields.
+Mints a short-lived JWT authorizing a single **browser → ImageKit** [Upload File V2](https://imagekit.io/docs/api-reference/upload-file/upload-file-v2) request. The token signs the *entire* upload payload, so the client must echo `uploadPayload` verbatim as multipart fields. `path` selects the target folder (relative to the root dir).
 
 ```json
 // Request body
-{ "fileName": "photo.jpg", "tags": ["optional", "tags"] }
+{ "fileName": "photo.jpg", "path": "/products", "tags": ["optional", "tags"] }
 
 // 200 OK — token is HS256, kid = public key, exp ≤ iat + 3600s
 { "ok": true, "data": {
   "token": "<jwt>",
   "expire": 1735689600,
   "publicKey": "public_xxx",
-  "uploadPayload": { "fileName": "photo.jpg", "folder": "/media", "useUniqueFileName": "true" }
+  "uploadPayload": { "fileName": "photo.jpg", "folder": "/simple-site/products", "useUniqueFileName": "true" }
 } }
 ```
 
 #### `GET /api/media`
 
-Proxies the ImageKit Management API (HTTP Basic auth) to list assets. Query params: `type` (`all` | `image` | `video`, default `all`), `limit` (default 50), `skip`, `searchQuery`.
+Lists the sub-folders and files of a folder via the ImageKit Management API (HTTP Basic auth). Query params: `path` (relative to root, default root), `type` (`all` | `image` | `video`, default `all`; narrows files only), `limit` (default 100), `skip`.
 
 ```json
 // 200 OK
-{ "ok": true, "data": [ { "fileId": "...", "name": "photo.jpg", "url": "https://ik.imagekit.io/...", "thumbnail": "...", "mime": "image/jpeg", "size": 12345 } ] }
+{ "ok": true, "data": {
+  "folders": [ { "folderId": "...", "name": "products", "path": "/products" } ],
+  "files":   [ { "fileId": "...", "name": "photo.jpg", "url": "https://ik.imagekit.io/...", "thumbnail": "...", "mime": "image/jpeg", "size": 12345 } ]
+} }
+```
+
+#### `POST /api/media/folder`
+
+Creates a folder `name` inside `path` (relative to root).
+
+```json
+// Request body
+{ "name": "products", "path": "" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Folder created successfully" } }
+```
+
+#### `DELETE /api/media/folder?path=<relative>`
+
+Permanently deletes a folder **and all of its contents**.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "Folder deleted successfully" } }
 ```
 
 #### `DELETE /api/media/:fileId`
 
-Permanently deletes an asset (and all versions) via the Management API.
+Permanently deletes a file (and all versions) via the Management API.
 
 ```json
 // 200 OK
@@ -150,6 +176,8 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | POST | `/api/translations/:language` | ✓ |
 | POST | `/api/media/upload-auth` | ✓ |
 | GET | `/api/media` | ✓ |
+| POST | `/api/media/folder` | ✓ |
+| DELETE | `/api/media/folder` | ✓ |
 | DELETE | `/api/media/:fileId` | ✓ |
 
 All `GET` endpoints are public **except** `/api/media` (admin-only media management).
@@ -187,6 +215,7 @@ MAILGUN_TO_EMAIL
 IMAGEKIT_PRIVATE_KEY
 IMAGEKIT_PUBLIC_KEY
 IMAGEKIT_URL_ENDPOINT
+IMAGEKIT_ROOT_DIR        # optional base folder for all media
 GOOGLE_API_KEY_SERVER
 ```
 

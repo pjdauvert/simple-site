@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { IntlProvider } from 'react-intl';
-import type { MediaFile } from '@simple-site/interfaces';
+import type { MediaFile, MediaListResult } from '@simple-site/interfaces';
 import messages from '../../features/i18n/i18n.json';
 import { MediaPage } from './MediaPage';
 import * as mediaService from '../../services/mediaService';
@@ -22,37 +22,66 @@ const file = (over: Partial<MediaFile> & Pick<MediaFile, 'fileId' | 'name'>): Me
   ...over,
 });
 
+const result = (over: Partial<MediaListResult> = {}): MediaListResult => ({
+  folders: [],
+  files: [],
+  ...over,
+});
+
 describe('MediaPage', () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it('shows the empty state and upload button when there is no media', async () => {
-    vi.mocked(mediaService.listMedia).mockResolvedValue([]);
+  it('shows the empty state and action buttons when a folder is empty', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result());
     renderPage();
 
     expect(
       await screen.findByText('No media yet. Upload your first image or video.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Upload' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New folder' })).toBeInTheDocument();
   });
 
-  it('renders a tile per media item', async () => {
-    vi.mocked(mediaService.listMedia).mockResolvedValue([
-      file({ fileId: '1', name: 'a.png', mime: 'image/png' }),
-      file({ fileId: '2', name: 'b.mp4', mime: 'video/mp4' }),
-    ]);
+  it('renders folder tiles and file tiles', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        folders: [{ folderId: 'fd1', name: 'products', path: '/products' }],
+        files: [file({ fileId: '1', name: 'a.png', mime: 'image/png' })],
+      }),
+    );
     renderPage();
 
-    expect(await screen.findByText('a.png')).toBeInTheDocument();
-    expect(screen.getByText('b.mp4')).toBeInTheDocument();
+    expect(await screen.findByText('products')).toBeInTheDocument();
+    expect(screen.getByText('a.png')).toBeInTheDocument();
   });
 
-  it('opens the delete confirmation dialog', async () => {
-    vi.mocked(mediaService.listMedia).mockResolvedValue([
-      file({ fileId: '1', name: 'a.png', mime: 'image/png' }),
-    ]);
+  it('navigates into a folder when its tile is clicked', async () => {
+    vi.mocked(mediaService.listMedia)
+      .mockResolvedValueOnce(result({ folders: [{ folderId: 'fd1', name: 'products', path: '/products' }] }))
+      .mockResolvedValueOnce(result({ files: [file({ fileId: '1', name: 'inside.png', mime: 'image/png' })] }));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open folder products' }));
+
+    expect(await screen.findByText('inside.png')).toBeInTheDocument();
+    expect(mediaService.listMedia).toHaveBeenLastCalledWith('/products', 'all');
+  });
+
+  it('opens the delete confirmation dialog for a file', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({ files: [file({ fileId: '1', name: 'a.png', mime: 'image/png' })] }),
+    );
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
     expect(await screen.findByText('Delete media?')).toBeInTheDocument();
+  });
+
+  it('opens the new-folder dialog', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result());
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'New folder' }));
+    expect(await screen.findByLabelText('Folder name')).toBeInTheDocument();
   });
 });

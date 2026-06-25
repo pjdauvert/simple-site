@@ -5,7 +5,7 @@ import type { RequestHandler } from './types/server-types';
 
 export const config: Config = {
   method: ['GET', 'POST', 'DELETE'],
-  path: ['/api/media', '/api/media/upload-auth', '/api/media/:fileId'],
+  path: ['/api/media', '/api/media/upload-auth', '/api/media/folder', '/api/media/:fileId'],
 };
 
 // All media routes are admin-only; AuthHandler enforces the Netlify Identity
