@@ -289,72 +289,6 @@ export const MediaPage: React.FC = () => {
         })}
       </Breadcrumbs>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'flex-end', mb: 3 }}>
-        <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
-          <FormattedMessage id="page.media.newFolder" />
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          hidden
-          onChange={handleFilesSelected}
-        />
-      </Box>
-
-      <Box
-        role="button"
-        tabIndex={0}
-        onClick={handleUploadClick}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            handleUploadClick();
-          }
-        }}
-        onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
-        onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }}
-        onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false);
-        }}
-        onDrop={handleDrop}
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1,
-          p: { xs: 3, sm: 4 },
-          mb: 3,
-          textAlign: 'center',
-          cursor: 'pointer',
-          color: dragActive ? 'primary.main' : 'text.secondary',
-          border: '2px dashed',
-          borderColor: dragActive ? 'primary.main' : 'divider',
-          borderRadius: 2,
-          bgcolor: dragActive ? 'action.hover' : 'transparent',
-          transition: (theme) => theme.transitions.create(['border-color', 'background-color', 'color']),
-        }}
-      >
-        <CloudUploadIcon sx={{ fontSize: 40 }} />
-        <Typography variant="body2"><FormattedMessage id="page.media.dropzone" /></Typography>
-      </Box>
-
-      {uploads.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <FormattedMessage id="page.media.uploading" values={{ count: uploads.length }} />
-          </Typography>
-          {uploads.map((upload) => (
-            <Box key={upload.name} sx={{ mb: 1 }}>
-              <Typography variant="caption" noWrap sx={{ display: 'block' }}>{upload.name}</Typography>
-              <LinearProgress variant="determinate" value={upload.percent} />
-            </Box>
-          ))}
-        </Box>
-      )}
-
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {loading ? (
@@ -363,24 +297,27 @@ export const MediaPage: React.FC = () => {
         </Box>
       ) : (
         <Box>
-          {folders.length > 0 && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                <FormattedMessage id="page.media.foldersSection" />
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                {folders.map((folder) => (
-                  <FolderChip
-                    key={folder.folderId}
-                    folder={folder}
-                    onOpen={() => setCurrentPath(folder.path)}
-                    onDelete={() => setDeleteTarget({ kind: 'folder', folder })}
-                  />
-                ))}
-              </Box>
+          {/* Folders — the New folder action sits before the folder list */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              <FormattedMessage id="page.media.foldersSection" />
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
+              <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
+                <FormattedMessage id="page.media.newFolder" />
+              </Button>
+              {folders.map((folder) => (
+                <FolderChip
+                  key={folder.folderId}
+                  folder={folder}
+                  onOpen={() => setCurrentPath(folder.path)}
+                  onDelete={() => setDeleteTarget({ kind: 'folder', folder })}
+                />
+              ))}
             </Box>
-          )}
+          </Box>
 
+          {/* Files — filter in the header, then the drop zone, then the grid */}
           <Box>
             <Box
               sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
@@ -394,6 +331,67 @@ export const MediaPage: React.FC = () => {
                 <ToggleButton value="video"><FormattedMessage id="page.media.filter.videos" /></ToggleButton>
               </ToggleButtonGroup>
             </Box>
+
+            <Box
+              role="button"
+              tabIndex={0}
+              onClick={handleUploadClick}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleUploadClick();
+                }
+              }}
+              onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
+              onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false);
+              }}
+              onDrop={handleDrop}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                p: { xs: 3, sm: 4 },
+                mb: 2,
+                textAlign: 'center',
+                cursor: 'pointer',
+                color: dragActive ? 'primary.main' : 'text.secondary',
+                border: '2px dashed',
+                borderColor: dragActive ? 'primary.main' : 'divider',
+                borderRadius: 2,
+                bgcolor: dragActive ? 'action.hover' : 'transparent',
+                transition: (theme) => theme.transitions.create(['border-color', 'background-color', 'color']),
+              }}
+            >
+              <CloudUploadIcon sx={{ fontSize: 40 }} />
+              <Typography variant="body2"><FormattedMessage id="page.media.dropzone" /></Typography>
+            </Box>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              hidden
+              onChange={handleFilesSelected}
+            />
+
+            {uploads.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <FormattedMessage id="page.media.uploading" values={{ count: uploads.length }} />
+                </Typography>
+                {uploads.map((upload) => (
+                  <Box key={upload.name} sx={{ mb: 1 }}>
+                    <Typography variant="caption" noWrap sx={{ display: 'block' }}>{upload.name}</Typography>
+                    <LinearProgress variant="determinate" value={upload.percent} />
+                  </Box>
+                ))}
+              </Box>
+            )}
+
             {files.length > 0 ? (
               <Box
                 sx={{
