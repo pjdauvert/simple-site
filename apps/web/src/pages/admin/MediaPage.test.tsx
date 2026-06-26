@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { fireEvent, waitFor } from '@testing-library/dom';
+import { fireEvent, waitFor, within } from '@testing-library/dom';
 import { IntlProvider } from 'react-intl';
 import type { MediaFile, MediaListResult } from '@simple-site/interfaces';
 import messages from '../../features/i18n/i18n.json';
@@ -87,6 +87,23 @@ describe('MediaPage', () => {
     expect(await screen.findByLabelText('Folder name')).toBeInTheDocument();
   });
 
+  it('drops a deleted file from the view even if the re-list still returns it (index lag)', async () => {
+    const existing = file({ fileId: '1', name: 'a.png', mime: 'image/png' });
+    vi.mocked(mediaService.listMedia)
+      .mockResolvedValueOnce(result({ files: [existing] })) // initial load
+      .mockResolvedValueOnce(result({ files: [existing] })); // re-list still lagging
+    vi.mocked(mediaService.deleteMedia).mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('1'));
+    await waitFor(() => expect(mediaService.listMedia).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('a.png')).not.toBeInTheDocument());
+  });
+
   it('uploads files dropped onto the drop zone', async () => {
     vi.mocked(mediaService.listMedia).mockResolvedValue(result());
     vi.mocked(mediaService.uploadMedia).mockResolvedValue(
@@ -102,5 +119,30 @@ describe('MediaPage', () => {
 
     await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('dropped.png')).toBeInTheDocument();
+  });
+
+  it('DIAG exact suggested test', async () => {
+    vi.mocked(mediaService.listMedia)
+      .mockResolvedValueOnce(result()) // initial empty
+      .mockResolvedValueOnce(result()); // re-list after delete: index still lacks the upload
+    vi.mocked(mediaService.uploadMedia).mockResolvedValue(
+      file({ fileId: 'u1', name: 'dropped.png', mime: 'image/png' }),
+    );
+    vi.mocked(mediaService.deleteMedia).mockResolvedValue(undefined);
+    renderPage();
+
+    const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'dropped.png', { type: 'image/png' })] } });
+    try {
+      expect(await screen.findByText('dropped.png')).toBeInTheDocument();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log('UPLOAD CALLED TIMES:', vi.mocked(mediaService.uploadMedia).mock.calls.length);
+      // eslint-disable-next-line no-console
+      console.log('LISTMEDIA CALLED TIMES:', vi.mocked(mediaService.listMedia).mock.calls.length);
+      // eslint-disable-next-line no-console
+      console.log('DOM:', document.body.innerHTML.slice(0, 1500));
+      throw e;
+    }
   });
 });

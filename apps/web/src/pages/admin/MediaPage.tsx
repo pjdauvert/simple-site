@@ -104,13 +104,20 @@ export const MediaPage: React.FC = () => {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
-  const loadMedia = useCallback(async (path: string, type: MediaType) => {
+  const loadMedia = useCallback(async (
+    path: string,
+    type: MediaType,
+    exclude?: { fileId?: string; folderId?: string },
+  ) => {
     setLoading(true);
     setError(null);
     try {
       const result = await listMedia(path, type);
-      setFolders(result.folders);
-      setFiles(result.files);
+      // ImageKit's list index is eventually consistent (~1–2 s), so a re-list
+      // right after a delete can still return the removed item — drop it so the
+      // refreshed view reflects the deletion despite the lag.
+      setFolders(exclude?.folderId ? result.folders.filter((f) => f.folderId !== exclude.folderId) : result.folders);
+      setFiles(exclude?.fileId ? result.files.filter((f) => f.fileId !== exclude.fileId) : result.files);
     } catch (err) {
       setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.load' }));
     } finally {
@@ -177,14 +184,19 @@ export const MediaPage: React.FC = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
+      // Refresh the folder from the server once ImageKit acknowledges the delete,
+      // excluding the removed item to bridge the list index's ~1–2 s lag.
       if (deleteTarget.kind === 'file') {
-        await deleteMedia(deleteTarget.file.fileId);
+        const { fileId } = deleteTarget.file;
+        await deleteMedia(fileId);
+        setDeleteTarget(null);
+        await loadMedia(currentPath, filter, { fileId });
       } else {
-        await deleteFolder(deleteTarget.folder.path);
+        const { folderId, path } = deleteTarget.folder;
+        await deleteFolder(path);
+        setDeleteTarget(null);
+        await loadMedia(currentPath, filter, { folderId });
       }
-      setDeleteTarget(null);
-      // Refresh from the server once ImageKit has acknowledged the deletion.
-      await loadMedia(currentPath, filter);
     } catch (err) {
       setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
     } finally {

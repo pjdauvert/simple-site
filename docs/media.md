@@ -74,7 +74,7 @@ The current folder's contents render in two sections:
 
 ### Refresh on acknowledgment
 
-Folder **create** and file/folder **delete** re-list the current folder from the server once ImageKit acknowledges the operation, so the view always reflects server state. **Uploads** are the exception: the V2 upload response *is* ImageKit's acknowledgment and already carries the new file's `fileId`/`url`, so the file is shown straight from that response rather than re-listing — which avoids the list-index lag described below.
+Folder **create** and file/folder **delete** re-list the current folder from the server once ImageKit acknowledges the operation, so the view always reflects server state. Because the list index lags the delete by ~1–2 s (see below), the re-list after a delete **excludes the just-deleted id** (`loadMedia(path, type, { fileId | folderId })`) — otherwise the stale index would resurrect the removed item. **Uploads** are the exception: the V2 upload response *is* ImageKit's acknowledgment and already carries the new file's `fileId`/`url`, so the file is shown straight from that response rather than re-listing — which avoids the much larger upload-index lag (~15 s observed).
 
 ### Two ImageKit quirks worth knowing
 
