@@ -104,24 +104,52 @@ export const MediaPage: React.FC = () => {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  // Bumps on every load so a slow response can't overwrite a newer one (latest wins).
+  const requestIdRef = useRef(0);
+  // id → expiry. ImageKit's list index lags a delete by ~1-2 s, so deleted ids are
+  // filtered out of *every* re-list for a short window, not just the immediate one.
+  const recentlyDeletedRef = useRef<Map<string, number>>(new Map());
+  const DELETE_GRACE_MS = 5000;
+
   const loadMedia = useCallback(async (
     path: string,
     type: MediaType,
-    exclude?: { fileId?: string; folderId?: string },
+    options?: { deletedId?: string; keepPending?: boolean },
   ) => {
+    const requestId = ++requestIdRef.current;
+    if (options?.deletedId) {
+      recentlyDeletedRef.current.set(options.deletedId, Date.now() + DELETE_GRACE_MS);
+    }
     setLoading(true);
     setError(null);
     try {
       const result = await listMedia(path, type);
-      // ImageKit's list index is eventually consistent (~1–2 s), so a re-list
-      // right after a delete can still return the removed item — drop it so the
-      // refreshed view reflects the deletion despite the lag.
-      setFolders(exclude?.folderId ? result.folders.filter((f) => f.folderId !== exclude.folderId) : result.folders);
-      setFiles(exclude?.fileId ? result.files.filter((f) => f.fileId !== exclude.fileId) : result.files);
+      if (requestId !== requestIdRef.current) return; // superseded by a newer load
+
+      // Drop ids whose grace window has lapsed, then hide the still-pending ones —
+      // this keeps a just-deleted item gone across filter changes / navigation
+      // while ImageKit's list index catches up.
+      const now = Date.now();
+      const deleted = recentlyDeletedRef.current;
+      for (const [id, expiry] of deleted) if (expiry <= now) deleted.delete(id);
+
+      const serverFolders = result.folders.filter((f) => !deleted.has(f.folderId));
+      const serverFiles = result.files.filter((f) => !deleted.has(f.fileId));
+      setFolders(serverFolders);
+      setFiles((prev) => {
+        if (!options?.keepPending) return serverFiles;
+        // Same-folder refresh: re-add optimistic uploads the index hasn't indexed yet.
+        const indexed = new Set(serverFiles.map((f) => f.fileId));
+        const pending = prev.filter(
+          (f) => !indexed.has(f.fileId) && !deleted.has(f.fileId) && matchesFilter(f, type),
+        );
+        return [...pending, ...serverFiles];
+      });
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.load' }));
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, [intl]);
 
@@ -184,18 +212,19 @@ export const MediaPage: React.FC = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      // Refresh the folder from the server once ImageKit acknowledges the delete,
-      // excluding the removed item to bridge the list index's ~1–2 s lag.
+      // Refresh the folder from the server once ImageKit acknowledges the delete;
+      // `deletedId` keeps the removed item hidden while the list index catches up,
+      // and `keepPending` preserves optimistic uploads not yet indexed.
       if (deleteTarget.kind === 'file') {
         const { fileId } = deleteTarget.file;
         await deleteMedia(fileId);
         setDeleteTarget(null);
-        await loadMedia(currentPath, filter, { fileId });
+        await loadMedia(currentPath, filter, { deletedId: fileId, keepPending: true });
       } else {
         const { folderId, path } = deleteTarget.folder;
         await deleteFolder(path);
         setDeleteTarget(null);
-        await loadMedia(currentPath, filter, { folderId });
+        await loadMedia(currentPath, filter, { deletedId: folderId, keepPending: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
@@ -212,8 +241,9 @@ export const MediaPage: React.FC = () => {
       await createFolder(name, currentPath);
       setNewFolderOpen(false);
       setNewFolderName('');
-      // Refresh from the server once ImageKit has acknowledged the new folder.
-      await loadMedia(currentPath, filter);
+      // Refresh from the server once ImageKit has acknowledged the new folder
+      // (keep optimistic uploads that the list index hasn't caught up with).
+      await loadMedia(currentPath, filter, { keepPending: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
     } finally {
@@ -222,7 +252,6 @@ export const MediaPage: React.FC = () => {
   };
 
   const segments = currentPath.split('/').filter(Boolean);
-  const isEmpty = folders.length === 0 && files.length === 0;
 
   return (
     <Box sx={{ p: { xs: 2, sm: 4 } }}>
@@ -260,27 +289,18 @@ export const MediaPage: React.FC = () => {
         })}
       </Breadcrumbs>
 
-      <Box
-        sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 3 }}
-      >
-        <ToggleButtonGroup value={filter} exclusive onChange={handleFilterChange} size="small">
-          <ToggleButton value="all"><FormattedMessage id="page.media.filter.all" /></ToggleButton>
-          <ToggleButton value="image"><FormattedMessage id="page.media.filter.images" /></ToggleButton>
-          <ToggleButton value="video"><FormattedMessage id="page.media.filter.videos" /></ToggleButton>
-        </ToggleButtonGroup>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
-            <FormattedMessage id="page.media.newFolder" />
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            hidden
-            onChange={handleFilesSelected}
-          />
-        </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'flex-end', mb: 3 }}>
+        <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
+          <FormattedMessage id="page.media.newFolder" />
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          hidden
+          onChange={handleFilesSelected}
+        />
       </Box>
 
       <Box
@@ -341,14 +361,10 @@ export const MediaPage: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
-      ) : isEmpty ? (
-        <Typography variant="body1" color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>
-          <FormattedMessage id="page.media.empty" />
-        </Typography>
       ) : (
         <Box>
           {folders.length > 0 && (
-            <Box sx={{ mb: files.length > 0 ? 4 : 0 }}>
+            <Box sx={{ mb: 4 }}>
               <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                 <FormattedMessage id="page.media.foldersSection" />
               </Typography>
@@ -364,11 +380,21 @@ export const MediaPage: React.FC = () => {
               </Box>
             </Box>
           )}
-          {files.length > 0 && (
-            <Box>
-              <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+
+          <Box>
+            <Box
+              sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
+            >
+              <Typography variant="overline" color="text.secondary">
                 <FormattedMessage id="page.media.filesSection" />
               </Typography>
+              <ToggleButtonGroup value={filter} exclusive onChange={handleFilterChange} size="small">
+                <ToggleButton value="all"><FormattedMessage id="page.media.filter.all" /></ToggleButton>
+                <ToggleButton value="image"><FormattedMessage id="page.media.filter.images" /></ToggleButton>
+                <ToggleButton value="video"><FormattedMessage id="page.media.filter.videos" /></ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+            {files.length > 0 ? (
               <Box
                 sx={{
                   display: 'grid',
@@ -380,8 +406,12 @@ export const MediaPage: React.FC = () => {
                   <FileCard key={file.fileId} item={file} onDelete={() => setDeleteTarget({ kind: 'file', file })} />
                 ))}
               </Box>
-            </Box>
-          )}
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>
+                <FormattedMessage id={filter === 'all' ? 'page.media.empty' : 'page.media.noMatch'} />
+              </Typography>
+            )}
+          </Box>
         </Box>
       )}
 

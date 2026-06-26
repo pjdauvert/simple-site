@@ -74,7 +74,13 @@ The current folder's contents render in two sections:
 
 ### Refresh on acknowledgment
 
-Folder **create** and file/folder **delete** re-list the current folder from the server once ImageKit acknowledges the operation, so the view always reflects server state. Because the list index lags the delete by ~1–2 s (see below), the re-list after a delete **excludes the just-deleted id** (`loadMedia(path, type, { fileId | folderId })`) — otherwise the stale index would resurrect the removed item. **Uploads** are the exception: the V2 upload response *is* ImageKit's acknowledgment and already carries the new file's `fileId`/`url`, so the file is shown straight from that response rather than re-listing — which avoids the much larger upload-index lag (~15 s observed).
+Folder **create** and file/folder **delete** re-list the current folder from the server once ImageKit acknowledges the operation, so the view always reflects server state. The list index lags the delete by ~1–2 s (see below), so `loadMedia` is hardened against it:
+
+- **A deleted id is hidden from *every* re-list for a short grace window** (`recentlyDeletedRef`, ~5 s), not just the one immediately after the delete — otherwise a filter change or folder navigation inside the lag window would re-list the stale item and resurrect it.
+- **A `keepPending` refresh re-adds optimistic uploads the index hasn't caught up with.** After a same-folder mutation (delete / create-folder) the re-list can omit a just-uploaded file (the upload index lags ~15 s), so files present locally but absent from the fresh listing — and not in the deleted set — are kept.
+- **Latest-wins:** each load carries a request id; a slow response whose id is stale is dropped, so overlapping re-lists (e.g. delete then quickly switch filter) can't overwrite newer state.
+
+**Uploads** are shown straight from the V2 upload response — it *is* ImageKit's acknowledgment and already carries the new file's `fileId`/`url`, so no re-list is needed (and the much larger ~15 s upload-index lag is avoided).
 
 ### Two ImageKit quirks worth knowing
 
