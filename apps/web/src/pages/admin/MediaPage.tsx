@@ -497,14 +497,14 @@ const FileCard: React.FC<FileCardProps> = ({ item, onDelete }) => {
               const el = event.currentTarget;
               setMeta({ width: el.videoWidth, height: el.videoHeight, duration: el.duration });
             }}
-            sx={{ height: 160, objectFit: 'cover', bgcolor: 'action.hover' }}
+            sx={{ height: 160, objectFit: 'contain', bgcolor: 'action.hover' }}
           />
         ) : (
           <CardMedia
             component="img"
-            image={item.thumbnail ?? `${item.url}?tr=w-400,h-320,fo-auto`}
+            image={`${item.url}?tr=w-400`}
             alt={item.name}
-            sx={{ height: 160, objectFit: 'cover', bgcolor: 'action.hover' }}
+            sx={{ height: 160, objectFit: 'contain', bgcolor: 'action.hover' }}
           />
         )}
         {video && (
