@@ -38,8 +38,10 @@ describe('MediaPage', () => {
     expect(
       await screen.findByText('No media yet. Upload your first image or video.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Upload' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New folder' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Drag & drop files here, or click to browse' }),
+    ).toBeInTheDocument();
   });
 
   it('renders folder tiles and file tiles', async () => {

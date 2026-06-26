@@ -260,9 +260,6 @@ export const MediaPage: React.FC = () => {
           <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
             <FormattedMessage id="page.media.newFolder" />
           </Button>
-          <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={handleUploadClick}>
-            <FormattedMessage id="page.media.upload" />
-          </Button>
           <input
             ref={fileInputRef}
             type="file"
