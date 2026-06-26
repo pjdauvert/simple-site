@@ -65,6 +65,17 @@ Because the JWT signs the whole payload, the client must send **exactly** the `u
 
 See [api.md](api.md#media-imagekit) for request/response shapes.
 
+### Media page layout
+
+The current folder's contents render in two sections:
+
+- **Folders** — each folder is a rounded "chip" (folder icon + name); click to open, with a per-folder delete action.
+- **Files** — each file is a row: a thumbnail (video shows a play badge), then the file name with **Copy name** and **Copy URL** actions, and a details line showing the **extension, size, and image dimensions (or video length)**. Image dimensions come from the listing; video length is read from the player's `loadedmetadata` (ImageKit does not return it for videos).
+
+### Refresh on acknowledgment
+
+Folder **create** and file/folder **delete** re-list the current folder from the server once ImageKit acknowledges the operation, so the view always reflects server state. **Uploads** are the exception: the V2 upload response *is* ImageKit's acknowledgment and already carries the new file's `fileId`/`url`, so the file is shown straight from that response rather than re-listing — which avoids the list-index lag described below.
+
 ### Two ImageKit quirks worth knowing
 
 - **`path` must keep literal slashes.** ImageKit's list API does **not** URL-decode `%2F`, so the function builds the `path` query with literal `/` separators (segment names are still encoded). Passing a `URLSearchParams`-encoded path silently returns zero results.
