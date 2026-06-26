@@ -200,29 +200,9 @@ export const MediaPage: React.FC = () => {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 4 } }}>
-      <Box
-        sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
-      >
-        <Typography variant="h5">
-          <FormattedMessage id="page.media.title" />
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
-            <FormattedMessage id="page.media.newFolder" />
-          </Button>
-          <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={handleUploadClick}>
-            <FormattedMessage id="page.media.upload" />
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            hidden
-            onChange={handleFilesSelected}
-          />
-        </Box>
-      </Box>
+      <Typography variant="h5" sx={{ mb: 2 }}>
+        <FormattedMessage id="page.media.title" />
+      </Typography>
 
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link
@@ -254,11 +234,31 @@ export const MediaPage: React.FC = () => {
         })}
       </Breadcrumbs>
 
-      <ToggleButtonGroup value={filter} exclusive onChange={handleFilterChange} size="small" sx={{ mb: 3 }}>
-        <ToggleButton value="all"><FormattedMessage id="page.media.filter.all" /></ToggleButton>
-        <ToggleButton value="image"><FormattedMessage id="page.media.filter.images" /></ToggleButton>
-        <ToggleButton value="video"><FormattedMessage id="page.media.filter.videos" /></ToggleButton>
-      </ToggleButtonGroup>
+      <Box
+        sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 3 }}
+      >
+        <ToggleButtonGroup value={filter} exclusive onChange={handleFilterChange} size="small">
+          <ToggleButton value="all"><FormattedMessage id="page.media.filter.all" /></ToggleButton>
+          <ToggleButton value="image"><FormattedMessage id="page.media.filter.images" /></ToggleButton>
+          <ToggleButton value="video"><FormattedMessage id="page.media.filter.videos" /></ToggleButton>
+        </ToggleButtonGroup>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
+            <FormattedMessage id="page.media.newFolder" />
+          </Button>
+          <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={handleUploadClick}>
+            <FormattedMessage id="page.media.upload" />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            hidden
+            onChange={handleFilesSelected}
+          />
+        </Box>
+      </Box>
 
       {uploads.length > 0 && (
         <Box sx={{ mb: 3 }}>
