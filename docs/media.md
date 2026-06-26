@@ -70,7 +70,7 @@ See [api.md](api.md#media-imagekit) for request/response shapes.
 The current folder's contents render in two sections:
 
 - **Folders** — each folder is a rounded "chip" (folder icon + name); click to open, with a per-folder delete action.
-- **Files** — each file is a row: a thumbnail (video shows a play badge), then the file name with **Copy name** and **Copy URL** actions, and a details line showing the **extension, size, and image dimensions (or video length)**. Image dimensions come from the listing; video length is read from the player's `loadedmetadata` (ImageKit does not return it for videos).
+- **Files** — a responsive grid of MUI cards. Each card has the thumbnail on top (video shows a play badge; the image links to the full asset), and below it the file name, a details line showing the **extension, size, and image dimensions (or video length)**, and **Copy name** / **Copy URL** / delete actions. Image dimensions come from the listing; video length is read from the player's `loadedmetadata` (ImageKit does not return it for videos).
 
 ### Refresh on acknowledgment
 

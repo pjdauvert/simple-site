@@ -5,6 +5,11 @@ import {
   Breadcrumbs,
   Button,
   ButtonBase,
+  Card,
+  CardActionArea,
+  CardActions,
+  CardContent,
+  CardMedia,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -303,7 +308,13 @@ export const MediaPage: React.FC = () => {
               <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                 <FormattedMessage id="page.media.filesSection" />
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)' },
+                  gap: 2,
+                }}
+              >
                 {files.map((file) => (
                   <FileCard key={file.fileId} item={file} onDelete={() => setDeleteTarget({ kind: 'file', file })} />
                 ))}
@@ -445,10 +456,11 @@ interface FileCardProps {
 }
 
 /**
- * Presentational file row: a thumbnail, then the file name with copy-name /
- * copy-URL actions, and a details line (extension, size, and image dimensions
- * or video length). Image dimensions come from the listing; video length is
- * read from the player metadata since ImageKit does not return it.
+ * Presentational media card: the thumbnail fills the top of the card; below it
+ * sit the file name, a details line (extension, size, and image dimensions or
+ * video length), and the copy-name / copy-URL / delete actions. Image
+ * dimensions come from the listing; video length is read from the player
+ * metadata since ImageKit does not return it.
  */
 const FileCard: React.FC<FileCardProps> = ({ item, onDelete }) => {
   const intl = useIntl();
@@ -467,57 +479,34 @@ const FileCard: React.FC<FileCardProps> = ({ item, onDelete }) => {
   const details = detailParts.filter(Boolean).join('  ·  ');
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 2,
-        alignItems: 'center',
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        p: 1.5,
-      }}
-    >
-      <Box
-        sx={{
-          position: 'relative',
-          width: 88,
-          height: 88,
-          flexShrink: 0,
-          borderRadius: 1.5,
-          overflow: 'hidden',
-          bgcolor: 'action.hover',
-        }}
+    <Card variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <CardActionArea
+        component="a"
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        sx={{ position: 'relative' }}
       >
-        <Box
-          component="a"
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={{ display: 'block', width: '100%', height: '100%' }}
-        >
-          {video ? (
-            <Box
-              component="video"
-              src={item.url}
-              preload="metadata"
-              muted
-              onLoadedMetadata={(event) => {
-                const el = event.currentTarget;
-                setMeta({ width: el.videoWidth, height: el.videoHeight, duration: el.duration });
-              }}
-              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <Box
-              component="img"
-              src={item.thumbnail ?? `${item.url}?tr=w-176,h-176,fo-auto`}
-              alt={item.name}
-              loading="lazy"
-              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          )}
-        </Box>
+        {video ? (
+          <CardMedia
+            component="video"
+            src={item.url}
+            preload="metadata"
+            muted
+            onLoadedMetadata={(event: React.SyntheticEvent<HTMLVideoElement>) => {
+              const el = event.currentTarget;
+              setMeta({ width: el.videoWidth, height: el.videoHeight, duration: el.duration });
+            }}
+            sx={{ height: 160, objectFit: 'cover', bgcolor: 'action.hover' }}
+          />
+        ) : (
+          <CardMedia
+            component="img"
+            image={item.thumbnail ?? `${item.url}?tr=w-400,h-320,fo-auto`}
+            alt={item.name}
+            sx={{ height: 160, objectFit: 'cover', bgcolor: 'action.hover' }}
+          />
+        )}
         {video && (
           <Box
             sx={{
@@ -530,41 +519,42 @@ const FileCard: React.FC<FileCardProps> = ({ item, onDelete }) => {
               color: 'common.white',
             }}
           >
-            <PlayArrowIcon sx={{ fontSize: 36, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+            <PlayArrowIcon sx={{ fontSize: 44, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
           </Box>
         )}
-      </Box>
+      </CardActionArea>
 
-      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography variant="subtitle2" noWrap title={item.name} sx={{ flexGrow: 1, minWidth: 0 }}>
-            {item.name}
-          </Typography>
-          <CopyButton
-            value={item.name}
-            label={intl.formatMessage({ id: 'page.media.copyName' })}
-            copiedLabel={intl.formatMessage({ id: 'page.media.copied' })}
-            icon={<ContentCopyIcon fontSize="small" />}
-          />
-          <CopyButton
-            value={item.url}
-            label={intl.formatMessage({ id: 'page.media.copyUrl' })}
-            copiedLabel={intl.formatMessage({ id: 'page.media.copied' })}
-            icon={<LinkIcon fontSize="small" />}
-          />
-        </Box>
+      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+        <Typography variant="subtitle2" noWrap title={item.name}>
+          {item.name}
+        </Typography>
         <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
           {details}
         </Typography>
-      </Box>
+      </CardContent>
 
-      <IconButton
-        size="small"
-        aria-label={intl.formatMessage({ id: 'page.media.delete' })}
-        onClick={onDelete}
-      >
-        <DeleteIcon fontSize="small" />
-      </IconButton>
-    </Box>
+      <CardActions sx={{ pt: 0 }}>
+        <CopyButton
+          value={item.name}
+          label={intl.formatMessage({ id: 'page.media.copyName' })}
+          copiedLabel={intl.formatMessage({ id: 'page.media.copied' })}
+          icon={<ContentCopyIcon fontSize="small" />}
+        />
+        <CopyButton
+          value={item.url}
+          label={intl.formatMessage({ id: 'page.media.copyUrl' })}
+          copiedLabel={intl.formatMessage({ id: 'page.media.copied' })}
+          icon={<LinkIcon fontSize="small" />}
+        />
+        <Box sx={{ flexGrow: 1 }} />
+        <IconButton
+          size="small"
+          aria-label={intl.formatMessage({ id: 'page.media.delete' })}
+          onClick={onDelete}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </CardActions>
+    </Card>
   );
 };
