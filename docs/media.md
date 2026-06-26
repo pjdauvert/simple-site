@@ -97,6 +97,7 @@ Folder **create** and file/folder **delete** re-list the current folder from the
 
 ## Notes & limits
 
+- Files can be added either via the **Upload** button or by dragging them onto the **drop zone** (both feed the same V2 upload flow; dropped files are filtered to `image/*` and `video/*`).
 - Uploads land in the currently-browsed folder (under `IMAGEKIT_ROOT_DIR`) with `useUniqueFileName` enabled.
 - Upload tokens expire after 30 minutes (`exp = iat + 1800`, within ImageKit's 3600 s cap).
 - Tag editing and a search UI are not built yet — they can be layered on the `tags` upload field and the ImageKit `searchQuery` parameter.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { fireEvent } from '@testing-library/dom';
+import { fireEvent, waitFor } from '@testing-library/dom';
 import { IntlProvider } from 'react-intl';
 import type { MediaFile, MediaListResult } from '@simple-site/interfaces';
 import messages from '../../features/i18n/i18n.json';
@@ -83,5 +83,22 @@ describe('MediaPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'New folder' }));
     expect(await screen.findByLabelText('Folder name')).toBeInTheDocument();
+  });
+
+  it('uploads files dropped onto the drop zone', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result());
+    vi.mocked(mediaService.uploadMedia).mockResolvedValue(
+      file({ fileId: 'u1', name: 'dropped.png', mime: 'image/png' }),
+    );
+    renderPage();
+
+    const zone = await screen.findByRole('button', {
+      name: 'Drag & drop files here, or click to browse',
+    });
+    const dropped = new File(['x'], 'dropped.png', { type: 'image/png' });
+    fireEvent.drop(zone, { dataTransfer: { files: [dropped] } });
+
+    await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('dropped.png')).toBeInTheDocument();
   });
 });

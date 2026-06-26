@@ -102,6 +102,7 @@ export const MediaPage: React.FC = () => {
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   const loadMedia = useCallback(async (path: string, type: MediaType) => {
     setLoading(true);
@@ -127,9 +128,7 @@ export const MediaPage: React.FC = () => {
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
-  const handleFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(event.target.files ?? []);
-    event.target.value = ''; // allow re-selecting the same file
+  const uploadFiles = useCallback(async (selected: File[]) => {
     if (selected.length === 0) return;
 
     setError(null);
@@ -157,6 +156,21 @@ export const MediaPage: React.FC = () => {
     } finally {
       setUploads([]);
     }
+  }, [currentPath, filter, intl]);
+
+  const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = ''; // allow re-selecting the same file
+    uploadFiles(selected);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragActive(false);
+    const dropped = Array.from(event.dataTransfer.files).filter(
+      (file) => file.type.startsWith('image/') || file.type.startsWith('video/'),
+    );
+    uploadFiles(dropped);
   };
 
   const handleConfirmDelete = async () => {
@@ -258,6 +272,44 @@ export const MediaPage: React.FC = () => {
             onChange={handleFilesSelected}
           />
         </Box>
+      </Box>
+
+      <Box
+        role="button"
+        tabIndex={0}
+        onClick={handleUploadClick}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleUploadClick();
+          }
+        }}
+        onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
+        onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false);
+        }}
+        onDrop={handleDrop}
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 1,
+          p: { xs: 3, sm: 4 },
+          mb: 3,
+          textAlign: 'center',
+          cursor: 'pointer',
+          color: dragActive ? 'primary.main' : 'text.secondary',
+          border: '2px dashed',
+          borderColor: dragActive ? 'primary.main' : 'divider',
+          borderRadius: 2,
+          bgcolor: dragActive ? 'action.hover' : 'transparent',
+          transition: (theme) => theme.transitions.create(['border-color', 'background-color', 'color']),
+        }}
+      >
+        <CloudUploadIcon sx={{ fontSize: 40 }} />
+        <Typography variant="body2"><FormattedMessage id="page.media.dropzone" /></Typography>
       </Box>
 
       {uploads.length > 0 && (
