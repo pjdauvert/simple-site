@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 interface DropZoneProps {
   /** Called with the selected/dropped media files (already filtered to image/video on drop). */
@@ -13,6 +13,7 @@ const isMedia = (file: File): boolean =>
 
 /** Clickable, dashed drop zone that opens a file picker and emits the chosen media files. */
 export const DropZone: React.FC<DropZoneProps> = ({ onFiles }) => {
+  const intl = useIntl();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -23,6 +24,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFiles }) => {
       <Box
         role="button"
         tabIndex={0}
+        aria-label={intl.formatMessage({ id: 'page.media.dropzone' })}
         onClick={open}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -60,6 +62,9 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFiles }) => {
       >
         <CloudUploadIcon sx={{ fontSize: 40 }} />
         <Typography variant="body2"><FormattedMessage id="page.media.dropzone" /></Typography>
+        <Typography variant="caption" sx={{ opacity: 0.85 }}>
+          <FormattedMessage id="page.media.dropzoneHint" />
+        </Typography>
       </Box>
       <input
         ref={inputRef}
