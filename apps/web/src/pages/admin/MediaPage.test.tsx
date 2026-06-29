@@ -118,7 +118,9 @@ describe('MediaPage', () => {
     fireEvent.drop(zone, { dataTransfer: { files: [dropped] } });
 
     await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('dropped.png')).toBeInTheDocument();
+    // Success leaves a row (name shown twice: row + grid card); dismiss the section.
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+    expect(screen.getByText('dropped.png')).toBeInTheDocument();
   });
 
   it('DIAG full flow with proper waits', async () => {
@@ -134,6 +136,7 @@ describe('MediaPage', () => {
     const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
     fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'dropped.png', { type: 'image/png' })] } });
     await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
     expect(await screen.findByText('dropped.png')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
@@ -144,7 +147,7 @@ describe('MediaPage', () => {
     await waitFor(() => expect(screen.queryByText('dropped.png')).not.toBeInTheDocument());
   });
 
-  it('cancels an in-flight upload via its cancel button', async () => {
+  it('cancels an in-flight upload and shows a retry button', async () => {
     vi.mocked(mediaService.listMedia).mockResolvedValue(result());
     vi.mocked(mediaService.isUploadCanceled).mockImplementation(
       (err) => (err as Error)?.name === 'AbortError',
@@ -161,11 +164,40 @@ describe('MediaPage', () => {
     const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
     fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'pending.png', { type: 'image/png' })] } });
 
-    const cancelButton = await screen.findByRole('button', { name: 'Cancel upload' });
-    expect(screen.getByText('pending.png')).toBeInTheDocument();
-    fireEvent.click(cancelButton);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel upload' }));
 
-    await waitFor(() => expect(screen.queryByText('pending.png')).not.toBeInTheDocument());
+    // The row persists with a Retry button; no error surfaced; the section is dismissable.
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.getByText('pending.png')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+  });
+
+  it('retries a canceled upload', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result());
+    vi.mocked(mediaService.isUploadCanceled).mockImplementation(
+      (err) => (err as Error)?.name === 'AbortError',
+    );
+    // First attempt aborts on signal; the retry succeeds.
+    vi.mocked(mediaService.uploadMedia)
+      .mockImplementationOnce(
+        (_file, _path, _onProgress, signal) =>
+          new Promise<MediaFile>((_resolve, reject) => {
+            signal?.addEventListener('abort', () => reject(new DOMException('canceled', 'AbortError')));
+          }),
+      )
+      .mockResolvedValueOnce(file({ fileId: 'r1', name: 'retry.png', mime: 'image/png' }));
+    renderPage();
+
+    const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'retry.png', { type: 'image/png' })] } });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel upload' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(2));
+    // On success the retry button is gone and the section can be dismissed.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
   });
 });

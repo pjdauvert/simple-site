@@ -25,6 +25,7 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  CheckCircle as CheckCircleIcon,
   Close as CloseIcon,
   CloudUpload as CloudUploadIcon,
   ContentCopy as ContentCopyIcon,
@@ -33,6 +34,7 @@ import {
   Folder as FolderIcon,
   Link as LinkIcon,
   PlayArrow as PlayArrowIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { MediaFile, MediaFolder, MediaType } from '@simple-site/interfaces';
@@ -79,10 +81,14 @@ const formatDuration = (seconds?: number): string => {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 };
 
+type UploadStatus = 'uploading' | 'success' | 'error' | 'canceled';
+
 interface UploadProgress {
   id: string;
+  file: File;
   name: string;
   percent: number;
+  status: UploadStatus;
   controller: AbortController;
 }
 
@@ -169,54 +175,61 @@ export const MediaPage: React.FC = () => {
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
+  // Uploads one entry, tracking its status. On success the V2 response IS
+  // ImageKit's acknowledgment (the list index lags ~1–2 s), so the file is shown
+  // immediately. The row is kept (success/error/canceled) until dismissed.
+  const runUpload = useCallback(async (id: string, file: File, controller: AbortController) => {
+    try {
+      const media = await uploadMedia(
+        file,
+        currentPath,
+        (percent) => setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, percent } : u))),
+        controller.signal,
+      );
+      setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, percent: 100, status: 'success' } : u)));
+      setFiles((prev) =>
+        prev.some((f) => f.fileId === media.fileId) || !matchesFilter(media, filter) ? prev : [media, ...prev],
+      );
+    } catch (err) {
+      const status: UploadStatus = isUploadCanceled(err) ? 'canceled' : 'error';
+      setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, status } : u)));
+      if (status === 'error') {
+        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.upload' }));
+      }
+    }
+  }, [currentPath, filter, intl]);
+
   const uploadFiles = useCallback(async (selected: File[]) => {
     if (selected.length === 0) return;
 
-    const entries = selected.map((file) => ({
+    const entries: UploadProgress[] = selected.map((file) => ({
       id: `upload-${(uploadSeqRef.current += 1)}`,
       file,
+      name: file.name,
+      percent: 0,
+      status: 'uploading',
       controller: new AbortController(),
     }));
     setError(null);
-    setUploads(entries.map(({ id, file, controller }) => ({ id, name: file.name, percent: 0, controller })));
+    setUploads((prev) => [...prev, ...entries]);
 
-    // Upload each file independently so cancelling (or failing) one leaves the
-    // others — and the already-finished ones — untouched.
-    const uploaded: MediaFile[] = [];
+    // Sequentially, so cancelling/failing one leaves the others (and finished ones) intact.
     for (const entry of entries) {
       if (entry.controller.signal.aborted) {
-        setUploads((prev) => prev.filter((u) => u.id !== entry.id));
+        setUploads((prev) => prev.map((u) => (u.id === entry.id ? { ...u, status: 'canceled' } : u)));
         continue;
       }
-      try {
-        uploaded.push(
-          await uploadMedia(
-            entry.file,
-            currentPath,
-            (percent) => setUploads((prev) => prev.map((u) => (u.id === entry.id ? { ...u, percent } : u))),
-            entry.controller.signal,
-          ),
-        );
-      } catch (err) {
-        if (!isUploadCanceled(err)) {
-          setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.upload' }));
-        }
-      } finally {
-        setUploads((prev) => prev.filter((u) => u.id !== entry.id));
-      }
+      await runUpload(entry.id, entry.file, entry.controller);
     }
+  }, [runUpload]);
 
-    // The V2 upload response IS ImageKit's acknowledgment of the new file, and the
-    // list index is only eventually consistent — so show the uploads from that
-    // response immediately rather than re-listing (which can lag ~1–2 s).
-    if (uploaded.length > 0) {
-      setFiles((prev) => {
-        const seen = new Set(prev.map((f) => f.fileId));
-        const fresh = uploaded.filter((f) => !seen.has(f.fileId) && matchesFilter(f, filter));
-        return [...fresh, ...prev];
-      });
-    }
-  }, [currentPath, filter, intl]);
+  const retryUpload = useCallback((item: UploadProgress) => {
+    const controller = new AbortController();
+    setUploads((prev) =>
+      prev.map((u) => (u.id === item.id ? { ...u, percent: 0, status: 'uploading', controller } : u)),
+    );
+    runUpload(item.id, item.file, controller);
+  }, [runUpload]);
 
   const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files ?? []);
@@ -404,24 +417,63 @@ export const MediaPage: React.FC = () => {
             />
 
             {uploads.length > 0 && (
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ mb: 2, p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                 {uploads.map((upload) => (
-                  <Box key={upload.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                  <Box
+                    key={upload.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      p: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      '&:not(:last-of-type)': { mb: 1 },
+                    }}
+                  >
                     <Loader variant="determinate" progress={upload.percent} size={44} />
                     <Typography variant="body2" noWrap title={upload.name} sx={{ flexGrow: 1, minWidth: 0 }}>
                       {upload.name}
                     </Typography>
-                    <Tooltip title={intl.formatMessage({ id: 'page.media.cancelUpload' })}>
-                      <IconButton
-                        size="small"
-                        aria-label={intl.formatMessage({ id: 'page.media.cancelUpload' })}
-                        onClick={() => upload.controller.abort()}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    {upload.status === 'uploading' && (
+                      <Tooltip title={intl.formatMessage({ id: 'page.media.cancelUpload' })}>
+                        <IconButton
+                          size="small"
+                          aria-label={intl.formatMessage({ id: 'page.media.cancelUpload' })}
+                          onClick={() => upload.controller.abort()}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {upload.status === 'success' && (
+                      <CheckCircleIcon
+                        color="success"
+                        fontSize="small"
+                        titleAccess={intl.formatMessage({ id: 'page.media.uploadSuccess' })}
+                      />
+                    )}
+                    {(upload.status === 'error' || upload.status === 'canceled') && (
+                      <Tooltip title={intl.formatMessage({ id: 'page.media.retry' })}>
+                        <IconButton
+                          size="small"
+                          aria-label={intl.formatMessage({ id: 'page.media.retry' })}
+                          onClick={() => retryUpload(upload)}
+                        >
+                          <RefreshIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </Box>
                 ))}
+                {uploads.every((u) => u.status !== 'uploading') && (
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                    <Button size="small" onClick={() => setUploads([])}>
+                      <FormattedMessage id="page.media.dismiss" />
+                    </Button>
+                  </Box>
+                )}
               </Box>
             )}
 

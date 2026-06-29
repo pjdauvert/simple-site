@@ -57,7 +57,7 @@ Relative paths are sanitised server-side (`..` traversal is rejected) before bei
 
 Because the JWT signs the whole payload, the client must send **exactly** the `uploadPayload` the server returned — hence the server returns the canonical payload and the client echoes it verbatim.
 
-Each selected file uploads independently (its own `AbortController`), shown on its own row with the `Loader` **determinate** ring (live percentage) and a **cancel** button that aborts just that file's request — the others, and any already-finished uploads, are unaffected. Canceling rejects with an `AbortError` (detected via `isUploadCanceled`) and is not surfaced as an error.
+Each selected file uploads independently (its own `AbortController`), shown on its own framed row inside a framed progress panel: the `Loader` **determinate** ring (live percentage), the file name, and a status action — a **cancel** button while uploading, a **success check** once done, or a **retry** button if it failed or was canceled. Cancel/fail of one file leaves the others (and finished ones) untouched; canceling rejects with an `AbortError` (detected via `isUploadCanceled`) and is not surfaced as an error. Once **every** row reaches a final state (success / error / canceled) a **dismiss** button clears the panel.
 
 ## Browse, folders & delete
 
