@@ -17,7 +17,6 @@ import {
   DialogContentText,
   DialogTitle,
   IconButton,
-  LinearProgress,
   Link,
   TextField,
   ToggleButton,
@@ -26,6 +25,7 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  Close as CloseIcon,
   CloudUpload as CloudUploadIcon,
   ContentCopy as ContentCopyIcon,
   CreateNewFolder as CreateNewFolderIcon,
@@ -40,9 +40,11 @@ import {
   createFolder,
   deleteFolder,
   deleteMedia,
+  isUploadCanceled,
   listMedia,
   uploadMedia,
 } from '../../services/mediaService';
+import { Loader } from '../../components/Loader';
 
 const isVideo = (file: MediaFile): boolean =>
   file.mime?.startsWith('video/') ?? file.fileType === 'non-image';
@@ -78,8 +80,10 @@ const formatDuration = (seconds?: number): string => {
 };
 
 interface UploadProgress {
+  id: string;
   name: string;
   percent: number;
+  controller: AbortController;
 }
 
 type DeleteTarget =
@@ -110,6 +114,8 @@ export const MediaPage: React.FC = () => {
   // filtered out of *every* re-list for a short window, not just the immediate one.
   const recentlyDeletedRef = useRef<Map<string, number>>(new Map());
   const DELETE_GRACE_MS = 5000;
+  // Monotonic counter for unique upload-row ids (files can share a name).
+  const uploadSeqRef = useRef(0);
 
   const loadMedia = useCallback(async (
     path: string,
@@ -166,30 +172,49 @@ export const MediaPage: React.FC = () => {
   const uploadFiles = useCallback(async (selected: File[]) => {
     if (selected.length === 0) return;
 
+    const entries = selected.map((file) => ({
+      id: `upload-${(uploadSeqRef.current += 1)}`,
+      file,
+      controller: new AbortController(),
+    }));
     setError(null);
-    setUploads(selected.map((file) => ({ name: file.name, percent: 0 })));
+    setUploads(entries.map(({ id, file, controller }) => ({ id, name: file.name, percent: 0, controller })));
 
-    try {
-      const uploaded: MediaFile[] = [];
-      for (const file of selected) {
+    // Upload each file independently so cancelling (or failing) one leaves the
+    // others — and the already-finished ones — untouched.
+    const uploaded: MediaFile[] = [];
+    for (const entry of entries) {
+      if (entry.controller.signal.aborted) {
+        setUploads((prev) => prev.filter((u) => u.id !== entry.id));
+        continue;
+      }
+      try {
         uploaded.push(
-          await uploadMedia(file, currentPath, (percent) =>
-            setUploads((prev) => prev.map((u) => (u.name === file.name ? { ...u, percent } : u))),
+          await uploadMedia(
+            entry.file,
+            currentPath,
+            (percent) => setUploads((prev) => prev.map((u) => (u.id === entry.id ? { ...u, percent } : u))),
+            entry.controller.signal,
           ),
         );
+      } catch (err) {
+        if (!isUploadCanceled(err)) {
+          setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.upload' }));
+        }
+      } finally {
+        setUploads((prev) => prev.filter((u) => u.id !== entry.id));
       }
-      // The V2 upload response IS ImageKit's acknowledgment of the new file, and
-      // the list index is only eventually consistent — so show the uploads from
-      // that response immediately rather than re-listing (which can lag ~1–2 s).
+    }
+
+    // The V2 upload response IS ImageKit's acknowledgment of the new file, and the
+    // list index is only eventually consistent — so show the uploads from that
+    // response immediately rather than re-listing (which can lag ~1–2 s).
+    if (uploaded.length > 0) {
       setFiles((prev) => {
         const seen = new Set(prev.map((f) => f.fileId));
         const fresh = uploaded.filter((f) => !seen.has(f.fileId) && matchesFilter(f, filter));
         return [...fresh, ...prev];
       });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.upload' }));
-    } finally {
-      setUploads([]);
     }
   }, [currentPath, filter, intl]);
 
@@ -379,14 +404,22 @@ export const MediaPage: React.FC = () => {
             />
 
             {uploads.length > 0 && (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <FormattedMessage id="page.media.uploading" values={{ count: uploads.length }} />
-                </Typography>
+              <Box sx={{ mb: 2 }}>
                 {uploads.map((upload) => (
-                  <Box key={upload.name} sx={{ mb: 1 }}>
-                    <Typography variant="caption" noWrap sx={{ display: 'block' }}>{upload.name}</Typography>
-                    <LinearProgress variant="determinate" value={upload.percent} />
+                  <Box key={upload.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                    <Loader variant="determinate" progress={upload.percent} size={44} />
+                    <Typography variant="body2" noWrap title={upload.name} sx={{ flexGrow: 1, minWidth: 0 }}>
+                      {upload.name}
+                    </Typography>
+                    <Tooltip title={intl.formatMessage({ id: 'page.media.cancelUpload' })}>
+                      <IconButton
+                        size="small"
+                        aria-label={intl.formatMessage({ id: 'page.media.cancelUpload' })}
+                        onClick={() => upload.controller.abort()}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
                 ))}
               </Box>

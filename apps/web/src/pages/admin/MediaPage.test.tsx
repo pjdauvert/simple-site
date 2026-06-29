@@ -121,7 +121,7 @@ describe('MediaPage', () => {
     expect(await screen.findByText('dropped.png')).toBeInTheDocument();
   });
 
-  it('DIAG exact suggested test', async () => {
+  it('DIAG full flow with proper waits', async () => {
     vi.mocked(mediaService.listMedia)
       .mockResolvedValueOnce(result()) // initial empty
       .mockResolvedValueOnce(result()); // re-list after delete: index still lacks the upload
@@ -133,16 +133,39 @@ describe('MediaPage', () => {
 
     const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
     fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'dropped.png', { type: 'image/png' })] } });
-    try {
-      expect(await screen.findByText('dropped.png')).toBeInTheDocument();
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log('UPLOAD CALLED TIMES:', vi.mocked(mediaService.uploadMedia).mock.calls.length);
-      // eslint-disable-next-line no-console
-      console.log('LISTMEDIA CALLED TIMES:', vi.mocked(mediaService.listMedia).mock.calls.length);
-      // eslint-disable-next-line no-console
-      console.log('DOM:', document.body.innerHTML.slice(0, 1500));
-      throw e;
-    }
+    await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('dropped.png')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('u1'));
+    await waitFor(() => expect(screen.queryByText('dropped.png')).not.toBeInTheDocument());
+  });
+
+  it('cancels an in-flight upload via its cancel button', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result());
+    vi.mocked(mediaService.isUploadCanceled).mockImplementation(
+      (err) => (err as Error)?.name === 'AbortError',
+    );
+    // Stays pending until its AbortSignal fires, mimicking an in-flight upload.
+    vi.mocked(mediaService.uploadMedia).mockImplementation(
+      (_file, _path, _onProgress, signal) =>
+        new Promise<MediaFile>((_resolve, reject) => {
+          signal?.addEventListener('abort', () => reject(new DOMException('canceled', 'AbortError')));
+        }),
+    );
+    renderPage();
+
+    const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'pending.png', { type: 'image/png' })] } });
+
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel upload' });
+    expect(screen.getByText('pending.png')).toBeInTheDocument();
+    fireEvent.click(cancelButton);
+
+    await waitFor(() => expect(screen.queryByText('pending.png')).not.toBeInTheDocument());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

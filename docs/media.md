@@ -57,6 +57,8 @@ Relative paths are sanitised server-side (`..` traversal is rejected) before bei
 
 Because the JWT signs the whole payload, the client must send **exactly** the `uploadPayload` the server returned — hence the server returns the canonical payload and the client echoes it verbatim.
 
+Each selected file uploads independently (its own `AbortController`), shown on its own row with the `Loader` **determinate** ring (live percentage) and a **cancel** button that aborts just that file's request — the others, and any already-finished uploads, are unaffected. Canceling rejects with an `AbortError` (detected via `isUploadCanceled`) and is not surfaced as an error.
+
 ## Browse, folders & delete
 
 - **List** — `GET /api/media?path=<relative>&type=<all|image|video>` proxies the ImageKit Management API (`GET /v1/files?type=all`, HTTP Basic auth) for the folder at `path`, and returns `{ folders, files }`. The UI filter narrows **files** (videos by MIME type); folders are always shown so you can navigate. Each item renders from the `url`/`thumbnail` the API returns, so no public key or URL endpoint is needed in the browser.

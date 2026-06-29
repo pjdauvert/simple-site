@@ -87,17 +87,30 @@ const toMediaFile = (raw: Record<string, unknown>): MediaFile =>
     size: raw.size,
   });
 
+/** Thrown (name `AbortError`) when an upload is canceled via its `AbortSignal`. */
+export const isUploadCanceled = (err: unknown): boolean =>
+  err instanceof DOMException ? err.name === 'AbortError' : (err as Error)?.name === 'AbortError';
+
+const abortError = (): DOMException => new DOMException('Upload canceled', 'AbortError');
+
 /**
  * Uploads a single file directly to ImageKit (V2), reporting 0–100 progress.
  * Resolves with the uploaded asset so the UI can display it immediately
- * (ImageKit's list index is eventually consistent).
+ * (ImageKit's list index is eventually consistent). Pass an `AbortSignal` to
+ * cancel the upload in flight (rejects with an `AbortError`).
  */
 const uploadToImageKit = (
   file: File,
   auth: UploadAuthResponse,
   onProgress?: (percent: number) => void,
+  signal?: AbortSignal,
 ): Promise<MediaFile> =>
   new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError());
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     // Echo the signed payload verbatim — V2 verifies the whole request against the token.
@@ -109,12 +122,17 @@ const uploadToImageKit = (
     const xhr = new XMLHttpRequest();
     xhr.open('POST', IMAGEKIT_UPLOAD_V2_URL);
 
+    const onAbort = () => xhr.abort();
+    signal?.addEventListener('abort', onAbort);
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && onProgress) {
         onProgress(Math.round((event.loaded / event.total) * 100));
       }
     };
     xhr.onload = () => {
+      cleanup();
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           resolve(toMediaFile(JSON.parse(xhr.responseText)));
@@ -132,7 +150,8 @@ const uploadToImageKit = (
       }
       reject(new Error(message));
     };
-    xhr.onerror = () => reject(new Error('Upload failed: network error'));
+    xhr.onerror = () => { cleanup(); reject(new Error('Upload failed: network error')); };
+    xhr.onabort = () => { cleanup(); reject(abortError()); };
     xhr.send(formData);
   });
 
@@ -141,7 +160,9 @@ export const uploadMedia = async (
   file: File,
   path?: string,
   onProgress?: (percent: number) => void,
+  signal?: AbortSignal,
 ): Promise<MediaFile> => {
   const auth = await getUploadAuth(file.name, path);
-  return uploadToImageKit(file, auth, onProgress);
+  if (signal?.aborted) throw abortError();
+  return uploadToImageKit(file, auth, onProgress, signal);
 };
