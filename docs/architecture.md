@@ -15,7 +15,7 @@
 | Linting | ESLint + Lefthook git hooks |
 | Backend | Netlify Functions (TypeScript, NodeNext ESM) |
 | Auth | Netlify Identity (`@netlify/identity`) |
-| Storage | Netlify Blobs |
+| Storage | Netlify Blobs (config/i18n), ImageKit (media) |
 
 ## Monorepo Layout
 
@@ -76,6 +76,18 @@ Configuration and translations are fetched from the serverless API at startup �
 ```
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
+
+## Media Management
+
+The admin **Media** page (`/manage/media`) manages images and videos stored in [ImageKit](https://imagekit.io). Uploads go **browser → ImageKit directly** via the Upload File V2 API — never proxied through a function (videos exceed the ~6 MB function body limit). A Netlify Function (`MediaModule`) mints a short-lived JWT that signs the upload payload; the ImageKit private key stays server-side. Browse/delete are proxied through the same admin-only function using the ImageKit Management API.
+
+```
+Browser ──POST /api/media/upload-auth──▶ MediaModule ──signs JWT (private key)──▶ { token }
+Browser ──multipart file + payload + token──▶ https://upload.imagekit.io/api/v2/files/upload
+Browser ──GET /api/media · DELETE /api/media/:fileId──▶ MediaModule ──Basic auth──▶ ImageKit Management API
+```
+
+See [media.md](media.md) for the full flow, configuration, and code map.
 
 ## Mobile-First Responsive Design
 
