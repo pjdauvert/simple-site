@@ -97,7 +97,9 @@ Folder **create** and file/folder **delete** re-list the current folder from the
 | Token signing + Basic auth | `apps/functions/src/handlers/imagekit/imagekitClient.ts` |
 | Route handler | `apps/functions/src/handlers/MediaModule.ts`, `apps/functions/src/media.mts` |
 | Frontend service | `apps/web/src/services/mediaService.ts` |
-| Admin page | `apps/web/src/pages/admin/MediaPage.tsx` |
+| Admin page (container: state + handlers) | `apps/web/src/pages/admin/MediaPage.tsx` |
+| Presentational components | `apps/web/src/components/media/` (`FileCard`, `FolderChip`, `CopyButton`, `DropZone`, `UploadProgressPanel`, `MediaBreadcrumbs`, `MediaTypeFilter`, `DeleteConfirmDialog`, `NewFolderDialog`) |
+| Shared media helpers / types | `apps/web/src/components/media/mediaUtils.ts`, `apps/web/src/components/media/types.ts` |
 
 ## Local development
 
