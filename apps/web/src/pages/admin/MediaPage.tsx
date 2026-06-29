@@ -108,6 +108,7 @@ export const MediaPage: React.FC = () => {
       const media = await uploadMedia(
         file,
         currentPath,
+        undefined,
         (percent) => setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, percent } : u))),
         controller.signal,
       );
@@ -138,14 +139,9 @@ export const MediaPage: React.FC = () => {
     setError(null);
     setUploads((prev) => [...prev, ...entries]);
 
-    // Sequentially, so cancelling/failing one leaves the others (and finished ones) intact.
-    for (const entry of entries) {
-      if (entry.controller.signal.aborted) {
-        setUploads((prev) => prev.map((u) => (u.id === entry.id ? { ...u, status: 'canceled' } : u)));
-        continue;
-      }
-      await runUpload(entry.id, entry.file, entry.controller);
-    }
+    await Promise.allSettled(
+      entries.map((entry) => runUpload(entry.id, entry.file, entry.controller)),
+    );
   }, [runUpload]);
 
   const retryUpload = useCallback((item: UploadProgress) => {

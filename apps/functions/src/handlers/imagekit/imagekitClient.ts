@@ -54,7 +54,7 @@ export const getImageKitEnv = (path?: string): ImageKitEnv => {
  * @throws ApiErrorResponse (400) when the relative path escapes the root.
  */
 export const resolveFolderPath = (env: ImageKitEnv, relPath = '', path?: string): string => {
-  if (relPath.includes('..')) {
+  if (relPath.split('/').some((s) => s === '..')) {
     throw ErrorResponses.invalidRequest('Invalid folder path', path);
   }
   const absolute = `${env.rootDir}${normalizeDir(relPath)}`.replace(/\/+/g, '/').replace(/\/$/, '');

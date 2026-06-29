@@ -177,10 +177,10 @@ export class MediaModule extends BaseHandler {
       if (request.method === 'POST' && path.endsWith('/upload-auth')) {
         return await this.signUpload(request, path);
       }
-      if (request.method === 'POST' && path.endsWith('/folder')) {
+      if (request.method === 'POST' && path === '/api/media/folder') {
         return await this.createFolder(request, path);
       }
-      if (request.method === 'DELETE' && path.endsWith('/folder')) {
+      if (request.method === 'DELETE' && path === '/api/media/folder') {
         return await this.deleteFolder(url, path);
       }
       if (request.method === 'GET' && path === '/api/media') {

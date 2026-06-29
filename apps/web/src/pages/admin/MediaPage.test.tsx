@@ -154,7 +154,7 @@ describe('MediaPage', () => {
     );
     // Stays pending until its AbortSignal fires, mimicking an in-flight upload.
     vi.mocked(mediaService.uploadMedia).mockImplementation(
-      (_file, _path, _onProgress, signal) =>
+      (_file, _path, _tags, _onProgress, signal) =>
         new Promise<MediaFile>((_resolve, reject) => {
           signal?.addEventListener('abort', () => reject(new DOMException('canceled', 'AbortError')));
         }),
@@ -181,7 +181,7 @@ describe('MediaPage', () => {
     // First attempt aborts on signal; the retry succeeds.
     vi.mocked(mediaService.uploadMedia)
       .mockImplementationOnce(
-        (_file, _path, _onProgress, signal) =>
+        (_file, _path, _tags, _onProgress, signal) =>
           new Promise<MediaFile>((_resolve, reject) => {
             signal?.addEventListener('abort', () => reject(new DOMException('canceled', 'AbortError')));
           }),

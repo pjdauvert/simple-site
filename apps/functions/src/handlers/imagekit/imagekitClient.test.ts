@@ -63,6 +63,13 @@ describe('imagekitClient', () => {
     it('rejects path traversal', () => {
       const env = { ...getImageKitEnv(), rootDir: '/simple-site' };
       expect(() => resolveFolderPath(env, '/../secrets')).toThrowError();
+      expect(() => resolveFolderPath(env, '/foo/../secrets')).toThrowError();
+    });
+
+    it('accepts folder names containing ".." as a substring', () => {
+      const env = { ...getImageKitEnv(), rootDir: '/simple-site' };
+      expect(resolveFolderPath(env, '/v1..2')).toBe('/simple-site/v1..2');
+      expect(resolveFolderPath(env, '/design..assets')).toBe('/simple-site/design..assets');
     });
   });
 

@@ -159,10 +159,11 @@ const uploadToImageKit = (
 export const uploadMedia = async (
   file: File,
   path?: string,
+  tags?: string[],
   onProgress?: (percent: number) => void,
   signal?: AbortSignal,
 ): Promise<MediaFile> => {
-  const auth = await getUploadAuth(file.name, path);
+  const auth = await getUploadAuth(file.name, path, tags);
   if (signal?.aborted) throw abortError();
   return uploadToImageKit(file, auth, onProgress, signal);
 };
