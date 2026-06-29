@@ -2,6 +2,42 @@
 
 The admin **Media** page (`/manage/media`) lets you upload, browse, and delete images and videos, and organise them into folders. Media is stored and served by [ImageKit](https://imagekit.io). This page documents the integration and how to configure it.
 
+## The Media page at a glance
+
+### Functionalities
+
+- **Browse** the media library, scoped to a server-side root directory, with breadcrumb navigation (`Home → sub-folder → …`).
+- **Upload** images and videos — drag-and-drop onto the zone *or* click it to browse; multiple files at once. Non-media files are rejected (`image/*` and `video/*` only).
+- **Organise** into folders: create a folder, or delete a folder **and all its contents** (confirmed first).
+- **Delete** a file (all versions), confirmed first.
+- **Copy** a file's name or its public URL to the clipboard.
+- **Filter** the file grid by type: **All / Images / Videos**.
+
+### Display
+
+The page is laid out top-to-bottom:
+
+1. **Title** and a **breadcrumb** trail to the current folder.
+2. An **error banner** (only when something fails; dismissible).
+3. **Folders section** — an overline "Folders" label, then a wrapping row that *starts* with the **New folder** button, followed by one **folder chip** per sub-folder (rounded rectangle: folder icon + name; click to open, trailing delete button).
+4. **Files section** —
+   - a header with the "Files" label on the left and the **type filter** on the right;
+   - the **drop zone** (dashed, rounded), labelled "Drag & drop files here, or click to browse" with an "Images and videos only" hint;
+   - the **upload progress panel** while uploads are active (see below);
+   - the **file grid** — a responsive grid of cards — or a centered message (`No media yet…` at the root, `No files match this filter` otherwise).
+5. **Dialogs**: a delete confirmation and a new-folder prompt.
+
+A **file card** shows the thumbnail on top (fit to the frame so the whole image/video is visible, not cropped; videos overlay a play badge and the thumbnail links to the asset), then the file **name**, a **details** line (`EXTENSION · SIZE · W×H` for images, or `· m:ss` length for videos), and **Copy name / Copy URL / delete** actions. Image dimensions come from the listing; video length is read from the player's `loadedmetadata` (ImageKit doesn't return it for videos).
+
+The **upload progress panel** is a framed box; each file is a framed row with a determinate progress ring (live %), the file name, and a trailing status action (see Behaviour).
+
+### Behaviour
+
+- **Direct, per-file uploads.** Each file uploads browser → ImageKit independently (its own `AbortController`). On success the file appears in the grid immediately — straight from the upload response — and its row shows a green **success check**. A failed or canceled row offers **Retry**; **Cancel** aborts only that file (others keep going). Once every row is in a final state (success / error / canceled), a **Dismiss** button clears the panel.
+- **Optimistic display, reconciled with the server.** Uploaded files show at once because ImageKit's list index lags. Folder-create and delete re-list from the server on acknowledgment, while a just-deleted item is kept hidden across the index lag (even if you change the filter or navigate within that window) and not-yet-indexed uploads are preserved; the most recent load always wins.
+- **The filter never traps you.** It narrows files only (folders always show), and the files section + filter always render, so you can always switch back from an empty filtered view.
+- **Everything is relative to the root directory** — the browser never sees the absolute ImageKit path.
+
 ## Why ImageKit + direct upload
 
 Uploads go **browser → ImageKit directly** using the [Upload File V2 API](https://imagekit.io/docs/api-reference/upload-file/upload-file-v2). They are **not** proxied through a Netlify Function, because functions have a ~6 MB request-body limit and short timeouts — unsuitable for video. The function's only job is to mint a short-lived **upload token** that authorizes the direct upload.
@@ -65,14 +101,7 @@ Each selected file uploads independently (its own `AbortController`), shown on i
 - **Folders** — `POST /api/media/folder { name, path }` creates a folder; `DELETE /api/media/folder?path=<relative>` deletes a folder **and all its contents** (confirmed in the UI). The Media page provides breadcrumb navigation, a "New folder" action, and per-folder delete.
 - **Delete file** — `DELETE /api/media/:fileId` permanently removes a file and all its versions.
 
-See [api.md](api.md#media-imagekit) for request/response shapes.
-
-### Media page layout
-
-The current folder's contents render in two sections:
-
-- **Folders** — each folder is a rounded "chip" (folder icon + name); click to open, with a per-folder delete action.
-- **Files** — a responsive grid of MUI cards. Each card has the thumbnail on top (video shows a play badge; the image links to the full asset), and below it the file name, a details line showing the **extension, size, and image dimensions (or video length)**, and **Copy name** / **Copy URL** / delete actions. Image dimensions come from the listing; video length is read from the player's `loadedmetadata` (ImageKit does not return it for videos).
+See [api.md](api.md#media-imagekit) for request/response shapes. The page's display and behaviour are summarised in [The Media page at a glance](#the-media-page-at-a-glance); the sections below cover the harder-won implementation details.
 
 ### Refresh on acknowledgment
 
@@ -107,7 +136,7 @@ Folder **create** and file/folder **delete** re-list the current folder from the
 
 ## Notes & limits
 
-- Files can be added either via the **Upload** button or by dragging them onto the **drop zone** (both feed the same V2 upload flow; dropped files are filtered to `image/*` and `video/*`).
+- Files are added by dragging them onto the **drop zone** or clicking it to browse (the same V2 upload flow either way; dropped files are filtered to `image/*` and `video/*`).
 - Uploads land in the currently-browsed folder (under `IMAGEKIT_ROOT_DIR`) with `useUniqueFileName` enabled.
 - Upload tokens expire after 30 minutes (`exp = iat + 1800`, within ImageKit's 3600 s cap).
 - Tag editing and a search UI are not built yet — they can be layered on the `tags` upload field and the ImageKit `searchQuery` parameter.
