@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -17,11 +17,16 @@ import {
   FileCard,
   FolderChip,
   MediaBreadcrumbs,
+  MediaSortControl,
   MediaTypeFilter,
   NewFolderDialog,
   UploadProgressPanel,
   matchesFilter,
+  sortFiles,
+  sortFolders,
   type DeletionPhase,
+  type FileSortKey,
+  type SortDir,
   type UploadProgress,
   type UploadStatus,
 } from '../../components/media';
@@ -39,6 +44,8 @@ export const MediaPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MediaType>('all');
+  const [sortKey, setSortKey] = useState<FileSortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   // id → in-place deletion phase. A deleted item stays mounted (blurred + pulsing,
@@ -116,8 +123,10 @@ export const MediaPage: React.FC = () => {
         controller.signal,
       );
       setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, percent: 100, status: 'success' } : u)));
+      // Append (not prepend): with the default creation-date sort, a fresh upload
+      // (no server `createdAt` yet) sorts to the end, so it shows up last.
       setFiles((prev) =>
-        prev.some((f) => f.fileId === media.fileId) || !matchesFilter(media, filter) ? prev : [media, ...prev],
+        prev.some((f) => f.fileId === media.fileId) || !matchesFilter(media, filter) ? prev : [...prev, media],
       );
     } catch (err) {
       const status: UploadStatus = isUploadCanceled(err) ? 'canceled' : 'error';
@@ -219,6 +228,11 @@ export const MediaPage: React.FC = () => {
 
   const segments = currentPath.split('/').filter(Boolean);
 
+  // Folders always alphabetical; files by the chosen field/direction (default:
+  // creation date ascending, so freshly uploaded files appear at the end).
+  const sortedFolders = useMemo(() => sortFolders(folders), [folders]);
+  const sortedFiles = useMemo(() => sortFiles(files, sortKey, sortDir), [files, sortKey, sortDir]);
+
   return (
     <Box sx={{ p: { xs: 2, sm: 4 } }}>
       <Typography variant="h5" sx={{ mb: 2 }}>
@@ -244,7 +258,7 @@ export const MediaPage: React.FC = () => {
               <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
                 <FormattedMessage id="page.media.newFolder" />
               </Button>
-              {folders.map((folder, i) => (
+              {sortedFolders.map((folder, i) => (
                 <FolderChip
                   key={folder.folderId}
                   folder={folder}
@@ -266,7 +280,15 @@ export const MediaPage: React.FC = () => {
               <Typography variant="overline" color="text.secondary">
                 <FormattedMessage id="page.media.filesSection" />
               </Typography>
-              <MediaTypeFilter value={filter} onChange={setFilter} />
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                <MediaSortControl
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSortKeyChange={setSortKey}
+                  onSortDirChange={setSortDir}
+                />
+                <MediaTypeFilter value={filter} onChange={setFilter} />
+              </Box>
             </Box>
 
             <DropZone onFiles={uploadFiles} />
@@ -278,7 +300,7 @@ export const MediaPage: React.FC = () => {
               onDismiss={() => setUploads([])}
             />
 
-            {files.length > 0 ? (
+            {sortedFiles.length > 0 ? (
               <Box
                 sx={{
                   display: 'grid',
@@ -286,7 +308,7 @@ export const MediaPage: React.FC = () => {
                   gap: 2,
                 }}
               >
-                {files.map((file, i) => (
+                {sortedFiles.map((file, i) => (
                   <FileCard
                     key={file.fileId}
                     item={file}

@@ -1,4 +1,5 @@
-import type { MediaFile, MediaType } from '@simple-site/interfaces';
+import type { MediaFile, MediaFolder, MediaType } from '@simple-site/interfaces';
+import type { FileSortKey, SortDir } from './types';
 
 /** ImageKit classifies as "image" | "non-image"; use `mime` to detect video. */
 export const isVideo = (file: MediaFile): boolean =>
@@ -7,6 +8,39 @@ export const isVideo = (file: MediaFile): boolean =>
 /** Whether a file passes the active type filter (folders are always shown). */
 export const matchesFilter = (file: MediaFile, type: MediaType): boolean =>
   type === 'all' || (type === 'video' ? isVideo(file) : !isVideo(file));
+
+/** Folders are always listed alphabetically by name (locale-aware, case-insensitive). */
+export const sortFolders = (folders: MediaFolder[]): MediaFolder[] =>
+  [...folders].sort((a, b) => a.name.localeCompare(b.name));
+
+/**
+ * Numeric key for a file's sort field. Missing values become `Infinity` so they
+ * sort to the end in ascending order — which is what keeps a just-uploaded file
+ * (no server `createdAt` yet) at the end of the default creation-date sort.
+ */
+const fileSortValue = (file: MediaFile, key: Exclude<FileSortKey, 'name'>): number => {
+  if (key === 'createdAt') {
+    const time = file.createdAt ? Date.parse(file.createdAt) : NaN;
+    return Number.isNaN(time) ? Infinity : time;
+  }
+  return file[key] ?? Infinity;
+};
+
+/**
+ * Sorts files by the chosen field and direction, with the name as a stable
+ * tie-breaker. Defaults to `createdAt` ascending so newly uploaded files land at
+ * the end of the list. Missing values always sort to the end in ascending order.
+ */
+export const sortFiles = (files: MediaFile[], key: FileSortKey, dir: SortDir): MediaFile[] => {
+  const factor = dir === 'asc' ? 1 : -1;
+  return [...files].sort((a, b) => {
+    if (key === 'name') return factor * a.name.localeCompare(b.name);
+    const av = fileSortValue(a, key);
+    const bv = fileSortValue(b, key);
+    const diff = av === bv ? 0 : av - bv;
+    return diff !== 0 ? factor * diff : a.name.localeCompare(b.name);
+  });
+};
 
 /** Uppercase file extension derived from the name, e.g. "photo.PNG" → "PNG". */
 export const extensionOf = (name: string): string => {

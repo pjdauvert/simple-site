@@ -28,6 +28,10 @@ const result = (over: Partial<MediaListResult> = {}): MediaListResult => ({
   ...over,
 });
 
+/** True when `a` appears before `b` in document order. */
+const precedes = (a: HTMLElement, b: HTMLElement) =>
+  Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
 describe('MediaPage', () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -55,6 +59,56 @@ describe('MediaPage', () => {
 
     expect(await screen.findByText('products')).toBeInTheDocument();
     expect(screen.getByText('a.png')).toBeInTheDocument();
+  });
+
+  it('lists files by creation date ascending by default (newest last)', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        files: [
+          file({ fileId: '2', name: 'newer.png', mime: 'image/png', createdAt: '2026-02-01T00:00:00Z' }),
+          file({ fileId: '1', name: 'older.png', mime: 'image/png', createdAt: '2026-01-01T00:00:00Z' }),
+        ],
+      }),
+    );
+    renderPage();
+
+    const older = await screen.findByText('older.png');
+    expect(precedes(older, screen.getByText('newer.png'))).toBe(true);
+  });
+
+  it('lists folders alphabetically regardless of server order', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        folders: [
+          { folderId: '1', name: 'Zebra', path: '/Zebra' },
+          { folderId: '2', name: 'apple', path: '/apple' },
+        ],
+      }),
+    );
+    renderPage();
+
+    const apple = await screen.findByText('apple');
+    expect(precedes(apple, screen.getByText('Zebra'))).toBe(true);
+  });
+
+  it('appends an uploaded file at the end of the list', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        files: [file({ fileId: '1', name: 'existing.png', mime: 'image/png', createdAt: '2026-01-01T00:00:00Z' })],
+      }),
+    );
+    // The V2 upload response carries no createdAt, so the fresh file sorts last.
+    vi.mocked(mediaService.uploadMedia).mockResolvedValue(
+      file({ fileId: 'u1', name: 'fresh.png', mime: 'image/png' }),
+    );
+    renderPage();
+
+    const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'fresh.png', { type: 'image/png' })] } });
+    await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+    expect(precedes(screen.getByText('existing.png'), screen.getByText('fresh.png'))).toBe(true);
   });
 
   it('navigates into a folder when its tile is clicked', async () => {

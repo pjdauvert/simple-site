@@ -8,6 +8,12 @@ export type UploadStatus = 'uploading' | 'success' | 'error' | 'canceled';
  */
 export type DeletionPhase = 'pending' | 'removing';
 
+/** Field the file grid can be sorted by (folders are always sorted by name). */
+export type FileSortKey = 'createdAt' | 'name' | 'size' | 'width' | 'height';
+
+/** Sort direction shared by the sort control and the comparators. */
+export type SortDir = 'asc' | 'desc';
+
 /** One file's upload, tracked from selection through to a final state. */
 export interface UploadProgress {
   id: string;
