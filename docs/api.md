@@ -14,11 +14,12 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | POST | `/api/translations/:language` | Merge translations for a locale |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
 | GET | `/api/db-query` | Fetch sample users from MongoDB |
-| POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin) |
-| GET | `/api/media` | List a folder's sub-folders + files (admin) |
-| POST | `/api/media/folder` | Create a folder (admin) |
-| DELETE | `/api/media/folder` | Delete a folder and its contents (admin) |
-| DELETE | `/api/media/:fileId` | Delete a media file (admin) |
+| GET | `/api/features` | Report enabled feature flags (public) |
+| POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin, flag-gated) |
+| GET | `/api/media` | List a folder's sub-folders + files (admin, flag-gated) |
+| POST | `/api/media/folder` | Create a folder (admin, flag-gated) |
+| DELETE | `/api/media/folder` | Delete a folder and its contents (admin, flag-gated) |
+| DELETE | `/api/media/:fileId` | Delete a media file (admin, flag-gated) |
 | GET | `/api/google-proxy` | Proxy a Google API call with the server API key |
 
 ---
@@ -70,9 +71,20 @@ Merges the provided key/value pairs into the stored dictionary for the given loc
 
 ---
 
+### `GET /api/features`
+
+Public. Reports which optional features the server currently has enabled, so the client can gate its UI at runtime (no rebuild to flip a flag). See [media.md](media.md#feature-flag).
+
+```json
+// 200 OK
+{ "ok": true, "data": { "media": true } }
+```
+
+---
+
 ### Media (ImageKit)
 
-All `/api/media*` routes are **admin-only** (wrapped in `AuthHandler`) and served by a single function, `apps/functions/src/media.mts`. The ImageKit **private key never leaves the server** — it signs upload tokens and authenticates the Management API. Every `path` is **relative** to the server-side `IMAGEKIT_ROOT_DIR`. See [media.md](media.md) for the end-to-end flow and the root-directory model.
+All `/api/media*` routes are **admin-only** (wrapped in `AuthHandler`) and served by a single function, `apps/functions/src/media.mts`. They are also gated by the **`FEATURE_MEDIA`** flag: when it is not `"true"`, every `/api/media*` route returns `404` (before auth) — this disables listing, folders, delete, **and the upload-signature endpoint**. The ImageKit **private key never leaves the server** — it signs upload tokens and authenticates the Management API. Every `path` is **relative** to the server-side `IMAGEKIT_ROOT_DIR`. See [media.md](media.md) for the end-to-end flow and the root-directory model.
 
 #### `POST /api/media/upload-auth`
 

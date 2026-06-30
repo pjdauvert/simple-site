@@ -53,14 +53,19 @@ IMAGEKIT_PRIVATE_KEY     # Server-side only. Signs V2 tokens, authenticates the 
 IMAGEKIT_PUBLIC_KEY      # Embedded in the token header (kid) to identify the account.
 IMAGEKIT_URL_ENDPOINT    # https://ik.imagekit.io/<your_imagekit_id>
 IMAGEKIT_ROOT_DIR        # Optional base folder all media is scoped under, e.g. /simple-site
-VITE_FEATURE_MEDIA       # Feature flag — "true" exposes the Media library; anything else hides it.
+FEATURE_MEDIA            # Feature flag — "true" enables the whole Media library; anything else disables it.
 ```
 
 Find the keys in your ImageKit dashboard under **Developer options → API keys**.
 
 ### Feature flag
 
-The Media library is gated behind the build-time flag `VITE_FEATURE_MEDIA`. Only when it is exactly `"true"` does the admin **Media** entry appear in the nav and the `/manage/media` route render (`apps/web/src/config/featureFlags.ts`, consumed in `apps/web/src/router/ManageRouter.tsx`); an absent or any other value hides the library entirely. As a `VITE_*` flag it is read at **build time**, so changing it requires a rebuild. The `/api/media*` endpoints stay admin-only regardless of the flag.
+The entire Media library is gated behind **`FEATURE_MEDIA`** — only when it is exactly `"true"` is the feature on. It gates **both ends**:
+
+- **Server** — all `/api/media*` routes (listing, folders, delete, **and the upload-signature endpoint**) return `404` when off, regardless of auth (`apps/functions/src/media.mts` via `isMediaEnabled()` in `apps/functions/src/featureFlags.ts`).
+- **Client** — the admin **Media** nav entry and `/manage/media` route render only when on. The flag is **not** a `VITE_*` build-time var; instead the client reads it at runtime from **`GET /api/features`** (`useFeatureFlags` in `apps/web/src/hooks/`, consumed by `ManageRouter`). If that request fails, the library is treated as disabled.
+
+Because the value is read **at request time** on the server, flipping it needs **no rebuild** — only a redeploy (or, in local `netlify dev`, a restart so the new `.env` is picked up).
 
 ### Root directory
 

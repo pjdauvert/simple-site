@@ -1,0 +1,31 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { Context } from '@netlify/functions';
+import { FeaturesModule } from './FeaturesModule';
+
+const stubEnv = (env: Record<string, string | undefined>) =>
+  vi.stubGlobal('Netlify', { env: { get: (k: string) => env[k] } });
+
+const makeRequest = () => new Request('https://site.test/api/features');
+const makeContext = () => ({} as unknown as Context);
+
+const readJson = async (res: Response): Promise<{ ok: boolean; data: { media: boolean } }> =>
+  res.json() as Promise<{ ok: boolean; data: { media: boolean } }>;
+
+describe('FeaturesModule', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('reports media: true when FEATURE_MEDIA is "true"', async () => {
+    stubEnv({ FEATURE_MEDIA: 'true' });
+    const res = await new FeaturesModule().handle(makeRequest(), makeContext());
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toMatchObject({ ok: true, data: { media: true } });
+  });
+
+  it('reports media: false when FEATURE_MEDIA is absent or not "true"', async () => {
+    stubEnv({});
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.media).toBe(false);
+
+    stubEnv({ FEATURE_MEDIA: 'yes' });
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.media).toBe(false);
+  });
+});
