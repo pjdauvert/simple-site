@@ -87,11 +87,9 @@ describe('MediaPage', () => {
     expect(await screen.findByLabelText('Folder name')).toBeInTheDocument();
   });
 
-  it('drops a deleted file from the view even if the re-list still returns it (index lag)', async () => {
+  it('removes a deleted file in place without re-listing the folder', async () => {
     const existing = file({ fileId: '1', name: 'a.png', mime: 'image/png' });
-    vi.mocked(mediaService.listMedia)
-      .mockResolvedValueOnce(result({ files: [existing] })) // initial load
-      .mockResolvedValueOnce(result({ files: [existing] })); // re-list still lagging
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result({ files: [existing] }));
     vi.mocked(mediaService.deleteMedia).mockResolvedValue(undefined);
     renderPage();
 
@@ -99,9 +97,11 @@ describe('MediaPage', () => {
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
+    // Once ImageKit acknowledges, the card animates out and is dropped locally —
+    // the folder is not re-fetched.
     await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('1'));
-    await waitFor(() => expect(mediaService.listMedia).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByText('a.png')).not.toBeInTheDocument());
+    expect(mediaService.listMedia).toHaveBeenCalledTimes(1);
   });
 
   it('uploads files dropped onto the drop zone', async () => {
@@ -124,9 +124,7 @@ describe('MediaPage', () => {
   });
 
   it('DIAG full flow with proper waits', async () => {
-    vi.mocked(mediaService.listMedia)
-      .mockResolvedValueOnce(result()) // initial empty
-      .mockResolvedValueOnce(result()); // re-list after delete: index still lacks the upload
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result()); // folder starts empty
     vi.mocked(mediaService.uploadMedia).mockResolvedValue(
       file({ fileId: 'u1', name: 'dropped.png', mime: 'image/png' }),
     );

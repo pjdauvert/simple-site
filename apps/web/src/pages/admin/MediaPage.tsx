@@ -21,6 +21,7 @@ import {
   NewFolderDialog,
   UploadProgressPanel,
   matchesFilter,
+  type DeletionPhase,
   type UploadProgress,
   type UploadStatus,
 } from '../../components/media';
@@ -40,7 +41,9 @@ export const MediaPage: React.FC = () => {
   const [filter, setFilter] = useState<MediaType>('all');
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  // id → in-place deletion phase. A deleted item stays mounted (blurred + pulsing,
+  // then fading out) instead of the list refreshing; it's dropped once it removes.
+  const [deletions, setDeletions] = useState<Record<string, DeletionPhase>>({});
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -152,29 +155,48 @@ export const MediaPage: React.FC = () => {
     runUpload(item.id, item.file, controller);
   }, [runUpload]);
 
-  const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      // Refresh the folder from the server once ImageKit acknowledges the delete;
-      // `deletedId` keeps the removed item hidden while the list index catches up,
-      // and `keepPending` preserves optimistic uploads not yet indexed.
-      if (deleteTarget.kind === 'file') {
-        const { fileId } = deleteTarget.file;
-        await deleteMedia(fileId);
-        setDeleteTarget(null);
-        await loadMedia(currentPath, filter, { deletedId: fileId, keepPending: true });
-      } else {
-        const { folderId, path } = deleteTarget.folder;
-        await deleteFolder(path);
-        setDeleteTarget(null);
-        await loadMedia(currentPath, filter, { deletedId: folderId, keepPending: true });
+  const setDeletionPhase = (id: string, phase: DeletionPhase | null) => {
+    setDeletions((prev) => {
+      if (phase === null) {
+        if (!(id in prev)) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
-    } finally {
-      setDeleting(false);
-    }
+      return { ...prev, [id]: phase };
+    });
+  };
+
+  // Drop a fully-removed item from the list once its fade-out/minimize has played.
+  const handleRemoved = (target: DeleteTarget['kind'], id: string) => {
+    if (target === 'file') setFiles((prev) => prev.filter((f) => f.fileId !== id));
+    else setFolders((prev) => prev.filter((f) => f.folderId !== id));
+    setDeletionPhase(id, null);
+  };
+
+  // Close the dialog right away, then delete in place: the item blurs + pulses
+  // (`pending`) until ImageKit acknowledges, then fades + minimizes (`removing`)
+  // before `handleRemoved` drops it — no full list refresh.
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    const id = target.kind === 'file' ? target.file.fileId : target.folder.folderId;
+    setDeleteTarget(null);
+    setDeletionPhase(id, 'pending');
+
+    void (async () => {
+      try {
+        if (target.kind === 'file') await deleteMedia(target.file.fileId);
+        else await deleteFolder(target.folder.path);
+        // Keep the id hidden if any later re-list runs before ImageKit's index
+        // catches up (e.g. a filter change or folder creation), then animate out.
+        recentlyDeletedRef.current.set(id, Date.now() + DELETE_GRACE_MS);
+        setDeletionPhase(id, 'removing');
+      } catch (err) {
+        setDeletionPhase(id, null);
+        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+      }
+    })();
   };
 
   const handleCreateFolder = async () => {
@@ -222,12 +244,15 @@ export const MediaPage: React.FC = () => {
               <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
                 <FormattedMessage id="page.media.newFolder" />
               </Button>
-              {folders.map((folder) => (
+              {folders.map((folder, i) => (
                 <FolderChip
                   key={folder.folderId}
                   folder={folder}
+                  index={i}
                   onOpen={() => setCurrentPath(folder.path)}
                   onDelete={() => setDeleteTarget({ kind: 'folder', folder })}
+                  deletionPhase={deletions[folder.folderId]}
+                  onRemoved={() => handleRemoved('folder', folder.folderId)}
                 />
               ))}
             </Box>
@@ -261,8 +286,15 @@ export const MediaPage: React.FC = () => {
                   gap: 2,
                 }}
               >
-                {files.map((file) => (
-                  <FileCard key={file.fileId} item={file} onDelete={() => setDeleteTarget({ kind: 'file', file })} />
+                {files.map((file, i) => (
+                  <FileCard
+                    key={file.fileId}
+                    item={file}
+                    index={i}
+                    onDelete={() => setDeleteTarget({ kind: 'file', file })}
+                    deletionPhase={deletions[file.fileId]}
+                    onRemoved={() => handleRemoved('file', file.fileId)}
+                  />
                 ))}
               </Box>
             ) : (
@@ -282,7 +314,7 @@ export const MediaPage: React.FC = () => {
             ? deleteTarget.folder.name
             : deleteTarget?.file.name ?? ''
         }
-        loading={deleting}
+        loading={false}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
       />
