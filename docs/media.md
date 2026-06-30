@@ -53,9 +53,14 @@ IMAGEKIT_PRIVATE_KEY     # Server-side only. Signs V2 tokens, authenticates the 
 IMAGEKIT_PUBLIC_KEY      # Embedded in the token header (kid) to identify the account.
 IMAGEKIT_URL_ENDPOINT    # https://ik.imagekit.io/<your_imagekit_id>
 IMAGEKIT_ROOT_DIR        # Optional base folder all media is scoped under, e.g. /simple-site
+VITE_FEATURE_MEDIA       # Feature flag — "true" exposes the Media library; anything else hides it.
 ```
 
 Find the keys in your ImageKit dashboard under **Developer options → API keys**.
+
+### Feature flag
+
+The Media library is gated behind the build-time flag `VITE_FEATURE_MEDIA`. Only when it is exactly `"true"` does the admin **Media** entry appear in the nav and the `/manage/media` route render (`apps/web/src/config/featureFlags.ts`, consumed in `apps/web/src/router/ManageRouter.tsx`); an absent or any other value hides the library entirely. As a `VITE_*` flag it is read at **build time**, so changing it requires a rebuild. The `/api/media*` endpoints stay admin-only regardless of the flag.
 
 ### Root directory
 
