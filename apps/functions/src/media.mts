@@ -2,8 +2,8 @@ import type { Config } from '@netlify/functions';
 import { AuthHandler } from './handlers/AuthHandler';
 import { MediaModule } from './handlers/MediaModule';
 import { ErrorResponses } from './errors/error';
-import { isMediaEnabled } from './featureFlags';
 import type { RequestHandler } from './types/server-types';
+import { isMediaEnabled } from './handlers/FeaturesModule';
 
 export const config: Config = {
   method: ['GET', 'POST', 'DELETE'],

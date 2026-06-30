@@ -1,6 +1,7 @@
 import { BaseHandler } from './BaseHandler';
 import type { RequestHandler } from '../types/server-types';
-import { isMediaEnabled } from '../featureFlags';
+
+export const isMediaEnabled = (): boolean => Netlify.env.get('FEATURE_MEDIA') === 'true';
 
 /**
  * Reports which optional features are enabled so the client can gate its UI at
