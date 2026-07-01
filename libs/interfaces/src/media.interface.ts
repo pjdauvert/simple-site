@@ -86,3 +86,20 @@ export const CreateFolderRequestSchema = z.object({
   path: z.string().optional(),
 });
 export type CreateFolderRequest = z.infer<typeof CreateFolderRequestSchema>;
+
+/**
+ * Client → rename-file. `filePath` is the file's absolute ImageKit path (as
+ * surfaced in the listing); `newFileName` is the desired name (with extension).
+ */
+export const RenameFileRequestSchema = z.object({
+  filePath: z.string().min(1),
+  newFileName: z.string().min(1),
+});
+export type RenameFileRequest = z.infer<typeof RenameFileRequestSchema>;
+
+/** Client → rename-folder: rename the folder at `path` (relative to root) to `newName`. */
+export const RenameFolderRequestSchema = z.object({
+  path: z.string().min(1),
+  newName: z.string().min(1),
+});
+export type RenameFolderRequest = z.infer<typeof RenameFolderRequestSchema>;

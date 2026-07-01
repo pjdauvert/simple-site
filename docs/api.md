@@ -18,7 +18,9 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin, flag-gated) |
 | GET | `/api/media` | List a folder's sub-folders + files (admin, flag-gated) |
 | POST | `/api/media/folder` | Create a folder (admin, flag-gated) |
+| PUT | `/api/media/folder` | Rename a folder and its contents (admin, flag-gated) |
 | DELETE | `/api/media/folder` | Delete a folder and its contents (admin, flag-gated) |
+| PUT | `/api/media` | Rename a media file (admin, flag-gated) |
 | DELETE | `/api/media/:fileId` | Delete a media file (admin, flag-gated) |
 | GET | `/api/google-proxy` | Proxy a Google API call with the server API key |
 
@@ -127,6 +129,18 @@ Creates a folder `name` inside `path` (relative to root).
 { "ok": true, "data": { "message": "Folder created successfully" } }
 ```
 
+#### `PUT /api/media/folder`
+
+Renames a folder (and updates all nested assets) via ImageKit's async `bulkJobs/renameFolder`.
+
+```json
+// Request body
+{ "path": "/products", "newName": "goods" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Folder renamed successfully" } }
+```
+
 #### `DELETE /api/media/folder?path=<relative>`
 
 Permanently deletes a folder **and all of its contents**.
@@ -134,6 +148,18 @@ Permanently deletes a folder **and all of its contents**.
 ```json
 // 200 OK
 { "ok": true, "data": { "message": "Folder deleted successfully" } }
+```
+
+#### `PUT /api/media`
+
+Renames a file via the Management API (`PUT /v1/files/rename`). `filePath` is the file's absolute ImageKit path (as returned in the listing).
+
+```json
+// Request body
+{ "filePath": "/root/products/old.png", "newFileName": "new.png" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Media renamed successfully" } }
 ```
 
 #### `DELETE /api/media/:fileId`
@@ -189,7 +215,9 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | POST | `/api/media/upload-auth` | ✓ |
 | GET | `/api/media` | ✓ |
 | POST | `/api/media/folder` | ✓ |
+| PUT | `/api/media/folder` | ✓ |
 | DELETE | `/api/media/folder` | ✓ |
+| PUT | `/api/media` | ✓ |
 | DELETE | `/api/media/:fileId` | ✓ |
 
 All `GET` endpoints are public **except** `/api/media` (admin-only media management).

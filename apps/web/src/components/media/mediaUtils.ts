@@ -13,6 +13,35 @@ export const matchesFilter = (file: MediaFile, type: MediaType): boolean =>
 export const sortFolders = (folders: MediaFolder[]): MediaFolder[] =>
   [...folders].sort((a, b) => a.name.localeCompare(b.name));
 
+/** Mirrors ImageKit's file-name rule: keep alphanumerics, `.`, `_`, `-`; the rest → `_`. */
+export const sanitizeFileName = (name: string): string => name.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+
+/** Mirrors ImageKit's folder-name rule: keep letters/numbers (any language) and `-`; the rest → `_`. */
+export const sanitizeFolderName = (name: string): string => name.trim().replace(/[^\p{L}\p{N}-]/gu, '_');
+
+/** Swaps the last `/`-segment of a path/URL for `newName` (keeps the parent prefix). */
+const swapLastSegment = (value: string, newName: string): string =>
+  value.slice(0, value.lastIndexOf('/') + 1) + newName;
+
+/**
+ * Optimistic rename of a file: updates its name and the derived `filePath`/`url`
+ * so the grid reflects the change at once (ImageKit's rename response carries no
+ * file object, and the list index lags, so we apply it locally).
+ */
+export const renameFileLocally = (file: MediaFile, newName: string): MediaFile => ({
+  ...file,
+  name: newName,
+  filePath: swapLastSegment(file.filePath, newName),
+  url: swapLastSegment(file.url, newName),
+});
+
+/** Optimistic rename of a folder: updates its name and the derived relative `path`. */
+export const renameFolderLocally = (folder: MediaFolder, newName: string): MediaFolder => ({
+  ...folder,
+  name: newName,
+  path: swapLastSegment(folder.path, newName),
+});
+
 /**
  * Numeric key for a file's sort field. Missing values become `Infinity` so they
  * sort to the end in ascending order — which is what keeps a just-uploaded file

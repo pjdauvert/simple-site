@@ -9,6 +9,8 @@ import {
   deleteMedia,
   isUploadCanceled,
   listMedia,
+  renameFolder,
+  renameMedia,
   uploadMedia,
 } from '../../services/mediaService';
 import {
@@ -20,8 +22,13 @@ import {
   MediaSortControl,
   MediaTypeFilter,
   NewFolderDialog,
+  RenameDialog,
   UploadProgressPanel,
   matchesFilter,
+  renameFileLocally,
+  renameFolderLocally,
+  sanitizeFileName,
+  sanitizeFolderName,
   sortFiles,
   sortFolders,
   type DeletionPhase,
@@ -31,7 +38,8 @@ import {
   type UploadStatus,
 } from '../../components/media';
 
-type DeleteTarget =
+/** A file or folder targeted by an action (delete or rename). */
+type ItemTarget =
   | { kind: 'file'; file: MediaFile }
   | { kind: 'folder'; folder: MediaFolder };
 
@@ -47,10 +55,13 @@ export const MediaPage: React.FC = () => {
   const [sortKey, setSortKey] = useState<FileSortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ItemTarget | null>(null);
   // id → in-place deletion phase. A deleted item stays mounted (blurred + pulsing,
   // then fading out) instead of the list refreshing; it's dropped once it removes.
   const [deletions, setDeletions] = useState<Record<string, DeletionPhase>>({});
+  const [renameTarget, setRenameTarget] = useState<ItemTarget | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -177,7 +188,7 @@ export const MediaPage: React.FC = () => {
   };
 
   // Drop a fully-removed item from the list once its fade-out/minimize has played.
-  const handleRemoved = (target: DeleteTarget['kind'], id: string) => {
+  const handleRemoved = (target: ItemTarget['kind'], id: string) => {
     if (target === 'file') setFiles((prev) => prev.filter((f) => f.fileId !== id));
     else setFolders((prev) => prev.filter((f) => f.folderId !== id));
     setDeletionPhase(id, null);
@@ -206,6 +217,45 @@ export const MediaPage: React.FC = () => {
         setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
       }
     })();
+  };
+
+  // Open the rename dialog pre-filled with the item's current name.
+  const openRename = (target: ItemTarget) => {
+    setRenameTarget(target);
+    setRenameValue(target.kind === 'file' ? target.file.name : target.folder.name);
+  };
+
+  // Rename via ImageKit, then update the item in place (the rename response has no
+  // file object and the list index lags, so the new name is applied locally and the
+  // sort re-orders if needed). A no-op rename just closes the dialog.
+  const handleConfirmRename = async () => {
+    if (!renameTarget) return;
+    const target = renameTarget;
+    const isFile = target.kind === 'file';
+    const newName = isFile ? sanitizeFileName(renameValue) : sanitizeFolderName(renameValue);
+    const currentName = isFile ? target.file.name : target.folder.name;
+    if (!newName || newName === currentName) {
+      setRenameTarget(null);
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      if (isFile) {
+        const { fileId, filePath } = target.file;
+        await renameMedia(filePath, newName);
+        setFiles((prev) => prev.map((f) => (f.fileId === fileId ? renameFileLocally(f, newName) : f)));
+      } else {
+        const { folderId, path } = target.folder;
+        await renameFolder(path, newName);
+        setFolders((prev) => prev.map((f) => (f.folderId === folderId ? renameFolderLocally(f, newName) : f)));
+      }
+      setRenameTarget(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+    } finally {
+      setRenaming(false);
+    }
   };
 
   const handleCreateFolder = async () => {
@@ -264,6 +314,7 @@ export const MediaPage: React.FC = () => {
                   folder={folder}
                   index={i}
                   onOpen={() => setCurrentPath(folder.path)}
+                  onRename={() => openRename({ kind: 'folder', folder })}
                   onDelete={() => setDeleteTarget({ kind: 'folder', folder })}
                   deletionPhase={deletions[folder.folderId]}
                   onRemoved={() => handleRemoved('folder', folder.folderId)}
@@ -313,6 +364,7 @@ export const MediaPage: React.FC = () => {
                     key={file.fileId}
                     item={file}
                     index={i}
+                    onRename={() => openRename({ kind: 'file', file })}
                     onDelete={() => setDeleteTarget({ kind: 'file', file })}
                     deletionPhase={deletions[file.fileId]}
                     onRemoved={() => handleRemoved('file', file.fileId)}
@@ -339,6 +391,16 @@ export const MediaPage: React.FC = () => {
         loading={false}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      <RenameDialog
+        open={Boolean(renameTarget)}
+        isFolder={renameTarget?.kind === 'folder'}
+        value={renameValue}
+        loading={renaming}
+        onChange={setRenameValue}
+        onCancel={() => setRenameTarget(null)}
+        onConfirm={handleConfirmRename}
       />
 
       <NewFolderDialog

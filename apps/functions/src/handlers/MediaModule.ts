@@ -19,6 +19,8 @@ import {
   MediaFileSchema,
   MediaTypeSchema,
   CreateFolderRequestSchema,
+  RenameFileRequestSchema,
+  RenameFolderRequestSchema,
   UploadAuthRequestSchema,
 } from '@simple-site/interfaces';
 
@@ -37,7 +39,9 @@ interface ImageKitFolderItem {
  *  - POST   /api/media/upload-auth  → mint a V2 upload token for a target folder
  *  - GET    /api/media?path=&type=  → list sub-folders + files of a folder
  *  - POST   /api/media/folder       → create a folder
+ *  - PUT    /api/media/folder       → rename a folder (and its contents)
  *  - DELETE /api/media/folder?path= → delete a folder (and its contents)
+ *  - PUT    /api/media              → rename a file
  *  - DELETE /api/media/:fileId      → delete a file
  */
 export class MediaModule extends BaseHandler {
@@ -131,6 +135,50 @@ export class MediaModule extends BaseHandler {
     return this.createSuccessResponse({ message: 'Folder created successfully' });
   };
 
+  private renameFolder = async (request: Request, path: string): Promise<Response> => {
+    if (request.headers.get('Content-Type') !== 'application/json') {
+      throw ErrorResponses.invalidRequest('Invalid content type', path);
+    }
+    const { path: relPath, newName } = RenameFolderRequestSchema.parse(await request.json());
+    const env = getImageKitEnv(path);
+
+    // ImageKit renames a folder via an async bulk job (202 + jobId); all nested
+    // assets and sub-folders keep, only their paths update to the new name.
+    const response = await fetch(`${IMAGEKIT_API_BASE}/v1/bulkJobs/renameFolder`, {
+      method: 'POST',
+      headers: {
+        Authorization: basicAuthHeader(env.privateKey),
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ folderPath: resolveFolderPath(env, relPath, path), newFolderName: newName }),
+    });
+    if (!response.ok) throw await this.mapImageKitError(response, 'renaming folder', path);
+
+    return this.createSuccessResponse({ message: 'Folder renamed successfully' });
+  };
+
+  private renameFile = async (request: Request, path: string): Promise<Response> => {
+    if (request.headers.get('Content-Type') !== 'application/json') {
+      throw ErrorResponses.invalidRequest('Invalid content type', path);
+    }
+    const { filePath, newFileName } = RenameFileRequestSchema.parse(await request.json());
+    const env = getImageKitEnv(path);
+
+    const response = await fetch(`${IMAGEKIT_API_BASE}/v1/files/rename`, {
+      method: 'PUT',
+      headers: {
+        Authorization: basicAuthHeader(env.privateKey),
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ filePath, newFileName }),
+    });
+    if (!response.ok) throw await this.mapImageKitError(response, 'renaming media', path);
+
+    return this.createSuccessResponse({ message: 'Media renamed successfully' });
+  };
+
   private deleteFolder = async (url: URL, path: string): Promise<Response> => {
     const env = getImageKitEnv(path);
     const relPath = url.searchParams.get('path') ?? '';
@@ -180,16 +228,22 @@ export class MediaModule extends BaseHandler {
       if (request.method === 'POST' && path === '/api/media/folder') {
         return await this.createFolder(request, path);
       }
+      if (request.method === 'PUT' && path === '/api/media/folder') {
+        return await this.renameFolder(request, path);
+      }
       if (request.method === 'DELETE' && path === '/api/media/folder') {
         return await this.deleteFolder(url, path);
       }
       if (request.method === 'GET' && path === '/api/media') {
         return await this.listMedia(url, path);
       }
+      if (request.method === 'PUT' && path === '/api/media') {
+        return await this.renameFile(request, path);
+      }
       if (request.method === 'DELETE') {
         return await this.deleteFile(context, path);
       }
-      throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST', 'DELETE'], path);
+      throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST', 'PUT', 'DELETE'], path);
     } catch (error) {
       return this.handleError(error, path);
     }

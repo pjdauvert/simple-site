@@ -5,6 +5,8 @@ import type {
   MediaFile,
   MediaListResult,
   MediaType,
+  RenameFileRequest,
+  RenameFolderRequest,
   UploadAuthRequest,
   UploadAuthResponse,
 } from '@simple-site/interfaces';
@@ -40,6 +42,24 @@ export const listMedia = async (path = '', type: MediaType = 'all'): Promise<Med
 /** Permanently deletes a media file by its ImageKit fileId. */
 export const deleteMedia = async (fileId: string): Promise<void> => {
   const response = await apiService.delete(`media/${encodeURIComponent(fileId)}`);
+  if (!response.ok) throw new Error((response as ApiResponseErrorPayload).message);
+};
+
+/** Renames a file (identified by its absolute ImageKit path) to `newFileName`. */
+export const renameMedia = async (filePath: string, newFileName: string): Promise<void> => {
+  const response = await apiService.put<RenameFileRequest, { message: string }>('media', {
+    filePath,
+    newFileName,
+  });
+  if (!response.ok) throw new Error((response as ApiResponseErrorPayload).message);
+};
+
+/** Renames the folder at `path` (relative to the root dir) to `newName`. */
+export const renameFolder = async (path: string, newName: string): Promise<void> => {
+  const response = await apiService.put<RenameFolderRequest, { message: string }>('media/folder', {
+    path,
+    newName,
+  });
   if (!response.ok) throw new Error((response as ApiResponseErrorPayload).message);
 };
 

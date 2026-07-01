@@ -5,9 +5,11 @@ export { FileCard } from './FileCard';
 export { FolderChip } from './FolderChip';
 export { ItemTransition } from './ItemTransition';
 export { MediaBreadcrumbs } from './MediaBreadcrumbs';
+export { MediaItemMenu } from './MediaItemMenu';
 export { MediaSortControl } from './MediaSortControl';
 export { MediaTypeFilter } from './MediaTypeFilter';
 export { NewFolderDialog } from './NewFolderDialog';
+export { RenameDialog } from './RenameDialog';
 export { UploadProgressPanel } from './UploadProgressPanel';
 export {
   extensionOf,
@@ -15,6 +17,10 @@ export {
   formatDuration,
   isVideo,
   matchesFilter,
+  renameFileLocally,
+  renameFolderLocally,
+  sanitizeFileName,
+  sanitizeFolderName,
   sortFiles,
   sortFolders,
 } from './mediaUtils';

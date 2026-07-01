@@ -1,13 +1,15 @@
-import { Box, ButtonBase, IconButton, Typography } from '@mui/material';
-import { Delete as DeleteIcon, Folder as FolderIcon } from '@mui/icons-material';
+import { Box, ButtonBase, Typography } from '@mui/material';
+import { Folder as FolderIcon } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import type { MediaFolder } from '@simple-site/interfaces';
 import { ItemTransition } from './ItemTransition';
+import { MediaItemMenu } from './MediaItemMenu';
 import type { DeletionPhase } from './types';
 
 interface FolderChipProps {
   folder: MediaFolder;
   onOpen: () => void;
+  onRename: () => void;
   onDelete: () => void;
   /** Position in the folder row, used to stagger the entrance cascade. */
   index?: number;
@@ -17,10 +19,11 @@ interface FolderChipProps {
   onRemoved?: () => void;
 }
 
-/** A rounded-rectangle folder entry: folder icon + name (click to open), with a delete action. */
+/** A rounded-rectangle folder entry: folder icon + name (click to open), with a "more" menu (rename / delete). */
 export const FolderChip: React.FC<FolderChipProps> = ({
   folder,
   onOpen,
+  onRename,
   onDelete,
   index,
   deletionPhase,
@@ -49,14 +52,9 @@ export const FolderChip: React.FC<FolderChipProps> = ({
           <FolderIcon fontSize="small" color="action" />
           <Typography variant="body2" noWrap sx={{ maxWidth: 180 }}>{folder.name}</Typography>
         </ButtonBase>
-        <IconButton
-          size="small"
-          aria-label={intl.formatMessage({ id: 'page.media.deleteFolder' })}
-          onClick={onDelete}
-          sx={{ mr: 0.5 }}
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
+        <Box sx={{ mr: 0.5 }}>
+          <MediaItemMenu onRename={onRename} onDelete={onDelete} />
+        </Box>
       </Box>
     </ItemTransition>
   );

@@ -6,12 +6,10 @@ import {
   CardActions,
   CardContent,
   CardMedia,
-  IconButton,
   Typography,
 } from '@mui/material';
 import {
   ContentCopy as ContentCopyIcon,
-  Delete as DeleteIcon,
   Link as LinkIcon,
   PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
@@ -19,11 +17,13 @@ import { useIntl } from 'react-intl';
 import type { MediaFile } from '@simple-site/interfaces';
 import { CopyButton } from './CopyButton';
 import { ItemTransition } from './ItemTransition';
+import { MediaItemMenu } from './MediaItemMenu';
 import { extensionOf, formatBytes, formatDuration, isVideo } from './mediaUtils';
 import type { DeletionPhase } from './types';
 
 interface FileCardProps {
   item: MediaFile;
+  onRename: () => void;
   onDelete: () => void;
   /** Position in the grid, used to stagger the entrance cascade. */
   index?: number;
@@ -36,11 +36,18 @@ interface FileCardProps {
 /**
  * Presentational media card: the thumbnail fills the top of the card; below it
  * sit the file name, a details line (extension, size, and image dimensions or
- * video length), and the copy-name / copy-URL / delete actions. Image
- * dimensions come from the listing; video length is read from the player
- * metadata since ImageKit does not return it.
+ * video length), and the copy-name / copy-URL actions plus a "more" menu
+ * (rename / delete). Image dimensions come from the listing; video length is
+ * read from the player metadata since ImageKit does not return it.
  */
-export const FileCard: React.FC<FileCardProps> = ({ item, onDelete, index, deletionPhase, onRemoved }) => {
+export const FileCard: React.FC<FileCardProps> = ({
+  item,
+  onRename,
+  onDelete,
+  index,
+  deletionPhase,
+  onRemoved,
+}) => {
   const intl = useIntl();
   const video = isVideo(item);
   const [meta, setMeta] = useState<{ width?: number; height?: number; duration?: number }>({
@@ -110,6 +117,17 @@ export const FileCard: React.FC<FileCardProps> = ({ item, onDelete, index, delet
           <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
             {details}
           </Typography>
+          {item.createdAt && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              sx={{ display: 'block' }}
+              title={intl.formatDate(item.createdAt, { dateStyle: 'long', timeStyle: 'short' })}
+            >
+              {intl.formatDate(item.createdAt, { year: 'numeric', month: 'short', day: 'numeric' })}
+            </Typography>
+          )}
         </CardContent>
 
         <CardActions sx={{ pt: 0 }}>
@@ -126,13 +144,7 @@ export const FileCard: React.FC<FileCardProps> = ({ item, onDelete, index, delet
             icon={<LinkIcon fontSize="small" />}
           />
           <Box sx={{ flexGrow: 1 }} />
-          <IconButton
-            size="small"
-            aria-label={intl.formatMessage({ id: 'page.media.delete' })}
-            onClick={onDelete}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+          <MediaItemMenu onRename={onRename} onDelete={onDelete} />
         </CardActions>
       </Card>
     </ItemTransition>

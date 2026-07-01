@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import type { MediaFile, MediaFolder } from '@simple-site/interfaces';
-import { sortFiles, sortFolders } from './mediaUtils';
+import {
+  renameFileLocally,
+  renameFolderLocally,
+  sanitizeFileName,
+  sanitizeFolderName,
+  sortFiles,
+  sortFolders,
+} from './mediaUtils';
 
 const f = (over: Partial<MediaFile> & Pick<MediaFile, 'fileId' | 'name'>): MediaFile => ({
   filePath: `/media/${over.name}`,
@@ -80,5 +87,49 @@ describe('sortFiles', () => {
     const files = [f({ fileId: '1', name: 'b.png' }), f({ fileId: '2', name: 'a.png' })];
     sortFiles(files, 'name', 'asc');
     expect(names(files)).toEqual(['b.png', 'a.png']);
+  });
+});
+
+describe('sanitizeFileName / sanitizeFolderName', () => {
+  it('keeps valid file-name characters and replaces the rest with underscores', () => {
+    expect(sanitizeFileName('  my photo (1).png ')).toBe('my_photo__1_.png');
+    expect(sanitizeFileName('already-ok_2.jpg')).toBe('already-ok_2.jpg');
+  });
+
+  it('keeps letters/numbers/dash in folder names and replaces the rest', () => {
+    expect(sanitizeFolderName('  Q1 / reports ')).toBe('Q1___reports');
+    expect(sanitizeFolderName('été-2026')).toBe('été-2026'); // unicode letters preserved
+  });
+});
+
+describe('renameFileLocally', () => {
+  it('updates the name and swaps the last segment of filePath and url', () => {
+    const file = f({
+      fileId: '1',
+      name: 'old.png',
+      filePath: '/root/products/old.png',
+      url: 'https://ik/root/products/old.png',
+    });
+    expect(renameFileLocally(file, 'new.png')).toMatchObject({
+      fileId: '1',
+      name: 'new.png',
+      filePath: '/root/products/new.png',
+      url: 'https://ik/root/products/new.png',
+    });
+  });
+});
+
+describe('renameFolderLocally', () => {
+  it('updates the name and the relative path, keeping the parent prefix', () => {
+    expect(renameFolderLocally({ folderId: '1', name: 'old', path: '/a/old' }, 'new')).toEqual({
+      folderId: '1',
+      name: 'new',
+      path: '/a/new',
+    });
+    expect(renameFolderLocally({ folderId: '2', name: 'old', path: '/old' }, 'new')).toEqual({
+      folderId: '2',
+      name: 'new',
+      path: '/new',
+    });
   });
 });
