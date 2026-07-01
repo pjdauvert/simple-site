@@ -140,6 +140,36 @@ describe('MediaModule', () => {
     expect(JSON.parse(init.body as string)).toEqual({ folderPath: '/root/products' });
   });
 
+  it('PUT /api/media/folder renames the resolved folder via a bulk job', async () => {
+    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 202, json: async () => ({ jobId: 'job_1' }) }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const res = await new MediaModule().handle(
+      jsonRequest('https://site.test/api/media/folder', 'PUT', { path: '/products', newName: 'goods' }),
+      makeContext(),
+    );
+    expect(res.status).toBe(200);
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.imagekit.io/v1/bulkJobs/renameFolder');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ folderPath: '/root/products', newFolderName: 'goods' });
+  });
+
+  it('PUT /api/media renames a file by its absolute path', async () => {
+    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 200, json: async () => ({}) }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const res = await new MediaModule().handle(
+      jsonRequest('https://site.test/api/media', 'PUT', { filePath: '/root/products/a.png', newFileName: 'b.png' }),
+      makeContext(),
+    );
+    expect(res.status).toBe(200);
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.imagekit.io/v1/files/rename');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body as string)).toEqual({ filePath: '/root/products/a.png', newFileName: 'b.png' });
+  });
+
   it('DELETE /api/media/:fileId removes the file', async () => {
     const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 204, json: async () => ({}) }));
     vi.stubGlobal('fetch', fetchSpy);
@@ -167,7 +197,7 @@ describe('MediaModule', () => {
 
   it('rejects unsupported methods', async () => {
     const res = await new MediaModule().handle(
-      jsonRequest('https://site.test/api/media', 'PUT'),
+      jsonRequest('https://site.test/api/media', 'PATCH'),
       makeContext(),
     );
     expect(res.status).toBe(405);

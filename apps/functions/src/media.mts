@@ -6,7 +6,7 @@ import type { RequestHandler } from './types/server-types';
 import { isMediaEnabled } from './handlers/FeaturesModule';
 
 export const config: Config = {
-  method: ['GET', 'POST', 'DELETE'],
+  method: ['GET', 'POST', 'PUT', 'DELETE'],
   path: ['/api/media', '/api/media/upload-auth', '/api/media/folder', '/api/media/:fileId'],
 };
 

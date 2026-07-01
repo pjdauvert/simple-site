@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
-import { CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Box, Button, CircularProgress, Collapse, Typography } from '@mui/material';
+import { CreateNewFolder as CreateNewFolderIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { MediaFile, MediaFolder, MediaType } from '@simple-site/interfaces';
 import {
@@ -9,6 +9,8 @@ import {
   deleteMedia,
   isUploadCanceled,
   listMedia,
+  renameFolder,
+  renameMedia,
   uploadMedia,
 } from '../../services/mediaService';
 import {
@@ -17,15 +19,27 @@ import {
   FileCard,
   FolderChip,
   MediaBreadcrumbs,
+  MediaSortControl,
   MediaTypeFilter,
   NewFolderDialog,
+  RenameDialog,
   UploadProgressPanel,
   matchesFilter,
+  renameFileLocally,
+  renameFolderLocally,
+  sanitizeFileName,
+  sanitizeFolderName,
+  sortFiles,
+  sortFolders,
+  type DeletionPhase,
+  type FileSortKey,
+  type SortDir,
   type UploadProgress,
   type UploadStatus,
 } from '../../components/media';
 
-type DeleteTarget =
+/** A file or folder targeted by an action (delete or rename). */
+type ItemTarget =
   | { kind: 'file'; file: MediaFile }
   | { kind: 'folder'; folder: MediaFolder };
 
@@ -38,9 +52,19 @@ export const MediaPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MediaType>('all');
+  const [sortKey, setSortKey] = useState<FileSortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ItemTarget | null>(null);
+  // id → in-place deletion phase. A deleted item stays mounted (blurred + pulsing,
+  // then fading out) instead of the list refreshing; it's dropped once it removes.
+  const [deletions, setDeletions] = useState<Record<string, DeletionPhase>>({});
+  // Multi-select of file ids for bulk actions; reset on filter/navigation change.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<ItemTarget | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -100,6 +124,11 @@ export const MediaPage: React.FC = () => {
     loadMedia(currentPath, filter);
   }, [currentPath, filter, loadMedia]);
 
+  // A filter change or folder navigation resets the multi-select.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPath, filter]);
+
   // Uploads one entry, tracking its status. On success the V2 response IS
   // ImageKit's acknowledgment (the list index lags ~1–2 s), so the file is shown
   // immediately. The row is kept (success/error/canceled) until dismissed.
@@ -113,8 +142,10 @@ export const MediaPage: React.FC = () => {
         controller.signal,
       );
       setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, percent: 100, status: 'success' } : u)));
+      // Append (not prepend): with the default creation-date sort, a fresh upload
+      // (no server `createdAt` yet) sorts to the end, so it shows up last.
       setFiles((prev) =>
-        prev.some((f) => f.fileId === media.fileId) || !matchesFilter(media, filter) ? prev : [media, ...prev],
+        prev.some((f) => f.fileId === media.fileId) || !matchesFilter(media, filter) ? prev : [...prev, media],
       );
     } catch (err) {
       const status: UploadStatus = isUploadCanceled(err) ? 'canceled' : 'error';
@@ -152,28 +183,131 @@ export const MediaPage: React.FC = () => {
     runUpload(item.id, item.file, controller);
   }, [runUpload]);
 
-  const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      // Refresh the folder from the server once ImageKit acknowledges the delete;
-      // `deletedId` keeps the removed item hidden while the list index catches up,
-      // and `keepPending` preserves optimistic uploads not yet indexed.
-      if (deleteTarget.kind === 'file') {
-        const { fileId } = deleteTarget.file;
-        await deleteMedia(fileId);
-        setDeleteTarget(null);
-        await loadMedia(currentPath, filter, { deletedId: fileId, keepPending: true });
-      } else {
-        const { folderId, path } = deleteTarget.folder;
-        await deleteFolder(path);
-        setDeleteTarget(null);
-        await loadMedia(currentPath, filter, { deletedId: folderId, keepPending: true });
+  const setDeletionPhase = (id: string, phase: DeletionPhase | null) => {
+    setDeletions((prev) => {
+      if (phase === null) {
+        if (!(id in prev)) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
       }
+      return { ...prev, [id]: phase };
+    });
+  };
+
+  const toggleSelect = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  // Drop a fully-removed item from the list once its fade-out/minimize has played.
+  const handleRemoved = (target: ItemTarget['kind'], id: string) => {
+    if (target === 'file') {
+      setFiles((prev) => prev.filter((f) => f.fileId !== id));
+      setSelectedIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } else {
+      setFolders((prev) => prev.filter((f) => f.folderId !== id));
+    }
+    setDeletionPhase(id, null);
+  };
+
+  // Deletes one file in place: it blurs + pulses (`pending`) until ImageKit
+  // acknowledges, then fades + minimizes (`removing`) before `handleRemoved`
+  // drops it — no full list refresh. Shared by single and bulk delete.
+  const deleteFileInPlace = (id: string) => {
+    setDeletionPhase(id, 'pending');
+    void (async () => {
+      try {
+        await deleteMedia(id);
+        // Keep the id hidden if any later re-list runs before ImageKit's index
+        // catches up (e.g. a filter change or folder creation), then animate out.
+        recentlyDeletedRef.current.set(id, Date.now() + DELETE_GRACE_MS);
+        setDeletionPhase(id, 'removing');
+      } catch (err) {
+        setDeletionPhase(id, null);
+        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+      }
+    })();
+  };
+
+  // Close the dialog right away, then delete in place (see `deleteFileInPlace`).
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+
+    if (target.kind === 'file') {
+      deleteFileInPlace(target.file.fileId);
+      return;
+    }
+
+    const { folderId, path } = target.folder;
+    setDeletionPhase(folderId, 'pending');
+    void (async () => {
+      try {
+        await deleteFolder(path);
+        recentlyDeletedRef.current.set(folderId, Date.now() + DELETE_GRACE_MS);
+        setDeletionPhase(folderId, 'removing');
+      } catch (err) {
+        setDeletionPhase(folderId, null);
+        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+      }
+    })();
+  };
+
+  // Close the confirm, clear the selection, then animate each selected file out.
+  const handleConfirmBulkDelete = () => {
+    const ids = [...selectedIds];
+    setBulkDeleteOpen(false);
+    setSelectedIds(new Set());
+    ids.forEach(deleteFileInPlace);
+  };
+
+  // Open the rename dialog pre-filled with the item's current name.
+  const openRename = (target: ItemTarget) => {
+    setRenameTarget(target);
+    setRenameValue(target.kind === 'file' ? target.file.name : target.folder.name);
+  };
+
+  // Rename via ImageKit, then update the item in place (the rename response has no
+  // file object and the list index lags, so the new name is applied locally and the
+  // sort re-orders if needed). A no-op rename just closes the dialog.
+  const handleConfirmRename = async () => {
+    if (!renameTarget) return;
+    const target = renameTarget;
+    const isFile = target.kind === 'file';
+    const newName = isFile ? sanitizeFileName(renameValue) : sanitizeFolderName(renameValue);
+    const currentName = isFile ? target.file.name : target.folder.name;
+    if (!newName || newName === currentName) {
+      setRenameTarget(null);
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      if (isFile) {
+        const { fileId, filePath } = target.file;
+        await renameMedia(filePath, newName);
+        setFiles((prev) => prev.map((f) => (f.fileId === fileId ? renameFileLocally(f, newName) : f)));
+      } else {
+        const { folderId, path } = target.folder;
+        await renameFolder(path, newName);
+        setFolders((prev) => prev.map((f) => (f.folderId === folderId ? renameFolderLocally(f, newName) : f)));
+      }
+      setRenameTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
     } finally {
-      setDeleting(false);
+      setRenaming(false);
     }
   };
 
@@ -196,6 +330,11 @@ export const MediaPage: React.FC = () => {
   };
 
   const segments = currentPath.split('/').filter(Boolean);
+
+  // Folders always alphabetical; files by the chosen field/direction (default:
+  // creation date ascending, so freshly uploaded files appear at the end).
+  const sortedFolders = useMemo(() => sortFolders(folders), [folders]);
+  const sortedFiles = useMemo(() => sortFiles(files, sortKey, sortDir), [files, sortKey, sortDir]);
 
   return (
     <Box sx={{ p: { xs: 2, sm: 4 } }}>
@@ -222,12 +361,16 @@ export const MediaPage: React.FC = () => {
               <Button variant="outlined" startIcon={<CreateNewFolderIcon />} onClick={() => setNewFolderOpen(true)}>
                 <FormattedMessage id="page.media.newFolder" />
               </Button>
-              {folders.map((folder) => (
+              {sortedFolders.map((folder, i) => (
                 <FolderChip
                   key={folder.folderId}
                   folder={folder}
+                  index={i}
                   onOpen={() => setCurrentPath(folder.path)}
+                  onRename={() => openRename({ kind: 'folder', folder })}
                   onDelete={() => setDeleteTarget({ kind: 'folder', folder })}
+                  deletionPhase={deletions[folder.folderId]}
+                  onRemoved={() => handleRemoved('folder', folder.folderId)}
                 />
               ))}
             </Box>
@@ -241,10 +384,53 @@ export const MediaPage: React.FC = () => {
               <Typography variant="overline" color="text.secondary">
                 <FormattedMessage id="page.media.filesSection" />
               </Typography>
-              <MediaTypeFilter value={filter} onChange={setFilter} />
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                <MediaSortControl
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSortKeyChange={setSortKey}
+                  onSortDirChange={setSortDir}
+                />
+                <MediaTypeFilter value={filter} onChange={setFilter} />
+              </Box>
             </Box>
 
-            <DropZone onFiles={uploadFiles} />
+            {/* The selection banner smoothly takes the drop zone's place while any
+                file is selected, and the drop zone slides back once none are. */}
+            <Collapse in={selectedIds.size === 0} unmountOnExit>
+              <DropZone onFiles={uploadFiles} />
+            </Collapse>
+            <Collapse in={selectedIds.size > 0} unmountOnExit>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  mb: 2,
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 1,
+                  bgcolor: 'action.selected',
+                }}
+              >
+                <Typography variant="body2">
+                  <FormattedMessage id="page.media.selectedCount" values={{ count: selectedIds.size }} />
+                </Typography>
+                <Box sx={{ flexGrow: 1 }} />
+                <Button size="small" onClick={() => setSelectedIds(new Set())}>
+                  <FormattedMessage id="page.media.clearSelection" />
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="contained"
+                  startIcon={<DeleteSweepIcon />}
+                  onClick={() => setBulkDeleteOpen(true)}
+                >
+                  <FormattedMessage id="page.media.deleteSelected" />
+                </Button>
+              </Box>
+            </Collapse>
 
             <UploadProgressPanel
               uploads={uploads}
@@ -253,7 +439,7 @@ export const MediaPage: React.FC = () => {
               onDismiss={() => setUploads([])}
             />
 
-            {files.length > 0 ? (
+            {sortedFiles.length > 0 ? (
               <Box
                 sx={{
                   display: 'grid',
@@ -261,8 +447,18 @@ export const MediaPage: React.FC = () => {
                   gap: 2,
                 }}
               >
-                {files.map((file) => (
-                  <FileCard key={file.fileId} item={file} onDelete={() => setDeleteTarget({ kind: 'file', file })} />
+                {sortedFiles.map((file, i) => (
+                  <FileCard
+                    key={file.fileId}
+                    item={file}
+                    index={i}
+                    selected={selectedIds.has(file.fileId)}
+                    onSelectChange={(sel) => toggleSelect(file.fileId, sel)}
+                    onRename={() => openRename({ kind: 'file', file })}
+                    onDelete={() => setDeleteTarget({ kind: 'file', file })}
+                    deletionPhase={deletions[file.fileId]}
+                    onRemoved={() => handleRemoved('file', file.fileId)}
+                  />
                 ))}
               </Box>
             ) : (
@@ -282,9 +478,27 @@ export const MediaPage: React.FC = () => {
             ? deleteTarget.folder.name
             : deleteTarget?.file.name ?? ''
         }
-        loading={deleting}
+        loading={false}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      <DeleteConfirmDialog
+        open={bulkDeleteOpen}
+        count={selectedIds.size}
+        loading={false}
+        onCancel={() => setBulkDeleteOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+      />
+
+      <RenameDialog
+        open={Boolean(renameTarget)}
+        isFolder={renameTarget?.kind === 'folder'}
+        value={renameValue}
+        loading={renaming}
+        onChange={setRenameValue}
+        onCancel={() => setRenameTarget(null)}
+        onConfirm={handleConfirmRename}
       />
 
       <NewFolderDialog

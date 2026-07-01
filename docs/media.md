@@ -10,8 +10,11 @@ The admin **Media** page (`/manage/media`) lets you upload, browse, and delete i
 - **Upload** images and videos — drag-and-drop onto the zone *or* click it to browse; multiple files at once. Non-media files are rejected (`image/*` and `video/*` only).
 - **Organise** into folders: create a folder, or delete a folder **and all its contents** (confirmed first).
 - **Delete** a file (all versions), confirmed first.
+- **Rename** a file or a folder (each item's **"more" menu** holds the rename and delete actions).
+- **Multi-select** files (a checkbox on each file card) and **bulk-delete** the selection (confirmed first).
 - **Copy** a file's name or its public URL to the clipboard.
 - **Filter** the file grid by type: **All / Images / Videos**.
+- **Sort** the file grid by **date added** (default), **name**, **size**, **width** or **height**, ascending or descending. Folders are always listed alphabetically.
 
 ### Display
 
@@ -19,23 +22,28 @@ The page is laid out top-to-bottom:
 
 1. **Title** and a **breadcrumb** trail to the current folder.
 2. An **error banner** (only when something fails; dismissible).
-3. **Folders section** — an overline "Folders" label, then a wrapping row that *starts* with the **New folder** button, followed by one **folder chip** per sub-folder (rounded rectangle: folder icon + name; click to open, trailing delete button).
+3. **Folders section** — an overline "Folders" label, then a wrapping row that *starts* with the **New folder** button, followed by one **folder chip** per sub-folder (rounded rectangle: folder icon + name; click to open, with a trailing **"more" menu** for rename / delete).
 4. **Files section** —
-   - a header with the "Files" label on the left and the **type filter** on the right;
-   - the **drop zone** (dashed, rounded), labelled "Drag & drop files here, or click to browse" with an "Images and videos only" hint;
+   - a header with the "Files" label on the left and, on the right, the **sort control** (field selector + ascending/descending toggle) and the **type filter**;
+   - the **drop zone** (dashed, rounded), labelled "Drag & drop files here, or click to browse" with an "Images and videos only" hint — which is **smoothly replaced by a selection toolbar** (the selected count with **Clear selection** and **Delete selected**) whenever any file is selected, and slides back once the selection is empty;
    - the **upload progress panel** while uploads are active (see below);
    - the **file grid** — a responsive grid of cards — or a centered message (`No media yet…` at the root, `No files match this filter` otherwise).
-5. **Dialogs**: a delete confirmation and a new-folder prompt.
+5. **Dialogs**: a delete confirmation (single or bulk), a rename prompt, and a new-folder prompt.
 
-A **file card** shows the thumbnail on top (fit to the frame so the whole image/video is visible, not cropped; videos overlay a play badge and the thumbnail links to the asset), then the file **name**, a **details** line (`EXTENSION · SIZE · W×H` for images, or `· m:ss` length for videos), and **Copy name / Copy URL / delete** actions. Image dimensions come from the listing; video length is read from the player's `loadedmetadata` (ImageKit doesn't return it for videos).
+A **file card** shows a **select checkbox** in its top-right corner, the thumbnail on top (fit to the frame so the whole image/video is visible, not cropped; videos overlay a play badge and the thumbnail links to the asset), then the file **name**, a **details** line (`EXTENSION · SIZE · W×H` for images, or `· m:ss` length for videos), the **creation date**, and **Copy name / Copy URL** actions plus a **"more" menu** (rename / delete). A selected card is outlined in the primary colour. Image dimensions come from the listing; video length is read from the player's `loadedmetadata` (ImageKit doesn't return it for videos).
 
 The **upload progress panel** is a framed box; each file is a framed row with a determinate progress ring (live %), the file name, and a trailing status action (see Behaviour).
 
 ### Behaviour
 
 - **Direct, per-file uploads.** Each file uploads browser → ImageKit independently (its own `AbortController`). On success the file appears in the grid immediately — straight from the upload response — and its row shows a green **success check**. A failed or canceled row offers **Retry**; **Cancel** aborts only that file (others keep going). Once every row is in a final state (success / error / canceled), a **Dismiss** button clears the panel.
-- **Optimistic display, reconciled with the server.** Uploaded files show at once because ImageKit's list index lags. Folder-create and delete re-list from the server on acknowledgment, while a just-deleted item is kept hidden across the index lag (even if you change the filter or navigate within that window) and not-yet-indexed uploads are preserved; the most recent load always wins.
+- **Optimistic display, reconciled with the server.** Uploaded files show at once because ImageKit's list index lags. Folder-create re-lists from the server on acknowledgment, while not-yet-indexed uploads are preserved; the most recent load always wins.
+- **Cascade-in on display.** When a folder's contents are fetched, its folder chips and file cards animate in with a staggered fade-and-grow (`ItemTransition`) rather than appearing as one block — each item slightly after the previous (capped so long lists don't crawl in). The entrance is the exact inverse of the delete exit. The grid lives behind the loading spinner, so it remounts and re-cascades on every load (initial, filter change, navigation); a single just-uploaded file animates in on its own without disturbing the rest.
+- **In-place delete.** Confirming a delete closes the dialog at once and animates the item out where it sits rather than refreshing the page: it is blurred + greyscaled with a concentric pulse loader over it until ImageKit acknowledges, then it fades out and minimizes (the inverse of the entrance) before being dropped from the list locally (no re-list). The deleted id is still kept hidden for a short grace window so a later re-list (filter change / navigation) can't resurrect it while the index lags.
+- **Multi-select & bulk delete.** Each file card has a select checkbox (no background — a drop shadow keeps it legible over any thumbnail). Selecting one or more **replaces the drop zone with a selection toolbar** (a `Collapse` swap: the drop zone slides out as the toolbar slides in, and back again when the last item is deselected) showing the count and **Delete selected**. Confirming deletes every selected file with the same in-place animation as a single delete (each fades out independently as ImageKit acknowledges it). The selection is **reset on a filter change or folder navigation** (only), so it never carries stale ids across views; sorting keeps it. Folders are not multi-selectable.
+- **In-place rename.** Each item's **"more" menu** opens a rename prompt pre-filled with the current name. On confirm the new name is applied to the item locally and the sort re-orders if needed — no re-list, because ImageKit's rename response carries no asset object and its list index lags. The name is sanitized client-side to mirror ImageKit's rules (files keep `A–Z a–z 0–9 . _ -`; folders keep letters/numbers and `-`; everything else becomes `_`), and for files the `filePath`/`url` are re-derived from the new name. A no-op rename just closes the prompt. Folder rename is an **async ImageKit bulk job**, so the new path may take a moment to be navigable even though the chip updates immediately.
 - **The filter never traps you.** It narrows files only (folders always show), and the files section + filter always render, so you can always switch back from an empty filtered view.
+- **Stable, client-side sorting.** Folders are always alphabetical; files default to **creation date ascending** so the newest sits last — which is why a just-uploaded file is appended (its V2 response carries no `createdAt`, so it sorts to the end) rather than jumping to the front. The grid can also be sorted by name, size, width or height in either direction; missing values sort last in ascending order, with the file name as a stable tie-breaker. Sorting is derived (`useMemo`) over the working set, so reordering never re-fetches.
 - **Everything is relative to the root directory** — the browser never sees the absolute ImageKit path.
 
 ## Why ImageKit + direct upload
@@ -105,21 +113,22 @@ Because the JWT signs the whole payload, the client must send **exactly** the `u
 
 Each selected file uploads independently (its own `AbortController`), shown on its own framed row inside a framed progress panel: the `Loader` **determinate** ring (live percentage), the file name, and a status action — a **cancel** button while uploading, a **success check** once done, or a **retry** button if it failed or was canceled. Cancel/fail of one file leaves the others (and finished ones) untouched; canceling rejects with an `AbortError` (detected via `isUploadCanceled`) and is not surfaced as an error. Once **every** row reaches a final state (success / error / canceled) a **dismiss** button clears the panel.
 
-## Browse, folders & delete
+## Browse, folders, rename & delete
 
 - **List** — `GET /api/media?path=<relative>&type=<all|image|video>` proxies the ImageKit Management API (`GET /v1/files?type=all`, HTTP Basic auth) for the folder at `path`, and returns `{ folders, files }`. The UI filter narrows **files** (videos by MIME type); folders are always shown so you can navigate. Each item renders from the `url`/`thumbnail` the API returns, so no public key or URL endpoint is needed in the browser.
-- **Folders** — `POST /api/media/folder { name, path }` creates a folder; `DELETE /api/media/folder?path=<relative>` deletes a folder **and all its contents** (confirmed in the UI). The Media page provides breadcrumb navigation, a "New folder" action, and per-folder delete.
+- **Folders** — `POST /api/media/folder { name, path }` creates a folder; `PUT /api/media/folder { path, newName }` renames a folder (proxies ImageKit's async `POST /v1/bulkJobs/renameFolder`); `DELETE /api/media/folder?path=<relative>` deletes a folder **and all its contents** (confirmed in the UI). The Media page provides breadcrumb navigation, a "New folder" action, and a per-folder "more" menu (rename / delete).
+- **Rename file** — `PUT /api/media { filePath, newFileName }` renames a file (proxies ImageKit `PUT /v1/files/rename`). `filePath` is the file's absolute ImageKit path as surfaced in the listing.
 - **Delete file** — `DELETE /api/media/:fileId` permanently removes a file and all its versions.
 
 See [api.md](api.md#media-imagekit) for request/response shapes. The page's display and behaviour are summarised in [The Media page at a glance](#the-media-page-at-a-glance); the sections below cover the harder-won implementation details.
 
 ### Refresh on acknowledgment
 
-Folder **create** and file/folder **delete** re-list the current folder from the server once ImageKit acknowledges the operation, so the view always reflects server state. The list index lags the delete by ~1–2 s (see below), so `loadMedia` is hardened against it:
+Folder **create** re-lists the current folder from the server once ImageKit acknowledges the operation, so the view always reflects server state. **Delete** does not re-list: the item is animated out and dropped from local state in place (see *In-place delete* under Behaviour). The list index lags both operations by ~1–2 s, so `loadMedia` is hardened against it:
 
-- **A deleted id is hidden from *every* re-list for a short grace window** (`recentlyDeletedRef`, ~5 s), not just the one immediately after the delete — otherwise a filter change or folder navigation inside the lag window would re-list the stale item and resurrect it.
-- **A `keepPending` refresh re-adds optimistic uploads the index hasn't caught up with.** After a same-folder mutation (delete / create-folder) the re-list can omit a just-uploaded file (the upload index lags ~15 s), so files present locally but absent from the fresh listing — and not in the deleted set — are kept.
-- **Latest-wins:** each load carries a request id; a slow response whose id is stale is dropped, so overlapping re-lists (e.g. delete then quickly switch filter) can't overwrite newer state.
+- **A deleted id is hidden from *every* re-list for a short grace window** (`recentlyDeletedRef`, ~5 s) — set when ImageKit acknowledges the delete — so a filter change or folder navigation inside the lag window won't re-list the stale item and resurrect it (even though the delete itself no longer triggers a re-list).
+- **A `keepPending` refresh re-adds optimistic uploads the index hasn't caught up with.** After a create-folder re-list the listing can omit a just-uploaded file (the upload index lags ~15 s), so files present locally but absent from the fresh listing — and not in the deleted set — are kept.
+- **Latest-wins:** each load carries a request id; a slow response whose id is stale is dropped, so overlapping re-lists (e.g. create-folder then quickly switch filter) can't overwrite newer state.
 
 **Uploads** are shown straight from the V2 upload response — it *is* ImageKit's acknowledgment and already carries the new file's `fileId`/`url`, so no re-list is needed (and the much larger ~15 s upload-index lag is avoided).
 
@@ -137,7 +146,8 @@ Folder **create** and file/folder **delete** re-list the current folder from the
 | Route handler | `apps/functions/src/handlers/MediaModule.ts`, `apps/functions/src/media.mts` |
 | Frontend service | `apps/web/src/services/mediaService.ts` |
 | Admin page (container: state + handlers) | `apps/web/src/pages/admin/MediaPage.tsx` |
-| Presentational components | `apps/web/src/components/media/` (`FileCard`, `FolderChip`, `CopyButton`, `DropZone`, `UploadProgressPanel`, `MediaBreadcrumbs`, `MediaTypeFilter`, `DeleteConfirmDialog`, `NewFolderDialog`) |
+| Presentational components | `apps/web/src/components/media/` (`FileCard`, `FolderChip`, `MediaItemMenu`, `CopyButton`, `DropZone`, `UploadProgressPanel`, `MediaBreadcrumbs`, `MediaTypeFilter`, `MediaSortControl`, `DeleteConfirmDialog`, `RenameDialog`, `NewFolderDialog`, `ItemTransition`) |
+| Sort / filter / rename helpers | `apps/web/src/components/media/mediaUtils.ts` (`sortFiles`, `sortFolders`, `matchesFilter`, `renameFileLocally`, `renameFolderLocally`, `sanitizeFileName`, `sanitizeFolderName`) |
 | Shared media helpers / types | `apps/web/src/components/media/mediaUtils.ts`, `apps/web/src/components/media/types.ts` |
 
 ## Local development

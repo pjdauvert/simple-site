@@ -28,6 +28,16 @@ const result = (over: Partial<MediaListResult> = {}): MediaListResult => ({
   ...over,
 });
 
+/** True when `a` appears before `b` in document order. */
+const precedes = (a: HTMLElement, b: HTMLElement) =>
+  Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+/** Opens the (single) item's "more" menu and clicks one of its actions. */
+const openItemAction = async (action: 'Rename' | 'Delete') => {
+  fireEvent.click(await screen.findByRole('button', { name: 'More actions' }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: action }));
+};
+
 describe('MediaPage', () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -57,6 +67,56 @@ describe('MediaPage', () => {
     expect(screen.getByText('a.png')).toBeInTheDocument();
   });
 
+  it('lists files by creation date ascending by default (newest last)', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        files: [
+          file({ fileId: '2', name: 'newer.png', mime: 'image/png', createdAt: '2026-02-01T00:00:00Z' }),
+          file({ fileId: '1', name: 'older.png', mime: 'image/png', createdAt: '2026-01-01T00:00:00Z' }),
+        ],
+      }),
+    );
+    renderPage();
+
+    const older = await screen.findByText('older.png');
+    expect(precedes(older, screen.getByText('newer.png'))).toBe(true);
+  });
+
+  it('lists folders alphabetically regardless of server order', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        folders: [
+          { folderId: '1', name: 'Zebra', path: '/Zebra' },
+          { folderId: '2', name: 'apple', path: '/apple' },
+        ],
+      }),
+    );
+    renderPage();
+
+    const apple = await screen.findByText('apple');
+    expect(precedes(apple, screen.getByText('Zebra'))).toBe(true);
+  });
+
+  it('appends an uploaded file at the end of the list', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        files: [file({ fileId: '1', name: 'existing.png', mime: 'image/png', createdAt: '2026-01-01T00:00:00Z' })],
+      }),
+    );
+    // The V2 upload response carries no createdAt, so the fresh file sorts last.
+    vi.mocked(mediaService.uploadMedia).mockResolvedValue(
+      file({ fileId: 'u1', name: 'fresh.png', mime: 'image/png' }),
+    );
+    renderPage();
+
+    const zone = await screen.findByRole('button', { name: 'Drag & drop files here, or click to browse' });
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'fresh.png', { type: 'image/png' })] } });
+    await waitFor(() => expect(mediaService.uploadMedia).toHaveBeenCalledTimes(1));
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+    expect(precedes(screen.getByText('existing.png'), screen.getByText('fresh.png'))).toBe(true);
+  });
+
   it('navigates into a folder when its tile is clicked', async () => {
     vi.mocked(mediaService.listMedia)
       .mockResolvedValueOnce(result({ folders: [{ folderId: 'fd1', name: 'products', path: '/products' }] }))
@@ -69,14 +129,97 @@ describe('MediaPage', () => {
     expect(mediaService.listMedia).toHaveBeenLastCalledWith('/products', 'all');
   });
 
-  it('opens the delete confirmation dialog for a file', async () => {
+  it('opens the delete confirmation dialog for a file from the more menu', async () => {
     vi.mocked(mediaService.listMedia).mockResolvedValue(
       result({ files: [file({ fileId: '1', name: 'a.png', mime: 'image/png' })] }),
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    await screen.findByText('a.png');
+    await openItemAction('Delete');
     expect(await screen.findByText('Delete media?')).toBeInTheDocument();
+  });
+
+  it('renames a file in place from the more menu', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        files: [
+          file({ fileId: '1', name: 'old.png', mime: 'image/png', filePath: '/root/old.png', url: 'https://ik/old.png' }),
+        ],
+      }),
+    );
+    vi.mocked(mediaService.renameMedia).mockResolvedValue(undefined);
+    renderPage();
+
+    await screen.findByText('old.png');
+    await openItemAction('Rename');
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('New name'), { target: { value: 'new.png' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Rename' }));
+
+    await waitFor(() => expect(mediaService.renameMedia).toHaveBeenCalledWith('/root/old.png', 'new.png'));
+    await waitFor(() => expect(screen.getByText('new.png')).toBeInTheDocument());
+    expect(screen.queryByText('old.png')).not.toBeInTheDocument();
+  });
+
+  it('renames a folder in place from the more menu', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({ folders: [{ folderId: 'f1', name: 'old', path: '/old' }] }),
+    );
+    vi.mocked(mediaService.renameFolder).mockResolvedValue(undefined);
+    renderPage();
+
+    await screen.findByText('old');
+    await openItemAction('Rename');
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('New name'), { target: { value: 'new' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Rename' }));
+
+    await waitFor(() => expect(mediaService.renameFolder).toHaveBeenCalledWith('/old', 'new'));
+    await waitFor(() => expect(screen.getByText('new')).toBeInTheDocument());
+    expect(screen.queryByText('old')).not.toBeInTheDocument();
+  });
+
+  it('bulk-deletes the selected files', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        files: [
+          file({ fileId: '1', name: 'a.png', mime: 'image/png' }),
+          file({ fileId: '2', name: 'b.png', mime: 'image/png' }),
+        ],
+      }),
+    );
+    vi.mocked(mediaService.deleteMedia).mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select a.png' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select b.png' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('1'));
+    await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('2'));
+    await waitFor(() => expect(screen.queryByText('a.png')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('b.png')).not.toBeInTheDocument());
+  });
+
+  it('resets the selection when the filter changes', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({ files: [file({ fileId: '1', name: 'a.png', mime: 'image/png' })] }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select a.png' }));
+    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Images' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Delete selected' })).not.toBeInTheDocument(),
+    );
   });
 
   it('opens the new-folder dialog', async () => {
@@ -87,21 +230,22 @@ describe('MediaPage', () => {
     expect(await screen.findByLabelText('Folder name')).toBeInTheDocument();
   });
 
-  it('drops a deleted file from the view even if the re-list still returns it (index lag)', async () => {
+  it('removes a deleted file in place without re-listing the folder', async () => {
     const existing = file({ fileId: '1', name: 'a.png', mime: 'image/png' });
-    vi.mocked(mediaService.listMedia)
-      .mockResolvedValueOnce(result({ files: [existing] })) // initial load
-      .mockResolvedValueOnce(result({ files: [existing] })); // re-list still lagging
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result({ files: [existing] }));
     vi.mocked(mediaService.deleteMedia).mockResolvedValue(undefined);
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    await screen.findByText('a.png');
+    await openItemAction('Delete');
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
+    // Once ImageKit acknowledges, the card animates out and is dropped locally —
+    // the folder is not re-fetched.
     await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('1'));
-    await waitFor(() => expect(mediaService.listMedia).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByText('a.png')).not.toBeInTheDocument());
+    expect(mediaService.listMedia).toHaveBeenCalledTimes(1);
   });
 
   it('uploads files dropped onto the drop zone', async () => {
@@ -124,9 +268,7 @@ describe('MediaPage', () => {
   });
 
   it('DIAG full flow with proper waits', async () => {
-    vi.mocked(mediaService.listMedia)
-      .mockResolvedValueOnce(result()) // initial empty
-      .mockResolvedValueOnce(result()); // re-list after delete: index still lacks the upload
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result()); // folder starts empty
     vi.mocked(mediaService.uploadMedia).mockResolvedValue(
       file({ fileId: 'u1', name: 'dropped.png', mime: 'image/png' }),
     );
@@ -139,7 +281,7 @@ describe('MediaPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
     expect(await screen.findByText('dropped.png')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await openItemAction('Delete');
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 

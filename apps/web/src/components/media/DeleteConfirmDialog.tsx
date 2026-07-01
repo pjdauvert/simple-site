@@ -11,41 +11,57 @@ import { FormattedMessage } from 'react-intl';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
-  isFolder: boolean;
-  name: string;
   loading: boolean;
+  /** Single-item delete: whether the target is a folder. */
+  isFolder?: boolean;
+  /** Single-item delete: the target's name. */
+  name?: string;
+  /** Bulk delete: number of selected files. When set, overrides the single-item copy. */
+  count?: number;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-/** Confirmation dialog for deleting a file or a folder (and its contents). */
+/** Confirmation dialog for deleting a file, a folder (and its contents), or a bulk selection. */
 export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   open,
-  isFolder,
-  name,
   loading,
+  isFolder = false,
+  name = '',
+  count,
   onCancel,
   onConfirm,
-}) => (
-  <Dialog open={open} onClose={() => !loading && onCancel()}>
-    <DialogTitle>
-      <FormattedMessage id={isFolder ? 'page.media.deleteFolderConfirm.title' : 'page.media.deleteConfirm.title'} />
-    </DialogTitle>
-    <DialogContent>
-      <DialogContentText>
-        <FormattedMessage
-          id={isFolder ? 'page.media.deleteFolderConfirm.body' : 'page.media.deleteConfirm.body'}
-          values={{ name }}
-        />
-      </DialogContentText>
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={onCancel} disabled={loading}>
-        <FormattedMessage id="page.media.cancel" />
-      </Button>
-      <Button onClick={onConfirm} color="error" variant="contained" disabled={loading}>
-        {loading ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.media.confirm" />}
-      </Button>
-    </DialogActions>
-  </Dialog>
-);
+}) => {
+  const bulk = count != null;
+  const titleId = bulk
+    ? 'page.media.deleteSelectedConfirm.title'
+    : isFolder
+      ? 'page.media.deleteFolderConfirm.title'
+      : 'page.media.deleteConfirm.title';
+  const bodyId = bulk
+    ? 'page.media.deleteSelectedConfirm.body'
+    : isFolder
+      ? 'page.media.deleteFolderConfirm.body'
+      : 'page.media.deleteConfirm.body';
+
+  return (
+    <Dialog open={open} onClose={() => !loading && onCancel()}>
+      <DialogTitle>
+        <FormattedMessage id={titleId} />
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          <FormattedMessage id={bodyId} values={bulk ? { count } : { name }} />
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel} disabled={loading}>
+          <FormattedMessage id="page.media.cancel" />
+        </Button>
+        <Button onClick={onConfirm} color="error" variant="contained" disabled={loading}>
+          {loading ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.media.confirm" />}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
