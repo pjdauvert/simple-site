@@ -109,6 +109,58 @@ describe('ConfigModule', () => {
     expect((await readJson(res)).code).toBe(ErrorCode.NOT_FOUND);
   });
 
+  it('PUT /api/config/themes replaces the themes array and preserves site/pages', async () => {
+    const store = makeStore();
+    const newThemes = [
+      {
+        themeName: 'Solar',
+        primaryColor: '#f90',
+        secondaryColor: '#09f',
+        linkColor: '#f90',
+        linkHoverColor: '#c70',
+        backgroundColor: '#fff',
+        menuBackgroundColor: '#eee',
+        menuHoverColor: '#ddd',
+      },
+    ];
+    const res = await new ConfigModule().handle(
+      jsonRequest('https://site.test/api/config/themes', 'PUT', newThemes),
+      ctx,
+    );
+
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.message).toMatch(/updated/i);
+
+    const [key, value] = store.set.mock.calls[0] as unknown as [string, string];
+    expect(key).toBe('config');
+    const written = JSON.parse(value);
+    expect(written.themes).toEqual(newThemes);
+    expect(written.site).toEqual(storedConfig.site); // untouched
+    expect(written.pages).toEqual([]);
+  });
+
+  it('PUT /api/config/themes rejects an invalid theme (missing required color)', async () => {
+    const store = makeStore();
+    const res = await new ConfigModule().handle(
+      jsonRequest('https://site.test/api/config/themes', 'PUT', [{ themeName: 'Bad' }]),
+      ctx,
+    );
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it('PUT /api/config/themes accepts an empty themes array', async () => {
+    const store = makeStore();
+    const res = await new ConfigModule().handle(
+      jsonRequest('https://site.test/api/config/themes', 'PUT', []),
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    const [, value] = store.set.mock.calls[0] as unknown as [string, string];
+    expect(JSON.parse(value).themes).toEqual([]);
+  });
+
   it('GET /api/config returns the stored config', async () => {
     makeStore();
     const res = await new ConfigModule().handle(

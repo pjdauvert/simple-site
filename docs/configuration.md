@@ -26,7 +26,7 @@ Both blobs are seeded automatically on the first dev request from the JSON files
 }
 ```
 
-The `site` section is editable from the **Site settings** form on the `/manage` admin dashboard, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled. `themes` and `pages` are edited by replacing the whole config via `POST /api/config`.
+The `site` section is editable from the **Site settings** form on the `/manage` admin dashboard, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled. The `themes` array has its own **Themes** page (`/manage/themes`, full add/edit/delete) saving via `PUT /api/config/themes`. `pages` are edited by replacing the whole config via `POST /api/config`.
 
 ### Themes
 

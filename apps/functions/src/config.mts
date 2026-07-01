@@ -5,7 +5,7 @@ import type { RequestHandler } from './types/server-types';
 
 export const config: Config = {
   method: ['GET', 'POST', 'PUT'],
-  path: ['/api/config', '/api/config/site'],
+  path: ['/api/config', '/api/config/site', '/api/config/themes'],
 };
 
 const configModule = new ConfigModule();

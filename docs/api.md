@@ -11,6 +11,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | GET | `/api/config` | Retrieve the full site configuration |
 | POST | `/api/config` | Replace the site configuration (admin) |
 | PUT | `/api/config/site` | Update only the `site` section (admin) |
+| PUT | `/api/config/themes` | Replace the `themes` array (admin) |
 | GET | `/api/translations/:language` | Retrieve translation dictionary for a locale |
 | POST | `/api/translations/:language` | Merge translations for a locale |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
@@ -58,6 +59,18 @@ Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `container
 
 // 200 OK
 { "ok": true, "data": { "message": "Site settings updated successfully" } }
+```
+
+### `PUT /api/config/themes`
+
+Replaces the entire `themes` array (add / edit / delete are performed client-side, then the full list is sent). The body is Zod-validated as an array of `ThemeConfig`; the whole `SiteConfig` is re-validated before persisting, so `site` and `pages` are untouched. An empty array is allowed (the app falls back to default theming). Backs the **Themes** page on the `/manage` admin dashboard.
+
+```json
+// Request body — an array of ThemeConfig objects
+[ { "themeName": "Light", "primaryColor": "#29B5F0", "secondaryColor": "#FF4D6D", "linkColor": "#FF4D6D", "linkHoverColor": "#E0304F", "backgroundColor": "#F7F8FB", "menuBackgroundColor": "#BCE5FC", "menuHoverColor": "rgba(255,255,255,0.10)" } ]
+
+// 200 OK
+{ "ok": true, "data": { "message": "Themes updated successfully" } }
 ```
 
 ---
@@ -225,6 +238,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 |--------|------|---------------|
 | POST | `/api/config` | ✓ |
 | PUT | `/api/config/site` | ✓ |
+| PUT | `/api/config/themes` | ✓ |
 | POST | `/api/translations/:language` | ✓ |
 | POST | `/api/media/upload-auth` | ✓ |
 | GET | `/api/media` | ✓ |

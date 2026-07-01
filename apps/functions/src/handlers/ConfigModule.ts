@@ -46,6 +46,21 @@ export class ConfigModule extends BaseHandler {
         return this.createSuccessResponse({ message: 'Site settings updated successfully' });
     }
 
+    // Replaces the whole `themes` array (add/edit/delete happen client-side, then
+    // the full list is sent). Re-validates the entire config so `site`/`pages`
+    // stay intact and every theme is well-formed before persisting.
+    private updateThemes = async (store: Store, storeKey: string, body?: string, path: string = '') => {
+        if (!body) {
+            throw ErrorResponses.invalidRequest('Request body is required', path);
+        }
+        const themes = SiteConfigSchema.shape.themes.parse(JSON.parse(body));
+        const current = await this.getStoredConfig(store, storeKey, path);
+        const merged = SiteConfigSchema.parse({ ...current, themes });
+
+        await store.set(storeKey, JSON.stringify(merged));
+        return this.createSuccessResponse({ message: 'Themes updated successfully' });
+    }
+
     override handle: RequestHandler = async (request) => {
         const path = request.url;
         const pathname = new URL(request.url).pathname;
@@ -74,6 +89,12 @@ export class ConfigModule extends BaseHandler {
                 }
                 const body = await request.text();
                 return await this.updateSite(store, storeKey, body, path);
+            } else if (request.method === 'PUT' && pathname.endsWith('/config/themes')) {
+                if (request.headers.get('Content-Type') !== 'application/json') {
+                    throw ErrorResponses.invalidRequest('Invalid content type', path);
+                }
+                const body = await request.text();
+                return await this.updateThemes(store, storeKey, body, path);
             } else {
                 throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST', 'PUT'], path);
             }
