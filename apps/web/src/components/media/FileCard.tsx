@@ -6,6 +6,7 @@ import {
   CardActions,
   CardContent,
   CardMedia,
+  Checkbox,
   Typography,
 } from '@mui/material';
 import {
@@ -25,6 +26,10 @@ interface FileCardProps {
   item: MediaFile;
   onRename: () => void;
   onDelete: () => void;
+  /** Whether this file is part of the current multi-select. */
+  selected: boolean;
+  /** Toggles this file's membership in the selection. */
+  onSelectChange: (selected: boolean) => void;
   /** Position in the grid, used to stagger the entrance cascade. */
   index?: number;
   /** In-place deletion treatment; undefined renders the card normally. */
@@ -44,6 +49,8 @@ export const FileCard: React.FC<FileCardProps> = ({
   item,
   onRename,
   onDelete,
+  selected,
+  onSelectChange,
   index,
   deletionPhase,
   onRemoved,
@@ -65,7 +72,38 @@ export const FileCard: React.FC<FileCardProps> = ({
 
   return (
     <ItemTransition phase={deletionPhase} index={index} loaderSize={64} onRemoved={onRemoved}>
-      <Card variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Card
+        variant="outlined"
+        sx={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          ...(selected && {
+            borderColor: 'primary.main',
+            boxShadow: (theme) => `inset 0 0 0 1px ${theme.palette.primary.main}`,
+          }),
+        }}
+      >
+        <Checkbox
+          size="small"
+          checked={selected}
+          disableRipple
+          onChange={(event) => onSelectChange(event.target.checked)}
+          onClick={(event) => event.stopPropagation()}
+          inputProps={{ 'aria-label': intl.formatMessage({ id: 'page.media.selectItem' }, { name: item.name }) }}
+          sx={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            zIndex: 2,
+            p: 0.25,
+            // No background — a drop shadow keeps the tick legible over any thumbnail.
+            filter: 'drop-shadow(0 1px 1px rgba(255, 255, 255, 0.7))',
+            '&:hover': { bgcolor: 'transparent' },
+            '&.Mui-checked': { color: 'primary.main' },
+          }}
+        />
         <CardActionArea
           component="a"
           href={item.url}

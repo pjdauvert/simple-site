@@ -182,6 +182,46 @@ describe('MediaPage', () => {
     expect(screen.queryByText('old')).not.toBeInTheDocument();
   });
 
+  it('bulk-deletes the selected files', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({
+        files: [
+          file({ fileId: '1', name: 'a.png', mime: 'image/png' }),
+          file({ fileId: '2', name: 'b.png', mime: 'image/png' }),
+        ],
+      }),
+    );
+    vi.mocked(mediaService.deleteMedia).mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select a.png' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select b.png' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('1'));
+    await waitFor(() => expect(mediaService.deleteMedia).toHaveBeenCalledWith('2'));
+    await waitFor(() => expect(screen.queryByText('a.png')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('b.png')).not.toBeInTheDocument());
+  });
+
+  it('resets the selection when the filter changes', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(
+      result({ files: [file({ fileId: '1', name: 'a.png', mime: 'image/png' })] }),
+    );
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select a.png' }));
+    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Images' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Delete selected' })).not.toBeInTheDocument(),
+    );
+  });
+
   it('opens the new-folder dialog', async () => {
     vi.mocked(mediaService.listMedia).mockResolvedValue(result());
     renderPage();

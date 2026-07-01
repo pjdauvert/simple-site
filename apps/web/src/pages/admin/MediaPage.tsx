@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
-import { CreateNewFolder as CreateNewFolderIcon } from '@mui/icons-material';
+import { Alert, Box, Button, CircularProgress, Collapse, Typography } from '@mui/material';
+import { CreateNewFolder as CreateNewFolderIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { MediaFile, MediaFolder, MediaType } from '@simple-site/interfaces';
 import {
@@ -59,6 +59,9 @@ export const MediaPage: React.FC = () => {
   // id → in-place deletion phase. A deleted item stays mounted (blurred + pulsing,
   // then fading out) instead of the list refreshing; it's dropped once it removes.
   const [deletions, setDeletions] = useState<Record<string, DeletionPhase>>({});
+  // Multi-select of file ids for bulk actions; reset on filter/navigation change.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ItemTarget | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [renaming, setRenaming] = useState(false);
@@ -120,6 +123,11 @@ export const MediaPage: React.FC = () => {
   useEffect(() => {
     loadMedia(currentPath, filter);
   }, [currentPath, filter, loadMedia]);
+
+  // A filter change or folder navigation resets the multi-select.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPath, filter]);
 
   // Uploads one entry, tracking its status. On success the V2 response IS
   // ImageKit's acknowledgment (the list index lags ~1–2 s), so the file is shown
@@ -187,27 +195,39 @@ export const MediaPage: React.FC = () => {
     });
   };
 
+  const toggleSelect = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
   // Drop a fully-removed item from the list once its fade-out/minimize has played.
   const handleRemoved = (target: ItemTarget['kind'], id: string) => {
-    if (target === 'file') setFiles((prev) => prev.filter((f) => f.fileId !== id));
-    else setFolders((prev) => prev.filter((f) => f.folderId !== id));
+    if (target === 'file') {
+      setFiles((prev) => prev.filter((f) => f.fileId !== id));
+      setSelectedIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } else {
+      setFolders((prev) => prev.filter((f) => f.folderId !== id));
+    }
     setDeletionPhase(id, null);
   };
 
-  // Close the dialog right away, then delete in place: the item blurs + pulses
-  // (`pending`) until ImageKit acknowledges, then fades + minimizes (`removing`)
-  // before `handleRemoved` drops it — no full list refresh.
-  const handleConfirmDelete = () => {
-    if (!deleteTarget) return;
-    const target = deleteTarget;
-    const id = target.kind === 'file' ? target.file.fileId : target.folder.folderId;
-    setDeleteTarget(null);
+  // Deletes one file in place: it blurs + pulses (`pending`) until ImageKit
+  // acknowledges, then fades + minimizes (`removing`) before `handleRemoved`
+  // drops it — no full list refresh. Shared by single and bulk delete.
+  const deleteFileInPlace = (id: string) => {
     setDeletionPhase(id, 'pending');
-
     void (async () => {
       try {
-        if (target.kind === 'file') await deleteMedia(target.file.fileId);
-        else await deleteFolder(target.folder.path);
+        await deleteMedia(id);
         // Keep the id hidden if any later re-list runs before ImageKit's index
         // catches up (e.g. a filter change or folder creation), then animate out.
         recentlyDeletedRef.current.set(id, Date.now() + DELETE_GRACE_MS);
@@ -217,6 +237,39 @@ export const MediaPage: React.FC = () => {
         setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
       }
     })();
+  };
+
+  // Close the dialog right away, then delete in place (see `deleteFileInPlace`).
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+
+    if (target.kind === 'file') {
+      deleteFileInPlace(target.file.fileId);
+      return;
+    }
+
+    const { folderId, path } = target.folder;
+    setDeletionPhase(folderId, 'pending');
+    void (async () => {
+      try {
+        await deleteFolder(path);
+        recentlyDeletedRef.current.set(folderId, Date.now() + DELETE_GRACE_MS);
+        setDeletionPhase(folderId, 'removing');
+      } catch (err) {
+        setDeletionPhase(folderId, null);
+        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+      }
+    })();
+  };
+
+  // Close the confirm, clear the selection, then animate each selected file out.
+  const handleConfirmBulkDelete = () => {
+    const ids = [...selectedIds];
+    setBulkDeleteOpen(false);
+    setSelectedIds(new Set());
+    ids.forEach(deleteFileInPlace);
   };
 
   // Open the rename dialog pre-filled with the item's current name.
@@ -342,7 +395,42 @@ export const MediaPage: React.FC = () => {
               </Box>
             </Box>
 
-            <DropZone onFiles={uploadFiles} />
+            {/* The selection banner smoothly takes the drop zone's place while any
+                file is selected, and the drop zone slides back once none are. */}
+            <Collapse in={selectedIds.size === 0} unmountOnExit>
+              <DropZone onFiles={uploadFiles} />
+            </Collapse>
+            <Collapse in={selectedIds.size > 0} unmountOnExit>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  mb: 2,
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 1,
+                  bgcolor: 'action.selected',
+                }}
+              >
+                <Typography variant="body2">
+                  <FormattedMessage id="page.media.selectedCount" values={{ count: selectedIds.size }} />
+                </Typography>
+                <Box sx={{ flexGrow: 1 }} />
+                <Button size="small" onClick={() => setSelectedIds(new Set())}>
+                  <FormattedMessage id="page.media.clearSelection" />
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="contained"
+                  startIcon={<DeleteSweepIcon />}
+                  onClick={() => setBulkDeleteOpen(true)}
+                >
+                  <FormattedMessage id="page.media.deleteSelected" />
+                </Button>
+              </Box>
+            </Collapse>
 
             <UploadProgressPanel
               uploads={uploads}
@@ -364,6 +452,8 @@ export const MediaPage: React.FC = () => {
                     key={file.fileId}
                     item={file}
                     index={i}
+                    selected={selectedIds.has(file.fileId)}
+                    onSelectChange={(sel) => toggleSelect(file.fileId, sel)}
                     onRename={() => openRename({ kind: 'file', file })}
                     onDelete={() => setDeleteTarget({ kind: 'file', file })}
                     deletionPhase={deletions[file.fileId]}
@@ -391,6 +481,14 @@ export const MediaPage: React.FC = () => {
         loading={false}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      <DeleteConfirmDialog
+        open={bulkDeleteOpen}
+        count={selectedIds.size}
+        loading={false}
+        onCancel={() => setBulkDeleteOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
       />
 
       <RenameDialog
