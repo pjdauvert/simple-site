@@ -13,7 +13,8 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | PUT | `/api/config/site` | Update only the `site` section (admin) |
 | PUT | `/api/config/themes` | Replace the `themes` array (admin) |
 | GET | `/api/translations/:language` | Retrieve translation dictionary for a locale |
-| POST | `/api/translations/:language` | Merge translations for a locale |
+| POST | `/api/translations/:language` | Merge translations for a locale (admin) |
+| PUT | `/api/translations/:language` | Replace a locale's dictionary (admin) |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
 | GET | `/api/db-query` | Fetch sample users from MongoDB |
 | GET | `/api/features` | Report enabled feature flags (public) |
@@ -95,6 +96,18 @@ Merges the provided key/value pairs into the stored dictionary for the given loc
 
 // 200 OK
 { "ok": true, "data": { "message": "en translations updated successfully" } }
+```
+
+### `PUT /api/translations/:language`
+
+**Replaces** the given locale's entire dictionary (vs POST's merge). The admin translations editor sends the complete desired dictionary, so keys removed in the UI actually disappear — a merge could only ever add or update. The body is Zod-validated (keys must match `^[a-zA-Z0-9_.]+$`). Backs the **Translations** page on the `/manage` admin dashboard.
+
+```json
+// Request body — the complete dictionary for the locale
+{ "page.home.hero.content.title": "Welcome" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "en translations replaced successfully" } }
 ```
 
 ---
@@ -240,6 +253,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | PUT | `/api/config/site` | ✓ |
 | PUT | `/api/config/themes` | ✓ |
 | POST | `/api/translations/:language` | ✓ |
+| PUT | `/api/translations/:language` | ✓ |
 | POST | `/api/media/upload-auth` | ✓ |
 | GET | `/api/media` | ✓ |
 | POST | `/api/media/folder` | ✓ |

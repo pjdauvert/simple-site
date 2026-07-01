@@ -146,9 +146,11 @@ Examples:
 
 ### Adding or updating translations
 
+**Admin UI** — the **Translations** page (`/manage/translations`) edits every stored key's value across locales side by side, and can add or remove keys. Saving replaces each locale's dictionary via `PUT /api/translations/:locale` (see [api.md](./api.md)), so removals take effect.
+
 **Local dev** — edit `apps/functions/src/handlers/seed/i18n.json`.
 
-**Live** — POST only the keys that changed (existing keys not included in the body are preserved):
+**Live (scripted)** — POST only the keys that changed (existing keys not included in the body are preserved):
 
 ```bash
 curl -X POST https://<your-site>/api/translations/en \

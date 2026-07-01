@@ -4,7 +4,7 @@ import { TranslationsModule } from './handlers/TranslationsModule';
 import type { RequestHandler } from './types/server-types';
 
 export const config: Config = {
-  method: ['GET', 'POST'],
+  method: ['GET', 'POST', 'PUT'],
   path: '/api/translations/:language',
 };
 
