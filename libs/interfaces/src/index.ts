@@ -1,3 +1,4 @@
+export * from './config.interface.js';
 export * from './contact.interface.js';
 export * from './i18n.interface.js';
 export * from './layout.interface.js';

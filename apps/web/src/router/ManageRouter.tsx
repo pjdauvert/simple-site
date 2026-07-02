@@ -9,8 +9,8 @@ import { useFeatureFlags } from "../hooks/useFeatureFlags";
 
 // Admin navigation. `pageName` resolves the i18n label key `${pageName}.menuTitle`
 // (see MenuBar); `menuTitle` is the fallback default message.
-const dashboardItem: MenuItem = { menuTitle: "Dashboard", pageName: "manage", route: "/manage" };
-const mediaItem: MenuItem = { menuTitle: "Media", pageName: "media", route: "/manage/media" };
+const dashboardItem: MenuItem = { menuTitle: "Dashboard", pageName: "manage.site", route: "/manage" };
+const mediaItem: MenuItem = { menuTitle: "Media", pageName: "manage.media", route: "/manage/media" };
 
 // The admin area, once authenticated: the Media entry/route is shown only when
 // the `media` feature flag is enabled (fetched at runtime from /api/features).

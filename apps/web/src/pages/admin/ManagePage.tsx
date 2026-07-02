@@ -1,7 +1,7 @@
 import { Box, Paper, Typography } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
 import { FormattedMessage } from 'react-intl';
-import { SiteSettingsForm } from '../../components/manage';
+import { ConfigVersionsPanel, SiteSettingsForm } from '../../components/manage';
 
 export const ManagePage: React.FC = () => {
   const { user } = useAuth();
@@ -11,6 +11,9 @@ export const ManagePage: React.FC = () => {
       <Typography variant="h6"><FormattedMessage id="page.manage.disclaimer" /></Typography>
       <Paper sx={{ p: { xs: 2, sm: 3 }, mt: 3 }}>
         <SiteSettingsForm />
+      </Paper>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mt: 3 }}>
+        <ConfigVersionsPanel />
       </Paper>
     </Box>
   );

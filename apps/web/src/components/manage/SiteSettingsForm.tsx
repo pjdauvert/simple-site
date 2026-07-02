@@ -13,7 +13,7 @@ import { PhotoLibrary as PhotoLibraryIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { SiteThemeConfig } from '@simple-site/interfaces';
 import { SiteThemeConfigSchema, UrlOrPathSchema } from '@simple-site/interfaces';
-import { loadSiteConfig } from '../../services/initService';
+import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { ImagePickerDialog } from '../media';
@@ -30,8 +30,9 @@ const isValidUrl = (value: string) => UrlOrPathSchema.safeParse(value).success;
 
 /**
  * Edits the `site` section of the config (name, logo, favicon, container width).
- * Prefills from the live config (`GET /api/config`) — the admin shell has no
- * SiteConfigProvider — and saves via `PUT /api/config/site`.
+ * Prefills from the working draft (`GET /api/config/draft`) — the admin shell has
+ * no SiteConfigProvider — and saves via `PUT /api/config/site`, which writes the
+ * draft. Changes go live only when published from the Config Versions panel.
  */
 export const SiteSettingsForm: React.FC = () => {
   const intl = useIntl();
@@ -57,7 +58,7 @@ export const SiteSettingsForm: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    loadSiteConfig()
+    loadDraftConfig()
       .then((config) => {
         if (!active) return;
         setSiteName(config.site.siteName);
