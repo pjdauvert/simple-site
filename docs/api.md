@@ -9,7 +9,8 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/config` | Retrieve the full site configuration |
-| POST | `/api/config` | Replace the site configuration |
+| POST | `/api/config` | Replace the site configuration (admin) |
+| PUT | `/api/config/site` | Update only the `site` section (admin) |
 | GET | `/api/translations/:language` | Retrieve translation dictionary for a locale |
 | POST | `/api/translations/:language` | Merge translations for a locale |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
@@ -45,6 +46,18 @@ Replaces the stored site configuration. The body must be a complete, valid `Site
 
 // 200 OK
 { "ok": true, "data": { "message": "Configuration updated successfully" } }
+```
+
+### `PUT /api/config/site`
+
+Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `containerMaxWidth`). The server reads the stored config, replaces its `site` object with the (Zod-validated) body, re-validates the whole `SiteConfig`, then persists — so `themes` and `pages` are left untouched. Backs the **Site settings** form on the `/manage` admin dashboard.
+
+```json
+// Request body — a SiteThemeConfig object
+{ "siteName": "Simple Site", "logoUrl": "/logo.svg", "faviconUrl": "/favicon.ico", "containerMaxWidth": "lg" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Site settings updated successfully" } }
 ```
 
 ---
@@ -211,6 +224,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | Method | Path | Auth required |
 |--------|------|---------------|
 | POST | `/api/config` | ✓ |
+| PUT | `/api/config/site` | ✓ |
 | POST | `/api/translations/:language` | ✓ |
 | POST | `/api/media/upload-auth` | ✓ |
 | GET | `/api/media` | ✓ |

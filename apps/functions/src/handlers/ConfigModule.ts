@@ -2,7 +2,7 @@ import type { RequestHandler } from '../types/server-types';
 import { BaseHandler } from './BaseHandler';
 import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
-import { type SiteConfig, SiteConfigSchema } from '@simple-site/interfaces';
+import { type SiteConfig, SiteConfigSchema, SiteThemeConfigSchema } from '@simple-site/interfaces';
 import { seedBlob } from './seed/seedBlob';
 
 export class ConfigModule extends BaseHandler {
@@ -31,8 +31,24 @@ export class ConfigModule extends BaseHandler {
         return this.createSuccessResponse({ message: 'Configuration updated successfully' });
     }
 
+    // Updates only the `site` section: merge the validated body into the stored
+    // config, re-validate the whole thing, then persist. Keeps `themes`/`pages`
+    // untouched so the admin site-settings form never has to round-trip them.
+    private updateSite = async (store: Store, storeKey: string, body?: string, path: string = '') => {
+        if (!body) {
+            throw ErrorResponses.invalidRequest('Request body is required', path);
+        }
+        const site = SiteThemeConfigSchema.parse(JSON.parse(body));
+        const current = await this.getStoredConfig(store, storeKey, path);
+        const merged = SiteConfigSchema.parse({ ...current, site });
+
+        await store.set(storeKey, JSON.stringify(merged));
+        return this.createSuccessResponse({ message: 'Site settings updated successfully' });
+    }
+
     override handle: RequestHandler = async (request) => {
         const path = request.url;
+        const pathname = new URL(request.url).pathname;
         // Get the store name from the environment
         const storeName = `${Netlify.env.get('APP_NAME')}-store`;
         const storeKey = 'config';
@@ -41,17 +57,25 @@ export class ConfigModule extends BaseHandler {
             // Seed the blob if it does not exist
             await seedBlob(store, 'siteConfig.json', SiteConfigSchema, storeKey);
 
+            // `await` each branch so async rejections (Zod/notFound) surface in the
+            // catch below and are mapped to a proper error response by handleError.
             if (request.method === 'GET') {
-                return this.getConfig(store, storeKey, path);
+                return await this.getConfig(store, storeKey, path);
             } else if (request.method === 'POST') {
                 if (request.headers.get('Content-Type') !== 'application/json') {
                     throw ErrorResponses.invalidRequest('Invalid content type', path);
                 }
                 // Read and parse the request body
                 const body = await request.text();
-                return this.setConfig(store, storeKey, body, path);
+                return await this.setConfig(store, storeKey, body, path);
+            } else if (request.method === 'PUT' && pathname.endsWith('/config/site')) {
+                if (request.headers.get('Content-Type') !== 'application/json') {
+                    throw ErrorResponses.invalidRequest('Invalid content type', path);
+                }
+                const body = await request.text();
+                return await this.updateSite(store, storeKey, body, path);
             } else {
-                throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST'], path);
+                throw ErrorResponses.methodNotAllowed(request.method, ['GET', 'POST', 'PUT'], path);
             }
         } catch (error) {
             return this.handleError(error, path);
