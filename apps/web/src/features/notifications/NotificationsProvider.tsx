@@ -10,7 +10,7 @@ const autoHides = (severity: NotificationSeverity) => severity === 'success' || 
 
 /**
  * Admin notification host. Exposes `notify`/`success`/`error` and renders a stack of
- * MUI Alerts that slide up from the bottom-left. Newer messages stack on top of older
+ * MUI Alerts that slide up from the bottom-right. Newer messages stack on top of older
  * ones (oldest at the bottom); success auto-dismisses, errors stay until closed.
  *
  * Scoped to the admin area (wrapped in `ManageRouter`), so the public site is unaffected.
@@ -59,8 +59,8 @@ export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({ child
           sx={{
             position: 'fixed',
             bottom: 24,
-            left: 24,
-            right: { xs: 24, sm: 'auto' },
+            right: 24,
+            left: { xs: 24, sm: 'auto' },
             width: { xs: 'auto', sm: 420 },
             zIndex: (theme) => theme.zIndex.snackbar,
             // column-reverse keeps the oldest at the bottom and stacks newer ones on top.
