@@ -71,6 +71,14 @@ export const republishVersion = async (key: string): Promise<void> => {
   unwrap(response);
 };
 
+/** Starts a new draft from a version's content; any existing draft is archived first. */
+export const startDraftFromVersion = async (key: string): Promise<void> => {
+  const response = await apiService.post<undefined, { message: string }>(
+    `config/versions/${encodeURIComponent(key)}/draft`,
+  );
+  unwrap(response);
+};
+
 /** Permanently deletes an archive. */
 export const deleteVersion = async (key: string): Promise<void> => {
   const response = await apiService.delete(`config/versions/${encodeURIComponent(key)}`);

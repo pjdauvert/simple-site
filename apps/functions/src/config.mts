@@ -14,6 +14,7 @@ export const config: Config = {
     '/api/config/versions',
     '/api/config/versions/:key',
     '/api/config/versions/:key/publish',
+    '/api/config/versions/:key/draft',
   ],
 };
 

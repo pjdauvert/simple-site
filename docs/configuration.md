@@ -115,7 +115,8 @@ Sections are typed via a Zod discriminated union on the `type` field. Currently 
 
 The whole `SiteConfig` (site + themes + pages) is versioned. There is exactly one **published** (live) config, an optional working **draft**, and a linear history of **archives**. Translations are *not* part of this versioning.
 
-- **Edit** — the admin panels on `/manage` (e.g. Site settings) write to the **draft** (`PUT /api/config/site`, `POST /api/config`). Nothing changes on the live site until you publish. A draft blob exists only while there are unpublished changes.
+- **Edit** — the admin panels on `/manage` (e.g. Site settings) write to the **draft** (`PUT /api/config/site`, `POST /api/config`). Nothing changes on the live site until you publish. There is at most one draft, and a draft blob exists only while there are unpublished changes.
+- **Start from a version** — with no draft, an archive (or the published config) can be used as the starting point for a new draft (`POST /api/config/versions/:key/draft`), cloning its content. Importing (`POST /api/config/import`) does the same from an uploaded file. If a draft already exists, it is **archived first** so its work is never discarded.
 - **Publish** — `POST /api/config/publish` promotes the draft to live (the published version keeps the draft's name). The **previously-published** config is snapshotted into an archive keyed by a UTC, second-precision timestamp (`config:archive:<YYYYMMDDHHMMSS>`), keeping the name it had while published, and the draft is cleared.
 - **Archive history** — archives are kept indefinitely and listed newest-first. They are read-only snapshots; delete them manually when no longer needed.
 - **Roll back** — re-publishing an archive (`POST /api/config/versions/:key/publish`) makes it live again and archives the config it replaced.

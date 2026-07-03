@@ -23,6 +23,7 @@ vi.mock('../../services/configVersionService', () => ({
   getVersionConfig: vi.fn(),
   renameVersion: vi.fn(),
   republishVersion: vi.fn(),
+  startDraftFromVersion: vi.fn(),
   deleteVersion: vi.fn(),
 }));
 vi.mock('../../services/siteConfigService', () => ({ updateSiteSettings: vi.fn() }));

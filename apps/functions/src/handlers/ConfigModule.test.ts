@@ -167,6 +167,60 @@ describe('ConfigModule', () => {
     expect(res.status).toBe(409);
   });
 
+  it('POST /api/config/versions/:key/draft starts a draft from an archive (no existing draft)', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:archive:20200101000000': withSiteName('Archived'),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
+    });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions/20200101000000/draft', 'POST'));
+    expect(res.status).toBe(200);
+    // Draft now holds the archive's content; the source archive is untouched.
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('Archived');
+    expect(data.has('config:archive:20200101000000')).toBe(true);
+    const m = JSON.parse(data.get('config:versions')!);
+    expect(m.draft).not.toBeNull();
+    expect(m.archives.map((a: { key: string }) => a.key)).toContain('20200101000000');
+  });
+
+  it('starting a draft from a version archives the existing draft first', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:draft': withSiteName('Old Draft'),
+      'config:archive:20200101000000': withSiteName('Archived'),
+      'config:versions': manifest({
+        draft: { key: 'draft', name: 'Old Draft', createdAt: '2021-01-01T00:00:00.000Z' },
+        archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }],
+      }),
+    });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions/20200101000000/draft', 'POST'));
+    expect(res.status).toBe(200);
+    // New draft = archive content; the previous draft was archived (never discarded).
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('Archived');
+    const archived = [...data.keys()]
+      .filter((k) => k.startsWith('config:archive:'))
+      .map((k) => JSON.parse(data.get(k)!).site.siteName);
+    expect(archived).toContain('Old Draft');
+  });
+
+  it('POST /api/config/import archives an existing draft before replacing it', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:draft': withSiteName('Old Draft'),
+      'config:versions': manifest({ draft: { key: 'draft', name: 'Old Draft', createdAt: '2021-01-01T00:00:00.000Z' } }),
+    });
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Imported', config: withSiteName('From File') }),
+    );
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('From File');
+    const archived = [...data.keys()]
+      .filter((k) => k.startsWith('config:archive:'))
+      .map((k) => JSON.parse(data.get(k)!).site.siteName);
+    expect(archived).toContain('Old Draft'); // previous draft preserved
+    expect(JSON.parse(data.get('config:versions')!).draft.name).toBe('Imported');
+  });
+
   it('GET /api/config/versions returns the manifest', async () => {
     makeStore();
     const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));

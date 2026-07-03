@@ -18,6 +18,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | GET | `/api/config/versions/:key` | Download a version's `SiteConfig` (admin) |
 | PUT | `/api/config/versions/:key` | Rename a version (admin) |
 | POST | `/api/config/versions/:key/publish` | Re-publish (roll back to) an archive (admin) |
+| POST | `/api/config/versions/:key/draft` | Start a new draft from a version (admin) |
 | DELETE | `/api/config/versions/:key` | Delete an archive (admin) |
 | GET | `/api/translations/:language` | Retrieve translation dictionary for a locale |
 | POST | `/api/translations/:language` | Merge translations for a locale |
@@ -90,7 +91,7 @@ Promotes the draft to live: the outgoing published config is archived (key `conf
 
 ### `POST /api/config/import`
 
-Validates an uploaded `SiteConfig` and stores it as the new named **draft** (invalid payloads return `400 INVALID_REQUEST`). Publish it separately to go live.
+Validates an uploaded `SiteConfig` and stores it as the new named **draft** (invalid payloads return `400 INVALID_REQUEST`). If a draft already exists it is archived first (draft work is never discarded — only one draft exists at a time). Publish it separately to go live.
 
 ```json
 // Request body
@@ -138,6 +139,15 @@ Rolls back to an archive: the archive `:key` becomes the live config and the cur
 ```json
 // 200 OK
 { "ok": true, "data": { "message": "Archive re-published successfully", "published": { "key": "published", "name": "..." } } }
+```
+
+### `POST /api/config/versions/:key/draft`
+
+Starts a new working **draft** from a version's content (`:key` = `published` or an archive id; `draft` → `400`). The source version is left in place. If a draft already exists it is archived first, so draft work is never lost and only one draft exists at a time.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "Draft started from version", "draft": { "key": "draft", "name": "version_20260703120500" } } }
 ```
 
 ### `DELETE /api/config/versions/:key`
@@ -321,6 +331,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | GET | `/api/config/versions/:key` | ✓ |
 | PUT | `/api/config/versions/:key` | ✓ |
 | POST | `/api/config/versions/:key/publish` | ✓ |
+| POST | `/api/config/versions/:key/draft` | ✓ |
 | DELETE | `/api/config/versions/:key` | ✓ |
 | POST | `/api/translations/:language` | ✓ |
 | POST | `/api/media/upload-auth` | ✓ |

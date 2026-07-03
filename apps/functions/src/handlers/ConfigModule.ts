@@ -4,6 +4,7 @@ import { BaseHandler } from './BaseHandler';
 import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
 import {
+    type ConfigVersionSummary,
     type ConfigVersionsManifest,
     ConfigVersionsManifestSchema,
     ConfigImportRequestSchema,
@@ -127,23 +128,49 @@ export class ConfigModule extends BaseHandler {
     };
 
     /**
-     * Persists the draft and reflects it in the manifest. A draft blob only ever
-     * exists once there are pending changes, so `manifest.draft` doubles as the
-     * "has unpublished changes" flag. Passing `name` (re)labels the draft; a freshly
-     * created draft otherwise defaults to `version_<timestamp>`.
+     * Persists draft content **in place**. A draft blob only ever exists once there
+     * are pending changes, so `manifest.draft` doubles as the "has unpublished
+     * changes" flag. A freshly created draft defaults to `version_<timestamp>`; an
+     * existing draft keeps its name/date (this is an edit, not a replace).
      */
-    private writeDraft = async (store: Store, config: SiteConfig, name?: string): Promise<void> => {
+    private writeDraft = async (store: Store, config: SiteConfig): Promise<void> => {
         await store.set(ConfigModule.DRAFT_KEY, JSON.stringify(config));
         const manifest = await this.getManifest(store);
-        if (name) {
-            // Import replaces the draft content, so stamp a fresh creation date.
-            manifest.draft = { key: 'draft', name, createdAt: new Date().toISOString() };
-            await this.saveManifest(store, manifest);
-        } else if (!manifest.draft) {
+        if (!manifest.draft) {
             const now = new Date();
             manifest.draft = { key: 'draft', name: this.defaultVersionName(now), createdAt: now.toISOString() };
             await this.saveManifest(store, manifest);
         }
+    };
+
+    /** Snapshots the current draft into the archive list (no-op when there is no draft). */
+    private archiveExistingDraft = async (store: Store, manifest: ConfigVersionsManifest): Promise<void> => {
+        const draftRaw = await store.get(ConfigModule.DRAFT_KEY);
+        if (!draftRaw || !manifest.draft) return;
+        const now = new Date();
+        const id = await this.uniqueArchiveId(store, this.formatTimestamp(now));
+        await store.set(`${ConfigModule.ARCHIVE_PREFIX}${id}`, String(draftRaw));
+        manifest.archives.unshift({
+            key: id,
+            name: manifest.draft.name,
+            createdAt: manifest.draft.createdAt ?? now.toISOString(),
+        });
+        manifest.draft = null;
+    };
+
+    /**
+     * Replaces the working draft with `config`, named `name`. Any existing draft is
+     * archived first — importing or branching from a version never discards draft
+     * work, and only one draft exists at a time.
+     */
+    private replaceDraft = async (store: Store, config: SiteConfig, name: string): Promise<ConfigVersionSummary> => {
+        const manifest = await this.getManifest(store);
+        await this.archiveExistingDraft(store, manifest);
+        await store.set(ConfigModule.DRAFT_KEY, JSON.stringify(config));
+        const draft: ConfigVersionSummary = { key: 'draft', name, createdAt: new Date().toISOString() };
+        manifest.draft = draft;
+        await this.saveManifest(store, manifest);
+        return draft;
     };
 
     /** Finds a free archive id, disambiguating same-second collisions with `-N`. */
@@ -257,8 +284,18 @@ export class ConfigModule extends BaseHandler {
             throw ErrorResponses.invalidRequest('Invalid configuration file', path);
         }
         const { name, config } = parsed.data;
-        await this.writeDraft(store, config, name);
-        return this.createSuccessResponse({ message: 'Configuration imported as draft', draft: { key: 'draft', name } });
+        const draft = await this.replaceDraft(store, config, name);
+        return this.createSuccessResponse({ message: 'Configuration imported as draft', draft });
+    };
+
+    /** POST /api/config/versions/:key/draft — start a new draft from a version's content. */
+    private startDraftFromVersion = async (store: Store, key: string, path: string): Promise<Response> => {
+        if (key === 'draft') {
+            throw ErrorResponses.invalidRequest('Cannot start a draft from the draft', path);
+        }
+        const config = await this.getStoredConfig(store, this.blobKeyForId(key), path);
+        const draft = await this.replaceDraft(store, config, this.defaultVersionName());
+        return this.createSuccessResponse({ message: 'Draft started from version', draft });
     };
 
     /** PUT /api/config/versions/:key — rename a version. */
@@ -375,6 +412,9 @@ export class ConfigModule extends BaseHandler {
             }
             if (method === 'POST' && pathname.startsWith('/api/config/versions/') && pathname.endsWith('/publish')) {
                 return await this.republishVersion(store, this.versionKey(pathname, context), path);
+            }
+            if (method === 'POST' && pathname.startsWith('/api/config/versions/') && pathname.endsWith('/draft')) {
+                return await this.startDraftFromVersion(store, this.versionKey(pathname, context), path);
             }
             if (method === 'PUT' && pathname.startsWith('/api/config/versions/')) {
                 this.requireJson(request, path);

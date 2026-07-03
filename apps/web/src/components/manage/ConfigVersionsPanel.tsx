@@ -26,6 +26,7 @@ import {
   DeleteOutline as DeleteIcon,
   Download as DownloadIcon,
   Edit as RenameIcon,
+  NoteAdd as StartDraftIcon,
   Publish as PublishIcon,
   Restore as RepublishIcon,
 } from '@mui/icons-material';
@@ -40,12 +41,13 @@ import {
   publishDraft,
   renameVersion,
   republishVersion,
+  startDraftFromVersion,
 } from '../../services/configVersionService';
 
 type Kind = 'published' | 'draft' | 'archive';
 type Row = { version: ConfigVersionSummary; kind: Kind };
 type Feedback = { severity: 'success' | 'error'; text: string } | null;
-type Confirm = { action: 'publish' | 'republish' | 'delete'; version: ConfigVersionSummary } | null;
+type Confirm = { action: 'publish' | 'republish' | 'delete' | 'startDraft'; version: ConfigVersionSummary } | null;
 
 const sanitizeFilename = (name: string) => name.replace(/[^a-z0-9._-]+/gi, '_').replace(/^_+|_+$/g, '') || 'config';
 
@@ -172,6 +174,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
       publish: { title: 'page.manage.versions.publish.confirmTitle', body: 'page.manage.versions.publish.confirmBody' },
       republish: { title: 'page.manage.versions.republish.confirmTitle', body: 'page.manage.versions.republish.confirmBody' },
       delete: { title: 'page.manage.versions.delete.confirmTitle', body: 'page.manage.versions.delete.confirmBody' },
+      startDraft: { title: 'page.manage.versions.startDraft.confirmTitle', body: 'page.manage.versions.startDraft.confirmBody' },
     }[confirm.action];
   }, [confirm]);
 
@@ -181,6 +184,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
     setConfirm(null);
     if (action === 'publish') await run(() => publishDraft(), 'page.manage.versions.publish.success');
     else if (action === 'republish') await run(() => republishVersion(version.key), 'page.manage.versions.republish.success');
+    else if (action === 'startDraft') await run(() => startDraftFromVersion(version.key), 'page.manage.versions.startDraft.success');
     else await run(() => deleteVersion(version.key), 'page.manage.versions.delete.success');
   };
 
@@ -200,6 +204,15 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
     const { version, kind } = row;
     return (
       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+        {kind === 'archive' && (
+          <Tooltip title={intl.formatMessage({ id: 'page.manage.versions.startDraft' })}>
+            <span>
+              <IconButton size="small" disabled={busy} onClick={() => setConfirm({ action: 'startDraft', version })} aria-label={intl.formatMessage({ id: 'page.manage.versions.startDraft' })}>
+                <StartDraftIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
         {kind === 'archive' && (
           <Tooltip title={intl.formatMessage({ id: 'page.manage.versions.republish' })}>
             <span>
