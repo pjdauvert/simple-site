@@ -283,7 +283,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
                 {row.kind === 'archive' && <Chip size="small" variant="outlined" label={intl.formatMessage({ id: 'page.manage.versions.archiveLabel' })} />}
               </TableCell>
               <TableCell>
-                {row.version.archivedAt ? intl.formatDate(row.version.archivedAt, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                {row.version.createdAt ? intl.formatDate(row.version.createdAt, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
               </TableCell>
               <TableCell align="right">{renderActions(row)}</TableCell>
             </TableRow>

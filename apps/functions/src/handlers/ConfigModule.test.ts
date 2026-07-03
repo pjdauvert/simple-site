@@ -180,6 +180,7 @@ describe('ConfigModule', () => {
     const body = await readJson(res);
     expect(body.data.published.key).toBe('published');
     expect(body.data.published.name).toMatch(/^version_\d{14}$/); // default name
+    expect(body.data.published.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // seeded config gets a creation date
     expect(body.data.draft).toBeNull();
     expect(body.data.archives).toHaveLength(0);
   });
@@ -234,7 +235,7 @@ describe('ConfigModule', () => {
     const { data } = makeStore({
       config: storedConfig,
       'config:archive:20200101000000': withSiteName('Snapshot'),
-      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', archivedAt: '2020-01-01T00:00:00.000Z' }] }),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
     });
     const res = await handle(
       jsonRequest('https://site.test/api/config/versions/20200101000000', 'PUT', { name: 'Renamed' }),
@@ -247,7 +248,7 @@ describe('ConfigModule', () => {
     const { data } = makeStore({
       config: storedConfig,
       'config:archive:20200101000000': withSiteName('Snapshot'),
-      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', archivedAt: '2020-01-01T00:00:00.000Z' }] }),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
     });
     const res = await handle(jsonRequest('https://site.test/api/config/versions/20200101000000', 'DELETE'));
     expect(res.status).toBe(200);
@@ -266,7 +267,7 @@ describe('ConfigModule', () => {
     const { data } = makeStore({
       config: storedConfig,
       'config:archive:20200101000000': withSiteName('Archived'),
-      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', archivedAt: '2020-01-01T00:00:00.000Z' }] }),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
     });
     const res = await handle(
       jsonRequest('https://site.test/api/config/versions/20200101000000/publish', 'POST'),

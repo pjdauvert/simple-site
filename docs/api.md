@@ -109,7 +109,7 @@ Returns the version manifest: the published config, the draft (or `null`), and t
 { "ok": true, "data": {
   "published": { "key": "published", "name": "version_20260703104512" },
   "draft":     { "key": "draft", "name": "version_20260703110233" },
-  "archives":  [ { "key": "20260702160435", "name": "version_20260701090000", "archivedAt": "2026-07-02T16:04:35.000Z" } ]
+  "archives":  [ { "key": "20260702160435", "name": "version_20260701090000", "createdAt": "2026-07-01T09:00:00.000Z" } ]
 } }
 ```
 

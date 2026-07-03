@@ -104,11 +104,13 @@ export class ConfigModule extends BaseHandler {
             .map((b) => b.key.slice(ConfigModule.ARCHIVE_PREFIX.length))
             .filter((id) => ConfigModule.ARCHIVE_ID_PATTERN.test(id))
             .sort((a, b) => b.localeCompare(a))
-            .map((id) => ({ key: id, name: `${ConfigModule.DEFAULT_NAME_PREFIX}${id}`, archivedAt: this.idToIso(id) }));
+            .map((id) => ({ key: id, name: `${ConfigModule.DEFAULT_NAME_PREFIX}${id}`, createdAt: this.idToIso(id) }));
         const draftExists = Boolean(await store.get(ConfigModule.DRAFT_KEY));
+        const now = new Date();
+        const nowIso = now.toISOString();
         const manifest: ConfigVersionsManifest = {
-            published: { key: 'published', name: this.defaultVersionName() },
-            draft: draftExists ? { key: 'draft', name: this.defaultVersionName() } : null,
+            published: { key: 'published', name: this.defaultVersionName(now), createdAt: nowIso },
+            draft: draftExists ? { key: 'draft', name: this.defaultVersionName(now), createdAt: nowIso } : null,
             archives,
         };
         await this.saveManifest(store, manifest);
@@ -134,10 +136,12 @@ export class ConfigModule extends BaseHandler {
         await store.set(ConfigModule.DRAFT_KEY, JSON.stringify(config));
         const manifest = await this.getManifest(store);
         if (name) {
-            manifest.draft = { key: 'draft', name };
+            // Import replaces the draft content, so stamp a fresh creation date.
+            manifest.draft = { key: 'draft', name, createdAt: new Date().toISOString() };
             await this.saveManifest(store, manifest);
         } else if (!manifest.draft) {
-            manifest.draft = { key: 'draft', name: this.defaultVersionName() };
+            const now = new Date();
+            manifest.draft = { key: 'draft', name: this.defaultVersionName(now), createdAt: now.toISOString() };
             await this.saveManifest(store, manifest);
         }
     };
@@ -153,26 +157,30 @@ export class ConfigModule extends BaseHandler {
     };
 
     /**
-     * Archives the current published config and makes `next` the live config, named
-     * `name`. Shared by publish (draft) and re-publish (archive rollback).
+     * Archives the current published config and makes `next` the live config, taking
+     * the `incoming` version's name + creation date (name and date travel with the
+     * content). Shared by publish (draft) and re-publish (archive rollback).
      */
     private promoteToPublished = async (
         store: Store,
         manifest: ConfigVersionsManifest,
         next: SiteConfig,
-        name: string,
+        incoming: { name: string; createdAt: string },
         path: string,
     ): Promise<void> => {
         const outgoing = await this.getStoredConfig(store, ConfigModule.PUBLISHED_KEY, path);
         const now = new Date();
         const id = await this.uniqueArchiveId(store, this.formatTimestamp(now));
-        const archivedAt = now.toISOString();
         await store.set(`${ConfigModule.ARCHIVE_PREFIX}${id}`, JSON.stringify(outgoing));
-        // The archive keeps the outgoing published version's name (same content).
-        manifest.archives.unshift({ key: id, name: manifest.published.name, archivedAt });
+        // The archive keeps the outgoing published version's name + creation date.
+        manifest.archives.unshift({
+            key: id,
+            name: manifest.published.name,
+            createdAt: manifest.published.createdAt ?? now.toISOString(),
+        });
 
         await store.set(ConfigModule.PUBLISHED_KEY, JSON.stringify(next));
-        manifest.published = { key: 'published', name };
+        manifest.published = { key: 'published', name: incoming.name, createdAt: incoming.createdAt };
     };
 
     // --- endpoint handlers ---------------------------------------------------
@@ -216,8 +224,11 @@ export class ConfigModule extends BaseHandler {
         }
 
         const manifest = await this.getManifest(store);
-        const name = manifest.draft?.name ?? this.defaultVersionName();
-        await this.promoteToPublished(store, manifest, draft, name, path);
+        const incoming = {
+            name: manifest.draft?.name ?? this.defaultVersionName(),
+            createdAt: manifest.draft?.createdAt ?? new Date().toISOString(),
+        };
+        await this.promoteToPublished(store, manifest, draft, incoming, path);
 
         // Clear the draft so it is re-derived from the new published on next read.
         await store.delete(ConfigModule.DRAFT_KEY);
@@ -283,7 +294,10 @@ export class ConfigModule extends BaseHandler {
         // the previously-published config is archived by promoteToPublished.
         manifest.archives.splice(index, 1);
         await store.delete(this.blobKeyForId(key));
-        await this.promoteToPublished(store, manifest, archiveConfig, archiveSummary.name, path);
+        await this.promoteToPublished(store, manifest, archiveConfig, {
+            name: archiveSummary.name,
+            createdAt: archiveSummary.createdAt ?? new Date().toISOString(),
+        }, path);
         await this.saveManifest(store, manifest);
 
         return this.createSuccessResponse({ message: 'Archive re-published successfully', published: manifest.published });

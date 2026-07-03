@@ -20,8 +20,8 @@ import { SiteConfigSchema } from './site.interface.js';
 export const ConfigVersionSummarySchema = z.object({
   key: z.string(),
   name: z.string(),
-  /** ISO timestamp the archive was created. Absent for published/draft. */
-  archivedAt: z.string().optional(),
+  /** ISO timestamp of when this version's content was created (seed/edit/import time). */
+  createdAt: z.string().optional(),
 });
 export type ConfigVersionSummary = z.infer<typeof ConfigVersionSummarySchema>;
 
