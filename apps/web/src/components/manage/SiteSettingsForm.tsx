@@ -16,6 +16,7 @@ import { SiteThemeConfigSchema, UrlOrPathSchema } from '@simple-site/interfaces'
 import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { useNotifications } from '../../hooks/useNotifications';
 import { ImagePickerDialog } from '../media';
 
 const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
@@ -38,6 +39,7 @@ const isValidUrl = (value: string) => UrlOrPathSchema.safeParse(value).success;
 export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }) => {
   const intl = useIntl();
   const flags = useFeatureFlags();
+  const notify = useNotifications();
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -55,8 +57,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   const [faviconError, setFaviconError] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
 
@@ -89,7 +89,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   const handlePicked = (url: string) => {
     if (pickerTarget === 'logo') { setLogoUrl(url); setLogoError(false); }
     else if (pickerTarget === 'favicon') { setFaviconUrl(url); setFaviconError(false); }
-    setSuccess(false);
     setPickerTarget(null);
   };
 
@@ -116,20 +115,18 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
 
     const parsed = SiteThemeConfigSchema.safeParse(site);
     if (!parsed.success) {
-      setSubmitError(intl.formatMessage({ id: 'page.manage.site.error.invalid' }));
+      notify.error(intl.formatMessage({ id: 'page.manage.site.error.invalid' }));
       return;
     }
 
     setSubmitting(true);
-    setSubmitError(null);
-    setSuccess(false);
     try {
       await updateSiteSettings(parsed.data);
       setInitial({ siteName, logoUrl, faviconUrl, container }); // saved values are the new baseline
-      setSuccess(true);
+      notify.success(intl.formatMessage({ id: 'page.manage.site.success' }));
       onSaved?.();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.site.error.save' }));
+      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.site.error.save' }));
     } finally {
       setSubmitting(false);
     }
@@ -164,7 +161,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
         <TextField
           label={intl.formatMessage({ id: 'page.manage.site.siteName' })}
           value={siteName}
-          onChange={(e) => { setSiteName(e.target.value); setSiteNameError(false); setSuccess(false); }}
+          onChange={(e) => { setSiteName(e.target.value); setSiteNameError(false); }}
           error={siteNameError}
           helperText={siteNameError ? <FormattedMessage id="page.manage.site.siteName.required" /> : ' '}
           required
@@ -175,7 +172,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           <TextField
             label={intl.formatMessage({ id: 'page.manage.site.logoUrl' })}
             value={logoUrl}
-            onChange={(e) => { setLogoUrl(e.target.value); setLogoError(false); setSuccess(false); }}
+            onChange={(e) => { setLogoUrl(e.target.value); setLogoError(false); }}
             error={logoError}
             helperText={logoError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
             fullWidth
@@ -196,7 +193,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           <TextField
             label={intl.formatMessage({ id: 'page.manage.site.faviconUrl' })}
             value={faviconUrl}
-            onChange={(e) => { setFaviconUrl(e.target.value); setFaviconError(false); setSuccess(false); }}
+            onChange={(e) => { setFaviconUrl(e.target.value); setFaviconError(false); }}
             error={faviconError}
             helperText={faviconError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
             fullWidth
@@ -217,7 +214,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           select
           label={intl.formatMessage({ id: 'page.manage.site.containerMaxWidth' })}
           value={container}
-          onChange={(e) => { setContainer(e.target.value as ContainerChoice); setSuccess(false); }}
+          onChange={(e) => { setContainer(e.target.value as ContainerChoice); }}
           helperText={intl.formatMessage({ id: 'page.manage.site.containerMaxWidth.help' })}
           sx={{ maxWidth: 280 }}
         >
@@ -227,13 +224,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           ))}
           <MenuItem value="false"><FormattedMessage id="page.manage.site.containerMaxWidth.full" /></MenuItem>
         </TextField>
-
-        {submitError && <Alert severity="error" onClose={() => setSubmitError(null)}>{submitError}</Alert>}
-        {success && (
-          <Alert severity="success" onClose={() => setSuccess(false)}>
-            <FormattedMessage id="page.manage.site.success" />
-          </Alert>
-        )}
 
         <Box>
           <Button type="submit" variant="contained" disabled={submitting || !isDirty}>

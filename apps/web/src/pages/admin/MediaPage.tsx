@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Collapse, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Collapse, Typography } from '@mui/material';
 import { CreateNewFolder as CreateNewFolderIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { MediaFile, MediaFolder, MediaType } from '@simple-site/interfaces';
@@ -37,6 +37,7 @@ import {
   type UploadProgress,
   type UploadStatus,
 } from '../../components/media';
+import { useNotifications } from '../../hooks/useNotifications';
 
 /** A file or folder targeted by an action (delete or rename). */
 type ItemTarget =
@@ -45,12 +46,12 @@ type ItemTarget =
 
 export const MediaPage: React.FC = () => {
   const intl = useIntl();
+  const notify = useNotifications();
 
   const [currentPath, setCurrentPath] = useState('');
   const [folders, setFolders] = useState<MediaFolder[]>([]);
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MediaType>('all');
   const [sortKey, setSortKey] = useState<FileSortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -88,7 +89,6 @@ export const MediaPage: React.FC = () => {
       recentlyDeletedRef.current.set(options.deletedId, Date.now() + DELETE_GRACE_MS);
     }
     setLoading(true);
-    setError(null);
     try {
       const result = await listMedia(path, type);
       if (requestId !== requestIdRef.current) return; // superseded by a newer load
@@ -114,11 +114,11 @@ export const MediaPage: React.FC = () => {
       });
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
-      setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.load' }));
+      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.load' }));
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [intl]);
+  }, [intl, notify]);
 
   useEffect(() => {
     loadMedia(currentPath, filter);
@@ -151,10 +151,10 @@ export const MediaPage: React.FC = () => {
       const status: UploadStatus = isUploadCanceled(err) ? 'canceled' : 'error';
       setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, status } : u)));
       if (status === 'error') {
-        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.upload' }));
+        notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.upload' }));
       }
     }
-  }, [currentPath, filter, intl]);
+  }, [currentPath, filter, intl, notify]);
 
   const uploadFiles = useCallback(async (selected: File[]) => {
     if (selected.length === 0) return;
@@ -167,7 +167,6 @@ export const MediaPage: React.FC = () => {
       status: 'uploading',
       controller: new AbortController(),
     }));
-    setError(null);
     setUploads((prev) => [...prev, ...entries]);
 
     await Promise.allSettled(
@@ -234,7 +233,7 @@ export const MediaPage: React.FC = () => {
         setDeletionPhase(id, 'removing');
       } catch (err) {
         setDeletionPhase(id, null);
-        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+        notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
       }
     })();
   };
@@ -259,7 +258,7 @@ export const MediaPage: React.FC = () => {
         setDeletionPhase(folderId, 'removing');
       } catch (err) {
         setDeletionPhase(folderId, null);
-        setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+        notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
       }
     })();
   };
@@ -303,9 +302,10 @@ export const MediaPage: React.FC = () => {
         await renameFolder(path, newName);
         setFolders((prev) => prev.map((f) => (f.folderId === folderId ? renameFolderLocally(f, newName) : f)));
       }
+      notify.success(intl.formatMessage({ id: 'page.media.renamed' }));
       setRenameTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
     } finally {
       setRenaming(false);
     }
@@ -322,8 +322,9 @@ export const MediaPage: React.FC = () => {
       // Refresh from the server once ImageKit has acknowledged the new folder
       // (keep optimistic uploads that the list index hasn't caught up with).
       await loadMedia(currentPath, filter, { keepPending: true });
+      notify.success(intl.formatMessage({ id: 'page.media.created' }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
+      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.media.error.folder' }));
     } finally {
       setCreatingFolder(false);
     }
@@ -343,8 +344,6 @@ export const MediaPage: React.FC = () => {
       </Typography>
 
       <MediaBreadcrumbs segments={segments} onNavigate={setCurrentPath} />
-
-      {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

@@ -6,6 +6,7 @@ import { IntlProvider } from 'react-intl';
 import type { SiteConfig, SiteThemeConfig } from '@simple-site/interfaces';
 import { AuthContext } from '../../features/auth/AuthContext';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
+import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import messages from '../../features/i18n/i18n.json';
 import { ManagePage } from './ManagePage';
 import { loadDraftConfig, listVersions } from '../../services/configVersionService';
@@ -53,7 +54,9 @@ function renderWithAuth(contextValue: Partial<AuthContextValue> = {}) {
     <MemoryRouter>
       <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
         <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
-          <ManagePage />
+          <NotificationsProvider>
+            <ManagePage />
+          </NotificationsProvider>
         </AuthContext.Provider>
       </IntlProvider>
     </MemoryRouter>,

@@ -5,6 +5,7 @@ import { IntlProvider } from 'react-intl';
 import type { MediaFile, MediaListResult } from '@simple-site/interfaces';
 import messages from '../../features/i18n/i18n.json';
 import { MediaPage } from './MediaPage';
+import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import * as mediaService from '../../services/mediaService';
 
 vi.mock('../../services/mediaService');
@@ -12,7 +13,9 @@ vi.mock('../../services/mediaService');
 const renderPage = () =>
   render(
     <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <MediaPage />
+      <NotificationsProvider>
+        <MediaPage />
+      </NotificationsProvider>
     </IntlProvider>,
   );
 
