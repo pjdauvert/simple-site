@@ -8,9 +8,18 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/config` | Retrieve the full site configuration |
-| POST | `/api/config` | Replace the site configuration (admin) |
-| PUT | `/api/config/site` | Update only the `site` section (admin) |
+| GET | `/api/config` | Retrieve the **published** site configuration (public) |
+| GET | `/api/config/draft` | Retrieve the working **draft** configuration (admin) |
+| POST | `/api/config` | Replace the **draft** configuration (admin) |
+| PUT | `/api/config/site` | Update the `site` section of the **draft** (admin) |
+| POST | `/api/config/publish` | Publish the draft — promote it live, archive the previous (admin) |
+| POST | `/api/config/import` | Upload a configuration as the new named draft (admin) |
+| GET | `/api/config/versions` | List versions: published, draft, archives (admin) |
+| GET | `/api/config/versions/:key` | Download a version's `SiteConfig` (admin) |
+| PUT | `/api/config/versions/:key` | Rename a version (admin) |
+| POST | `/api/config/versions/:key/publish` | Re-publish (roll back to) an archive (admin) |
+| POST | `/api/config/versions/:key/draft` | Start a new draft from a version (admin) |
+| DELETE | `/api/config/versions/:key` | Delete an archive (admin) |
 | GET | `/api/translations/:language` | Retrieve translation dictionary for a locale |
 | POST | `/api/translations/:language` | Merge translations for a locale |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
@@ -27,9 +36,20 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 
 ---
 
+Configuration uses a **draft → publish** model with a linear archive history (see [configuration.md](configuration.md#versioning-draft--publish--archive)). The live site reads the **published** config via `GET /api/config`; admins edit a **draft** and publish it to go live. Publishing archives the previously-published config with a reverse-chronological, second-precision timestamp so it can be restored. At most **10 versions** (published + archives; the draft is uncounted) are retained — creating a new archive beyond that erases the archive with the oldest `createdAt`.
+
 ### `GET /api/config`
 
-Returns the full `SiteConfig` stored in Netlify Blobs. On the first request in a dev environment the blob is seeded automatically from the bundled `siteConfig.json`.
+Returns the **published** `SiteConfig` from Netlify Blobs (key `config`). This is the live configuration the site renders. On the first request in a dev environment the blob is seeded automatically from the bundled `siteConfig.json`. **Public** — the only public config route.
+
+```json
+// 200 OK
+{ "ok": true, "data": { /* SiteConfig */ } }
+```
+
+### `GET /api/config/draft`
+
+Returns the working **draft** `SiteConfig` (key `config:draft`), or the published config when no draft exists yet (reading never creates a draft). Backs the admin edit forms on `/manage`.
 
 ```json
 // 200 OK
@@ -38,19 +58,19 @@ Returns the full `SiteConfig` stored in Netlify Blobs. On the first request in a
 
 ### `POST /api/config`
 
-Replaces the stored site configuration. The body must be a complete, valid `SiteConfig` object — validated by Zod before storage.
+Replaces the whole **draft** configuration (never writes live). The body must be a complete, valid `SiteConfig` object — validated by Zod before storage.
 
 ```json
 // Request body
 { /* SiteConfig — see docs/configuration.md for the full schema */ }
 
 // 200 OK
-{ "ok": true, "data": { "message": "Configuration updated successfully" } }
+{ "ok": true, "data": { "message": "Draft updated successfully" } }
 ```
 
 ### `PUT /api/config/site`
 
-Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `containerMaxWidth`). The server reads the stored config, replaces its `site` object with the (Zod-validated) body, re-validates the whole `SiteConfig`, then persists — so `themes` and `pages` are left untouched. Backs the **Site settings** form on the `/manage` admin dashboard.
+Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `containerMaxWidth`) of the **draft**. The server reads the draft (or the published config if no draft exists), replaces its `site` object with the (Zod-validated) body, re-validates the whole `SiteConfig`, then persists the draft — so `themes` and `pages` are left untouched, and the change does not go live until published. Backs the **Site settings** form on the `/manage` admin dashboard.
 
 ```json
 // Request body — a SiteThemeConfig object
@@ -58,6 +78,85 @@ Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `container
 
 // 200 OK
 { "ok": true, "data": { "message": "Site settings updated successfully" } }
+```
+
+### `POST /api/config/publish`
+
+Promotes the draft to live: the outgoing published config is archived (key `config:archive:<YYYYMMDDHHMMSS>`), the draft becomes the published config (inheriting the draft's name), and the draft is cleared. Returns `409 CONFLICT` when there is no draft, or when the draft is identical to the published config. Retention is capped at **10 versions** (published + archives); creating an archive beyond that erases the archive with the oldest `createdAt`.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "Configuration published successfully", "published": { "key": "published", "name": "..." } } }
+```
+
+### `POST /api/config/import`
+
+Validates an uploaded `SiteConfig` and stores it as the new named **draft** (invalid payloads return `400 INVALID_REQUEST`). If a draft already exists it is archived first (draft work is never discarded — only one draft exists at a time). Publish it separately to go live.
+
+```json
+// Request body
+{ "name": "Homepage refresh", "config": { /* SiteConfig */ } }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Configuration imported as draft", "draft": { "key": "draft", "name": "Homepage refresh" } } }
+```
+
+### `GET /api/config/versions`
+
+Returns the version manifest: the published config, the draft (or `null`), and the archive history (newest first).
+
+```json
+// 200 OK
+{ "ok": true, "data": {
+  "published": { "key": "published", "name": "version_20260703104512" },
+  "draft":     { "key": "draft", "name": "version_20260703110233" },
+  "archives":  [ { "key": "20260702160435", "name": "version_20260701090000", "createdAt": "2026-07-01T09:00:00.000Z" } ]
+} }
+```
+
+Version names default to `version_<YYYYMMDDHHMMSS>` (the UTC time the version was created) and are editable via `PUT /api/config/versions/:key`. A published/re-published version keeps its name, and an archive keeps the name of the config it snapshotted.
+
+### `GET /api/config/versions/:key`
+
+Returns a single version's `SiteConfig` — used to download/export it. `:key` is `published`, `draft`, or an archive id (its timestamp). `404 NOT_FOUND` if absent.
+
+### `PUT /api/config/versions/:key`
+
+Renames a version (published, draft, or archive). `:key` as above.
+
+```json
+// Request body
+{ "name": "Spring campaign" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Version renamed successfully" } }
+```
+
+### `POST /api/config/versions/:key/publish`
+
+Rolls back to an archive: the archive `:key` becomes the live config and the currently-published config is archived in its place. Only archive ids are valid (`published`/`draft` → `400`).
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "Archive re-published successfully", "published": { "key": "published", "name": "..." } } }
+```
+
+### `POST /api/config/versions/:key/draft`
+
+Starts a new working **draft** from a version's content (`:key` = `published` or an archive id; `draft` → `400`). The source version is left in place. If a draft already exists it is archived first, so draft work is never lost and only one draft exists at a time.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "Draft started from version", "draft": { "key": "draft", "name": "version_20260703120500" } } }
+```
+
+### `DELETE /api/config/versions/:key`
+
+Permanently deletes an archive. Deleting `published` or `draft` is rejected (`400 INVALID_REQUEST`).
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "Version deleted successfully" } }
 ```
 
 ---
@@ -223,8 +322,17 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 
 | Method | Path | Auth required |
 |--------|------|---------------|
+| GET | `/api/config/draft` | ✓ |
 | POST | `/api/config` | ✓ |
 | PUT | `/api/config/site` | ✓ |
+| POST | `/api/config/publish` | ✓ |
+| POST | `/api/config/import` | ✓ |
+| GET | `/api/config/versions` | ✓ |
+| GET | `/api/config/versions/:key` | ✓ |
+| PUT | `/api/config/versions/:key` | ✓ |
+| POST | `/api/config/versions/:key/publish` | ✓ |
+| POST | `/api/config/versions/:key/draft` | ✓ |
+| DELETE | `/api/config/versions/:key` | ✓ |
 | POST | `/api/translations/:language` | ✓ |
 | POST | `/api/media/upload-auth` | ✓ |
 | GET | `/api/media` | ✓ |
@@ -234,7 +342,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | PUT | `/api/media` | ✓ |
 | DELETE | `/api/media/:fileId` | ✓ |
 
-All `GET` endpoints are public **except** `/api/media` (admin-only media management).
+All `GET` endpoints are public **except** `/api/config/draft`, `/api/config/versions`, `/api/config/versions/:key` (admin-only config version management) and `/api/media` (admin-only media management). Only `GET /api/config` (the published config) is public.
 
 **Request header:**
 ```
@@ -252,7 +360,15 @@ The token is obtained via the Netlify Identity service at `/.netlify/identity` (
 
 ## Storage
 
-`/api/config` and `/api/translations/:language` persist data in **Netlify Blobs** under the store `{APP_NAME}-store`. Blobs are seeded on the first dev request — no manual setup is needed.
+`/api/config*` and `/api/translations/:language` persist data in **Netlify Blobs** under the store `{APP_NAME}-store`. Blobs are seeded on the first dev request — no manual setup is needed. Config versioning uses these keys:
+
+| Key | Contents |
+|-----|----------|
+| `config` | Published (live) `SiteConfig` — served by `GET /api/config` |
+| `config:draft` | Working draft `SiteConfig` (exists only when there are unpublished changes) |
+| `config:archive:<YYYYMMDDHHMMSS>` | Snapshot of a previously-published config |
+| `config:versions` | Manifest: version names + the archive list (source of truth for the panel) |
+| `translations` | i18n dictionaries (not versioned) |
 
 ---
 

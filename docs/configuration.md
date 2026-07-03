@@ -2,10 +2,12 @@
 
 Site configuration and translations are stored in **Netlify Blobs** and fetched at runtime by the frontend — there is no static config file bundled with the built assets.
 
-- Configuration: fetched via `GET /api/config`, validated against `SiteConfigSchema`
+- Configuration: the **published** config is fetched via `GET /api/config`, validated against `SiteConfigSchema`
 - Translations: fetched via `GET /api/translations/:locale`, validated against `I18nDictionarySchema`
 
 Both blobs are seeded automatically on the first dev request from the JSON files in `apps/functions/src/handlers/seed/`.
+
+Configuration is versioned with a **draft → publish** model — admins edit a draft and publish it to go live, with an archive history for rollback. See [Versioning](#versioning-draft--publish--archive) below.
 
 ---
 
@@ -109,15 +111,35 @@ Sections are typed via a Zod discriminated union on the `type` field. Currently 
 }
 ```
 
+### Versioning (draft → publish → archive)
+
+The whole `SiteConfig` (site + themes + pages) is versioned. There is exactly one **published** (live) config, an optional working **draft**, and a linear history of **archives**. Translations are *not* part of this versioning.
+
+- **Edit** — the admin panels on `/manage` (e.g. Site settings) write to the **draft** (`PUT /api/config/site`, `POST /api/config`). Nothing changes on the live site until you publish. There is at most one draft, and a draft blob exists only while there are unpublished changes.
+- **Start from a version** — with no draft, an archive (or the published config) can be used as the starting point for a new draft (`POST /api/config/versions/:key/draft`), cloning its content. Importing (`POST /api/config/import`) does the same from an uploaded file. If a draft already exists, it is **archived first** so its work is never discarded.
+- **Publish** — `POST /api/config/publish` promotes the draft to live (the published version keeps the draft's name). The **previously-published** config is snapshotted into an archive keyed by a UTC, second-precision timestamp (`config:archive:<YYYYMMDDHHMMSS>`), keeping the name it had while published, and the draft is cleared.
+- **Archive history** — archives are listed newest-first and are read-only snapshots; delete them manually when no longer needed. Retention is capped at **10 versions** (published + archives; the draft is uncounted). When a new archive is created at the cap, the archive with the **oldest `createdAt`** is erased — the admin panel confirms first and offers to download it (Cancel / Confirm / Download & confirm).
+- **Roll back** — re-publishing an archive (`POST /api/config/versions/:key/publish`) makes it live again and archives the config it replaced.
+- **Name / rename** — every version (published, draft, archive) has a name, defaulting to `version_<YYYYMMDDHHMMSS>` (UTC creation time) and editable via `PUT /api/config/versions/:key`.
+- **Import / export** — download any version's JSON (`GET /api/config/versions/:key`) or upload one as a new named draft (`POST /api/config/import`).
+
+The **Config versions** panel on the `/manage` dashboard drives all of the above. See the [API reference](api.md#get-apiconfig) for the endpoints and the blob-key layout.
+
 ### Updating the live configuration
 
+For local development, edit `apps/functions/src/handlers/seed/siteConfig.json` directly — it seeds the **published** config on the next request if the blob is absent. In a running environment, use the **Config versions** panel (or the API): edit the draft, then publish.
+
 ```bash
+# Replace the DRAFT (does not go live until published)
 curl -X POST https://<your-site>/api/config \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <netlify-identity-token>" \
   -d @apps/functions/src/handlers/seed/siteConfig.json
-```
 
-For local development, edit `apps/functions/src/handlers/seed/siteConfig.json` directly — it is re-seeded on the next request if the blob is absent.
+# Publish the draft to make it live
+curl -X POST https://<your-site>/api/config/publish \
+  -H "Authorization: Bearer <netlify-identity-token>"
+```
 
 ---
 

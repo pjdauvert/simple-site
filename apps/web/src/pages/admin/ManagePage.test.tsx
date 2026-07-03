@@ -8,14 +8,24 @@ import { AuthContext } from '../../features/auth/AuthContext';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
 import messages from '../../features/i18n/i18n.json';
 import { ManagePage } from './ManagePage';
-import { loadSiteConfig } from '../../services/initService';
+import { loadDraftConfig, listVersions } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 
 vi.mock('../../layouts/MainLayout', () => ({
   MainLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
-vi.mock('../../services/initService', () => ({ loadSiteConfig: vi.fn() }));
+vi.mock('../../services/configVersionService', () => ({
+  loadDraftConfig: vi.fn(),
+  listVersions: vi.fn(),
+  publishDraft: vi.fn(),
+  importConfig: vi.fn(),
+  getVersionConfig: vi.fn(),
+  renameVersion: vi.fn(),
+  republishVersion: vi.fn(),
+  startDraftFromVersion: vi.fn(),
+  deleteVersion: vi.fn(),
+}));
 vi.mock('../../services/siteConfigService', () => ({ updateSiteSettings: vi.fn() }));
 vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
@@ -53,7 +63,12 @@ function renderWithAuth(contextValue: Partial<AuthContextValue> = {}) {
 describe('ManagePage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(loadSiteConfig).mockResolvedValue(siteConfig());
+    vi.mocked(loadDraftConfig).mockResolvedValue(siteConfig());
+    vi.mocked(listVersions).mockResolvedValue({
+      published: { key: 'published', name: 'Published' },
+      draft: null,
+      archives: [],
+    });
     vi.mocked(updateSiteSettings).mockResolvedValue(undefined);
     vi.mocked(useFeatureFlags).mockReturnValue({ media: true });
   });
@@ -83,6 +98,15 @@ describe('ManagePage', () => {
     expect(await screen.findByDisplayValue('My Site')).toBeInTheDocument();
     expect(screen.getByDisplayValue('/logo.svg')).toBeInTheDocument();
     expect(screen.getByDisplayValue('/favicon.ico')).toBeInTheDocument();
+  });
+
+  it('keeps Save disabled until a field changes', async () => {
+    renderWithAuth();
+    await screen.findByDisplayValue('My Site');
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    expect(saveButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/site name/i), { target: { value: 'My Site 2' } });
+    expect(saveButton).toBeEnabled();
   });
 
   it('saves the edited site settings via updateSiteSettings', async () => {

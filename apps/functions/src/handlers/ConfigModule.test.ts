@@ -38,61 +38,90 @@ const storedConfig = {
   pages: [],
 };
 
-/** Stubs `getStore` with an in-memory store seeded from `initial` (null = missing key). */
-const makeStore = (initial: unknown = storedConfig) => {
+const withSiteName = (name: string) => ({ ...storedConfig, site: { ...storedConfig.site, siteName: name } });
+
+const manifest = (over: Record<string, unknown> = {}) =>
+  JSON.stringify({
+    published: { key: 'published', name: 'Published' },
+    draft: null,
+    archives: [],
+    ...over,
+  });
+
+/** Stubs `getStore` with an in-memory key/value store implementing get/set/delete/list. */
+const makeStore = (seed: Record<string, unknown> = { config: storedConfig }) => {
+  const data = new Map<string, string>(
+    Object.entries(seed).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)]),
+  );
   const store = {
-    get: vi.fn(async () => (initial === null ? null : JSON.stringify(initial))),
-    set: vi.fn(async () => undefined),
+    get: vi.fn(async (key: string) => data.get(key) ?? null),
+    set: vi.fn(async (key: string, value: string) => { data.set(key, value); }),
+    delete: vi.fn(async (key: string) => { data.delete(key); }),
+    list: vi.fn(async ({ prefix }: { prefix: string }) => ({
+      blobs: [...data.keys()].filter((k) => k.startsWith(prefix)).map((key) => ({ key, etag: 'e' })),
+      directories: [],
+    })),
   };
   vi.mocked(getStore).mockReturnValue(store as never);
-  return store;
+  return { store, data };
 };
 
 const ctx = {} as never;
+const handle = (request: Request) => new ConfigModule().handle(request, ctx);
 
 describe('ConfigModule', () => {
   beforeEach(() => { vi.clearAllMocks(); stubEnv(); });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('PUT /api/config/site merges the site section and preserves themes/pages', async () => {
-    const store = makeStore();
-    const res = await new ConfigModule().handle(
+  it('GET /api/config returns the published config', async () => {
+    makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.site.siteName).toBe('Old Name');
+  });
+
+  it('GET /api/config/draft returns the published config when no draft exists (no side effects)', async () => {
+    const { data } = makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/draft', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.site.siteName).toBe('Old Name');
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/site writes the DRAFT and leaves the published config untouched', async () => {
+    const { data } = makeStore();
+    const res = await handle(
       jsonRequest('https://site.test/api/config/site', 'PUT', {
         siteName: 'New Name',
         logoUrl: '/new.svg',
         containerMaxWidth: 'md',
       }),
-      ctx,
     );
-
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.message).toMatch(/updated/i);
 
-    expect(store.set).toHaveBeenCalledTimes(1);
-    const [key, value] = store.set.mock.calls[0] as unknown as [string, string];
-    expect(key).toBe('config');
-    const written = JSON.parse(value);
-    expect(written.site).toEqual({ siteName: 'New Name', logoUrl: '/new.svg', containerMaxWidth: 'md' });
-    expect(written.themes).toEqual(storedConfig.themes); // untouched
-    expect(written.pages).toEqual([]);
+    // Published stays as-is; the change lands on the draft.
+    expect(JSON.parse(data.get('config')!).site.siteName).toBe('Old Name');
+    const draft = JSON.parse(data.get('config:draft')!);
+    expect(draft.site).toEqual({ siteName: 'New Name', logoUrl: '/new.svg', containerMaxWidth: 'md' });
+    expect(draft.themes).toEqual(storedConfig.themes); // untouched
+    const draftSummary = JSON.parse(data.get('config:versions')!).draft;
+    expect(draftSummary).not.toBeNull();
+    expect(draftSummary.name).toMatch(/^version_\d{14}$/); // default name
   });
 
   it('PUT /api/config/site rejects an invalid site body (missing siteName)', async () => {
-    const store = makeStore();
-    const res = await new ConfigModule().handle(
-      jsonRequest('https://site.test/api/config/site', 'PUT', { logoUrl: '/x.svg' }),
-      ctx,
-    );
+    const { store } = makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/site', 'PUT', { logoUrl: '/x.svg' }));
     expect(res.status).toBe(500);
     expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
     expect(store.set).not.toHaveBeenCalled();
   });
 
   it('PUT /api/config/site requires an application/json content type', async () => {
-    const store = makeStore();
-    const res = await new ConfigModule().handle(
+    const { store } = makeStore();
+    const res = await handle(
       jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'X' }, 'text/plain'),
-      ctx,
     );
     expect(res.status).toBe(400);
     expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
@@ -100,31 +129,259 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/site 404s when no config is stored yet', async () => {
-    makeStore(null);
-    const res = await new ConfigModule().handle(
-      jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'X' }),
-      ctx,
-    );
+    makeStore({});
+    const res = await handle(jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'X' }));
     expect(res.status).toBe(404);
     expect((await readJson(res)).code).toBe(ErrorCode.NOT_FOUND);
   });
 
-  it('GET /api/config returns the stored config', async () => {
+  it('POST /api/config/publish promotes the draft and archives the previous published config', async () => {
+    const { data } = makeStore({ config: storedConfig, 'config:draft': withSiteName('Draft Name') });
+    const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
+    expect(res.status).toBe(200);
+
+    // Draft is now live and cleared.
+    expect(JSON.parse(data.get('config')!).site.siteName).toBe('Draft Name');
+    expect(data.has('config:draft')).toBe(false);
+
+    // The previous published config was archived.
+    const archiveKeys = [...data.keys()].filter((k) => k.startsWith('config:archive:'));
+    expect(archiveKeys).toHaveLength(1);
+    expect(JSON.parse(data.get(archiveKeys[0])!).site.siteName).toBe('Old Name');
+
+    const m = JSON.parse(data.get('config:versions')!);
+    expect(m.draft).toBeNull();
+    expect(m.archives).toHaveLength(1);
+  });
+
+  it('POST /api/config/publish rejects when there is no draft', async () => {
     makeStore();
-    const res = await new ConfigModule().handle(
-      jsonRequest('https://site.test/api/config', 'GET'),
-      ctx,
+    const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
+    expect(res.status).toBe(409);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFLICT);
+  });
+
+  it('POST /api/config/publish rejects a no-op (draft equals published)', async () => {
+    makeStore({ config: storedConfig, 'config:draft': storedConfig });
+    const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
+    expect(res.status).toBe(409);
+  });
+
+  // Seeds `config`, a `Draft`, and `count` archives A1..A<count> (A1 oldest).
+  const seedAtCap = (count: number) => {
+    const seed: Record<string, unknown> = { config: storedConfig, 'config:draft': withSiteName('Draft') };
+    const archives: { key: string; name: string; createdAt: string }[] = [];
+    for (let i = 1; i <= count; i++) {
+      const key = String(20200101000000 + i);
+      seed[`config:archive:${key}`] = withSiteName(`A${i}`);
+      archives.push({ key, name: `A${i}`, createdAt: `2020-01-01T00:00:${String(i).padStart(2, '0')}.000Z` });
+    }
+    archives.reverse(); // newest-first; oldest = A1 (key ...0001)
+    seed['config:versions'] = manifest({
+      draft: { key: 'draft', name: 'Draft', createdAt: '2021-01-01T00:00:00.000Z' },
+      archives,
+    });
+    return makeStore(seed);
+  };
+
+  it('publishing at the version cap erases the oldest archive', async () => {
+    const { data } = seedAtCap(9); // published + 9 archives = 10 = MAX
+    const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
+    expect(res.status).toBe(200);
+
+    const m = JSON.parse(data.get('config:versions')!);
+    expect(1 + m.archives.length).toBeLessThanOrEqual(10); // published + archives within cap
+    expect(m.archives).toHaveLength(9);
+    expect(m.archives.some((a: { key: string }) => a.key === '20200101000001')).toBe(false); // oldest gone
+    expect(data.has('config:archive:20200101000001')).toBe(false);
+  });
+
+  it('importing at the version cap archives the draft and erases the oldest archive', async () => {
+    const { data } = seedAtCap(9);
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Imported', config: withSiteName('From File') }),
     );
     expect(res.status).toBe(200);
-    expect((await readJson(res)).data.site.siteName).toBe('Old Name');
+
+    const m = JSON.parse(data.get('config:versions')!);
+    expect(m.archives).toHaveLength(9); // old draft archived, oldest pruned
+    expect(data.has('config:archive:20200101000001')).toBe(false);
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('From File');
+  });
+
+  it('POST /api/config/versions/:key/draft starts a draft from an archive (no existing draft)', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:archive:20200101000000': withSiteName('Archived'),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
+    });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions/20200101000000/draft', 'POST'));
+    expect(res.status).toBe(200);
+    // Draft now holds the archive's content; the source archive is untouched.
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('Archived');
+    expect(data.has('config:archive:20200101000000')).toBe(true);
+    const m = JSON.parse(data.get('config:versions')!);
+    expect(m.draft).not.toBeNull();
+    expect(m.archives.map((a: { key: string }) => a.key)).toContain('20200101000000');
+  });
+
+  it('starting a draft from a version archives the existing draft first', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:draft': withSiteName('Old Draft'),
+      'config:archive:20200101000000': withSiteName('Archived'),
+      'config:versions': manifest({
+        draft: { key: 'draft', name: 'Old Draft', createdAt: '2021-01-01T00:00:00.000Z' },
+        archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }],
+      }),
+    });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions/20200101000000/draft', 'POST'));
+    expect(res.status).toBe(200);
+    // New draft = archive content; the previous draft was archived (never discarded).
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('Archived');
+    const archived = [...data.keys()]
+      .filter((k) => k.startsWith('config:archive:'))
+      .map((k) => JSON.parse(data.get(k)!).site.siteName);
+    expect(archived).toContain('Old Draft');
+  });
+
+  it('POST /api/config/import archives an existing draft before replacing it', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:draft': withSiteName('Old Draft'),
+      'config:versions': manifest({ draft: { key: 'draft', name: 'Old Draft', createdAt: '2021-01-01T00:00:00.000Z' } }),
+    });
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Imported', config: withSiteName('From File') }),
+    );
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('From File');
+    const archived = [...data.keys()]
+      .filter((k) => k.startsWith('config:archive:'))
+      .map((k) => JSON.parse(data.get(k)!).site.siteName);
+    expect(archived).toContain('Old Draft'); // previous draft preserved
+    expect(JSON.parse(data.get('config:versions')!).draft.name).toBe('Imported');
+  });
+
+  it('GET /api/config/versions returns the manifest', async () => {
+    makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.published.key).toBe('published');
+  });
+
+  it('initial manifest for a seeded store has the published config and no draft/archives', async () => {
+    makeStore({ config: storedConfig });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
+    const body = await readJson(res);
+    expect(body.data.published.key).toBe('published');
+    expect(body.data.published.name).toMatch(/^version_\d{14}$/); // default name
+    expect(body.data.published.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // seeded config gets a creation date
+    expect(body.data.draft).toBeNull();
+    expect(body.data.archives).toHaveLength(0);
+  });
+
+  it('rebuild ignores non-archive keys even when list() does not honour the prefix', async () => {
+    const { store, data } = makeStore({ config: storedConfig, translations: { en: {} }, 'config:draft': storedConfig });
+    // Simulate the local dev list() returning every key regardless of `prefix`.
+    store.list.mockImplementation(async () => ({
+      blobs: [...data.keys()].map((key) => ({ key, etag: 'e' })),
+      directories: [],
+    }));
+    const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.archives).toHaveLength(0);
+  });
+
+  it('GET /api/config/versions self-heals a manifest polluted with a phantom archive', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:versions': manifest({
+        draft: { key: 'draft', name: 'Working draft' },
+        archives: [{ key: '', name: 'archive1' }],
+      }),
+    });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.archives).toHaveLength(0);
+    // The cleaned manifest is persisted.
+    expect(JSON.parse(data.get('config:versions')!).archives).toHaveLength(0);
+  });
+
+  it('POST /api/config/import stores the uploaded config as the named draft', async () => {
+    const { data } = makeStore();
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Imported', config: withSiteName('From File') }),
+    );
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('From File');
+    expect(JSON.parse(data.get('config:versions')!).draft.name).toBe('Imported');
+  });
+
+  it('POST /api/config/import rejects an invalid configuration', async () => {
+    makeStore();
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Bad', config: { nonsense: true } }),
+    );
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
+  });
+
+  it('PUT /api/config/versions/:key renames an archive', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:archive:20200101000000': withSiteName('Snapshot'),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
+    });
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/versions/20200101000000', 'PUT', { name: 'Renamed' }),
+    );
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:versions')!).archives[0].name).toBe('Renamed');
+  });
+
+  it('DELETE /api/config/versions/:key removes an archive', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:archive:20200101000000': withSiteName('Snapshot'),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
+    });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions/20200101000000', 'DELETE'));
+    expect(res.status).toBe(200);
+    expect(data.has('config:archive:20200101000000')).toBe(false);
+    expect(JSON.parse(data.get('config:versions')!).archives).toHaveLength(0);
+  });
+
+  it('DELETE /api/config/versions/published is rejected', async () => {
+    makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/versions/published', 'DELETE'));
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
+  });
+
+  it('POST /api/config/versions/:key/publish rolls back to an archive', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:archive:20200101000000': withSiteName('Archived'),
+      'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
+    });
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/versions/20200101000000/publish', 'POST'),
+    );
+    expect(res.status).toBe(200);
+
+    // The archive is now live; the previously-published config was archived in its place.
+    expect(JSON.parse(data.get('config')!).site.siteName).toBe('Archived');
+    expect(data.has('config:archive:20200101000000')).toBe(false);
+    const archiveKeys = [...data.keys()].filter((k) => k.startsWith('config:archive:'));
+    expect(archiveKeys).toHaveLength(1);
+    expect(JSON.parse(data.get(archiveKeys[0])!).site.siteName).toBe('Old Name');
+    expect(JSON.parse(data.get('config:versions')!).published.name).toBe('Snapshot');
   });
 
   it('rejects unsupported methods', async () => {
     makeStore();
-    const res = await new ConfigModule().handle(
-      jsonRequest('https://site.test/api/config', 'PATCH'),
-      ctx,
-    );
+    const res = await handle(jsonRequest('https://site.test/api/config', 'PATCH'));
     expect(res.status).toBe(405);
   });
 });

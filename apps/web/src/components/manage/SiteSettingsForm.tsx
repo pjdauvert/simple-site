@@ -13,7 +13,7 @@ import { PhotoLibrary as PhotoLibraryIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { SiteThemeConfig } from '@simple-site/interfaces';
 import { SiteThemeConfigSchema, UrlOrPathSchema } from '@simple-site/interfaces';
-import { loadSiteConfig } from '../../services/initService';
+import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { ImagePickerDialog } from '../media';
@@ -30,10 +30,12 @@ const isValidUrl = (value: string) => UrlOrPathSchema.safeParse(value).success;
 
 /**
  * Edits the `site` section of the config (name, logo, favicon, container width).
- * Prefills from the live config (`GET /api/config`) — the admin shell has no
- * SiteConfigProvider — and saves via `PUT /api/config/site`.
+ * Prefills from the working draft (`GET /api/config/draft`) — the admin shell has
+ * no SiteConfigProvider — and saves via `PUT /api/config/site`, which writes the
+ * draft. Changes go live only when published from the Config Versions panel.
  */
-export const SiteSettingsForm: React.FC = () => {
+/** `onSaved` fires after a successful draft save so a parent can refresh siblings. */
+export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }) => {
   const intl = useIntl();
   const flags = useFeatureFlags();
 
@@ -44,6 +46,9 @@ export const SiteSettingsForm: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
   const [container, setContainer] = useState<ContainerChoice>('');
+
+  // Snapshot of the loaded (or last-saved) values, to enable Save only when dirty.
+  const [initial, setInitial] = useState({ siteName: '', logoUrl: '', faviconUrl: '', container: '' as ContainerChoice });
 
   const [siteNameError, setSiteNameError] = useState(false);
   const [logoError, setLogoError] = useState(false);
@@ -57,13 +62,20 @@ export const SiteSettingsForm: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    loadSiteConfig()
+    loadDraftConfig()
       .then((config) => {
         if (!active) return;
-        setSiteName(config.site.siteName);
-        setLogoUrl(config.site.logoUrl ?? '');
-        setFaviconUrl(config.site.faviconUrl ?? '');
-        setContainer(toChoice(config.site.containerMaxWidth));
+        const loaded = {
+          siteName: config.site.siteName,
+          logoUrl: config.site.logoUrl ?? '',
+          faviconUrl: config.site.faviconUrl ?? '',
+          container: toChoice(config.site.containerMaxWidth),
+        };
+        setSiteName(loaded.siteName);
+        setLogoUrl(loaded.logoUrl);
+        setFaviconUrl(loaded.faviconUrl);
+        setContainer(loaded.container);
+        setInitial(loaded);
       })
       .catch((err) => {
         if (active) {
@@ -113,7 +125,9 @@ export const SiteSettingsForm: React.FC = () => {
     setSuccess(false);
     try {
       await updateSiteSettings(parsed.data);
+      setInitial({ siteName, logoUrl, faviconUrl, container }); // saved values are the new baseline
       setSuccess(true);
+      onSaved?.();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.site.error.save' }));
     } finally {
@@ -134,6 +148,11 @@ export const SiteSettingsForm: React.FC = () => {
   }
 
   const showPicker = Boolean(flags?.media);
+  const isDirty =
+    siteName !== initial.siteName ||
+    logoUrl !== initial.logoUrl ||
+    faviconUrl !== initial.faviconUrl ||
+    container !== initial.container;
 
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -217,7 +236,7 @@ export const SiteSettingsForm: React.FC = () => {
         )}
 
         <Box>
-          <Button type="submit" variant="contained" disabled={submitting}>
+          <Button type="submit" variant="contained" disabled={submitting || !isDirty}>
             {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.site.save" />}
           </Button>
         </Box>

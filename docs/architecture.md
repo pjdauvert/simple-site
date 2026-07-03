@@ -15,7 +15,7 @@
 | Linting | ESLint + Lefthook git hooks |
 | Backend | Netlify Functions (TypeScript, NodeNext ESM) |
 | Auth | Netlify Identity (`@netlify/identity`) |
-| Storage | Netlify Blobs (config/i18n), ImageKit (media) |
+| Storage | Netlify Blobs (published config + draft + archives, i18n), ImageKit (media) |
 
 ## Monorepo Layout
 
@@ -50,6 +50,8 @@ Because the functions compile to native NodeNext ESM, the library re-exports eve
 
 Configuration and translations are fetched from the serverless API at startup — there is no static config file bundled with the frontend.
 
+Configuration is versioned with a draft → publish model: the **live site** reads the **published** config (`GET /api/config`), while the `/manage` admin forms read and write the **draft** (`GET /api/config/draft`, `PUT /api/config/site`). Publishing (`POST /api/config/publish`) promotes the draft to live and archives the previous published config. See [configuration.md](configuration.md#versioning-draft--publish--archive).
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  App starts                                      │
@@ -57,10 +59,19 @@ Configuration and translations are fetched from the serverless API at startup �
 │  SiteConfigProvider                              │
 │  ↓  (shows loading screen)                       │
 │  GET /api/config → Zod (SiteConfigSchema)        │
+│  (published/live config)                         │
 │  ↓                                               │
 │  Config in React Context                         │
 │  ├─ ThemeProvider  (config.themes)               │
 │  └─ AppRouter      (config.pages)                │
+└──────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────┐
+│  /manage (admin, no SiteConfigProvider)          │
+│  ├─ SiteSettingsForm → GET /api/config/draft     │
+│  │                     PUT /api/config/site      │
+│  └─ ConfigVersionsPanel → GET /api/config/versions│
+│                            POST /api/config/publish│
 └──────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────┐
