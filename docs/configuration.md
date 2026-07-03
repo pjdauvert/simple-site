@@ -116,10 +116,10 @@ Sections are typed via a Zod discriminated union on the `type` field. Currently 
 The whole `SiteConfig` (site + themes + pages) is versioned. There is exactly one **published** (live) config, an optional working **draft**, and a linear history of **archives**. Translations are *not* part of this versioning.
 
 - **Edit** — the admin panels on `/manage` (e.g. Site settings) write to the **draft** (`PUT /api/config/site`, `POST /api/config`). Nothing changes on the live site until you publish. A draft blob exists only while there are unpublished changes.
-- **Publish** — `POST /api/config/publish` promotes the draft to live. The **previously-published** config is snapshotted into an archive named `<name>_<YYYYMMDDHHMMSS>` (UTC, second precision) and the draft is cleared.
+- **Publish** — `POST /api/config/publish` promotes the draft to live (the published version keeps the draft's name). The **previously-published** config is snapshotted into an archive keyed by a UTC, second-precision timestamp (`config:archive:<YYYYMMDDHHMMSS>`), keeping the name it had while published, and the draft is cleared.
 - **Archive history** — archives are kept indefinitely and listed newest-first. They are read-only snapshots; delete them manually when no longer needed.
 - **Roll back** — re-publishing an archive (`POST /api/config/versions/:key/publish`) makes it live again and archives the config it replaced.
-- **Name / rename** — every version (published, draft, archive) has a name, editable via `PUT /api/config/versions/:key`.
+- **Name / rename** — every version (published, draft, archive) has a name, defaulting to `version_<YYYYMMDDHHMMSS>` (UTC creation time) and editable via `PUT /api/config/versions/:key`.
 - **Import / export** — download any version's JSON (`GET /api/config/versions/:key`) or upload one as a new named draft (`POST /api/config/import`).
 
 The **Config versions** panel on the `/manage` dashboard drives all of the above. See the [API reference](api.md#get-apiconfig) for the endpoints and the blob-key layout.

@@ -107,11 +107,13 @@ Returns the version manifest: the published config, the draft (or `null`), and t
 ```json
 // 200 OK
 { "ok": true, "data": {
-  "published": { "key": "published", "name": "Live" },
-  "draft":     { "key": "draft", "name": "Working draft" },
-  "archives":  [ { "key": "20260702160435", "name": "Live_20260702160435", "archivedAt": "2026-07-02T16:04:35.000Z" } ]
+  "published": { "key": "published", "name": "version_20260703104512" },
+  "draft":     { "key": "draft", "name": "version_20260703110233" },
+  "archives":  [ { "key": "20260702160435", "name": "version_20260701090000", "archivedAt": "2026-07-02T16:04:35.000Z" } ]
 } }
 ```
+
+Version names default to `version_<YYYYMMDDHHMMSS>` (the UTC time the version was created) and are editable via `PUT /api/config/versions/:key`. A published/re-published version keeps its name, and an archive keeps the name of the config it snapshotted.
 
 ### `GET /api/config/versions/:key`
 

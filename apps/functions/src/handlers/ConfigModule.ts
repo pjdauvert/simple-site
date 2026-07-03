@@ -33,8 +33,8 @@ export class ConfigModule extends BaseHandler {
     private static readonly DRAFT_KEY = 'config:draft';
     private static readonly ARCHIVE_PREFIX = 'config:archive:';
     private static readonly MANIFEST_KEY = 'config:versions';
-    private static readonly DRAFT_DEFAULT_NAME = 'Working draft';
-    private static readonly PUBLISHED_DEFAULT_NAME = 'Published';
+    /** Auto-generated default version names are `version_<YYYYMMDDHHMMSS>`. */
+    private static readonly DEFAULT_NAME_PREFIX = 'version_';
     /** A valid archive id is a 14-digit UTC timestamp, optionally `-N` on collision. */
     private static readonly ARCHIVE_ID_PATTERN = /^\d{14}(-\d+)?$/;
 
@@ -61,6 +61,10 @@ export class ConfigModule extends BaseHandler {
         return `${p(date.getUTCFullYear(), 4)}${p(date.getUTCMonth() + 1)}${p(date.getUTCDate())}` +
             `${p(date.getUTCHours())}${p(date.getUTCMinutes())}${p(date.getUTCSeconds())}`;
     };
+
+    /** Default name for a version created now: `version_<YYYYMMDDHHMMSS>`. */
+    private defaultVersionName = (date: Date = new Date()): string =>
+        `${ConfigModule.DEFAULT_NAME_PREFIX}${this.formatTimestamp(date)}`;
 
     /** Best-effort ISO from an archive id (used only on manifest recovery). */
     private idToIso = (id: string): string | undefined => {
@@ -100,11 +104,11 @@ export class ConfigModule extends BaseHandler {
             .map((b) => b.key.slice(ConfigModule.ARCHIVE_PREFIX.length))
             .filter((id) => ConfigModule.ARCHIVE_ID_PATTERN.test(id))
             .sort((a, b) => b.localeCompare(a))
-            .map((id) => ({ key: id, name: id, archivedAt: this.idToIso(id) }));
+            .map((id) => ({ key: id, name: `${ConfigModule.DEFAULT_NAME_PREFIX}${id}`, archivedAt: this.idToIso(id) }));
         const draftExists = Boolean(await store.get(ConfigModule.DRAFT_KEY));
         const manifest: ConfigVersionsManifest = {
-            published: { key: 'published', name: ConfigModule.PUBLISHED_DEFAULT_NAME },
-            draft: draftExists ? { key: 'draft', name: ConfigModule.DRAFT_DEFAULT_NAME } : null,
+            published: { key: 'published', name: this.defaultVersionName() },
+            draft: draftExists ? { key: 'draft', name: this.defaultVersionName() } : null,
             archives,
         };
         await this.saveManifest(store, manifest);
@@ -124,7 +128,7 @@ export class ConfigModule extends BaseHandler {
      * Persists the draft and reflects it in the manifest. A draft blob only ever
      * exists once there are pending changes, so `manifest.draft` doubles as the
      * "has unpublished changes" flag. Passing `name` (re)labels the draft; a freshly
-     * created draft otherwise defaults to "Working draft".
+     * created draft otherwise defaults to `version_<timestamp>`.
      */
     private writeDraft = async (store: Store, config: SiteConfig, name?: string): Promise<void> => {
         await store.set(ConfigModule.DRAFT_KEY, JSON.stringify(config));
@@ -133,7 +137,7 @@ export class ConfigModule extends BaseHandler {
             manifest.draft = { key: 'draft', name };
             await this.saveManifest(store, manifest);
         } else if (!manifest.draft) {
-            manifest.draft = { key: 'draft', name: ConfigModule.DRAFT_DEFAULT_NAME };
+            manifest.draft = { key: 'draft', name: this.defaultVersionName() };
             await this.saveManifest(store, manifest);
         }
     };
@@ -164,7 +168,8 @@ export class ConfigModule extends BaseHandler {
         const id = await this.uniqueArchiveId(store, this.formatTimestamp(now));
         const archivedAt = now.toISOString();
         await store.set(`${ConfigModule.ARCHIVE_PREFIX}${id}`, JSON.stringify(outgoing));
-        manifest.archives.unshift({ key: id, name: `${manifest.published.name}_${id}`, archivedAt });
+        // The archive keeps the outgoing published version's name (same content).
+        manifest.archives.unshift({ key: id, name: manifest.published.name, archivedAt });
 
         await store.set(ConfigModule.PUBLISHED_KEY, JSON.stringify(next));
         manifest.published = { key: 'published', name };
@@ -211,7 +216,7 @@ export class ConfigModule extends BaseHandler {
         }
 
         const manifest = await this.getManifest(store);
-        const name = manifest.draft?.name ?? ConfigModule.PUBLISHED_DEFAULT_NAME;
+        const name = manifest.draft?.name ?? this.defaultVersionName();
         await this.promoteToPublished(store, manifest, draft, name, path);
 
         // Clear the draft so it is re-derived from the new published on next read.

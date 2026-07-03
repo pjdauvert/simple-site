@@ -105,7 +105,9 @@ describe('ConfigModule', () => {
     const draft = JSON.parse(data.get('config:draft')!);
     expect(draft.site).toEqual({ siteName: 'New Name', logoUrl: '/new.svg', containerMaxWidth: 'md' });
     expect(draft.themes).toEqual(storedConfig.themes); // untouched
-    expect(JSON.parse(data.get('config:versions')!).draft).not.toBeNull();
+    const draftSummary = JSON.parse(data.get('config:versions')!).draft;
+    expect(draftSummary).not.toBeNull();
+    expect(draftSummary.name).toMatch(/^version_\d{14}$/); // default name
   });
 
   it('PUT /api/config/site rejects an invalid site body (missing siteName)', async () => {
@@ -177,6 +179,7 @@ describe('ConfigModule', () => {
     const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
     const body = await readJson(res);
     expect(body.data.published.key).toBe('published');
+    expect(body.data.published.name).toMatch(/^version_\d{14}$/); // default name
     expect(body.data.draft).toBeNull();
     expect(body.data.archives).toHaveLength(0);
   });
