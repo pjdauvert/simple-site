@@ -68,10 +68,17 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 
 ┌──────────────────────────────────────────────────┐
 │  /manage (admin, no SiteConfigProvider)          │
-│  ├─ SiteSettingsForm → GET /api/config/draft     │
-│  │                     PUT /api/config/site      │
-│  └─ ConfigVersionsPanel → GET /api/config/versions│
-│                            POST /api/config/publish│
+│  ManageLayout: left Drawer + top AppBar          │
+│  ├─ /manage            Dashboard                  │
+│  │    └─ ConfigVersionsPanel → GET /api/config/versions│
+│  │                             POST /api/config/publish│
+│  ├─ /manage/site       Site configuration (tabs) │
+│  │    ├─ general  SiteSettingsForm → GET /api/config/draft│
+│  │    │                             PUT /api/config/site │
+│  │    ├─ themes   (stub → PR #65)                 │
+│  │    └─ pages    (stub)                          │
+│  ├─ /manage/translations  (stub → PR #66)         │
+│  └─ /manage/media  MediaPage (FEATURE_MEDIA flag) │
 └──────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────┐
@@ -87,6 +94,8 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 ```
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
+
+The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages, addressed by URL sub-routes under `/manage/site`), Translations, and the flag-gated Media library.
 
 ## Media Management
 
