@@ -9,6 +9,7 @@ import {
     ConfigVersionsManifestSchema,
     ConfigImportRequestSchema,
     ConfigRenameRequestSchema,
+    MAX_CONFIG_VERSIONS,
     type SiteConfig,
     SiteConfigSchema,
     SiteThemeConfigSchema,
@@ -156,6 +157,7 @@ export class ConfigModule extends BaseHandler {
             createdAt: manifest.draft.createdAt ?? now.toISOString(),
         });
         manifest.draft = null;
+        await this.pruneArchives(store, manifest);
     };
 
     /**
@@ -171,6 +173,22 @@ export class ConfigModule extends BaseHandler {
         manifest.draft = draft;
         await this.saveManifest(store, manifest);
         return draft;
+    };
+
+    /**
+     * Enforces the version cap: `published (1) + archives` must stay within
+     * MAX_CONFIG_VERSIONS (the draft is uncounted WIP). Erases the archive(s) with
+     * the oldest `createdAt` — the "oldest update" — deleting their blobs too.
+     */
+    private pruneArchives = async (store: Store, manifest: ConfigVersionsManifest): Promise<void> => {
+        while (1 + manifest.archives.length > MAX_CONFIG_VERSIONS && manifest.archives.length > 0) {
+            let oldest = 0;
+            for (let i = 1; i < manifest.archives.length; i++) {
+                if ((manifest.archives[i].createdAt ?? '') < (manifest.archives[oldest].createdAt ?? '')) oldest = i;
+            }
+            const [removed] = manifest.archives.splice(oldest, 1);
+            await store.delete(this.blobKeyForId(removed.key));
+        }
     };
 
     /** Finds a free archive id, disambiguating same-second collisions with `-N`. */
@@ -208,6 +226,7 @@ export class ConfigModule extends BaseHandler {
 
         await store.set(ConfigModule.PUBLISHED_KEY, JSON.stringify(next));
         manifest.published = { key: 'published', name: incoming.name, createdAt: incoming.createdAt };
+        await this.pruneArchives(store, manifest);
     };
 
     // --- endpoint handlers ---------------------------------------------------

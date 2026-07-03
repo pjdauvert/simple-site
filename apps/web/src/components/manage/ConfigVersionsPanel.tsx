@@ -32,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ConfigVersionSummary, ConfigVersionsManifest, SiteConfig } from '@simple-site/interfaces';
-import { SiteConfigSchema } from '@simple-site/interfaces';
+import { MAX_CONFIG_VERSIONS, SiteConfigSchema } from '@simple-site/interfaces';
 import {
   deleteVersion,
   getVersionConfig,
@@ -47,7 +47,9 @@ import {
 type Kind = 'published' | 'draft' | 'archive';
 type Row = { version: ConfigVersionSummary; kind: Kind };
 type Feedback = { severity: 'success' | 'error'; text: string } | null;
-type Confirm = { action: 'publish' | 'republish' | 'delete' | 'startDraft'; version: ConfigVersionSummary } | null;
+type ConfirmAction = 'publish' | 'republish' | 'delete' | 'startDraft';
+/** `prune` is the archive that will be erased to stay within the version cap. */
+type Confirm = { action: ConfirmAction; version: ConfigVersionSummary; prune?: ConfigVersionSummary } | null;
 
 const sanitizeFilename = (name: string) => name.replace(/[^a-z0-9._-]+/gi, '_').replace(/^_+|_+$/g, '') || 'config';
 
@@ -78,7 +80,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
 
   const [rename, setRename] = useState<{ version: ConfigVersionSummary; value: string } | null>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
-  const [importState, setImportState] = useState<{ config: SiteConfig; value: string } | null>(null);
+  const [importState, setImportState] = useState<{ config: SiteConfig; value: string; prune?: ConfigVersionSummary } | null>(null);
 
   const reload = async () => {
     const manifest = await listVersions();
@@ -130,6 +132,17 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
     }
   };
 
+  // Version cap: published + archives (the draft is uncounted WIP). Creating a new
+  // archive while at the cap erases the archive with the oldest createdAt.
+  const archiveVersions = rows.filter((r) => r.kind === 'archive').map((r) => r.version);
+  const oldestArchive = archiveVersions.length
+    ? archiveVersions.reduce((oldest, v) => ((v.createdAt ?? '') < (oldest.createdAt ?? '') ? v : oldest))
+    : null;
+  const atVersionCap = 1 + archiveVersions.length >= MAX_CONFIG_VERSIONS;
+  /** The archive that would be erased if an op creates a new archive now. */
+  const pruneFor = (createsArchive: boolean): ConfigVersionSummary | undefined =>
+    createsArchive && atVersionCap && oldestArchive ? oldestArchive : undefined;
+
   const handleDownload = async (version: ConfigVersionSummary) => {
     setBusy(true);
     setFeedback(null);
@@ -162,7 +175,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
         setFeedback({ severity: 'error', text: intl.formatMessage({ id: 'page.manage.versions.import.errorInvalid' }) });
         return;
       }
-      setImportState({ config: parsed.data, value: file.name.replace(/\.json$/i, '') });
+      setImportState({ config: parsed.data, value: file.name.replace(/\.json$/i, ''), prune: pruneFor(hasDraft) });
     } catch {
       setFeedback({ severity: 'error', text: intl.formatMessage({ id: 'page.manage.versions.import.errorInvalid' }) });
     }
@@ -178,14 +191,23 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
     }[confirm.action];
   }, [confirm]);
 
-  const runConfirm = async () => {
+  const runConfirm = async (downloadPrune = false) => {
     if (!confirm) return;
-    const { action, version } = confirm;
+    const { action, version, prune } = confirm;
     setConfirm(null);
+    if (downloadPrune && prune) await handleDownload(prune);
     if (action === 'publish') await run(() => publishDraft(), 'page.manage.versions.publish.success');
     else if (action === 'republish') await run(() => republishVersion(version.key), 'page.manage.versions.republish.success');
     else if (action === 'startDraft') await run(() => startDraftFromVersion(version.key), 'page.manage.versions.startDraft.success');
     else await run(() => deleteVersion(version.key), 'page.manage.versions.delete.success');
+  };
+
+  const runImport = async (downloadPrune = false) => {
+    if (!importState) return;
+    const { config, value, prune } = importState;
+    setImportState(null);
+    if (downloadPrune && prune) await handleDownload(prune);
+    await run(() => importConfig(value.trim(), config), 'page.manage.versions.import.success');
   };
 
   if (loading) {
@@ -207,7 +229,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
         {kind === 'archive' && (
           <Tooltip title={intl.formatMessage({ id: 'page.manage.versions.startDraft' })}>
             <span>
-              <IconButton size="small" disabled={busy} onClick={() => setConfirm({ action: 'startDraft', version })} aria-label={intl.formatMessage({ id: 'page.manage.versions.startDraft' })}>
+              <IconButton size="small" disabled={busy} onClick={() => setConfirm({ action: 'startDraft', version, prune: pruneFor(hasDraft) })} aria-label={intl.formatMessage({ id: 'page.manage.versions.startDraft' })}>
                 <StartDraftIcon fontSize="small" />
               </IconButton>
             </span>
@@ -259,7 +281,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
           </Button>
           <Tooltip title={hasDraft ? '' : intl.formatMessage({ id: 'page.manage.versions.noDraft' })}>
             <span>
-              <Button variant="contained" startIcon={<PublishIcon />} disabled={busy || !hasDraft} onClick={() => setConfirm({ action: 'publish', version: rows.find((r) => r.kind === 'draft')!.version })}>
+              <Button variant="contained" startIcon={<PublishIcon />} disabled={busy || !hasDraft} onClick={() => setConfirm({ action: 'publish', version: rows.find((r) => r.kind === 'draft')!.version, prune: pruneFor(true) })}>
                 <FormattedMessage id="page.manage.versions.publish" />
               </Button>
             </span>
@@ -356,19 +378,20 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
             value={importState?.value ?? ''}
             onChange={(e) => setImportState((prev) => (prev ? { ...prev, value: e.target.value } : prev))}
           />
+          {importState?.prune && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              <FormattedMessage id="page.manage.versions.prune.warning" values={{ name: importState.prune.name, max: MAX_CONFIG_VERSIONS }} />
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setImportState(null)}><FormattedMessage id="page.manage.versions.cancel" /></Button>
-          <Button
-            variant="contained"
-            disabled={busy || !importState?.value.trim()}
-            onClick={async () => {
-              if (!importState) return;
-              const { config, value } = importState;
-              setImportState(null);
-              await run(() => importConfig(value.trim(), config), 'page.manage.versions.import.success');
-            }}
-          >
+          {importState?.prune && (
+            <Button disabled={busy || !importState?.value.trim()} onClick={() => runImport(true)}>
+              <FormattedMessage id="page.manage.versions.prune.downloadConfirm" />
+            </Button>
+          )}
+          <Button variant="contained" disabled={busy || !importState?.value.trim()} onClick={() => runImport(false)}>
             <FormattedMessage id="page.manage.versions.confirm" />
           </Button>
         </DialogActions>
@@ -381,10 +404,20 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
           <DialogContentText>
             {confirmCopy && <FormattedMessage id={confirmCopy.body} values={{ name: confirm?.version.name }} />}
           </DialogContentText>
+          {confirm?.prune && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              <FormattedMessage id="page.manage.versions.prune.warning" values={{ name: confirm.prune.name, max: MAX_CONFIG_VERSIONS }} />
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirm(null)}><FormattedMessage id="page.manage.versions.cancel" /></Button>
-          <Button variant="contained" color={confirm?.action === 'delete' ? 'error' : 'primary'} disabled={busy} onClick={runConfirm}>
+          {confirm?.prune && (
+            <Button disabled={busy} onClick={() => runConfirm(true)}>
+              <FormattedMessage id="page.manage.versions.prune.downloadConfirm" />
+            </Button>
+          )}
+          <Button variant="contained" color={confirm?.action === 'delete' ? 'error' : 'primary'} disabled={busy} onClick={() => runConfirm(false)}>
             <FormattedMessage id="page.manage.versions.confirm" />
           </Button>
         </DialogActions>

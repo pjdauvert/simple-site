@@ -167,6 +167,48 @@ describe('ConfigModule', () => {
     expect(res.status).toBe(409);
   });
 
+  // Seeds `config`, a `Draft`, and `count` archives A1..A<count> (A1 oldest).
+  const seedAtCap = (count: number) => {
+    const seed: Record<string, unknown> = { config: storedConfig, 'config:draft': withSiteName('Draft') };
+    const archives: { key: string; name: string; createdAt: string }[] = [];
+    for (let i = 1; i <= count; i++) {
+      const key = String(20200101000000 + i);
+      seed[`config:archive:${key}`] = withSiteName(`A${i}`);
+      archives.push({ key, name: `A${i}`, createdAt: `2020-01-01T00:00:${String(i).padStart(2, '0')}.000Z` });
+    }
+    archives.reverse(); // newest-first; oldest = A1 (key ...0001)
+    seed['config:versions'] = manifest({
+      draft: { key: 'draft', name: 'Draft', createdAt: '2021-01-01T00:00:00.000Z' },
+      archives,
+    });
+    return makeStore(seed);
+  };
+
+  it('publishing at the version cap erases the oldest archive', async () => {
+    const { data } = seedAtCap(9); // published + 9 archives = 10 = MAX
+    const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
+    expect(res.status).toBe(200);
+
+    const m = JSON.parse(data.get('config:versions')!);
+    expect(1 + m.archives.length).toBeLessThanOrEqual(10); // published + archives within cap
+    expect(m.archives).toHaveLength(9);
+    expect(m.archives.some((a: { key: string }) => a.key === '20200101000001')).toBe(false); // oldest gone
+    expect(data.has('config:archive:20200101000001')).toBe(false);
+  });
+
+  it('importing at the version cap archives the draft and erases the oldest archive', async () => {
+    const { data } = seedAtCap(9);
+    const res = await handle(
+      jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Imported', config: withSiteName('From File') }),
+    );
+    expect(res.status).toBe(200);
+
+    const m = JSON.parse(data.get('config:versions')!);
+    expect(m.archives).toHaveLength(9); // old draft archived, oldest pruned
+    expect(data.has('config:archive:20200101000001')).toBe(false);
+    expect(JSON.parse(data.get('config:draft')!).site.siteName).toBe('From File');
+  });
+
   it('POST /api/config/versions/:key/draft starts a draft from an archive (no existing draft)', async () => {
     const { data } = makeStore({
       config: storedConfig,

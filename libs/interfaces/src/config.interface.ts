@@ -2,6 +2,12 @@ import { z } from 'zod';
 import { SiteConfigSchema } from './site.interface.js';
 
 /**
+ * Maximum number of retained versions = published + archives (the working draft is
+ * uncounted). Creating a new archive beyond this erases the oldest one.
+ */
+export const MAX_CONFIG_VERSIONS = 10;
+
+/**
  * Config version management.
  *
  * The whole `SiteConfig` (site/themes/pages) is versioned with a draft → publish

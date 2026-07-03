@@ -36,7 +36,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 
 ---
 
-Configuration uses a **draft → publish** model with a linear archive history (see [configuration.md](configuration.md#versioning-draft--publish--archive)). The live site reads the **published** config via `GET /api/config`; admins edit a **draft** and publish it to go live. Publishing archives the previously-published config with a reverse-chronological, second-precision timestamp so it can be restored.
+Configuration uses a **draft → publish** model with a linear archive history (see [configuration.md](configuration.md#versioning-draft--publish--archive)). The live site reads the **published** config via `GET /api/config`; admins edit a **draft** and publish it to go live. Publishing archives the previously-published config with a reverse-chronological, second-precision timestamp so it can be restored. At most **10 versions** (published + archives; the draft is uncounted) are retained — creating a new archive beyond that erases the archive with the oldest `createdAt`.
 
 ### `GET /api/config`
 
@@ -82,7 +82,7 @@ Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `container
 
 ### `POST /api/config/publish`
 
-Promotes the draft to live: the outgoing published config is archived (key `config:archive:<YYYYMMDDHHMMSS>`), the draft becomes the published config (inheriting the draft's name), and the draft is cleared. Returns `409 CONFLICT` when there is no draft, or when the draft is identical to the published config.
+Promotes the draft to live: the outgoing published config is archived (key `config:archive:<YYYYMMDDHHMMSS>`), the draft becomes the published config (inheriting the draft's name), and the draft is cleared. Returns `409 CONFLICT` when there is no draft, or when the draft is identical to the published config. Retention is capped at **10 versions** (published + archives); creating an archive beyond that erases the archive with the oldest `createdAt`.
 
 ```json
 // 200 OK
