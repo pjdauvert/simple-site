@@ -47,6 +47,9 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   const [faviconUrl, setFaviconUrl] = useState('');
   const [container, setContainer] = useState<ContainerChoice>('');
 
+  // Snapshot of the loaded (or last-saved) values, to enable Save only when dirty.
+  const [initial, setInitial] = useState({ siteName: '', logoUrl: '', faviconUrl: '', container: '' as ContainerChoice });
+
   const [siteNameError, setSiteNameError] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
@@ -62,10 +65,17 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
     loadDraftConfig()
       .then((config) => {
         if (!active) return;
-        setSiteName(config.site.siteName);
-        setLogoUrl(config.site.logoUrl ?? '');
-        setFaviconUrl(config.site.faviconUrl ?? '');
-        setContainer(toChoice(config.site.containerMaxWidth));
+        const loaded = {
+          siteName: config.site.siteName,
+          logoUrl: config.site.logoUrl ?? '',
+          faviconUrl: config.site.faviconUrl ?? '',
+          container: toChoice(config.site.containerMaxWidth),
+        };
+        setSiteName(loaded.siteName);
+        setLogoUrl(loaded.logoUrl);
+        setFaviconUrl(loaded.faviconUrl);
+        setContainer(loaded.container);
+        setInitial(loaded);
       })
       .catch((err) => {
         if (active) {
@@ -115,6 +125,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
     setSuccess(false);
     try {
       await updateSiteSettings(parsed.data);
+      setInitial({ siteName, logoUrl, faviconUrl, container }); // saved values are the new baseline
       setSuccess(true);
       onSaved?.();
     } catch (err) {
@@ -137,6 +148,11 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   }
 
   const showPicker = Boolean(flags?.media);
+  const isDirty =
+    siteName !== initial.siteName ||
+    logoUrl !== initial.logoUrl ||
+    faviconUrl !== initial.faviconUrl ||
+    container !== initial.container;
 
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -220,7 +236,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
         )}
 
         <Box>
-          <Button type="submit" variant="contained" disabled={submitting}>
+          <Button type="submit" variant="contained" disabled={submitting || !isDirty}>
             {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.site.save" />}
           </Button>
         </Box>

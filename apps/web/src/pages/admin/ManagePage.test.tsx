@@ -100,6 +100,15 @@ describe('ManagePage', () => {
     expect(screen.getByDisplayValue('/favicon.ico')).toBeInTheDocument();
   });
 
+  it('keeps Save disabled until a field changes', async () => {
+    renderWithAuth();
+    await screen.findByDisplayValue('My Site');
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    expect(saveButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/site name/i), { target: { value: 'My Site 2' } });
+    expect(saveButton).toBeEnabled();
+  });
+
   it('saves the edited site settings via updateSiteSettings', async () => {
     renderWithAuth();
     const nameInput = await screen.findByLabelText(/site name/i);
