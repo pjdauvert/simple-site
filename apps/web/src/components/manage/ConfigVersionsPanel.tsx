@@ -43,10 +43,10 @@ import {
   republishVersion,
   startDraftFromVersion,
 } from '../../services/configVersionService';
+import { useNotifications } from '../../hooks/useNotifications';
 
 type Kind = 'published' | 'draft' | 'archive';
 type Row = { version: ConfigVersionSummary; kind: Kind };
-type Feedback = { severity: 'success' | 'error'; text: string } | null;
 type ConfirmAction = 'publish' | 'republish' | 'delete' | 'startDraft';
 /** `prune` is the archive that will be erased to stay within the version cap. */
 type Confirm = { action: ConfirmAction; version: ConfigVersionSummary; prune?: ConfigVersionSummary } | null;
@@ -68,6 +68,7 @@ const toRows = (manifest: ConfigVersionsManifest): Row[] => [
  */
 export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refreshSignal }) => {
   const intl = useIntl();
+  const notify = useNotifications();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,6 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
   const [hasDraft, setHasDraft] = useState(false);
 
   const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState<Feedback>(null);
 
   const [rename, setRename] = useState<{ version: ConfigVersionSummary; value: string } | null>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
@@ -118,15 +118,12 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
   /** Runs a mutating action, then refreshes the manifest and shows feedback. */
   const run = async (fn: () => Promise<void>, successId: string, errorId = 'page.manage.versions.error.generic') => {
     setBusy(true);
-    setFeedback(null);
     try {
       await fn();
       await reload();
-      setFeedback({ severity: 'success', text: intl.formatMessage({ id: successId }) });
-      return true;
+      notify.success(intl.formatMessage({ id: successId }));
     } catch (err) {
-      setFeedback({ severity: 'error', text: err instanceof Error ? err.message : intl.formatMessage({ id: errorId }) });
-      return false;
+      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: errorId }));
     } finally {
       setBusy(false);
     }
@@ -145,7 +142,6 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
 
   const handleDownload = async (version: ConfigVersionSummary) => {
     setBusy(true);
-    setFeedback(null);
     try {
       const config = await getVersionConfig(version.key);
       const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
@@ -158,7 +154,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setFeedback({ severity: 'error', text: err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.versions.error.generic' }) });
+      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.versions.error.generic' }));
     } finally {
       setBusy(false);
     }
@@ -168,16 +164,15 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
     const file = event.target.files?.[0];
     event.target.value = ''; // allow re-selecting the same file
     if (!file) return;
-    setFeedback(null);
     try {
       const parsed = SiteConfigSchema.safeParse(JSON.parse(await file.text()));
       if (!parsed.success) {
-        setFeedback({ severity: 'error', text: intl.formatMessage({ id: 'page.manage.versions.import.errorInvalid' }) });
+        notify.error(intl.formatMessage({ id: 'page.manage.versions.import.errorInvalid' }));
         return;
       }
       setImportState({ config: parsed.data, value: file.name.replace(/\.json$/i, ''), prune: pruneFor(hasDraft) });
     } catch {
-      setFeedback({ severity: 'error', text: intl.formatMessage({ id: 'page.manage.versions.import.errorInvalid' }) });
+      notify.error(intl.formatMessage({ id: 'page.manage.versions.import.errorInvalid' }));
     }
   };
 
@@ -292,12 +287,6 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         <FormattedMessage id="page.manage.versions.subtitle" />
       </Typography>
-
-      {feedback && (
-        <Alert severity={feedback.severity} onClose={() => setFeedback(null)} sx={{ mb: 2 }}>
-          {feedback.text}
-        </Alert>
-      )}
 
       <Table size="small">
         <TableHead>

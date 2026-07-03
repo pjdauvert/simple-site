@@ -6,6 +6,7 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import { MainLayout } from "../layouts/MainLayout";
 import { Loading } from "../components";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
+import { NotificationsProvider } from "../features/notifications/NotificationsProvider";
 
 // Admin navigation. `pageName` resolves the i18n label key `${pageName}.menuTitle`
 // (see MenuBar); `menuTitle` is the fallback default message.
@@ -32,6 +33,8 @@ const ManageArea: React.FC = () => {
 
 export const ManageRouter: React.FC = () => (
   <ProtectedRoute>
-    <ManageArea />
+    <NotificationsProvider>
+      <ManageArea />
+    </NotificationsProvider>
   </ProtectedRoute>
 );

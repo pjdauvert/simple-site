@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Box,
   Button,
   ButtonBase,
@@ -16,6 +15,7 @@ import { Folder as FolderIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { MediaFile, MediaFolder } from '@simple-site/interfaces';
 import { listMedia } from '../../services/mediaService';
+import { useNotifications } from '../../hooks/useNotifications';
 import { MediaBreadcrumbs } from './MediaBreadcrumbs';
 
 interface ImagePickerDialogProps {
@@ -32,25 +32,27 @@ interface ImagePickerDialogProps {
  */
 export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onClose, onSelect }) => {
   const intl = useIntl();
+  const notify = useNotifications();
   const [currentPath, setCurrentPath] = useState('');
   const [folders, setFolders] = useState<MediaFolder[]>([]);
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useCallback(async (path: string) => {
     setLoading(true);
-    setError(null);
+    setLoadFailed(false);
     try {
       const result = await listMedia(path, 'image');
       setFolders(result.folders);
       setFiles(result.files);
     } catch (err) {
-      setError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.site.picker.error' }));
+      setLoadFailed(true);
+      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.site.picker.error' }));
     } finally {
       setLoading(false);
     }
-  }, [intl]);
+  }, [intl, notify]);
 
   // Reset to the root each time the dialog opens.
   useEffect(() => {
@@ -69,8 +71,6 @@ export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onCl
       <DialogTitle><FormattedMessage id="page.manage.site.picker.title" /></DialogTitle>
       <DialogContent dividers sx={{ minHeight: 360 }}>
         <MediaBreadcrumbs segments={segments} onNavigate={setCurrentPath} />
-
-        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -130,7 +130,7 @@ export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onCl
               </Box>
             )}
 
-            {isEmpty && !error && (
+            {isEmpty && !loadFailed && (
               <Typography variant="body2" color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>
                 <FormattedMessage id="page.manage.site.picker.empty" />
               </Typography>
