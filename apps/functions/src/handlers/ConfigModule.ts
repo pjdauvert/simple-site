@@ -35,6 +35,8 @@ export class ConfigModule extends BaseHandler {
     private static readonly MANIFEST_KEY = 'config:versions';
     private static readonly DRAFT_DEFAULT_NAME = 'Working draft';
     private static readonly PUBLISHED_DEFAULT_NAME = 'Published';
+    /** A valid archive id is a 14-digit UTC timestamp, optionally `-N` on collision. */
+    private static readonly ARCHIVE_ID_PATTERN = /^\d{14}(-\d+)?$/;
 
     // --- storage helpers -----------------------------------------------------
 
@@ -74,19 +76,31 @@ export class ConfigModule extends BaseHandler {
     /**
      * Returns the version manifest, rebuilding it from the store if the manifest
      * blob is missing (e.g. a store seeded with only the published config).
+     *
+     * Existing manifests are self-healed: archives whose key is not a valid
+     * timestamp id are dropped (guards against a manifest polluted by an earlier
+     * rebuild, since the local dev `list()` does not reliably honour `prefix`).
      */
     private getManifest = async (store: Store): Promise<ConfigVersionsManifest> => {
         const raw = await store.get(ConfigModule.MANIFEST_KEY);
         if (raw) {
-            return ConfigVersionsManifestSchema.parse(JSON.parse(String(raw)));
+            const parsed = ConfigVersionsManifestSchema.parse(JSON.parse(String(raw)));
+            const archives = parsed.archives.filter((a) => ConfigModule.ARCHIVE_ID_PATTERN.test(a.key));
+            if (archives.length !== parsed.archives.length) {
+                parsed.archives = archives;
+                await this.saveManifest(store, parsed);
+            }
+            return parsed;
         }
+        // Rebuild: keep only real archive blobs. `list()` may return unrelated keys
+        // (or ignore the prefix entirely) locally, so filter defensively.
         const { blobs } = await store.list({ prefix: ConfigModule.ARCHIVE_PREFIX });
         const archives = blobs
-            .map((b) => {
-                const id = b.key.slice(ConfigModule.ARCHIVE_PREFIX.length);
-                return { key: id, name: id, archivedAt: this.idToIso(id) };
-            })
-            .sort((a, b) => b.key.localeCompare(a.key));
+            .filter((b) => b.key.startsWith(ConfigModule.ARCHIVE_PREFIX))
+            .map((b) => b.key.slice(ConfigModule.ARCHIVE_PREFIX.length))
+            .filter((id) => ConfigModule.ARCHIVE_ID_PATTERN.test(id))
+            .sort((a, b) => b.localeCompare(a))
+            .map((id) => ({ key: id, name: id, archivedAt: this.idToIso(id) }));
         const draftExists = Boolean(await store.get(ConfigModule.DRAFT_KEY));
         const manifest: ConfigVersionsManifest = {
             published: { key: 'published', name: ConfigModule.PUBLISHED_DEFAULT_NAME },

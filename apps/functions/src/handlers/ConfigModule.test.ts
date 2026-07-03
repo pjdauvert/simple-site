@@ -172,6 +172,42 @@ describe('ConfigModule', () => {
     expect((await readJson(res)).data.published.key).toBe('published');
   });
 
+  it('initial manifest for a seeded store has the published config and no draft/archives', async () => {
+    makeStore({ config: storedConfig });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
+    const body = await readJson(res);
+    expect(body.data.published.key).toBe('published');
+    expect(body.data.draft).toBeNull();
+    expect(body.data.archives).toHaveLength(0);
+  });
+
+  it('rebuild ignores non-archive keys even when list() does not honour the prefix', async () => {
+    const { store, data } = makeStore({ config: storedConfig, translations: { en: {} }, 'config:draft': storedConfig });
+    // Simulate the local dev list() returning every key regardless of `prefix`.
+    store.list.mockImplementation(async () => ({
+      blobs: [...data.keys()].map((key) => ({ key, etag: 'e' })),
+      directories: [],
+    }));
+    const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.archives).toHaveLength(0);
+  });
+
+  it('GET /api/config/versions self-heals a manifest polluted with a phantom archive', async () => {
+    const { data } = makeStore({
+      config: storedConfig,
+      'config:versions': manifest({
+        draft: { key: 'draft', name: 'Working draft' },
+        archives: [{ key: '', name: 'archive1' }],
+      }),
+    });
+    const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.archives).toHaveLength(0);
+    // The cleaned manifest is persisted.
+    expect(JSON.parse(data.get('config:versions')!).archives).toHaveLength(0);
+  });
+
   it('POST /api/config/import stores the uploaded config as the named draft', async () => {
     const { data } = makeStore();
     const res = await handle(

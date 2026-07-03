@@ -34,7 +34,8 @@ const isValidUrl = (value: string) => UrlOrPathSchema.safeParse(value).success;
  * no SiteConfigProvider — and saves via `PUT /api/config/site`, which writes the
  * draft. Changes go live only when published from the Config Versions panel.
  */
-export const SiteSettingsForm: React.FC = () => {
+/** `onSaved` fires after a successful draft save so a parent can refresh siblings. */
+export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }) => {
   const intl = useIntl();
   const flags = useFeatureFlags();
 
@@ -115,6 +116,7 @@ export const SiteSettingsForm: React.FC = () => {
     try {
       await updateSiteSettings(parsed.data);
       setSuccess(true);
+      onSaved?.();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.site.error.save' }));
     } finally {

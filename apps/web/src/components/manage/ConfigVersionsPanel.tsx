@@ -30,7 +30,7 @@ import {
   Restore as RepublishIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import type { ConfigVersionSummary, SiteConfig } from '@simple-site/interfaces';
+import type { ConfigVersionSummary, ConfigVersionsManifest, SiteConfig } from '@simple-site/interfaces';
 import { SiteConfigSchema } from '@simple-site/interfaces';
 import {
   deleteVersion,
@@ -49,13 +49,20 @@ type Confirm = { action: 'publish' | 'republish' | 'delete'; version: ConfigVers
 
 const sanitizeFilename = (name: string) => name.replace(/[^a-z0-9._-]+/gi, '_').replace(/^_+|_+$/g, '') || 'config';
 
+const toRows = (manifest: ConfigVersionsManifest): Row[] => [
+  { version: manifest.published, kind: 'published' },
+  ...(manifest.draft ? [{ version: manifest.draft, kind: 'draft' as const }] : []),
+  ...manifest.archives.map((v) => ({ version: v, kind: 'archive' as const })),
+];
+
 /**
  * Config version management: publish the working draft, browse the archive history
  * of previously-published configs, and download/upload/rename/rollback/delete
  * versions. Edits are made in `SiteSettingsForm` (draft); this panel controls what
- * goes live via `configVersionService`.
+ * goes live via `configVersionService`. `refreshSignal` re-fetches when a sibling
+ * edit form mutates the draft.
  */
-export const ConfigVersionsPanel: React.FC = () => {
+export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refreshSignal }) => {
   const intl = useIntl();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,11 +80,7 @@ export const ConfigVersionsPanel: React.FC = () => {
 
   const reload = async () => {
     const manifest = await listVersions();
-    setRows([
-      { version: manifest.published, kind: 'published' },
-      ...(manifest.draft ? [{ version: manifest.draft, kind: 'draft' as const }] : []),
-      ...manifest.archives.map((v) => ({ version: v, kind: 'archive' as const })),
-    ]);
+    setRows(toRows(manifest));
     setHasDraft(Boolean(manifest.draft));
   };
 
@@ -86,11 +89,7 @@ export const ConfigVersionsPanel: React.FC = () => {
     listVersions()
       .then((manifest) => {
         if (!active) return;
-        setRows([
-          { version: manifest.published, kind: 'published' },
-          ...(manifest.draft ? [{ version: manifest.draft, kind: 'draft' as const }] : []),
-          ...manifest.archives.map((v) => ({ version: v, kind: 'archive' as const })),
-        ]);
+        setRows(toRows(manifest));
         setHasDraft(Boolean(manifest.draft));
       })
       .catch((err) => {
@@ -99,6 +98,18 @@ export const ConfigVersionsPanel: React.FC = () => {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [intl]);
+
+  // Re-fetch when a sibling edit form (e.g. Site settings) mutates the draft.
+  // Skips the initial mount, which the loader effect above already handles.
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; }
+    let active = true;
+    listVersions()
+      .then((manifest) => { if (active) { setRows(toRows(manifest)); setHasDraft(Boolean(manifest.draft)); } })
+      .catch(() => { /* keep the current view; explicit actions surface their own errors */ });
+    return () => { active = false; };
+  }, [refreshSignal]);
 
   /** Runs a mutating action, then refreshes the manifest and shows feedback. */
   const run = async (fn: () => Promise<void>, successId: string, errorId = 'page.manage.versions.error.generic') => {
