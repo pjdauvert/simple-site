@@ -15,6 +15,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useIntl, FormattedMessage } from 'react-intl';
 import type { MenuItem as MenuItemType } from '@simple-site/interfaces';
+import { menuTitleKey } from '@simple-site/interfaces';
 import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '../features/i18n/LanguageSwitcher';
 import { useAppTheme } from '../hooks/useAppTheme';
@@ -88,7 +89,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
                     },
                   }}
                 >
-                  <FormattedMessage id={`${item.pageName}.menuTitle`} defaultMessage={item.menuTitle} />
+                  <FormattedMessage id={menuTitleKey(item.pageName)} defaultMessage={item.menuTitle} />
                 </Button>
               );
             })}

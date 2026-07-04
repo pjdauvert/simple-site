@@ -2,7 +2,9 @@ import React from 'react';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import { Language } from '@mui/icons-material';
 import { FormattedMessage } from 'react-intl';
+import type { Locale } from '@simple-site/interfaces';
 import { useAppIntl } from '../../hooks/useIntl';
+import { languageLabel } from './languageNames';
 
 export const LanguageSwitcher: React.FC = () => {
   const { locale, switchLanguage, availableLocales } = useAppIntl();
@@ -16,17 +18,9 @@ export const LanguageSwitcher: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const handleLanguageSelect = (newLocale: 'en' | 'fr') => {
+  const handleLanguageSelect = (newLocale: Locale) => {
     switchLanguage(newLocale);
     handleClose();
-  };
-
-  const getLanguageLabel = (loc: string): string => {
-    const labels: Record<string, string> = {
-      en: 'English',
-      fr: 'Français',
-    };
-    return labels[loc] || loc;
   };
 
   return (
@@ -43,7 +37,7 @@ export const LanguageSwitcher: React.FC = () => {
             selected={loc === locale}
             onClick={() => handleLanguageSelect(loc)}
           >
-            {getLanguageLabel(loc)}
+            {languageLabel(loc)}
           </MenuItem>
         ))}
       </Menu>
