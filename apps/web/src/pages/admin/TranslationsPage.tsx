@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -11,6 +12,8 @@ import {
   DialogContentText,
   DialogTitle,
   FormControl,
+  FormControlLabel,
+  FormGroup,
   IconButton,
   InputLabel,
   MenuItem,
@@ -23,6 +26,7 @@ import {
 import {
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
+  Download as DownloadIcon,
   UploadFile as UploadFileIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -37,6 +41,7 @@ import {
 } from '../../services/translationsService';
 import { useNotifications } from '../../hooks/useNotifications';
 import { languageLabel } from '../../features/i18n/languageNames';
+import { NATIVE_KEY, buildExportPayload, downloadJson } from './translationsExport';
 
 type RowStatus = 'ok' | 'missing' | 'additional';
 
@@ -75,6 +80,8 @@ export const TranslationsPage: React.FC = () => {
   const [addCode, setAddCode] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportSel, setExportSel] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let active = true;
@@ -96,6 +103,7 @@ export const TranslationsPage: React.FC = () => {
 
   const languages = useMemo(() => (Object.keys(working) as Locale[]).sort(), [working]);
   const expectedMap = useMemo(() => new Map(expected.map((e) => [e.key, e.defaultValue])), [expected]);
+  const originals = useMemo<I18nDictionary>(() => Object.fromEntries(expected.map((e) => [e.key, e.defaultValue])), [expected]);
   const dict = useMemo<I18nDictionary>(() => working[language] ?? {}, [working, language]);
 
   const rows = useMemo<Row[]>(() => {
@@ -228,6 +236,18 @@ export const TranslationsPage: React.FC = () => {
     }
   };
 
+  const openExport = () => {
+    setExportSel({ [NATIVE_KEY]: true, ...Object.fromEntries(languages.map((l) => [l, true])) });
+    setExportOpen(true);
+  };
+  const exportSelected = Object.keys(exportSel).filter((k) => exportSel[k]);
+  const handleExport = () => {
+    if (exportSelected.length === 0) return;
+    downloadJson(buildExportPayload(exportSelected, working, originals), 'translations.json');
+    setExportOpen(false);
+    notify.success(intl.formatMessage({ id: 'page.manage.translations.export.success' }, { count: exportSelected.length }));
+  };
+
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>;
   }
@@ -260,6 +280,9 @@ export const TranslationsPage: React.FC = () => {
         </Button>
         <Button startIcon={<UploadFileIcon />} onClick={() => fileInputRef.current?.click()}>
           <FormattedMessage id="page.manage.translations.import" />
+        </Button>
+        <Button startIcon={<DownloadIcon />} onClick={openExport}>
+          <FormattedMessage id="page.manage.translations.export" />
         </Button>
         <Button
           color="error"
@@ -386,6 +409,43 @@ export const TranslationsPage: React.FC = () => {
           <Button onClick={() => setAddOpen(false)}><FormattedMessage id="page.manage.translations.cancel" /></Button>
           <Button variant="contained" onClick={handleAdd} disabled={submitting}>
             <FormattedMessage id="page.manage.translations.add.confirm" />
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Export dialog */}
+      <Dialog open={exportOpen} onClose={() => setExportOpen(false)}>
+        <DialogTitle><FormattedMessage id="page.manage.translations.export.title" /></DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 1 }}><FormattedMessage id="page.manage.translations.export.help" /></DialogContentText>
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={Boolean(exportSel[NATIVE_KEY])}
+                  onChange={(e) => setExportSel((prev) => ({ ...prev, [NATIVE_KEY]: e.target.checked }))}
+                />
+              }
+              label={intl.formatMessage({ id: 'page.manage.translations.export.native' })}
+            />
+            {languages.map((loc) => (
+              <FormControlLabel
+                key={loc}
+                control={
+                  <Checkbox
+                    checked={Boolean(exportSel[loc])}
+                    onChange={(e) => setExportSel((prev) => ({ ...prev, [loc]: e.target.checked }))}
+                  />
+                }
+                label={`${languageLabel(loc)} (${loc})`}
+              />
+            ))}
+          </FormGroup>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setExportOpen(false)}><FormattedMessage id="page.manage.translations.cancel" /></Button>
+          <Button variant="contained" onClick={handleExport} disabled={exportSelected.length === 0}>
+            <FormattedMessage id="page.manage.translations.export.confirm" />
           </Button>
         </DialogActions>
       </Dialog>

@@ -6,6 +6,7 @@ import type { SiteConfig } from '@simple-site/interfaces';
 import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import messages from '../../features/i18n/i18n.json';
 import { TranslationsPage } from './TranslationsPage';
+import { buildExportPayload, NATIVE_KEY } from './translationsExport';
 import { loadDraftConfig } from '../../services/configVersionService';
 import {
   deleteLanguage,
@@ -138,6 +139,27 @@ describe('TranslationsPage', () => {
     await waitFor(() => expect(screen.getByText(/imported 1 language/i)).toBeInTheDocument());
   });
 
+  it('exports the selected languages + native via a download', async () => {
+    const createObjectURL = vi.fn(() => 'blob:mock');
+    // jsdom lacks URL.createObjectURL / revokeObjectURL — provide them.
+    (URL as unknown as { createObjectURL: unknown }).createObjectURL = createObjectURL;
+    (URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL = vi.fn();
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    renderPage();
+    await screen.findByLabelText('home.menuTitle');
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText(/native/i)).toBeChecked();
+    expect(within(dialog).getByLabelText(/Français/)).toBeChecked();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Export' }));
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(clickSpy).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.getByText(/Exported/i)).toBeInTheDocument());
+    clickSpy.mockRestore();
+  });
+
   it('blocks removing the base language and removes others', async () => {
     renderPage();
     await screen.findByLabelText('home.menuTitle');
@@ -153,5 +175,21 @@ describe('TranslationsPage', () => {
     });
     expect(deleteLanguage).toHaveBeenCalledWith('fr');
     await waitFor(() => expect(screen.getByText(/removed/i)).toBeInTheDocument());
+  });
+});
+
+describe('buildExportPayload', () => {
+  const translations = { en: { a: 'A' }, fr: { a: 'Af' } };
+  const originals = { a: 'Orig' };
+
+  it('maps native to the config originals and languages to their dicts', () => {
+    expect(buildExportPayload([NATIVE_KEY, 'fr'], translations, originals)).toEqual({
+      native: { a: 'Orig' },
+      fr: { a: 'Af' },
+    });
+  });
+
+  it('yields an empty dict for a language with no entries', () => {
+    expect(buildExportPayload(['de'], translations, originals)).toEqual({ de: {} });
   });
 });
