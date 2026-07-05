@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { SiteConfig } from '@simple-site/interfaces';
-import { collectI18nEntries, isLocaleCode, menuTitleKey, sectionContentKey } from '@simple-site/interfaces';
+import { collectI18nEntries, isLocaleCode, menuTitleKey, sectionContentKey, sectionScope } from '@simple-site/interfaces';
 
 // A representative config exercising menu titles + a hero + a text section. Cast because
 // the extractor only reads pages/sections, not the full validated schema.
@@ -36,26 +36,27 @@ const config = {
 describe('i18n key builders', () => {
   it('build the conventional keys', () => {
     expect(menuTitleKey('home')).toBe('home.menuTitle');
-    expect(sectionContentKey('hero1', 'title')).toBe('hero1.content.title');
-    expect(sectionContentKey('hero1', 'ctaButtons.0.label')).toBe('hero1.content.ctaButtons.0.label');
+    expect(sectionScope('home', 'hero1')).toBe('home.hero1');
+    expect(sectionContentKey('home.hero1', 'title')).toBe('home.hero1.content.title');
+    expect(sectionContentKey('home.hero1', 'ctaButtons.0.label')).toBe('home.hero1.content.ctaButtons.0.label');
   });
 });
 
 describe('collectI18nEntries', () => {
-  it('collects menu + hero + text keys with their original values', () => {
+  it('collects menu + hero + text keys (page-scoped) with their original values', () => {
     const map = new Map(collectI18nEntries(config).map((e) => [e.key, e.defaultValue]));
     expect(map.get('home.menuTitle')).toBe('Home');
-    expect(map.get('hero1.content.title')).toBe('Welcome');
-    expect(map.get('hero1.content.ctaButtons.0.label')).toBe('Start');
-    expect(map.get('hero1.content.featuringItems.0.label')).toBe('Users');
-    expect(map.get('hero1.content.featuringItems.0.value')).toBe('1k');
-    expect(map.get('text1.content.columns.0.paragraph')).toBe('Body');
-    expect(map.get('text1.content.columns.0.title')).toBe('Col');
+    expect(map.get('home.hero1.content.title')).toBe('Welcome');
+    expect(map.get('home.hero1.content.ctaButtons.0.label')).toBe('Start');
+    expect(map.get('home.hero1.content.featuringItems.0.label')).toBe('Users');
+    expect(map.get('home.hero1.content.featuringItems.0.value')).toBe('1k');
+    expect(map.get('home.text1.content.columns.0.paragraph')).toBe('Body');
+    expect(map.get('home.text1.content.columns.0.title')).toBe('Col');
   });
 
   it('skips empty strings (mirrors the renderers)', () => {
     const keys = collectI18nEntries(config).map((e) => e.key);
-    expect(keys).not.toContain('hero1.content.subtitle');
+    expect(keys).not.toContain('home.hero1.content.subtitle');
   });
 
   it('dedupes repeated keys', () => {

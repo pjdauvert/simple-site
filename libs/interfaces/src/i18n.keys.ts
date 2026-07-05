@@ -12,6 +12,13 @@ import { SectionTypesEnum } from './sections/section.interface.js';
 /** i18n key for a page's menu title. */
 export const menuTitleKey = (pageName: string): string => `${pageName}.menuTitle`;
 
+/**
+ * Page-qualified section name used to scope a section's i18n keys. Sections are named
+ * per-page (e.g. both the home and get-started pages have a `hero`), so keys are scoped
+ * by page to stay unique — the `Page` renderer passes this same value as `sectionName`.
+ */
+export const sectionScope = (pageName: string, sectionName: string): string => `${pageName}.${sectionName}`;
+
 /** i18n key for a string held under a section's `content` (e.g. `title`, `columns.0.paragraph`). */
 export const sectionContentKey = (sectionName: string, path: string): string =>
   `${sectionName}.content.${path}`;
@@ -41,7 +48,7 @@ export const collectI18nEntries = (config: SiteConfig): I18nEntry[] => {
   for (const page of config.pages) {
     add(menuTitleKey(page.pageName), page.menuTitle);
     for (const section of page.sections) {
-      const s = section.sectionName;
+      const s = sectionScope(page.pageName, section.sectionName);
       if (section.type === SectionTypesEnum.HERO) {
         add(sectionContentKey(s, 'title'), section.content.title);
         add(sectionContentKey(s, 'subtitle'), section.content.subtitle);

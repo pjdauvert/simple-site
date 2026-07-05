@@ -22,7 +22,7 @@ vi.mock('../../services/translationsService', () => ({
   deleteLanguage: vi.fn(),
 }));
 
-// Config → expected keys: home.menuTitle="Home", hero1.content.title="Welcome".
+// Config → expected keys: home.menuTitle="Home", home.hero1.content.title="Welcome".
 const draftConfig = {
   site: { siteName: 'S' },
   themes: [],
@@ -35,7 +35,7 @@ const draftConfig = {
 } as unknown as SiteConfig;
 
 const blob = () => ({
-  en: { 'home.menuTitle': 'Home', 'hero1.content.title': 'Welcome EN', 'orphan.key': 'Extra' },
+  en: { 'home.menuTitle': 'Home', 'home.hero1.content.title': 'Welcome EN', 'orphan.key': 'Extra' },
   fr: { 'home.menuTitle': 'Accueil' },
 });
 
@@ -69,7 +69,7 @@ describe('TranslationsPage', () => {
 
   it('merges config + blob keys, shows originals, and flags extra keys', async () => {
     renderPage();
-    expect(await screen.findByLabelText('hero1.content.title')).toHaveValue('Welcome EN');
+    expect(await screen.findByLabelText('home.hero1.content.title')).toHaveValue('Welcome EN');
     expect(screen.getByLabelText('home.menuTitle')).toHaveValue('Home');
     expect(screen.getByText('Welcome')).toBeInTheDocument(); // config original column
     expect(screen.getByLabelText('orphan.key')).toHaveValue('Extra');
@@ -83,7 +83,7 @@ describe('TranslationsPage', () => {
     await screen.findByLabelText('home.menuTitle');
     await selectLanguage(/Français/);
     await waitFor(() => expect(screen.getByText('1 missing')).toBeInTheDocument());
-    expect(screen.getByLabelText('hero1.content.title')).toHaveValue(''); // missing → empty
+    expect(screen.getByLabelText('home.hero1.content.title')).toHaveValue(''); // missing → empty
     expect(screen.queryByLabelText('orphan.key')).not.toBeInTheDocument(); // not in fr
   });
 
@@ -96,7 +96,7 @@ describe('TranslationsPage', () => {
     });
     expect(replaceTranslations).toHaveBeenCalledWith('en', {
       'home.menuTitle': 'Home 2',
-      'hero1.content.title': 'Welcome EN',
+      'home.hero1.content.title': 'Welcome EN',
       'orphan.key': 'Extra',
     });
     await waitFor(() => expect(screen.getByText(/translations saved/i)).toBeInTheDocument());
@@ -110,7 +110,7 @@ describe('TranslationsPage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
     });
-    expect(replaceTranslations).toHaveBeenCalledWith('de', { 'home.menuTitle': '', 'hero1.content.title': '' });
+    expect(replaceTranslations).toHaveBeenCalledWith('de', { 'home.menuTitle': '', 'home.hero1.content.title': '' });
     await waitFor(() => expect(screen.getByText(/Deutsch added/i)).toBeInTheDocument());
   });
 
