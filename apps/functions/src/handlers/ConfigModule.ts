@@ -250,6 +250,15 @@ export class ConfigModule extends BaseHandler {
         return this.createSuccessResponse({ message: 'Site settings updated successfully' });
     };
 
+    /** PUT /api/config/themes — replace the `themes` array of the DRAFT. */
+    private updateThemes = async (store: Store, body: string, path: string): Promise<Response> => {
+        const themes = SiteConfigSchema.shape.themes.parse(JSON.parse(body));
+        const current = await this.readDraft(store, path);
+        const merged = SiteConfigSchema.parse({ ...current, themes });
+        await this.writeDraft(store, merged);
+        return this.createSuccessResponse({ message: 'Themes updated successfully' });
+    };
+
     /** POST /api/config — replace the whole DRAFT (never writes live). */
     private setDraft = async (store: Store, body: string): Promise<Response> => {
         const config = SiteConfigSchema.parse(JSON.parse(body));
@@ -421,6 +430,10 @@ export class ConfigModule extends BaseHandler {
             if (method === 'PUT' && pathname === '/api/config/site') {
                 this.requireJson(request, path);
                 return await this.updateSite(store, await request.text(), path);
+            }
+            if (method === 'PUT' && pathname === '/api/config/themes') {
+                this.requireJson(request, path);
+                return await this.updateThemes(store, await request.text(), path);
             }
             if (method === 'POST' && pathname === '/api/config/publish') {
                 return await this.publishDraft(store, path);

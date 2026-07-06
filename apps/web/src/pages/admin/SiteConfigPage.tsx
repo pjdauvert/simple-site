@@ -52,13 +52,6 @@ export const GeneralTab: React.FC = () => (
   </Paper>
 );
 
-/** Themes tab — placeholder shell; the editor from PR #65 lands here. */
-export const ThemesTab: React.FC = () => (
-  <Alert severity="info">
-    <FormattedMessage id="page.manage.site.themes.comingSoon" />
-  </Alert>
-);
-
 /** Pages tab — placeholder shell for future page-structure management. */
 export const PagesTab: React.FC = () => (
   <Alert severity="info">

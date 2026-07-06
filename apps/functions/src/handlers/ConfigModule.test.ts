@@ -40,6 +40,17 @@ const storedConfig = {
 
 const withSiteName = (name: string) => ({ ...storedConfig, site: { ...storedConfig.site, siteName: name } });
 
+const solarTheme = {
+  themeName: 'Solar',
+  primaryColor: '#f90',
+  secondaryColor: '#333',
+  linkColor: '#00f',
+  linkHoverColor: '#00a',
+  backgroundColor: '#fff',
+  menuBackgroundColor: '#eee',
+  menuHoverColor: '#ddd',
+};
+
 const manifest = (over: Record<string, unknown> = {}) =>
   JSON.stringify({
     published: { key: 'published', name: 'Published' },
@@ -133,6 +144,44 @@ describe('ConfigModule', () => {
     const res = await handle(jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'X' }));
     expect(res.status).toBe(404);
     expect((await readJson(res)).code).toBe(ErrorCode.NOT_FOUND);
+  });
+
+  it('PUT /api/config/themes writes the DRAFT themes and leaves the published config untouched', async () => {
+    const { data } = makeStore();
+    const newThemes = [solarTheme];
+    const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', newThemes));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.message).toMatch(/updated/i);
+
+    // Published stays as-is; the change lands on the draft.
+    expect(JSON.parse(data.get('config')!).themes).toEqual(storedConfig.themes);
+    const draft = JSON.parse(data.get('config:draft')!);
+    expect(draft.themes).toEqual(newThemes);
+    expect(draft.site).toEqual(storedConfig.site); // site untouched
+    expect(draft.pages).toEqual(storedConfig.pages); // pages untouched
+  });
+
+  it('PUT /api/config/themes accepts an empty themes array', async () => {
+    const { data } = makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', []));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).themes).toEqual([]);
+  });
+
+  it('PUT /api/config/themes rejects an invalid theme (missing required color)', async () => {
+    const { data } = makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', [{ themeName: 'Bad' }]));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(data.has('config:draft')).toBe(false); // nothing written on a validation failure
+  });
+
+  it('PUT /api/config/themes requires an application/json content type', async () => {
+    const { store } = makeStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', [], 'text/plain'));
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
+    expect(store.set).not.toHaveBeenCalled();
   });
 
   it('POST /api/config/publish promotes the draft and archives the previous published config', async () => {

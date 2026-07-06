@@ -6,13 +6,15 @@ import { IntlProvider } from 'react-intl';
 import type { SiteConfig, SiteThemeConfig } from '@simple-site/interfaces';
 import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import messages from '../../features/i18n/i18n.json';
-import { SiteConfigPage, GeneralTab, ThemesTab, PagesTab } from './SiteConfigPage';
+import { SiteConfigPage, GeneralTab, PagesTab } from './SiteConfigPage';
+import { ThemesTab } from './ThemesTab';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 
 vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../services/siteConfigService', () => ({ updateSiteSettings: vi.fn() }));
+vi.mock('../../services/themesService', () => ({ updateThemes: vi.fn() }));
 vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const siteConfig = (site: Partial<SiteThemeConfig> = {}): SiteConfig =>
@@ -70,11 +72,11 @@ describe('SiteConfigPage', () => {
     expect(await screen.findByLabelText(/site name/i)).toBeInTheDocument();
   });
 
-  it('shows the Themes placeholder when the Themes tab is selected', async () => {
+  it('shows the Themes editor when the Themes tab is selected', async () => {
     renderSiteConfig();
     await screen.findByLabelText(/site name/i);
     fireEvent.click(screen.getByRole('tab', { name: 'Themes' }));
-    expect(await screen.findByText('Theme management is coming soon.')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /add theme/i })).toBeInTheDocument();
   });
 
   it('shows the Pages placeholder when navigated to directly', async () => {

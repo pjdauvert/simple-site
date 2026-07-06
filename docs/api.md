@@ -12,6 +12,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | GET | `/api/config/draft` | Retrieve the working **draft** configuration (admin) |
 | POST | `/api/config` | Replace the **draft** configuration (admin) |
 | PUT | `/api/config/site` | Update the `site` section of the **draft** (admin) |
+| PUT | `/api/config/themes` | Replace the `themes` array of the **draft** (admin) |
 | POST | `/api/config/publish` | Publish the draft — promote it live, archive the previous (admin) |
 | POST | `/api/config/import` | Upload a configuration as the new named draft (admin) |
 | GET | `/api/config/versions` | List versions: published, draft, archives (admin) |
@@ -70,7 +71,7 @@ Replaces the whole **draft** configuration (never writes live). The body must be
 
 ### `PUT /api/config/site`
 
-Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `containerMaxWidth`) of the **draft**. The server reads the draft (or the published config if no draft exists), replaces its `site` object with the (Zod-validated) body, re-validates the whole `SiteConfig`, then persists the draft — so `themes` and `pages` are left untouched, and the change does not go live until published. Backs the **Site settings** form on the `/manage` admin dashboard.
+Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `containerMaxWidth`) of the **draft**. The server reads the draft (or the published config if no draft exists), replaces its `site` object with the (Zod-validated) body, re-validates the whole `SiteConfig`, then persists the draft — so `themes` and `pages` are left untouched, and the change does not go live until published. Backs the **General** tab of the `/manage/site` configuration page.
 
 ```json
 // Request body — a SiteThemeConfig object
@@ -78,6 +79,18 @@ Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `container
 
 // 200 OK
 { "ok": true, "data": { "message": "Site settings updated successfully" } }
+```
+
+### `PUT /api/config/themes`
+
+Replaces the entire `themes` array of the **draft** (add / edit / delete are all expressed as "send the full list"). The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `themes` array, re-validates the whole `SiteConfig`, then persists the draft — so `site` and `pages` are left untouched, and the change does not go live until published. Backs the **Themes** tab of the `/manage/site` configuration page.
+
+```json
+// Request body — an array of ThemeConfig objects
+[{ "themeName": "Light", "primaryColor": "#1976d2", "secondaryColor": "#9c27b0", "linkColor": "#1976d2", "linkHoverColor": "#1565c0", "backgroundColor": "#ffffff", "menuBackgroundColor": "#f5f5f5", "menuHoverColor": "#e0e0e0" }]
+
+// 200 OK
+{ "ok": true, "data": { "message": "Themes updated successfully" } }
 ```
 
 ### `POST /api/config/publish`
