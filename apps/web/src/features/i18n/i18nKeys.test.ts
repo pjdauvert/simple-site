@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import type { SiteConfig } from '@simple-site/interfaces';
-import { collectI18nEntries, isLocaleCode, menuTitleKey, sectionContentKey, sectionScope } from '@simple-site/interfaces';
+import type { HeroSectionProps, SiteConfig, TextSectionProps } from '@simple-site/interfaces';
+import {
+  collectHeroI18n,
+  collectI18nEntries,
+  collectTextI18n,
+  isLocaleCode,
+  menuTitleKey,
+  sectionContentKey,
+  sectionScope,
+} from '@simple-site/interfaces';
 
 // A representative config exercising menu titles + a hero + a text section. Cast because
 // the extractor only reads pages/sections, not the full validated schema.
@@ -62,6 +70,38 @@ describe('collectI18nEntries', () => {
   it('dedupes repeated keys', () => {
     const keys = collectI18nEntries(config).map((e) => e.key);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('section collectors (each type owns its translatable fields)', () => {
+  it('collectHeroI18n emits scoped title/subtitle/cta/featuring keys, skipping empties', () => {
+    const hero = {
+      sectionName: 'hero',
+      type: 'hero',
+      content: {
+        title: 'T',
+        subtitle: '', // empty → skipped
+        ctaButtons: [{ label: 'Go', link: '/x' }],
+        featuringItems: [{ label: 'L', value: 'V' }],
+      },
+    } as unknown as HeroSectionProps;
+    const map = new Map(collectHeroI18n(hero, 'home.hero').map((e) => [e.key, e.defaultValue]));
+    expect(map.get('home.hero.content.title')).toBe('T');
+    expect(map.has('home.hero.content.subtitle')).toBe(false);
+    expect(map.get('home.hero.content.ctaButtons.0.label')).toBe('Go');
+    expect(map.get('home.hero.content.featuringItems.0.label')).toBe('L');
+    expect(map.get('home.hero.content.featuringItems.0.value')).toBe('V');
+  });
+
+  it('collectTextI18n emits scoped column title/paragraph keys', () => {
+    const text = {
+      sectionName: 'text',
+      type: 'text',
+      content: { columns: [{ title: 'CT', paragraph: 'CP' }] },
+    } as unknown as TextSectionProps;
+    const map = new Map(collectTextI18n(text, 'home.text').map((e) => [e.key, e.defaultValue]));
+    expect(map.get('home.text.content.columns.0.title')).toBe('CT');
+    expect(map.get('home.text.content.columns.0.paragraph')).toBe('CP');
   });
 });
 

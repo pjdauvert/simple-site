@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BaseSectionDesignSchema, BaseSectionPropsSchema, SectionTypesEnum } from "./section.interface.js";
+import { BaseSectionDesignSchema, BaseSectionPropsSchema, SectionTypesEnum, createSectionI18n, type SectionI18nCollector } from "./section.interface.js";
 import { UrlOrPathSchema } from "../url.interface.js";
 import { BreakpointSchema, VerticalAlignSchema, HorizontalAlignSchema, MediaPositionSchema } from "../layout.interface.js";
 
@@ -59,3 +59,13 @@ export const TextSectionPropsSchema = BaseSectionPropsSchema.extend({
   });
   
 export type TextSectionProps = z.infer<typeof TextSectionPropsSchema>;
+
+/** Translatable strings of a text section: each column's title + paragraph. */
+export const collectTextI18n: SectionI18nCollector<TextSectionProps> = ({ content }, scope) => {
+  const { entries, add } = createSectionI18n(scope);
+  content.columns.forEach((col, i) => {
+    add(`columns.${i}.title`, col.title);
+    add(`columns.${i}.paragraph`, col.paragraph);
+  });
+  return entries;
+};

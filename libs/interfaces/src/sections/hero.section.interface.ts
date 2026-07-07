@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BaseSectionPropsSchema, BaseSectionDesignSchema, SectionTypesEnum, ZoneStyleSchema } from "./section.interface.js";
+import { BaseSectionPropsSchema, BaseSectionDesignSchema, SectionTypesEnum, ZoneStyleSchema, createSectionI18n, type SectionI18nCollector } from "./section.interface.js";
 import { UrlOrPathSchema } from "../url.interface.js";
 import { VerticalAlignSchema, HorizontalAlignSchema } from "../layout.interface.js";
 
@@ -54,3 +54,16 @@ export const HeroSectionPropsSchema = BaseSectionPropsSchema.extend({
 });
 
 export type HeroSectionProps = z.infer<typeof HeroSectionPropsSchema>;
+
+/** Translatable strings of a hero section: title, subtitle, CTA labels, featuring items. */
+export const collectHeroI18n: SectionI18nCollector<HeroSectionProps> = ({ content }, scope) => {
+  const { entries, add } = createSectionI18n(scope);
+  add('title', content.title);
+  add('subtitle', content.subtitle);
+  content.ctaButtons?.forEach((cta, i) => add(`ctaButtons.${i}.label`, cta.label));
+  content.featuringItems?.forEach((item, i) => {
+    add(`featuringItems.${i}.label`, item.label);
+    add(`featuringItems.${i}.value`, item.value);
+  });
+  return entries;
+};
