@@ -9,7 +9,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { PhotoLibrary as PhotoLibraryIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { SiteThemeConfig } from '@simple-site/interfaces';
 import { SiteThemeConfigSchema, UrlOrPathSchema } from '@simple-site/interfaces';
@@ -17,12 +16,11 @@ import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useNotifications } from '../../hooks/useNotifications';
-import { ImagePickerDialog } from '../media';
+import { MediaUrlField } from '../media';
 
 const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 /** Select value: '' = inherit/default, 'false' = full width, otherwise a breakpoint. */
 type ContainerChoice = '' | 'false' | (typeof BREAKPOINTS)[number];
-type PickerTarget = 'logo' | 'favicon' | null;
 
 const toChoice = (value: SiteThemeConfig['containerMaxWidth']): ContainerChoice =>
   value === undefined ? '' : value === false ? 'false' : value;
@@ -58,8 +56,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
 
   const [submitting, setSubmitting] = useState(false);
 
-  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
-
   useEffect(() => {
     let active = true;
     loadDraftConfig()
@@ -85,12 +81,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [intl]);
-
-  const handlePicked = (url: string) => {
-    if (pickerTarget === 'logo') { setLogoUrl(url); setLogoError(false); }
-    else if (pickerTarget === 'favicon') { setFaviconUrl(url); setFaviconError(false); }
-    setPickerTarget(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,47 +158,25 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           fullWidth
         />
 
-        <Stack direction="row" spacing={1} alignItems="flex-start">
-          <TextField
-            label={intl.formatMessage({ id: 'page.manage.site.logoUrl' })}
-            value={logoUrl}
-            onChange={(e) => { setLogoUrl(e.target.value); setLogoError(false); }}
-            error={logoError}
-            helperText={logoError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
-            fullWidth
-          />
-          {showPicker && (
-            <Button
-              variant="outlined"
-              startIcon={<PhotoLibraryIcon />}
-              onClick={() => setPickerTarget('logo')}
-              sx={{ mt: 1, flexShrink: 0 }}
-            >
-              <FormattedMessage id="page.manage.site.chooseFromLibrary" />
-            </Button>
-          )}
-        </Stack>
+        <MediaUrlField
+          label={intl.formatMessage({ id: 'page.manage.site.logoUrl' })}
+          value={logoUrl}
+          onChange={(v) => { setLogoUrl(v); setLogoError(false); }}
+          error={logoError}
+          helperText={logoError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
+          enablePicker={showPicker}
+          fullWidth
+        />
 
-        <Stack direction="row" spacing={1} alignItems="flex-start">
-          <TextField
-            label={intl.formatMessage({ id: 'page.manage.site.faviconUrl' })}
-            value={faviconUrl}
-            onChange={(e) => { setFaviconUrl(e.target.value); setFaviconError(false); }}
-            error={faviconError}
-            helperText={faviconError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
-            fullWidth
-          />
-          {showPicker && (
-            <Button
-              variant="outlined"
-              startIcon={<PhotoLibraryIcon />}
-              onClick={() => setPickerTarget('favicon')}
-              sx={{ mt: 1, flexShrink: 0 }}
-            >
-              <FormattedMessage id="page.manage.site.chooseFromLibrary" />
-            </Button>
-          )}
-        </Stack>
+        <MediaUrlField
+          label={intl.formatMessage({ id: 'page.manage.site.faviconUrl' })}
+          value={faviconUrl}
+          onChange={(v) => { setFaviconUrl(v); setFaviconError(false); }}
+          error={faviconError}
+          helperText={faviconError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
+          enablePicker={showPicker}
+          fullWidth
+        />
 
         <TextField
           select
@@ -231,12 +199,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           </Button>
         </Box>
       </Stack>
-
-      <ImagePickerDialog
-        open={pickerTarget !== null}
-        onClose={() => setPickerTarget(null)}
-        onSelect={handlePicked}
-      />
     </Box>
   );
 };

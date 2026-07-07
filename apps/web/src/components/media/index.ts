@@ -6,6 +6,7 @@ export { FolderChip } from './FolderChip';
 export { ImagePickerDialog } from './ImagePickerDialog';
 export { ItemTransition } from './ItemTransition';
 export { MediaBreadcrumbs } from './MediaBreadcrumbs';
+export { MediaUrlField } from './MediaUrlField';
 export { MediaItemMenu } from './MediaItemMenu';
 export { MediaSortControl } from './MediaSortControl';
 export { MediaTypeFilter } from './MediaTypeFilter';

@@ -119,6 +119,7 @@ Each selected file uploads independently (its own `AbortController`), shown on i
 - **Folders** — `POST /api/media/folder { name, path }` creates a folder; `PUT /api/media/folder { path, newName }` renames a folder (proxies ImageKit's async `POST /v1/bulkJobs/renameFolder`); `DELETE /api/media/folder?path=<relative>` deletes a folder **and all its contents** (confirmed in the UI). The Media page provides breadcrumb navigation, a "New folder" action, and a per-folder "more" menu (rename / delete).
 - **Rename file** — `PUT /api/media { filePath, newFileName }` renames a file (proxies ImageKit `PUT /v1/files/rename`). `filePath` is the file's absolute ImageKit path as surfaced in the listing.
 - **Delete file** — `DELETE /api/media/:fileId` permanently removes a file and all its versions.
+- **Deep-link to a folder** — the Media page reads a `?path=<relative>` query param on mount and opens at that folder (default: root). This lets other screens link straight to a folder — e.g. `ImagePickerDialog`'s **"Upload media"** button routes to `/manage/media?path=<current picker folder>`, so a user who can't find an image in the picker lands on the full page already at the folder they were browsing, ready to upload.
 
 See [api.md](api.md#media-imagekit) for request/response shapes. The page's display and behaviour are summarised in [The Media page at a glance](#the-media-page-at-a-glance); the sections below cover the harder-won implementation details.
 
@@ -147,6 +148,7 @@ Folder **create** re-lists the current folder from the server once ImageKit ackn
 | Frontend service | `apps/web/src/services/mediaService.ts` |
 | Admin page (container: state + handlers) | `apps/web/src/pages/admin/MediaPage.tsx` |
 | Presentational components | `apps/web/src/components/media/` (`FileCard`, `FolderChip`, `MediaItemMenu`, `CopyButton`, `DropZone`, `UploadProgressPanel`, `MediaBreadcrumbs`, `MediaTypeFilter`, `MediaSortControl`, `DeleteConfirmDialog`, `RenameDialog`, `NewFolderDialog`, `ItemTransition`) |
+| Reusable pickers | `apps/web/src/components/media/` (`ImagePickerDialog` — browse-and-pick dialog with an "Upload media" shortcut that deep-links to `/manage/media?path=…`; `MediaUrlField` — URL/path field with an optional library picker as end adornment and a live preview thumbnail) |
 | Sort / filter / rename helpers | `apps/web/src/components/media/mediaUtils.ts` (`sortFiles`, `sortFolders`, `matchesFilter`, `renameFileLocally`, `renameFolderLocally`, `sanitizeFileName`, `sanitizeFolderName`) |
 | Shared media helpers / types | `apps/web/src/components/media/mediaUtils.ts`, `apps/web/src/components/media/types.ts` |
 
