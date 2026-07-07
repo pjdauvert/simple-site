@@ -24,6 +24,7 @@ import {
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { MenuItem } from '@simple-site/interfaces';
+import { menuTitleKey } from '@simple-site/interfaces';
 import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '../features/i18n/LanguageSwitcher';
 import { useAppTheme } from '../hooks/useAppTheme';
@@ -73,7 +74,7 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
         >
           <ListItemIcon>{ICONS[item.route] ?? <SettingsIcon />}</ListItemIcon>
           <ListItemText
-            primary={<FormattedMessage id={`${item.pageName}.menuTitle`} defaultMessage={item.menuTitle} />}
+            primary={<FormattedMessage id={menuTitleKey(item.pageName)} defaultMessage={item.menuTitle} />}
           />
         </ListItemButton>
       ))}

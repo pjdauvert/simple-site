@@ -77,21 +77,25 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 │  │    │                             PUT /api/config/site │
 │  │    ├─ themes   (stub → PR #65)                 │
 │  │    └─ pages    (stub)                          │
-│  ├─ /manage/translations  (stub → PR #66)         │
+│  ├─ /manage/translations  editor (per-language) │
+│  │    keys = config ∪ blob; add/import/remove lang│
+│  │    GET /api/translations · PUT/DELETE /:locale │
 │  └─ /manage/media  MediaPage (FEATURE_MEDIA flag) │
 └──────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────┐
 │  AppIntlProvider                                 │
-│  (locale resolved from localStorage / browser)  │
-│  ↓                                               │
+│  (locale from localStorage / browser)            │
+│  ↓  GET /api/translations → available languages   │
 │  GET /api/translations/:locale                   │
 │    → Zod (I18nDictionarySchema)                  │
-│  ↓                                               │
+│  ↓  (empty values dropped → config default)       │
 │  ReactIntlProvider with fetched messages         │
 │  (re-fetches on every locale switch)             │
 └──────────────────────────────────────────────────┘
 ```
+
+Languages are **data-driven**, not compile-time: the available set is the keys of the translations blob (`GET /api/translations`), so admins add / import / remove languages from the Translations page without a code change. `en` is the base locale (always present, the fallback for an unknown locale, not removable). i18n keys are derived from the config's page/section structure by one shared helper (`collectI18nEntries` in `libs/interfaces`), used by both the public renderers and the editor.
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
 

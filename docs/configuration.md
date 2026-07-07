@@ -147,11 +147,11 @@ curl -X POST https://<your-site>/api/config/publish \
 
 Translations live in a separate Netlify Blobs entry, seeded from `apps/functions/src/handlers/seed/i18n.json`.
 
-The frontend fetches the active locale's dictionary via `GET /api/translations/:locale` on startup and re-fetches whenever the user switches language. React Intl falls back to the content values defined in the site configuration if a key is missing.
+The frontend fetches the active locale's dictionary via `GET /api/translations/:locale` on startup and re-fetches whenever the user switches language. React Intl falls back to the content values defined in the site configuration if a key is missing **or empty** (empty translations are dropped from the overlay so a not-yet-translated key shows its config original instead of blank).
 
 ### Supported locales
 
-`en`, `fr`. Adding a new locale requires extending `I18nLocalesEnum` in `libs/interfaces/src/i18n.interface.ts`.
+Languages are **data-driven**: the set of offered languages is the keys of the stored translations blob, discovered at runtime (`GET /api/translations`). Any ISO 639-1 (two-letter) code is accepted, and `en` is the base locale — always present, the fallback for an unknown locale, and not removable. `I18nLocalesEnum` in `libs/interfaces/src/i18n.interface.ts` is now only the bundled defaults/seed, not a hard gate. Add / import / remove languages from the **Translations** page under `/manage` (no code change required).
 
 ### Key format
 
@@ -166,11 +166,15 @@ Examples:
 - `page.home.hero.content.subtitle`
 - `page.home.text.content.columns.0.title` (text section with columns)
 
+Keys are derived from the config by a single shared helper (`collectI18nEntries` / the `menuTitleKey` + `sectionContentKey` builders in `libs/interfaces/src/i18n.keys.ts`), which the public renderers and the admin editor both use — so they can't drift.
+
 ### Adding or updating translations
+
+**Translations page (`/manage/translations`)** — the recommended path. Pick a language and edit values inline. The editor cross-references the config: keys the site needs but that aren't translated show as **missing** (error), keys present in the blob but not referenced by the config show as **extra** (warning). You can **add** a language (generates every config key empty, ready to fill), **import** an `i18n.json`-shaped file (one or more languages at once), or **remove** a language (`en` excepted). Saving replaces that language's dictionary (`PUT /api/translations/:locale`).
 
 **Local dev** — edit `apps/functions/src/handlers/seed/i18n.json`.
 
-**Live** — POST only the keys that changed (existing keys not included in the body are preserved):
+**Live (scripted)** — POST only the keys that changed (existing keys not included in the body are preserved):
 
 ```bash
 curl -X POST https://<your-site>/api/translations/en \

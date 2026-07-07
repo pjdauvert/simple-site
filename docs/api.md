@@ -21,8 +21,12 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | POST | `/api/config/versions/:key/publish` | Re-publish (roll back to) an archive (admin) |
 | POST | `/api/config/versions/:key/draft` | Start a new draft from a version (admin) |
 | DELETE | `/api/config/versions/:key` | Delete an archive (admin) |
-| GET | `/api/translations/:language` | Retrieve translation dictionary for a locale |
-| POST | `/api/translations/:language` | Merge translations for a locale |
+| GET | `/api/translations` | Retrieve the whole translations blob — all languages (public) |
+| GET | `/api/translations/:language` | Retrieve translation dictionary for a locale (public) |
+| POST | `/api/translations/:language` | Merge translations into a locale (admin) |
+| PUT | `/api/translations/:language` | Replace a locale's whole dictionary (admin) |
+| PUT | `/api/translations` | Bulk-import an `i18n.json`-shaped file — upsert languages (admin) |
+| DELETE | `/api/translations/:language` | Remove a language (admin; base locale protected) |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
 | GET | `/api/db-query` | Fetch sample users from MongoDB |
 | GET | `/api/features` | Report enabled feature flags (public) |
@@ -174,26 +178,69 @@ Permanently deletes an archive. Deleting `published` or `draft` is rejected (`40
 
 ---
 
-### `GET /api/translations/:language`
+Languages are **data-driven**: `:language` is any ISO 639-1 (two-letter) code, and the set of offered languages is the keys of the stored blob. `GET` routes are public; mutations are admin-gated. `en` is the base locale — always present and never removable.
 
-Returns the translation dictionary for the requested locale.  
-Supported values for `:language`: `en`, `fr`.
+### `GET /api/translations`
+
+Returns the whole translations blob (every language's dictionary). The public site uses it to discover the available languages; the admin editor loads it wholesale. **Public.**
 
 ```json
 // 200 OK
-{ "ok": true, "data": { "page.home.hero.content.title": "Welcome", /* ... */ } }
+{ "ok": true, "data": { "en": { "home.content.title": "Welcome" }, "fr": { "home.content.title": "Bienvenue" } } }
+```
+
+### `GET /api/translations/:language`
+
+Returns the translation dictionary for the requested locale (`{}` if the language exists but is empty). **Public.**
+
+```json
+// 200 OK
+{ "ok": true, "data": { "home.content.title": "Welcome", /* ... */ } }
 ```
 
 ### `POST /api/translations/:language`
 
-Merges the provided key/value pairs into the stored dictionary for the given locale. Existing keys are overwritten; absent keys are preserved.
+Merges the provided key/value pairs into the stored dictionary for the given locale. Existing keys are overwritten; absent keys are preserved (never removes keys).
 
 ```json
 // Request body — flat record of dotted translation keys → string values
-{ "page.home.hero.content.title": "Welcome to Our Site" }
+{ "home.content.title": "Welcome to Our Site" }
 
 // 200 OK
 { "ok": true, "data": { "message": "en translations updated successfully" } }
+```
+
+### `PUT /api/translations/:language`
+
+Replaces a locale's **entire** dictionary — keys omitted from the body are removed (unlike `POST`, which only merges). Backs the editor's Save (and Add, which seeds every config key empty).
+
+```json
+// Request body — the complete desired dictionary for the locale
+{ "home.content.title": "Welcome to Our Site" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "en translations replaced successfully" } }
+```
+
+### `PUT /api/translations`
+
+Bulk-imports an `i18n.json`-shaped file: the body is validated as a `Record<locale, dictionary>` and each language it contains is upserted (replaced), leaving other existing languages untouched. Invalid files return `400 INVALID_REQUEST`.
+
+```json
+// Request body — one or more languages at once
+{ "de": { "home.content.title": "Willkommen" }, "es": { "home.content.title": "Bienvenido" } }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Imported 2 language(s) successfully" } }
+```
+
+### `DELETE /api/translations/:language`
+
+Removes a language entirely. Returns `409 CONFLICT` for the base locale (`en`) or when it would remove the last remaining language.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "message": "de removed successfully" } }
 ```
 
 ---

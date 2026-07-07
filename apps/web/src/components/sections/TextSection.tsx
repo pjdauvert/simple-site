@@ -4,6 +4,7 @@ import Grid from '@mui/material/Grid2';
 import { FormattedMessage } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
 import type { TextColumnContent, TextColumnDesign, TextSectionProps } from '@simple-site/interfaces';
+import { sectionContentKey } from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
 const VERT_ALIGN: Record<string, string> = { center: 'center', bottom: 'flex-end', stretch: 'stretch' };
@@ -43,7 +44,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
       <Box sx={{ textAlign: colDesign?.textHorizontalAlign ?? 'left' }}>
         {col.title && (
           <Typography variant="h4" component="h2" gutterBottom>
-            <FormattedMessage id={`${sectionName}.content.columns.${index}.title`} defaultMessage={col.title} />
+            <FormattedMessage id={sectionContentKey(sectionName, `columns.${index}.title`)} defaultMessage={col.title} />
           </Typography>
         )}
         {col.paragraph && (
@@ -55,7 +56,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
             '& code': { backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' },
             '& pre': { backgroundColor: 'rgba(0,0,0,0.1)', padding: 2, borderRadius: 1, overflow: 'auto' },
           }}>
-            <FormattedMessage id={`${sectionName}.content.columns.${index}.paragraph`} defaultMessage={col.paragraph}>
+            <FormattedMessage id={sectionContentKey(sectionName, `columns.${index}.paragraph`)} defaultMessage={col.paragraph}>
               {(msg) => <ReactMarkdown>{String(msg)}</ReactMarkdown>}
             </FormattedMessage>
           </Box>

@@ -3,6 +3,7 @@ import { Box, Container, Typography, Button } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { FormattedMessage } from 'react-intl';
 import type { HeroSectionProps, ZoneStyle } from '@simple-site/interfaces';
+import { sectionContentKey } from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
 function zoneStyle(zone?: ZoneStyle): React.CSSProperties | undefined {
@@ -23,7 +24,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       {content.ctaButtons.map((cta, i) => (
         <Button key={i} variant={cta.variant ?? 'contained'} size="large" href={cta.link}
           sx={{ px: { xs: 3, sm: 4 }, py: { xs: 1, sm: 1.5 } }}>
-          <FormattedMessage id={`${sectionName}.content.ctaButtons.${i}.label`} defaultMessage={cta.label} />
+          <FormattedMessage id={sectionContentKey(sectionName, `ctaButtons.${i}.label`)} defaultMessage={cta.label} />
         </Button>
       ))}
     </Box>
@@ -34,10 +35,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       {content.featuringItems.map((item, i) => (
         <Box key={i}>
           <Typography variant="caption" sx={{ display: 'block', letterSpacing: '0.8px', textTransform: 'uppercase', color: 'text.secondary', mb: 0.5 }}>
-            <FormattedMessage id={`${sectionName}.content.featuringItems.${i}.label`} defaultMessage={item.label} />
+            <FormattedMessage id={sectionContentKey(sectionName, `featuringItems.${i}.label`)} defaultMessage={item.label} />
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            <FormattedMessage id={`${sectionName}.content.featuringItems.${i}.value`} defaultMessage={item.value} />
+            <FormattedMessage id={sectionContentKey(sectionName, `featuringItems.${i}.value`)} defaultMessage={item.value} />
           </Typography>
         </Box>
       ))}
@@ -63,13 +64,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
         {content.title && (
           <Typography variant="h2" component="h1" gutterBottom
             sx={{ fontWeight: 700, mb: { xs: 2, sm: 3 }, fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } }}>
-            <FormattedMessage id={`${sectionName}.content.title`} defaultMessage={content.title} />
+            <FormattedMessage id={sectionContentKey(sectionName, 'title')} defaultMessage={content.title} />
           </Typography>
         )}
         {content.subtitle && (
           <Typography variant="body1" component="p" color={textColor}
             sx={{ mb: { xs: 3, sm: 4 }, fontSize: { xs: '1rem', md: '1.0625rem' }, maxWidth: '44ch' }}>
-            <FormattedMessage id={`${sectionName}.content.subtitle`} defaultMessage={content.subtitle} />
+            <FormattedMessage id={sectionContentKey(sectionName, 'subtitle')} defaultMessage={content.subtitle} />
           </Typography>
         )}
         {ctaRow}
@@ -100,13 +101,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
         {content.title && (
           <Typography variant="h2" component="h1" gutterBottom
             sx={{ fontWeight: 700, mb: { xs: 2, sm: 3 }, fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' } }}>
-            <FormattedMessage id={`${sectionName}.content.title`} defaultMessage={content.title} />
+            <FormattedMessage id={sectionContentKey(sectionName, 'title')} defaultMessage={content.title} />
           </Typography>
         )}
         {content.subtitle && (
           <Typography variant="h5" component="p" color={textColor}
             sx={{ mb: { xs: 3, sm: 4 }, lineHeight: 1.6, fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, px: { xs: 1, sm: 2 } }}>
-            <FormattedMessage id={`${sectionName}.content.subtitle`} defaultMessage={content.subtitle} />
+            <FormattedMessage id={sectionContentKey(sectionName, 'subtitle')} defaultMessage={content.subtitle} />
           </Typography>
         )}
         {ctaRow}
