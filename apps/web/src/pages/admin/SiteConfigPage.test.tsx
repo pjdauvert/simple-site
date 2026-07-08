@@ -12,7 +12,7 @@ import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 
-vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
+vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn(), saveDraftConfig: vi.fn() }));
 vi.mock('../../services/siteConfigService', () => ({ updateSiteSettings: vi.fn() }));
 vi.mock('../../services/themesService', () => ({ updateThemes: vi.fn() }));
 vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
@@ -79,9 +79,9 @@ describe('SiteConfigPage', () => {
     expect(await screen.findByRole('button', { name: /add theme/i })).toBeInTheDocument();
   });
 
-  it('shows the Pages placeholder when navigated to directly', async () => {
+  it('shows the Pages editor when navigated to directly', async () => {
     renderSiteConfig('/manage/site/pages');
-    expect(await screen.findByText('Page management is coming soon.')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /add page/i })).toBeInTheDocument();
   });
 
   it('prefills the General form from the loaded draft', async () => {

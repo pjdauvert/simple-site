@@ -67,7 +67,7 @@ const TextEditor: React.LazyExoticComponent<SectionEditor<'text'>> = lazy(() =>
 
 const heroDefinition: SectionDefinition<'hero'> = {
   type: SectionTypesEnum.HERO,
-  labelKey: 'section.type.hero',
+  labelKey: 'page.manage.pages.sectionType.hero',
   label: 'Hero',
   Icon: ViewCarouselOutlinedIcon,
   Renderer: HeroRenderer,
@@ -77,7 +77,7 @@ const heroDefinition: SectionDefinition<'hero'> = {
 
 const textDefinition: SectionDefinition<'text'> = {
   type: SectionTypesEnum.TEXT,
-  labelKey: 'section.type.text',
+  labelKey: 'page.manage.pages.sectionType.text',
   label: 'Text',
   Icon: TextSnippetOutlinedIcon,
   Renderer: TextRenderer,

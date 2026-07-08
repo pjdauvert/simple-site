@@ -27,6 +27,12 @@ export const loadDraftConfig = async (): Promise<SiteConfig> => {
   return SiteConfigSchema.parse(unwrap(response));
 };
 
+/** Replaces the whole working draft (`POST /api/config`). Never writes live. */
+export const saveDraftConfig = async (config: SiteConfig): Promise<void> => {
+  const response = await apiService.post<SiteConfig, { message: string }>('config', config);
+  unwrap(response);
+};
+
 /** Returns the version manifest (published + draft + archives). */
 export const listVersions = async (): Promise<ConfigVersionsManifest> => {
   const response = await apiService.get<ConfigVersionsManifest>('config/versions');

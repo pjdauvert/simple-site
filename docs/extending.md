@@ -126,24 +126,61 @@ export const NewSection: React.FC<NewSectionProps> = ({ sectionName, content, de
 };
 ```
 
-### 6. Register + render the component
+### 6. Create the colocated editor — `apps/web/src/components/sections/NewSection.editor.tsx`
 
-Export it from `apps/web/src/components/index.ts`:
-
-```typescript
-export { NewSection } from './sections/NewSection';
-```
-
-…and add the render case in `apps/web/src/pages/dynamic/PageSection.tsx`:
+Each section type ships an **admin editor next to its renderer**, so the two evolve together. It's a controlled component typed by the shared `SectionEditorProps<'new'>` contract (from `registry.ts`): it reads `value`, emits the next section via `onChange`, and drops empty optional fields so the section serializes clean — mirror `HeroSection.editor.tsx` / `TextSection.editor.tsx`. All visible labels use `react-intl` (id-only) with keys namespaced under `page.manage.pages.section.new.*`; reuse `MediaUrlField` (from `../media`) for image/url fields and `ColorField` (from `../themes/ColorField`) for colors.
 
 ```typescript
-import { NewSection } from '../../components';
+import React from 'react';
+import { Stack, TextField } from '@mui/material';
+import { useIntl } from 'react-intl';
+import type { NewSectionProps } from '@simple-site/interfaces';
+import type { SectionEditorProps } from './registry';
 
-case SectionTypesEnum.NEW:
-  return <NewSection {...props} />;
+export const NewSectionEditor: React.FC<SectionEditorProps<'new'>> = ({ value, onChange }) => {
+  const intl = useIntl();
+  return (
+    <Stack spacing={2}>
+      <TextField
+        label={intl.formatMessage({ id: 'page.manage.pages.section.new.title' })}
+        value={value.content.title ?? ''}
+        onChange={(e) => onChange({ ...value, content: { ...value.content, title: e.target.value } })}
+        size="small"
+        fullWidth
+      />
+    </Stack>
+  );
+};
 ```
 
-### 7. Add a section to the config
+### 7. Register in the section registry — `apps/web/src/components/sections/registry.ts`
+
+The registry is the single dispatch point: the public renderer (`apps/web/src/pages/dynamic/PageSection.tsx`), the admin **Pages editor** (`/manage/site/pages`), and the add-section picker all read from it. Add one entry — a lazy renderer, a lazy editor, an icon, a label key, and a `createDefault` factory for a blank, schema-valid section:
+
+```typescript
+const NewRenderer = lazy(() => import('./NewSection').then((m) => ({ default: m.NewSection })));
+const NewEditor   = lazy(() => import('./NewSection.editor').then((m) => ({ default: m.NewSectionEditor })));
+
+const newDefinition: SectionDefinition<'new'> = {
+  type: SectionTypesEnum.NEW,
+  labelKey: 'page.manage.pages.sectionType.new',
+  label: 'New',
+  Icon: SomeOutlinedIcon, // any @mui/icons-material component
+  Renderer: NewRenderer,
+  Editor: NewEditor,
+  createDefault: (sectionName) => ({ type: SectionTypesEnum.NEW, sectionName, content: { images: [] } }),
+};
+
+export const SECTION_REGISTRY: { [K in SectionType]: SectionDefinition<K> } = {
+  [SectionTypesEnum.HERO]: heroDefinition,
+  [SectionTypesEnum.TEXT]: textDefinition,
+  [SectionTypesEnum.NEW]:  newDefinition, // ← add here
+};
+```
+
+No change to `PageSection.tsx` is needed — it dispatches through `SECTION_REGISTRY`. Add the section-type picker label to i18n too (`page.manage.pages.sectionType.new`, en + fr) so the "Add section" menu shows it.
+
+### 8. Add a section to the config
 
 Add the section object to a page in the seed file (`apps/functions/src/handlers/seed/siteConfig.json`) for local dev, or POST the updated config to `/api/config` in production:
 
@@ -161,7 +198,7 @@ Add the section object to a page in the seed file (`apps/functions/src/handlers/
 }
 ```
 
-### 8. Add translations
+### 9. Add translations
 
 Every key the collector emits for this section needs a value in each language. Manage them from the **Translations** page under `/manage` — because expected keys come straight from `collectI18nEntries`, the new section's keys appear automatically, flagged as *missing* until filled. For local dev, add them to the seed `apps/functions/src/handlers/seed/i18n.json` (both `en` and `fr`); the `seed.test.ts` parity check enforces that the seed config and translations stay in lockstep — no missing or extra keys — so it will fail until every new key is present and non-empty.
 

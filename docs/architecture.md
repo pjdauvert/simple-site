@@ -75,8 +75,8 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 │  ├─ /manage/site       Site configuration (tabs) │
 │  │    ├─ general  SiteSettingsForm → GET /api/config/draft│
 │  │    │                             PUT /api/config/site │
-│  │    ├─ themes   (stub → PR #65)                 │
-│  │    └─ pages    (stub)                          │
+│  │    ├─ themes   ThemesTab   → PUT /api/config/themes│
+│  │    └─ pages    PagesEditor → POST /api/config  │
 │  ├─ /manage/translations  editor (per-language) │
 │  │    keys = config ∪ blob; add/import/remove lang│
 │  │    GET /api/translations · PUT/DELETE /:locale │
