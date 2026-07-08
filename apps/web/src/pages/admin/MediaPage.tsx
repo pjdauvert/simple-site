@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, CircularProgress, Collapse, Typography } from '@mui/material';
 import { CreateNewFolder as CreateNewFolderIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { useSearchParams } from 'react-router-dom';
 import type { MediaFile, MediaFolder, MediaType } from '@simple-site/interfaces';
 import {
   createFolder,
@@ -47,8 +48,11 @@ type ItemTarget =
 export const MediaPage: React.FC = () => {
   const intl = useIntl();
   const notify = useNotifications();
+  const [searchParams] = useSearchParams();
 
-  const [currentPath, setCurrentPath] = useState('');
+  // Open at the folder passed via `?path=` (e.g. from the image picker's "Upload"
+  // action) so the upload lands where the user was browsing; default to the root.
+  const [currentPath, setCurrentPath] = useState(() => searchParams.get('path') ?? '');
   const [folders, setFolders] = useState<MediaFolder[]>([]);
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);

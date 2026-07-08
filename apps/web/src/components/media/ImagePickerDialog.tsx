@@ -11,8 +11,9 @@ import {
   DialogTitle,
   Typography,
 } from '@mui/material';
-import { Folder as FolderIcon } from '@mui/icons-material';
+import { CloudUpload as CloudUploadIcon, Folder as FolderIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { useNavigate } from 'react-router-dom';
 import type { MediaFile, MediaFolder } from '@simple-site/interfaces';
 import { listMedia } from '../../services/mediaService';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -33,6 +34,7 @@ interface ImagePickerDialogProps {
 export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onClose, onSelect }) => {
   const intl = useIntl();
   const notify = useNotifications();
+  const navigate = useNavigate();
   const [currentPath, setCurrentPath] = useState('');
   const [folders, setFolders] = useState<MediaFolder[]>([]);
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -65,6 +67,13 @@ export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onCl
 
   const segments = currentPath.split('/').filter(Boolean);
   const isEmpty = folders.length === 0 && files.length === 0;
+
+  // Leave the picker for the full Media page to upload, opening it at the folder
+  // the user has browsed to (if any) so the upload lands where they expect.
+  const goToUpload = () => {
+    onClose();
+    navigate(currentPath ? `/manage/media?path=${encodeURIComponent(currentPath)}` : '/manage/media');
+  };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -139,6 +148,9 @@ export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onCl
         )}
       </DialogContent>
       <DialogActions>
+        <Button startIcon={<CloudUploadIcon />} onClick={goToUpload} sx={{ mr: 'auto' }}>
+          <FormattedMessage id="page.manage.site.picker.upload" />
+        </Button>
         <Button onClick={onClose}><FormattedMessage id="page.manage.site.picker.cancel" /></Button>
       </DialogActions>
     </Dialog>

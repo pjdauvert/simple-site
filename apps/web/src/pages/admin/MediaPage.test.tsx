@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { fireEvent, waitFor, within } from '@testing-library/dom';
 import { IntlProvider } from 'react-intl';
+import { MemoryRouter } from 'react-router-dom';
 import type { MediaFile, MediaListResult } from '@simple-site/interfaces';
 import messages from '../../features/i18n/i18n.json';
 import { MediaPage } from './MediaPage';
@@ -10,13 +11,15 @@ import * as mediaService from '../../services/mediaService';
 
 vi.mock('../../services/mediaService');
 
-const renderPage = () =>
+const renderPage = (initialEntry = '/manage/media') =>
   render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <MediaPage />
-      </NotificationsProvider>
-    </IntlProvider>,
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
+        <NotificationsProvider>
+          <MediaPage />
+        </NotificationsProvider>
+      </IntlProvider>
+    </MemoryRouter>,
   );
 
 const file = (over: Partial<MediaFile> & Pick<MediaFile, 'fileId' | 'name'>): MediaFile => ({
@@ -55,6 +58,15 @@ describe('MediaPage', () => {
     expect(
       screen.getByRole('button', { name: 'Drag & drop files here, or click to browse' }),
     ).toBeInTheDocument();
+  });
+
+  it('opens at the folder passed via the ?path= query param', async () => {
+    vi.mocked(mediaService.listMedia).mockResolvedValue(result());
+    renderPage('/manage/media?path=logos/brand');
+
+    await waitFor(() =>
+      expect(mediaService.listMedia).toHaveBeenCalledWith('logos/brand', 'all'),
+    );
   });
 
   it('renders folder tiles and file tiles', async () => {
