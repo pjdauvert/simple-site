@@ -1,5 +1,5 @@
-import { Box, TextField, Typography } from '@mui/material';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { Box, TextField } from '@mui/material';
+import { useIntl } from 'react-intl';
 import type { PageConfiguration } from '@simple-site/interfaces';
 import type { PageFieldErrors } from './pagesDraft';
 
@@ -8,6 +8,8 @@ interface PageSettingsFormProps {
   errors: PageFieldErrors;
   showErrors: boolean;
   onChange: (next: PageConfiguration) => void;
+  /** When true (the home page), the route and pageName can't be changed. */
+  lockIdentity?: boolean;
 }
 
 const ROUTE_ERROR: Record<NonNullable<PageFieldErrors['route']>, string> = {
@@ -21,51 +23,51 @@ const PAGENAME_ERROR: Record<NonNullable<PageFieldErrors['pageName']>, string> =
 };
 
 /** Editor for a page's structural fields: menu title, i18n page name, and route. */
-export const PageSettingsForm: React.FC<PageSettingsFormProps> = ({ page, errors, showErrors, onChange }) => {
+export const PageSettingsForm: React.FC<PageSettingsFormProps> = ({ page, errors, showErrors, onChange, lockIdentity }) => {
   const intl = useIntl();
   const set = (key: keyof PageConfiguration, value: string) => onChange({ ...page, [key]: value });
 
   const routeError = showErrors && errors.route ? errors.route : undefined;
   const pageNameError = showErrors && errors.pageName ? errors.pageName : undefined;
+  const lockedHelp = intl.formatMessage({ id: 'page.manage.pages.field.homeLocked' });
 
   return (
-    <Box>
-      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-        <FormattedMessage id="page.manage.pages.settings.title" />
-      </Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-        <TextField
-          label={intl.formatMessage({ id: 'page.manage.pages.field.menuTitle' })}
-          value={page.menuTitle}
-          onChange={(e) => set('menuTitle', e.target.value)}
-          size="small"
-          fullWidth
-        />
-        <TextField
-          label={intl.formatMessage({ id: 'page.manage.pages.field.route' })}
-          value={page.route}
-          onChange={(e) => set('route', e.target.value)}
-          size="small"
-          fullWidth
-          required
-          error={Boolean(routeError)}
-          helperText={routeError ? intl.formatMessage({ id: ROUTE_ERROR[routeError] }) : ' '}
-        />
-        <TextField
-          label={intl.formatMessage({ id: 'page.manage.pages.field.pageName' })}
-          value={page.pageName}
-          onChange={(e) => set('pageName', e.target.value)}
-          size="small"
-          fullWidth
-          required
-          error={Boolean(pageNameError)}
-          helperText={
-            pageNameError
-              ? intl.formatMessage({ id: PAGENAME_ERROR[pageNameError] })
+    <Box sx={{ display: 'grid', gap: 2 }}>
+      <TextField
+        label={intl.formatMessage({ id: 'page.manage.pages.field.menuTitle' })}
+        value={page.menuTitle}
+        onChange={(e) => set('menuTitle', e.target.value)}
+        size="small"
+        fullWidth
+      />
+      <TextField
+        label={intl.formatMessage({ id: 'page.manage.pages.field.route' })}
+        value={page.route}
+        onChange={(e) => set('route', e.target.value)}
+        size="small"
+        fullWidth
+        required
+        disabled={lockIdentity}
+        error={Boolean(routeError)}
+        helperText={routeError ? intl.formatMessage({ id: ROUTE_ERROR[routeError] }) : lockIdentity ? lockedHelp : ' '}
+      />
+      <TextField
+        label={intl.formatMessage({ id: 'page.manage.pages.field.pageName' })}
+        value={page.pageName}
+        onChange={(e) => set('pageName', e.target.value)}
+        size="small"
+        fullWidth
+        required
+        disabled={lockIdentity}
+        error={Boolean(pageNameError)}
+        helperText={
+          pageNameError
+            ? intl.formatMessage({ id: PAGENAME_ERROR[pageNameError] })
+            : lockIdentity
+              ? lockedHelp
               : intl.formatMessage({ id: 'page.manage.pages.field.pageName.help' })
-          }
-        />
-      </Box>
+        }
+      />
     </Box>
   );
 };

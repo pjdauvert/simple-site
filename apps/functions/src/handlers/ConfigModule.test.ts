@@ -139,6 +139,45 @@ describe('ConfigModule', () => {
     expect(store.set).not.toHaveBeenCalled();
   });
 
+  it('POST /api/config replaces the whole DRAFT and leaves the published config untouched', async () => {
+    const { data } = makeStore();
+    const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
+    const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).pages).toHaveLength(1);
+    expect(JSON.parse(data.get('config')!).pages).toEqual([]); // published untouched
+  });
+
+  it('POST /api/config rejects duplicate page routes (uniqueness enforced server-side)', async () => {
+    const { store } = makeStore();
+    const config = {
+      ...storedConfig,
+      pages: [
+        { menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] },
+        { menuTitle: 'Home 2', pageName: 'page.home2', route: '/home', sections: [] },
+      ],
+    };
+    const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it('POST /api/config rejects duplicate page names (uniqueness enforced server-side)', async () => {
+    const { store } = makeStore();
+    const config = {
+      ...storedConfig,
+      pages: [
+        { menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] },
+        { menuTitle: 'Home 2', pageName: 'page.home', route: '/home2', sections: [] },
+      ],
+    };
+    const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
   it('PUT /api/config/site 404s when no config is stored yet', async () => {
     makeStore({});
     const res = await handle(jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'X' }));

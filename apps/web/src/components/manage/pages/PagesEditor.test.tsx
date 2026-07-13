@@ -4,7 +4,7 @@ import { fireEvent } from '@testing-library/dom';
 import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import type { SiteConfig, ThemeConfig } from '@simple-site/interfaces';
+import type { PageConfiguration, SiteConfig, ThemeConfig } from '@simple-site/interfaces';
 import messages from '../../../features/i18n/i18n.json';
 import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { ThemeContext, type ThemeContextValue } from '../../../features/theme/ThemeContext';
@@ -39,8 +39,8 @@ const themeValue: ThemeContextValue = {
   availableThemes: [],
 };
 
-const emptyConfig = (): SiteConfig =>
-  ({ site: { siteName: 'Test', containerMaxWidth: 'lg' }, themes: [], pages: [] }) as unknown as SiteConfig;
+const configWith = (pages: PageConfiguration[]): SiteConfig =>
+  ({ site: { siteName: 'Test', containerMaxWidth: 'lg' }, themes: [], pages }) as unknown as SiteConfig;
 
 function renderEditor() {
   return render(
@@ -61,22 +61,21 @@ function renderEditor() {
 describe('PagesEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(loadDraftConfig).mockResolvedValue(emptyConfig());
+    vi.mocked(loadDraftConfig).mockResolvedValue(configWith([]));
     vi.mocked(saveDraftConfig).mockResolvedValue(undefined);
   });
 
   it('shows the empty state after loading the draft', async () => {
     renderEditor();
-    expect(await screen.findByRole('button', { name: /add page/i })).toBeInTheDocument();
-    // Shown in both the rail and the center pane when there are no pages.
-    expect(screen.getAllByText('No pages yet. Add one to get started.').length).toBeGreaterThan(0);
+    expect(await screen.findByText('No pages yet. Add one to get started.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add page/i })).toBeInTheDocument();
   });
 
-  it('adds a page and saves the whole draft with it', async () => {
+  it('adds a page (opening the settings drawer) and saves the whole draft', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
 
-    // The page settings form appears for the newly-added page.
+    // The drawer opens on the new page's settings — the route field is present.
     expect(await screen.findByLabelText(/route/i)).toBeInTheDocument();
 
     await act(async () => {
@@ -86,18 +85,17 @@ describe('PagesEditor', () => {
     await waitFor(() => expect(saveDraftConfig).toHaveBeenCalledTimes(1));
     const saved = vi.mocked(saveDraftConfig).mock.calls[0][0] as SiteConfig;
     expect(saved.pages).toHaveLength(1);
-    // Untouched slices are preserved from the re-fetched draft.
     expect(saved.themes).toEqual([]);
   });
 
-  it('adds a section and mounts its editor with a live preview', async () => {
+  it('adds a section and mounts its editor in the drawer with a live preview', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
 
     fireEvent.click(await screen.findByRole('button', { name: /add section/i }));
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Hero' }));
 
-    // The Hero editor mounts (its Title field) once the new section is selected.
+    // The Hero editor mounts in the drawer once the new section is selected.
     expect(await screen.findByLabelText('Title')).toBeInTheDocument();
 
     // Editing the title flows into the live preview (rendered by the real HeroSection).
@@ -118,7 +116,44 @@ describe('PagesEditor', () => {
     });
 
     expect(saveDraftConfig).not.toHaveBeenCalled();
-    const forms = screen.getAllByText('Route is required.');
-    expect(forms.length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Route is required.').length).toBeGreaterThan(0);
+  });
+
+  it('locks the home page: route/name read-only and delete disabled', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith([{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }]),
+    );
+    renderEditor();
+    // Open the settings drawer for the (auto-selected) home page.
+    fireEvent.click(await screen.findByRole('button', { name: /toggle settings panel/i }));
+
+    expect(await screen.findByLabelText(/route/i)).toBeDisabled();
+    expect(screen.getByLabelText(/page name/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /delete page/i })).toBeDisabled();
+  });
+
+  it('reorders pages from the reorder dialog', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith([
+        { menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] },
+        { menuTitle: 'About', pageName: 'page.about', route: '/about', sections: [] },
+      ]),
+    );
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: /reorder pages/i }));
+
+    // Move the second page (About) up above Home.
+    const upButtons = await screen.findAllByRole('button', { name: /move up/i });
+    fireEvent.click(upButtons[1]);
+    fireEvent.click(screen.getByRole('button', { name: /done/i }));
+
+    // Wait for the dialog to finish closing before the toolbar is queryable again.
+    const saveBtn = await screen.findByRole('button', { name: /^save$/i });
+    await act(async () => {
+      fireEvent.click(saveBtn);
+    });
+    await waitFor(() => expect(saveDraftConfig).toHaveBeenCalled());
+    const saved = vi.mocked(saveDraftConfig).mock.calls[0][0] as SiteConfig;
+    expect(saved.pages.map((p) => p.route)).toEqual(['/about', '/home']);
   });
 });

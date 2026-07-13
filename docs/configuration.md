@@ -71,6 +71,8 @@ Each page object:
 
 - `pageName` is used as the prefix for all i18n keys on that page (e.g. `page.home.hero.content.title`).
 - `route` must be unique. Routes are registered automatically — no router changes needed.
+- Both `route` and `pageName` must be **unique across all pages**. This is enforced by `SiteConfigSchema` itself, so it holds both in the admin **Pages** editor (form validation) and at the API — `POST /api/config` rejects a config with duplicates.
+- The home page (`route: "/home"`) is reserved: the Pages editor won't let you delete it or change its `route` / `pageName`.
 
 ### Sections
 

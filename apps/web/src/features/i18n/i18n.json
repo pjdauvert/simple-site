@@ -368,7 +368,17 @@
     "page.manage.pages.section.text.backgroundColor": "Background color",
     "page.manage.pages.section.text.textColor": "Text color",
     "page.manage.pages.section.text.backgroundUrl": "Background image",
-    "page.manage.pages.section.text.parallax": "Parallax background"
+    "page.manage.pages.section.text.parallax": "Parallax background",
+    "page.manage.pages.selectPage": "Select a page",
+    "page.manage.pages.reorder": "Reorder pages",
+    "page.manage.pages.reorder.title": "Reorder pages",
+    "page.manage.pages.reorder.done": "Done",
+    "page.manage.pages.drawer.toggle": "Toggle settings panel",
+    "page.manage.pages.drawer.close": "Close panel",
+    "page.manage.pages.drawer.back": "Back to page settings",
+    "page.manage.pages.drawer.editSection": "Edit section",
+    "page.manage.pages.field.homeLocked": "The home page cannot be renamed.",
+    "page.manage.pages.homeCannotDelete": "The home page cannot be deleted."
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -739,6 +749,16 @@
     "page.manage.pages.section.text.backgroundColor": "Couleur d'arrière-plan",
     "page.manage.pages.section.text.textColor": "Couleur du texte",
     "page.manage.pages.section.text.backgroundUrl": "Image d'arrière-plan",
-    "page.manage.pages.section.text.parallax": "Arrière-plan parallaxe"
+    "page.manage.pages.section.text.parallax": "Arrière-plan parallaxe",
+    "page.manage.pages.selectPage": "Sélectionner une page",
+    "page.manage.pages.reorder": "Réordonner les pages",
+    "page.manage.pages.reorder.title": "Réordonner les pages",
+    "page.manage.pages.reorder.done": "Terminé",
+    "page.manage.pages.drawer.toggle": "Afficher/masquer le panneau",
+    "page.manage.pages.drawer.close": "Fermer le panneau",
+    "page.manage.pages.drawer.back": "Retour aux paramètres de la page",
+    "page.manage.pages.drawer.editSection": "Modifier la section",
+    "page.manage.pages.field.homeLocked": "La page d'accueil ne peut pas être renommée.",
+    "page.manage.pages.homeCannotDelete": "La page d'accueil ne peut pas être supprimée."
   }
 }
