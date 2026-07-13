@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
@@ -70,15 +70,15 @@ describe('ManageLayout', () => {
     expect(dashLinks.some((a) => a?.classList.contains('Mui-selected'))).toBe(true);
   });
 
-  it('folds the desktop drawer to icons only and back', () => {
+  it('folds the desktop drawer to icons only and back', async () => {
     renderLayout();
     const expanded = screen.getAllByText('Dashboard').length; // desktop + mobile
     fireEvent.click(screen.getByRole('button', { name: 'Collapse menu' }));
-    // The desktop drawer drops its labels (mobile keeps them).
+    // The desktop drawer drops its labels immediately (mobile keeps them).
     expect(screen.getAllByText('Dashboard').length).toBeLessThan(expanded);
-    // The control now offers to expand again.
+    // Expanding reveals the labels again once the animation completes.
     fireEvent.click(screen.getByRole('button', { name: 'Expand menu' }));
-    expect(screen.getAllByText('Dashboard').length).toBe(expanded);
+    await waitFor(() => expect(screen.getAllByText('Dashboard').length).toBe(expanded));
   });
 
   it('logs out when the logout button is clicked', () => {

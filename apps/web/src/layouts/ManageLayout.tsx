@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   AppBar,
@@ -13,6 +13,7 @@ import {
   Toolbar,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -59,10 +60,14 @@ interface ManageLayoutProps {
 export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children }) => {
   const location = useLocation();
   const intl = useIntl();
+  const theme = useTheme();
   const { user, logout } = useAuth();
   const { siteThemeConfig } = useAppTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSED_KEY) === '1');
+  // Labels are revealed only once the expand animation completes, so they never
+  // wrap to two lines while the drawer is still narrow (which bumped row height).
+  const [showLabels, setShowLabels] = useState<boolean>(() => localStorage.getItem(COLLAPSED_KEY) !== '1');
 
   const toggleCollapsed = () =>
     setCollapsed((prev) => {
@@ -71,6 +76,15 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
       return next;
     });
 
+  useEffect(() => {
+    if (collapsed) {
+      setShowLabels(false);
+      return;
+    }
+    const id = window.setTimeout(() => setShowLabels(true), theme.transitions.duration.standard);
+    return () => window.clearTimeout(id);
+  }, [collapsed, theme.transitions.duration.standard]);
+
   const desktopWidth = collapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
 
   // Dashboard matches only its exact path; every other item matches its subtree
@@ -78,7 +92,7 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
   const isActive = (route: string) =>
     route === '/manage' ? location.pathname === route : location.pathname.startsWith(route);
 
-  const renderNav = (mini: boolean) => (
+  const renderNav = (mini: boolean, showText: boolean) => (
     <List>
       {menuItems.map((item) => {
         const label = intl.formatMessage({ id: menuTitleKey(item.pageName), defaultMessage: item.menuTitle });
@@ -93,7 +107,7 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
             <ListItemIcon sx={{ minWidth: 0, mr: mini ? 0 : 2, justifyContent: 'center' }}>
               {ICONS[item.route] ?? <SettingsIcon />}
             </ListItemIcon>
-            {!mini && <ListItemText primary={label} />}
+            {showText && <ListItemText primary={label} slotProps={{ primary: { noWrap: true } }} />}
           </ListItemButton>
         );
         return mini ? (
@@ -174,7 +188,7 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
       >
         <Toolbar />
         <Divider />
-        {renderNav(collapsed)}
+        {renderNav(collapsed, showLabels)}
       </Drawer>
 
       {/* Fold/unfold control: on the drawer's right edge, at the middle of its height. */}
@@ -203,7 +217,8 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
               border: '1px solid',
               borderColor: 'divider',
               boxShadow: 1,
-              '&:hover': { bgcolor: 'action.hover' },
+              // Keep an opaque fill on hover so the drawer edge never shows through.
+              '&:hover': { bgcolor: 'background.paper', borderColor: 'text.secondary', boxShadow: 3 },
             }}
           >
             {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
@@ -224,7 +239,7 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
       >
         <Toolbar />
         <Divider />
-        {renderNav(false)}
+        {renderNav(false, true)}
       </Drawer>
 
       <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
