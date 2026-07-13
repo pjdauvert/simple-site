@@ -30,7 +30,7 @@ import type {
   TextSectionProps,
 } from '@simple-site/interfaces';
 import type { SectionEditorProps } from './registry';
-import { ColorField } from '../themes/ColorField';
+import { ColorField } from '../manage/themes/ColorField';
 import { MediaUrlField } from '../media';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 

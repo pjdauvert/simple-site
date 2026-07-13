@@ -128,7 +128,7 @@ export const NewSection: React.FC<NewSectionProps> = ({ sectionName, content, de
 
 ### 6. Create the colocated editor — `apps/web/src/components/sections/NewSection.editor.tsx`
 
-Each section type ships an **admin editor next to its renderer**, so the two evolve together. It's a controlled component typed by the shared `SectionEditorProps<'new'>` contract (from `registry.ts`): it reads `value`, emits the next section via `onChange`, and drops empty optional fields so the section serializes clean — mirror `HeroSection.editor.tsx` / `TextSection.editor.tsx`. All visible labels use `react-intl` (id-only) with keys namespaced under `page.manage.pages.section.new.*`; reuse `MediaUrlField` (from `../media`) for image/url fields and `ColorField` (from `../themes/ColorField`) for colors.
+Each section type ships an **admin editor next to its renderer**, so the two evolve together. It's a controlled component typed by the shared `SectionEditorProps<'new'>` contract (from `registry.ts`): it reads `value`, emits the next section via `onChange`, and drops empty optional fields so the section serializes clean — mirror `HeroSection.editor.tsx` / `TextSection.editor.tsx`. All visible labels use `react-intl` (id-only) with keys namespaced under `page.manage.pages.section.new.*`; reuse `MediaUrlField` (from `../media`) for image/url fields and `ColorField` (from `../manage/themes/ColorField`) for colors.
 
 ```typescript
 import React from 'react';

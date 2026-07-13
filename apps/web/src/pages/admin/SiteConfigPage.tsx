@@ -1,7 +1,6 @@
-import { Box, Paper, Tab, Tabs, Typography } from '@mui/material';
+import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
-import { PagesEditor, SiteSettingsForm } from '../../components/manage';
 
 const TABS = ['general', 'themes', 'pages'] as const;
 type TabKey = (typeof TABS)[number];
@@ -44,13 +43,3 @@ export const SiteConfigPage: React.FC = () => {
     </Box>
   );
 };
-
-/** General tab — the existing site-settings form (self-notifies on save). */
-export const GeneralTab: React.FC = () => (
-  <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-    <SiteSettingsForm />
-  </Paper>
-);
-
-/** Pages tab — the page & section editor (self-notifies on save). */
-export const PagesTab: React.FC = () => <PagesEditor />;

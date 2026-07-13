@@ -1,8 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import type { MenuItem } from "@simple-site/interfaces";
 import { ManagePage } from "../pages/admin/ManagePage";
-import { SiteConfigPage, GeneralTab, PagesTab } from "../pages/admin/SiteConfigPage";
+import { SiteConfigPage } from "../pages/admin/SiteConfigPage";
+import { GeneralTab } from "../pages/admin/GeneralTab";
 import { ThemesTab } from "../pages/admin/ThemesTab";
+import { PagesTab } from "../pages/admin/PagesTab";
 import { TranslationsPage } from "../pages/admin/TranslationsPage";
 import { MediaPage } from "../pages/admin/MediaPage";
 import { ProtectedRoute } from "./ProtectedRoute";
