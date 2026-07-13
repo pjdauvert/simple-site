@@ -30,12 +30,16 @@ import {
   type PageConfiguration,
   type SectionProps,
   type SectionType,
+  type SiteThemeConfig,
+  type ThemeConfig,
   SiteConfigSchema,
   isHomePage,
 } from '@simple-site/interfaces';
 import { loadDraftConfig, saveDraftConfig } from '../../../services/configVersionService';
 import { useNotifications } from '../../../hooks/useNotifications';
+import { ScopedAppTheme } from '../../../features/theme/ScopedAppTheme';
 import { PageSelector } from './PageSelector';
+import { ThemeSelector } from './ThemeSelector';
 import { ReorderPagesDialog } from './ReorderPagesDialog';
 import { SectionPreview } from './SectionPreview';
 import { PageDrawer } from './PageDrawer';
@@ -55,6 +59,9 @@ export const PagesEditor: React.FC = () => {
   const notify = useNotifications();
 
   const [pages, setPages] = useState<PageConfiguration[]>([]);
+  const [themes, setThemes] = useState<ThemeConfig[]>([]);
+  const [site, setSite] = useState<SiteThemeConfig | null>(null);
+  const [selectedThemeName, setSelectedThemeName] = useState<string | null>(null);
   const [selectedPage, setSelectedPage] = useState(0);
   const [selectedSection, setSelectedSection] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -73,7 +80,15 @@ export const PagesEditor: React.FC = () => {
   useEffect(() => {
     let active = true;
     loadDraftConfig()
-      .then((config) => { if (active) setPages(config.pages); })
+      .then((config) => {
+        if (!active) return;
+        setPages(config.pages);
+        setThemes(config.themes);
+        setSite(config.site);
+        // Preview under the first theme when there's a choice (mirrors the app's
+        // "2+ themes" switcher rule); no theme scoping when there are fewer.
+        setSelectedThemeName(config.themes.length >= 2 ? config.themes[0].themeName : null);
+      })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.pages.error.load' }));
       })
@@ -84,6 +99,10 @@ export const PagesEditor: React.FC = () => {
   const errors = useMemo(() => validatePages(pages), [pages]);
   const currentPage: PageConfiguration | undefined = pages[selectedPage];
   const isHome = currentPage ? isHomePage(currentPage) : false;
+  const previewTheme = useMemo(
+    () => themes.find((t) => t.themeName === selectedThemeName),
+    [themes, selectedThemeName],
+  );
 
   const updatePage = (index: number, next: PageConfiguration) =>
     setPages((prev) => prev.map((p, i) => (i === index ? next : p)));
@@ -234,6 +253,17 @@ export const PagesEditor: React.FC = () => {
     return <Alert severity="error">{loadError}</Alert>;
   }
 
+  const sectionPreview = currentPage ? (
+    <SectionPreview
+      page={currentPage}
+      selectedSectionIndex={selectedSection}
+      onSelectSection={selectSection}
+      onMoveSection={moveSection}
+      onRemoveSection={removeSection}
+      onAddSection={addSection}
+    />
+  ) : null;
+
   return (
     <Box>
       <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
@@ -245,6 +275,9 @@ export const PagesEditor: React.FC = () => {
           onSelect={selectPage}
           onAdd={addPage}
         />
+        {themes.length >= 2 && (
+          <ThemeSelector themes={themes} selected={selectedThemeName} onSelect={setSelectedThemeName} />
+        )}
         <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.reorder' })}>
           <span>
             <IconButton onClick={() => setReorderOpen(true)} disabled={pages.length < 2} aria-label={intl.formatMessage({ id: 'page.manage.pages.reorder' })}>
@@ -296,14 +329,11 @@ export const PagesEditor: React.FC = () => {
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           {currentPage ? (
-            <SectionPreview
-              page={currentPage}
-              selectedSectionIndex={selectedSection}
-              onSelectSection={selectSection}
-              onMoveSection={moveSection}
-              onRemoveSection={removeSection}
-              onAddSection={addSection}
-            />
+            previewTheme && site ? (
+              <ScopedAppTheme themeConfig={previewTheme} siteThemeConfig={site}>{sectionPreview}</ScopedAppTheme>
+            ) : (
+              sectionPreview
+            )
           ) : (
             <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

@@ -39,8 +39,10 @@ const themeValue: ThemeContextValue = {
   availableThemes: [],
 };
 
-const configWith = (pages: PageConfiguration[]): SiteConfig =>
-  ({ site: { siteName: 'Test', containerMaxWidth: 'lg' }, themes: [], pages }) as unknown as SiteConfig;
+const theme = (name: string): ThemeConfig => ({ ...themeConfig, themeName: name });
+
+const configWith = (pages: PageConfiguration[], themes: unknown[] = []): SiteConfig =>
+  ({ site: { siteName: 'Test', containerMaxWidth: 'lg' }, themes, pages }) as unknown as SiteConfig;
 
 function renderEditor() {
   return render(
@@ -130,6 +132,26 @@ describe('PagesEditor', () => {
     expect(await screen.findByLabelText(/route/i)).toBeDisabled();
     expect(screen.getByLabelText(/page name/i)).toBeDisabled();
     expect(screen.getByRole('button', { name: /delete page/i })).toBeDisabled();
+  });
+
+  it('shows the theme selector when 2+ themes exist', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }],
+        [theme('Ocean'), theme('Sunset')],
+      ),
+    );
+    renderEditor();
+    expect(await screen.findByRole('button', { name: /preview theme/i })).toBeInTheDocument();
+  });
+
+  it('hides the theme selector with fewer than two themes', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith([{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }], [theme('Ocean')]),
+    );
+    renderEditor();
+    await screen.findByRole('button', { name: /^save$/i });
+    expect(screen.queryByRole('button', { name: /preview theme/i })).not.toBeInTheDocument();
   });
 
   it('reorders pages from the reorder dialog', async () => {

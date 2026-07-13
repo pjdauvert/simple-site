@@ -380,7 +380,8 @@
     "page.manage.pages.field.homeLocked": "The home page cannot be renamed.",
     "page.manage.pages.homeCannotDelete": "The home page cannot be deleted.",
     "manage.nav.collapse": "Collapse menu",
-    "manage.nav.expand": "Expand menu"
+    "manage.nav.expand": "Expand menu",
+    "page.manage.pages.selectTheme": "Preview theme"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -763,6 +764,7 @@
     "page.manage.pages.field.homeLocked": "La page d'accueil ne peut pas être renommée.",
     "page.manage.pages.homeCannotDelete": "La page d'accueil ne peut pas être supprimée.",
     "manage.nav.collapse": "Réduire le menu",
-    "manage.nav.expand": "Développer le menu"
+    "manage.nav.expand": "Développer le menu",
+    "page.manage.pages.selectTheme": "Thème d'aperçu"
   }
 }
