@@ -174,6 +174,13 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
           width: desktopWidth,
           flexShrink: 0,
           display: { xs: 'none', md: 'block' },
+          // Animate the reserved footprint (not just the paper) so the main
+          // content follows the drawer instead of snapping to its final width.
+          transition: (theme) =>
+            theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.standard,
+            }),
           '& .MuiDrawer-paper': {
             width: desktopWidth,
             boxSizing: 'border-box',
