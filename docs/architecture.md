@@ -99,7 +99,7 @@ Languages are **data-driven**, not compile-time: the available set is the keys o
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
 
-The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages, addressed by URL sub-routes under `/manage/site`), Translations, and the flag-gated Media library.
+The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, foldable to an icons-only mini variant via an edge toggle whose state persists in `localStorage`; temporary/toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages, addressed by URL sub-routes under `/manage/site`), Translations, and the flag-gated Media library.
 
 ## Media Management
 

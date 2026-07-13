@@ -378,7 +378,9 @@
     "page.manage.pages.drawer.back": "Back to page settings",
     "page.manage.pages.drawer.editSection": "Edit section",
     "page.manage.pages.field.homeLocked": "The home page cannot be renamed.",
-    "page.manage.pages.homeCannotDelete": "The home page cannot be deleted."
+    "page.manage.pages.homeCannotDelete": "The home page cannot be deleted.",
+    "manage.nav.collapse": "Collapse menu",
+    "manage.nav.expand": "Expand menu"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -759,6 +761,8 @@
     "page.manage.pages.drawer.back": "Retour aux paramètres de la page",
     "page.manage.pages.drawer.editSection": "Modifier la section",
     "page.manage.pages.field.homeLocked": "La page d'accueil ne peut pas être renommée.",
-    "page.manage.pages.homeCannotDelete": "La page d'accueil ne peut pas être supprimée."
+    "page.manage.pages.homeCannotDelete": "La page d'accueil ne peut pas être supprimée.",
+    "manage.nav.collapse": "Réduire le menu",
+    "manage.nav.expand": "Développer le menu"
   }
 }

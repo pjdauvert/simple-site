@@ -44,7 +44,7 @@ function renderLayout(path = '/manage', context: Partial<AuthContextValue> = {})
 }
 
 describe('ManageLayout', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
 
   it('renders a drawer entry for each menu item and the children', () => {
     renderLayout();
@@ -68,6 +68,17 @@ describe('ManageLayout', () => {
     renderLayout('/manage');
     const dashLinks = screen.getAllByText('Dashboard').map((el) => el.closest('a'));
     expect(dashLinks.some((a) => a?.classList.contains('Mui-selected'))).toBe(true);
+  });
+
+  it('folds the desktop drawer to icons only and back', () => {
+    renderLayout();
+    const expanded = screen.getAllByText('Dashboard').length; // desktop + mobile
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse menu' }));
+    // The desktop drawer drops its labels (mobile keeps them).
+    expect(screen.getAllByText('Dashboard').length).toBeLessThan(expanded);
+    // The control now offers to expand again.
+    fireEvent.click(screen.getByRole('button', { name: 'Expand menu' }));
+    expect(screen.getAllByText('Dashboard').length).toBe(expanded);
   });
 
   it('logs out when the logout button is clicked', () => {
