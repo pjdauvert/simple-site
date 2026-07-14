@@ -84,6 +84,13 @@ export default defineConfig({
             return 'markdown-vendor';
           }
           
+          // Lexical rich-text editor — admin-only, imported lazily by the section
+          // Markdown editor, so keep it in its own chunk out of the eager `vendor`
+          // bundle (the public site never loads it).
+          if (id.includes('node_modules/lexical/') || id.includes('node_modules/@lexical/')) {
+            return 'lexical-vendor';
+          }
+
           // All other node_modules
           if (id.includes('node_modules')) {
             return 'vendor';
