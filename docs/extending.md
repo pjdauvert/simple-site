@@ -100,54 +100,79 @@ This dispatch is the **only** central i18n touch-point — the field details sta
 
 ### 5. Create the React component — `apps/web/src/components/sections/NewSection.tsx`
 
-Build the `<FormattedMessage>` id with the shared `sectionContentKey` builder so it matches the collector's keys exactly. `sectionName` is already page-scoped by the `Page` renderer.
+The renderer is the **single source of layout**, used both by the public site and by the admin editor's live preview. Instead of a plain `<FormattedMessage>`, declare each editable field as a **slot**: `EditableText` for text, `EditableMarkdown` for a Markdown body, `EditableImage` for images. Each takes the same dotted `path` the i18n collector uses (step 3), so one declaration serves both rendering and in-place editing:
+
+- **Public site** (no editing context): a slot renders exactly the `FormattedMessage` / `<img>` it would have before — the config value is the i18n *default*, a translation for the scoped key wins, and an empty field renders nothing.
+- **Admin, section selected**: the same slot becomes an in-place field (inheriting the surrounding typography) that writes back to the config at `path`.
+
+Wrap optional fields in `useSlotVisible()` so they still render (as a ghost placeholder) while editing even when empty — otherwise there'd be nothing to click.
 
 ```typescript
 import React from 'react';
-import { Container, Box } from '@mui/material';
-import { FormattedMessage } from 'react-intl';
+import { Container, Box, Typography } from '@mui/material';
 import type { NewSectionProps } from '@simple-site/interfaces';
-import { sectionContentKey } from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { EditableText } from './EditableText';
+import { useSlotVisible } from './sectionEdit';
 
-export const NewSection: React.FC<NewSectionProps> = ({ sectionName, content, design }) => {
+export const NewSection: React.FC<NewSectionProps> = ({ sectionName, content }) => {
   const { siteThemeConfig } = useAppTheme();
+  const showSlot = useSlotVisible();
   return (
     <Box>
       <Container maxWidth={siteThemeConfig.containerMaxWidth}>
-        <FormattedMessage
-          id={sectionContentKey(sectionName, 'title')}
-          defaultMessage={content.title}
-        />
-        {/* render the rest of content here — one FormattedMessage per key the collector emits */}
+        {showSlot(content.title) && (
+          <Typography variant="h2">
+            <EditableText sectionName={sectionName} path="title" value={content.title} multiline />
+          </Typography>
+        )}
+        {/* one Editable* slot per key the collector emits */}
       </Container>
     </Box>
   );
 };
 ```
 
-### 6. Create the colocated editor — `apps/web/src/components/sections/NewSection.editor.tsx`
+### 6. Add a normalizer — `apps/web/src/components/sections/NewSection.normalize.ts`
 
-Each section type ships an **admin editor next to its renderer**, so the two evolve together. It's a controlled component typed by the shared `SectionEditorProps<'new'>` contract (from `registry.ts`): it reads `value`, emits the next section via `onChange`, and drops empty optional fields so the section serializes clean — mirror `HeroSection.editor.tsx` / `TextSection.editor.tsx`. All visible labels use `react-intl` (id-only) with keys namespaced under `page.manage.pages.section.new.*`; reuse `MediaUrlField` (from `../media`) for image/url fields and `ColorField` (from `../manage/themes/ColorField`) for colors.
+Both the form editor and inline edits emit through one canonicaliser that drops empty optional fields (and omits empty arrays/objects) so the section always serializes clean — mirror `HeroSection.normalize.ts` / `TextSection.normalize.ts`:
+
+```typescript
+import type { NewSectionProps } from '@simple-site/interfaces';
+
+export const normalizeNewSection = (section: NewSectionProps): NewSectionProps => {
+  /* build a fresh object keeping only non-empty fields */
+  return section;
+};
+```
+
+### 7. Create the colocated editor — `apps/web/src/components/sections/NewSection.editor.tsx`
+
+Content (text, images) is edited **in place on the rendered section**, so the editor is **structure + design only** — it lives in a full-width bottom sheet under the preview and handles what has no place on the canvas: layout, colours, breakpoints, and add/remove of repeatable items. It's a controlled component typed by `SectionEditorProps<'new'>` (from `registry.ts`) that emits through your normalizer; mirror `HeroSection.editor.tsx` / `TextSection.editor.tsx`. Do **not** duplicate the text/image fields here. Labels use `react-intl` (id-only) under `page.manage.pages.section.new.*`; use `ColorField` (from `../manage/themes/ColorField`) for colours.
 
 ```typescript
 import React from 'react';
-import { Stack, TextField } from '@mui/material';
+import { Stack, MenuItem, TextField } from '@mui/material';
 import { useIntl } from 'react-intl';
-import type { NewSectionProps } from '@simple-site/interfaces';
 import type { SectionEditorProps } from './registry';
+import { normalizeNewSection } from './NewSection.normalize';
 
 export const NewSectionEditor: React.FC<SectionEditorProps<'new'>> = ({ value, onChange }) => {
   const intl = useIntl();
+  const setDesign = (patch: object) =>
+    onChange(normalizeNewSection({ ...value, design: { ...value.design, ...patch } }));
   return (
     <Stack spacing={2}>
       <TextField
-        label={intl.formatMessage({ id: 'page.manage.pages.section.new.title' })}
-        value={value.content.title ?? ''}
-        onChange={(e) => onChange({ ...value, content: { ...value.content, title: e.target.value } })}
+        select
+        label={intl.formatMessage({ id: 'page.manage.pages.section.new.layout' })}
+        value={value.design?.layout ?? ''}
+        onChange={(e) => setDesign({ layout: e.target.value || undefined })}
         size="small"
-        fullWidth
-      />
+      >
+        <MenuItem value="a">A</MenuItem>
+        <MenuItem value="b">B</MenuItem>
+      </TextField>
     </Stack>
   );
 };
@@ -169,6 +194,7 @@ const newDefinition: SectionDefinition<'new'> = {
   Renderer: NewRenderer,
   Editor: NewEditor,
   createDefault: (sectionName) => ({ type: SectionTypesEnum.NEW, sectionName, content: { images: [] } }),
+  normalize: normalizeNewSection, // from step 6 — used by the form AND by inline edits
 };
 
 export const SECTION_REGISTRY: { [K in SectionType]: SectionDefinition<K> } = {
