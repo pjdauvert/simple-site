@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,7 +22,7 @@ import {
   FileUploadOutlined as UploadIcon,
   Save as SaveIcon,
   SwapVert as ReorderIcon,
-  ViewSidebarOutlined as DrawerIcon,
+  TuneOutlined as SettingsIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
@@ -42,7 +41,8 @@ import { PageSelector } from './PageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { ReorderPagesDialog } from './ReorderPagesDialog';
 import { SectionPreview } from './SectionPreview';
-import { PageDrawer } from './PageDrawer';
+import { SectionBottomSheet } from './SectionBottomSheet';
+import { PageSettingsDialog } from './PageSettingsDialog';
 import { createPage, createSection, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
 
@@ -64,7 +64,7 @@ export const PagesEditor: React.FC = () => {
   const [selectedThemeName, setSelectedThemeName] = useState<string | null>(null);
   const [selectedPage, setSelectedPage] = useState(0);
   const [selectedSection, setSelectedSection] = useState<number | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -107,8 +107,8 @@ export const PagesEditor: React.FC = () => {
   const updatePage = (index: number, next: PageConfiguration) =>
     setPages((prev) => prev.map((p, i) => (i === index ? next : p)));
 
-  // Adding or importing a page opens the drawer on its settings; selecting an
-  // existing page leaves the drawer as the user last set it (closed by default).
+  // Creating or importing a page opens its settings; selecting an existing page
+  // just switches the preview.
   const addPage = () => {
     setPages((prev) => {
       const page = createPage(prev.map((p) => p.route), prev.map((p) => p.pageName));
@@ -116,14 +116,14 @@ export const PagesEditor: React.FC = () => {
       return [...prev, page];
     });
     setSelectedSection(null);
-    setDrawerOpen(true);
+    setSettingsOpen(true);
   };
 
   const removePage = (index: number) => {
     setPages((prev) => prev.filter((_, i) => i !== index));
     setSelectedPage((prev) => Math.max(0, prev >= index ? prev - 1 : prev));
     setSelectedSection(null);
-    setDrawerOpen(false);
+    setSettingsOpen(false);
   };
 
   // Reorder keeps the same page selected by tracking its object reference.
@@ -140,20 +140,16 @@ export const PagesEditor: React.FC = () => {
   const selectPage = (index: number) => {
     setSelectedPage(index);
     setSelectedSection(null);
-    setDrawerOpen(false);
+    setSettingsOpen(false);
   };
 
-  const selectSection = (index: number) => {
-    setSelectedSection(index);
-    setDrawerOpen(true);
-  };
+  const selectSection = (index: number) => setSelectedSection(index);
 
   const addSection = (type: SectionType) => {
     if (!currentPage) return;
     const section = createSection(type, currentPage.sections.map((s) => s.sectionName));
     updatePage(selectedPage, { ...currentPage, sections: [...currentPage.sections, section] });
     setSelectedSection(currentPage.sections.length);
-    setDrawerOpen(true);
   };
 
   const removeSection = (index: number) => {
@@ -199,7 +195,7 @@ export const PagesEditor: React.FC = () => {
     setPages(replacePages);
     setSelectedPage(0);
     setSelectedSection(null);
-    setDrawerOpen(false);
+    setSettingsOpen(false);
     setShowErrors(false);
     setReplacePages(null);
     notify.success(intl.formatMessage({ id: 'page.manage.pages.import.success' }));
@@ -216,7 +212,7 @@ export const PagesEditor: React.FC = () => {
       return [...prev, res.page];
     });
     setSelectedSection(null);
-    setDrawerOpen(true);
+    setSettingsOpen(true);
     notify.success(intl.formatMessage({ id: 'page.manage.pages.import.pageSuccess' }));
   };
 
@@ -286,6 +282,17 @@ export const PagesEditor: React.FC = () => {
             </IconButton>
           </span>
         </Tooltip>
+        <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.settings.title' })}>
+          <span>
+            <IconButton
+              onClick={() => setSettingsOpen(true)}
+              disabled={!currentPage}
+              aria-label={intl.formatMessage({ id: 'page.manage.pages.settings.title' })}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
 
         <Box sx={{ flexGrow: 1 }} />
 
@@ -298,18 +305,6 @@ export const PagesEditor: React.FC = () => {
         <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={submitting}>
           {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.pages.save" />}
         </Button>
-        <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.drawer.toggle' })}>
-          <span>
-            <IconButton
-              onClick={() => setDrawerOpen((o) => !o)}
-              disabled={!currentPage}
-              color={drawerOpen ? 'primary' : 'default'}
-              aria-label={intl.formatMessage({ id: 'page.manage.pages.drawer.toggle' })}
-            >
-              <DrawerIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
       </Stack>
 
       <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
@@ -327,55 +322,48 @@ export const PagesEditor: React.FC = () => {
       <input ref={replaceInputRef} type="file" accept="application/json,.json" hidden onChange={onReplaceFile} />
       <input ref={addPageInputRef} type="file" accept="application/json,.json" hidden onChange={onAddPageFile} />
 
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          {currentPage ? (
-            previewTheme && site ? (
-              <ScopedAppTheme themeConfig={previewTheme} siteThemeConfig={site}>{sectionPreview}</ScopedAppTheme>
-            ) : (
-              sectionPreview
-            )
+      {/* The preview takes the full width; content is edited in place on it. */}
+      <Box sx={{ minWidth: 0 }}>
+        {currentPage ? (
+          previewTheme && site ? (
+            <ScopedAppTheme themeConfig={previewTheme} siteThemeConfig={site}>{sectionPreview}</ScopedAppTheme>
           ) : (
-            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                <FormattedMessage id="page.manage.pages.empty" />
-              </Typography>
-              <Button variant="outlined" onClick={addPage}>
-                <FormattedMessage id="page.manage.pages.add" />
-              </Button>
-            </Paper>
-          )}
-        </Box>
-
-        <Collapse in={drawerOpen && Boolean(currentPage)} orientation="horizontal" unmountOnExit>
-          <Paper
-            variant="outlined"
-            sx={{
-              width: { xs: 300, sm: 360, md: 400 },
-              p: 2,
-              position: 'sticky',
-              top: 88,
-              maxHeight: 'calc(100vh - 104px)',
-              overflowY: 'auto',
-            }}
-          >
-            {currentPage && (
-              <PageDrawer
-                page={currentPage}
-                selectedSection={selectedSection}
-                errors={errors[selectedPage] ?? {}}
-                showErrors={showErrors}
-                isHome={isHome}
-                onChangePage={(next) => updatePage(selectedPage, next)}
-                onChangeSection={changeSection}
-                onBack={() => setSelectedSection(null)}
-                onClose={() => setDrawerOpen(false)}
-                onDelete={() => setDeletePageIndex(selectedPage)}
-              />
-            )}
+            sectionPreview
+          )
+        ) : (
+          <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <FormattedMessage id="page.manage.pages.empty" />
+            </Typography>
+            <Button variant="outlined" onClick={addPage}>
+              <FormattedMessage id="page.manage.pages.add" />
+            </Button>
           </Paper>
-        </Collapse>
+        )}
       </Box>
+
+      {/* Design & structure for the selected section, docked under the preview. */}
+      {currentPage && selectedSection !== null && (
+        <SectionBottomSheet
+          page={currentPage}
+          sectionIndex={selectedSection}
+          onChangeSection={changeSection}
+          onClose={() => setSelectedSection(null)}
+        />
+      )}
+
+      {currentPage && (
+        <PageSettingsDialog
+          open={settingsOpen}
+          page={currentPage}
+          errors={errors[selectedPage] ?? {}}
+          showErrors={showErrors}
+          isHome={isHome}
+          onChange={(next) => updatePage(selectedPage, next)}
+          onDelete={() => { setSettingsOpen(false); setDeletePageIndex(selectedPage); }}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       <ReorderPagesDialog open={reorderOpen} pages={pages} onClose={() => setReorderOpen(false)} onMove={movePage} />
 

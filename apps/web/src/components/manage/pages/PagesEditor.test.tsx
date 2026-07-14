@@ -73,16 +73,16 @@ describe('PagesEditor', () => {
     expect(screen.getByRole('button', { name: /add page/i })).toBeInTheDocument();
   });
 
-  it('adds a page (opening the settings drawer) and saves the whole draft', async () => {
+  it('adds a page (opening its settings) and saves the whole draft', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
 
-    // The drawer opens on the new page's settings — the route field is present.
+    // Creating a page opens its settings dialog — the route field is there.
     expect(await screen.findByLabelText(/route/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    const save = await screen.findByRole('button', { name: /^save$/i });
+    await act(async () => { fireEvent.click(save); });
 
     await waitFor(() => expect(saveDraftConfig).toHaveBeenCalledTimes(1));
     const saved = vi.mocked(saveDraftConfig).mock.calls[0][0] as SiteConfig;
@@ -90,26 +90,25 @@ describe('PagesEditor', () => {
     expect(saved.themes).toEqual([]);
   });
 
-  it('adds a section and mounts its editor in the drawer with a live preview', async () => {
+  it('adds a section and docks its design controls in the bottom sheet', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^done$/i }));
 
     fireEvent.click(await screen.findByRole('button', { name: /add section/i }));
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Hero' }));
 
-    // The Hero editor mounts in the drawer once the new section is selected.
-    expect(await screen.findByLabelText('Title')).toBeInTheDocument();
-
-    // Editing the title flows into the live preview (rendered by the real HeroSection).
-    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Welcome aboard' } });
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Welcome aboard' })).toBeInTheDocument(),
-    );
+    // The bottom sheet carries design/structure only — copy is edited on the section.
+    expect(await screen.findByLabelText('Layout')).toBeInTheDocument();
+    expect(
+      screen.getByText('Text and images are edited directly on the section'),
+    ).toBeInTheDocument();
   });
 
   it('edits a section title in place, on the rendered section', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^done$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /add section/i }));
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Hero' }));
 
@@ -135,13 +134,15 @@ describe('PagesEditor', () => {
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
     const route = await screen.findByLabelText(/route/i);
     fireEvent.change(route, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    const save = await screen.findByRole('button', { name: /^save$/i });
+    await act(async () => { fireEvent.click(save); });
 
     expect(saveDraftConfig).not.toHaveBeenCalled();
-    expect(screen.getAllByText('Route is required.').length).toBeGreaterThan(0);
+    expect(
+      await screen.findByText('Some pages have invalid fields. Please fix the highlighted errors.'),
+    ).toBeInTheDocument();
   });
 
   it('locks the home page: route/name read-only and delete disabled', async () => {
@@ -149,8 +150,8 @@ describe('PagesEditor', () => {
       configWith([{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }]),
     );
     renderEditor();
-    // Open the settings drawer for the (auto-selected) home page.
-    fireEvent.click(await screen.findByRole('button', { name: /toggle settings panel/i }));
+    // Open the settings dialog for the (auto-selected) home page.
+    fireEvent.click(await screen.findByRole('button', { name: /^page settings$/i }));
 
     expect(await screen.findByLabelText(/route/i)).toBeDisabled();
     expect(screen.getByLabelText(/page name/i)).toBeDisabled();

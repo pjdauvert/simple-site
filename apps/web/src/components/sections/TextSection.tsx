@@ -71,17 +71,17 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
     );
   }
 
-  function renderMedia(media: NonNullable<TextColumnDesign['media']>, index: number) {
-    const justify = IMG_JUSTIFY[media.horizontalAlign ?? ''] ?? '0 auto 0 0';
+  function renderMedia(media: TextColumnDesign['media'] | undefined, index: number) {
+    const justify = IMG_JUSTIFY[media?.horizontalAlign ?? ''] ?? '0 auto 0 0';
     return (
       <EditableImage
         designPath={`columnConfig.${index}.media.url`}
-        src={media.url}
+        src={media?.url}
         alt="Column media"
         sx={{
           width: '100%', height: 'auto', display: 'block',
-          maxHeight: media.maxHeight ?? '400px',
-          maxWidth: media.maxWidth ?? undefined,
+          maxHeight: media?.maxHeight ?? '400px',
+          maxWidth: media?.maxWidth ?? undefined,
           objectFit: 'contain', borderRadius: 2, mb: 2,
           margin: justify,
         }}
@@ -112,7 +112,12 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
           </Box>
         ) : (
           <>
-            {media && renderMedia(media, index)}
+            {/*
+              Publicly the image slot only appears when the column has one. While
+              editing it always mounts, so a column with no image yet shows an
+              "add an image" placeholder that opens the media library.
+            */}
+            {showSlot(media?.url) && renderMedia(media, index)}
             {renderColumnContent(col, index, colDesign)}
           </>
         )}

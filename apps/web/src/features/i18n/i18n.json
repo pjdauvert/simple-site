@@ -388,7 +388,13 @@
     "page.manage.pages.inline.field.value": "Value…",
     "page.manage.pages.inline.field.paragraph": "Write something…",
     "page.manage.pages.inline.addImage": "Add an image",
-    "page.manage.pages.inline.changeImage": "Change image"
+    "page.manage.pages.inline.changeImage": "Change image",
+    "page.manage.pages.settings.done": "Done",
+    "page.manage.pages.sheet.hint": "Text and images are edited directly on the section",
+    "page.manage.pages.sheet.collapse": "Collapse panel",
+    "page.manage.pages.sheet.expand": "Expand panel",
+    "page.manage.pages.sheet.close": "Close (deselect section)",
+    "page.manage.pages.section.text.mediaEmpty": "No image yet — click the image area on the section to add one."
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -779,6 +785,12 @@
     "page.manage.pages.inline.field.value": "Valeur…",
     "page.manage.pages.inline.field.paragraph": "Écrivez quelque chose…",
     "page.manage.pages.inline.addImage": "Ajouter une image",
-    "page.manage.pages.inline.changeImage": "Changer l'image"
+    "page.manage.pages.inline.changeImage": "Changer l'image",
+    "page.manage.pages.settings.done": "Terminé",
+    "page.manage.pages.sheet.hint": "Le texte et les images se modifient directement sur la section",
+    "page.manage.pages.sheet.collapse": "Réduire le panneau",
+    "page.manage.pages.sheet.expand": "Développer le panneau",
+    "page.manage.pages.sheet.close": "Fermer (désélectionner la section)",
+    "page.manage.pages.section.text.mediaEmpty": "Aucune image — cliquez sur la zone image de la section pour en ajouter une."
   }
 }
