@@ -28,7 +28,9 @@ export const EditableImage: React.FC<EditableImageProps> = ({ designPath, src, a
   const edit = useSectionEdit();
   const intl = useIntl();
 
-  if (!edit) {
+  // No editing context (public site), or no media library available: render the
+  // image exactly as before, and nothing at all when there is none.
+  if (!edit || !edit.canPickImage) {
     if (!src) return null;
     return <Box component="img" src={src} alt={alt ?? ''} style={style} sx={sx} />;
   }

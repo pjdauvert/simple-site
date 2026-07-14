@@ -12,6 +12,8 @@ export interface SectionEditContextValue {
   setDesignAt: (path: string, value: unknown) => void;
   /** Open the media library and write the chosen URL to a dotted `design` path. */
   pickImageAt: (designPath: string) => void;
+  /** False when the media library is unavailable (feature flag off) — image slots stay read-only. */
+  canPickImage: boolean;
   /** Append an item to a repeatable list at a dotted `content` path. */
   addItemAt: (contentPath: string, blank: unknown) => void;
   /** Remove the item at `index` from a repeatable list at a dotted `content` path. */

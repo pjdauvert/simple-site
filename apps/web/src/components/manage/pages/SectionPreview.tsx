@@ -29,6 +29,15 @@ import {
 } from '@simple-site/interfaces';
 import { Loading } from '../../Loading';
 import { SECTION_DEFINITIONS, SECTION_REGISTRY } from '../../sections/registry';
+import { SectionEditProvider } from './SectionEditProvider';
+
+/**
+ * The selected section is interactive so its editable slots can be typed into,
+ * but it is still a preview: clicking a link or a CTA must not navigate away.
+ */
+const suppressNavigation = (e: React.MouseEvent) => {
+  if ((e.target as HTMLElement).closest('a')) e.preventDefault();
+};
 
 interface SectionPreviewProps {
   page: PageConfiguration;
@@ -37,6 +46,7 @@ interface SectionPreviewProps {
   onMoveSection: (from: number, to: number) => void;
   onRemoveSection: (index: number) => void;
   onAddSection: (type: SectionType) => void;
+  onChangeSection: (index: number, next: SectionProps<SectionType>) => void;
 }
 
 /**
@@ -52,6 +62,7 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
   onMoveSection,
   onRemoveSection,
   onAddSection,
+  onChangeSection,
 }) => {
   const intl = useIntl();
   const [addAnchor, setAddAnchor] = useState<null | HTMLElement>(null);
@@ -98,13 +109,13 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
           return (
             <Box
               key={`${section.sectionName}-${index}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelectSection(index)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSection(index); } }}
+              role={selected ? undefined : 'button'}
+              tabIndex={selected ? undefined : 0}
+              onClick={selected ? undefined : () => onSelectSection(index)}
+              onKeyDown={selected ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSection(index); } }}
               sx={{
                 position: 'relative',
-                cursor: 'pointer',
+                cursor: selected ? 'default' : 'pointer',
                 borderRadius: 1,
                 outline: selected ? '2px solid' : '1px dashed',
                 outlineColor: selected ? 'primary.main' : 'divider',
@@ -159,10 +170,24 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
                 </Tooltip>
               </Stack>
 
-              {/* The real renderer, made non-interactive so clicks select the section. */}
-              <Box sx={{ pointerEvents: 'none' }}>
+              {/*
+                Unselected: non-interactive, so a click anywhere selects the section.
+                Selected: interactive, so the renderer's editable slots can be typed
+                into — but link/button navigation is suppressed, since this is a
+                preview, not the live site.
+              */}
+              <Box
+                sx={{ pointerEvents: selected ? 'auto' : 'none' }}
+                onClickCapture={selected ? suppressNavigation : undefined}
+              >
                 <Suspense fallback={<Loading />}>
-                  <Renderer {...section} sectionName={scopedName} />
+                  {selected ? (
+                    <SectionEditProvider section={section} onChange={(next) => onChangeSection(index, next)}>
+                      <Renderer {...section} sectionName={scopedName} />
+                    </SectionEditProvider>
+                  ) : (
+                    <Renderer {...section} sectionName={scopedName} />
+                  )}
                 </Suspense>
               </Box>
             </Box>

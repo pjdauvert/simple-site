@@ -107,6 +107,29 @@ describe('PagesEditor', () => {
     );
   });
 
+  it('edits a section title in place, on the rendered section', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /add section/i }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Hero' }));
+
+    // The new section is selected, so its (empty) title renders as an in-place
+    // field right on the rendered hero — no form, no drawer.
+    const inline = await screen.findByPlaceholderText('Add a title…');
+    fireEvent.change(inline, { target: { value: 'Welcome aboard' } });
+
+    // The edit lands on the section itself, normalized, and saves.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    });
+    await waitFor(() => expect(saveDraftConfig).toHaveBeenCalled());
+    const saved = vi.mocked(saveDraftConfig).mock.calls[0][0] as SiteConfig;
+    expect(saved.pages[0].sections[0]).toMatchObject({
+      type: 'hero',
+      content: { title: 'Welcome aboard' },
+    });
+  });
+
   it('flags invalid page fields and blocks save', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));

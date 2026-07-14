@@ -261,6 +261,7 @@ export const PagesEditor: React.FC = () => {
       onMoveSection={moveSection}
       onRemoveSection={removeSection}
       onAddSection={addSection}
+      onChangeSection={changeSection}
     />
   ) : null;
 
