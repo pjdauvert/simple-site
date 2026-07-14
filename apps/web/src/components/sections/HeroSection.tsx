@@ -1,10 +1,11 @@
 import React from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import { FormattedMessage } from 'react-intl';
 import type { HeroSectionProps, ZoneStyle } from '@simple-site/interfaces';
-import { sectionContentKey } from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { EditableText } from './EditableText';
+import { EditableImage } from './EditableImage';
+import { useSlotVisible } from './sectionEdit';
 
 function zoneStyle(zone?: ZoneStyle): React.CSSProperties | undefined {
   if (!zone?.style && !zone?.cssVars) return undefined;
@@ -16,6 +17,9 @@ const FLEX_JUSTIFY: Record<string, string> = { left: 'flex-start', right: 'flex-
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, design }) => {
   const { siteThemeConfig, themeConfig } = useAppTheme();
+  // Publicly an empty field renders nothing; while editing inline, empty slots
+  // still render so they can be filled in place.
+  const showSlot = useSlotVisible();
   const backgroundColor = design?.backgroundColor || themeConfig.backgroundColor;
   const textColor = design?.textColor || (backgroundColor === themeConfig.backgroundColor ? 'inherit' : undefined);
 
@@ -24,7 +28,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       {content.ctaButtons.map((cta, i) => (
         <Button key={i} variant={cta.variant ?? 'contained'} size="large" href={cta.link}
           sx={{ px: { xs: 3, sm: 4 }, py: { xs: 1, sm: 1.5 } }}>
-          <FormattedMessage id={sectionContentKey(sectionName, `ctaButtons.${i}.label`)} defaultMessage={cta.label} />
+          <EditableText sectionName={sectionName} path={`ctaButtons.${i}.label`} value={cta.label} autoWidth />
         </Button>
       ))}
     </Box>
@@ -35,10 +39,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       {content.featuringItems.map((item, i) => (
         <Box key={i}>
           <Typography variant="caption" sx={{ display: 'block', letterSpacing: '0.8px', textTransform: 'uppercase', color: 'text.secondary', mb: 0.5 }}>
-            <FormattedMessage id={sectionContentKey(sectionName, `featuringItems.${i}.label`)} defaultMessage={item.label} />
+            <EditableText sectionName={sectionName} path={`featuringItems.${i}.label`} value={item.label} />
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            <FormattedMessage id={sectionContentKey(sectionName, `featuringItems.${i}.value`)} defaultMessage={item.value} />
+            <EditableText sectionName={sectionName} path={`featuringItems.${i}.value`} value={item.value} />
           </Typography>
         </Box>
       ))}
@@ -61,16 +65,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       <Grid size={{ xs: 12, md: leftSize }}
         sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
         style={zoneStyle(design!.contentStyle)}>
-        {content.title && (
+        {showSlot(content.title) && (
           <Typography variant="h2" component="h1" gutterBottom
             sx={{ fontWeight: 700, mb: { xs: 2, sm: 3 }, fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } }}>
-            <FormattedMessage id={sectionContentKey(sectionName, 'title')} defaultMessage={content.title} />
+            <EditableText sectionName={sectionName} path="title" value={content.title} multiline />
           </Typography>
         )}
-        {content.subtitle && (
+        {showSlot(content.subtitle) && (
           <Typography variant="body1" component="p" color={textColor}
             sx={{ mb: { xs: 3, sm: 4 }, fontSize: { xs: '1rem', md: '1.0625rem' }, maxWidth: '44ch' }}>
-            <FormattedMessage id={sectionContentKey(sectionName, 'subtitle')} defaultMessage={content.subtitle} />
+            <EditableText sectionName={sectionName} path="subtitle" value={content.subtitle} multiline />
           </Typography>
         )}
         {ctaRow}
@@ -82,11 +86,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       <Grid size={{ xs: 12, md: rightSize }}
         sx={{ display: 'flex', alignItems: FLEX_ALIGN[artwork?.verticalAlign ?? ''] ?? 'center', justifyContent: FLEX_JUSTIFY[artwork?.horizontalAlign ?? ''] ?? 'center' }}
         style={zoneStyle(design!.artworkStyle)}>
-        {artwork && (
-          <Box component="img" src={artwork.imageUrl} alt={artwork.alt ?? ''}
-            style={zoneStyle(artwork.imageStyle)}
-            sx={{ maxWidth: '100%', height: 'auto', display: 'block' }} />
-        )}
+        <EditableImage
+          designPath="artwork.imageUrl"
+          src={artwork?.imageUrl}
+          alt={artwork?.alt ?? ''}
+          style={zoneStyle(artwork?.imageStyle)}
+          sx={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+        />
       </Grid>
     );
 
@@ -98,16 +104,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
   } else {
     inner = (
       <>
-        {content.title && (
+        {showSlot(content.title) && (
           <Typography variant="h2" component="h1" gutterBottom
             sx={{ fontWeight: 700, mb: { xs: 2, sm: 3 }, fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' } }}>
-            <FormattedMessage id={sectionContentKey(sectionName, 'title')} defaultMessage={content.title} />
+            <EditableText sectionName={sectionName} path="title" value={content.title} multiline />
           </Typography>
         )}
-        {content.subtitle && (
+        {showSlot(content.subtitle) && (
           <Typography variant="h5" component="p" color={textColor}
             sx={{ mb: { xs: 3, sm: 4 }, lineHeight: 1.6, fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, px: { xs: 1, sm: 2 } }}>
-            <FormattedMessage id={sectionContentKey(sectionName, 'subtitle')} defaultMessage={content.subtitle} />
+            <EditableText sectionName={sectionName} path="subtitle" value={content.subtitle} multiline />
           </Typography>
         )}
         {ctaRow}

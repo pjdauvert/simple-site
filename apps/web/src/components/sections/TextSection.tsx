@@ -1,11 +1,12 @@
 import React from 'react';
 import { Box, Container, Typography, useTheme, useMediaQuery } from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import { FormattedMessage } from 'react-intl';
-import ReactMarkdown from 'react-markdown';
 import type { TextColumnContent, TextColumnDesign, TextSectionProps } from '@simple-site/interfaces';
-import { sectionContentKey } from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { EditableText } from './EditableText';
+import { EditableImage } from './EditableImage';
+import { EditableMarkdown } from './EditableMarkdown';
+import { useSlotVisible } from './sectionEdit';
 
 const VERT_ALIGN: Record<string, string> = { center: 'center', bottom: 'flex-end', stretch: 'stretch' };
 const MEDIA_VERT: Record<string, string> = { top: 'top', bottom: 'bottom' };
@@ -21,6 +22,9 @@ function getVisibleLayout(layout: number[], allCount: number, visibleIndices: nu
 export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, design }) => {
   const { siteThemeConfig, themeConfig } = useAppTheme();
   const muiTheme = useTheme();
+  // Publicly an empty field renders nothing; while editing inline, empty slots
+  // still render so they can be filled in place.
+  const showSlot = useSlotVisible();
 
   const isXs = useMediaQuery(muiTheme.breakpoints.only('xs'));
   const isSm = useMediaQuery(muiTheme.breakpoints.only('sm'));
@@ -42,12 +46,12 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
   function renderColumnContent(col: TextColumnContent, index: number, colDesign?: TextColumnDesign) {
     return (
       <Box sx={{ textAlign: colDesign?.textHorizontalAlign ?? 'left' }}>
-        {col.title && (
+        {showSlot(col.title) && (
           <Typography variant="h4" component="h2" gutterBottom>
-            <FormattedMessage id={sectionContentKey(sectionName, `columns.${index}.title`)} defaultMessage={col.title} />
+            <EditableText sectionName={sectionName} path={`columns.${index}.title`} value={col.title} multiline />
           </Typography>
         )}
-        {col.paragraph && (
+        {showSlot(col.paragraph) && (
           <Box sx={{
             '& p': { mb: 2 },
             '& h1,& h2,& h3,& h4,& h5,& h6': { mt: 2, mb: 1 },
@@ -56,19 +60,22 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
             '& code': { backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' },
             '& pre': { backgroundColor: 'rgba(0,0,0,0.1)', padding: 2, borderRadius: 1, overflow: 'auto' },
           }}>
-            <FormattedMessage id={sectionContentKey(sectionName, `columns.${index}.paragraph`)} defaultMessage={col.paragraph}>
-              {(msg) => <ReactMarkdown>{String(msg)}</ReactMarkdown>}
-            </FormattedMessage>
+            <EditableMarkdown
+              sectionName={sectionName}
+              path={`columns.${index}.paragraph`}
+              value={col.paragraph}
+            />
           </Box>
         )}
       </Box>
     );
   }
 
-  function renderMedia(media: NonNullable<TextColumnDesign['media']>) {
+  function renderMedia(media: NonNullable<TextColumnDesign['media']>, index: number) {
     const justify = IMG_JUSTIFY[media.horizontalAlign ?? ''] ?? '0 auto 0 0';
     return (
-      <Box component="img"
+      <EditableImage
+        designPath={`columnConfig.${index}.media.url`}
         src={media.url}
         alt="Column media"
         sx={{
@@ -105,7 +112,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
           </Box>
         ) : (
           <>
-            {media && renderMedia(media)}
+            {media && renderMedia(media, index)}
             {renderColumnContent(col, index, colDesign)}
           </>
         )}

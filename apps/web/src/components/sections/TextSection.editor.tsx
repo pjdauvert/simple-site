@@ -30,6 +30,7 @@ import type {
   TextSectionProps,
 } from '@simple-site/interfaces';
 import type { SectionEditorProps } from './registry';
+import { normalizeTextSection } from './TextSection.normalize';
 import { ColorField } from '../manage/themes/ColorField';
 import { MediaUrlField } from '../media';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
@@ -81,85 +82,6 @@ const EnumSelect: React.FC<EnumSelectProps> = ({ label, value, options, optionLa
   </TextField>
 );
 
-// --- Normalization: keep the emitted section clean & schema-valid ------------
-// Empty optionals serialize as ABSENT; `content.columns` always has length >= 1;
-// `design` is omitted entirely when nothing is set; `columnConfig` stays aligned
-// to `columns` by index.
-
-const nonEmpty = (s?: string): string | undefined => (s && s.length > 0 ? s : undefined);
-
-const cleanColumn = (col: TextColumnContent): TextColumnContent => {
-  const out: TextColumnContent = {};
-  const title = nonEmpty(col.title);
-  const paragraph = nonEmpty(col.paragraph);
-  if (title) out.title = title;
-  if (paragraph) out.paragraph = paragraph;
-  return out;
-};
-
-const cleanMedia = (m?: Media): Media | undefined => {
-  const url = nonEmpty(m?.url);
-  if (!m || !url) return undefined;
-  const out: Media = { url };
-  if (m.position) out.position = m.position;
-  if (m.verticalAlign) out.verticalAlign = m.verticalAlign;
-  if (m.horizontalAlign) out.horizontalAlign = m.horizontalAlign;
-  const maxWidth = nonEmpty(m.maxWidth);
-  const maxHeight = nonEmpty(m.maxHeight);
-  if (maxWidth) out.maxWidth = maxWidth;
-  if (maxHeight) out.maxHeight = maxHeight;
-  return out;
-};
-
-const cleanColumnDesign = (cfg?: TextColumnDesign): TextColumnDesign => {
-  const out: TextColumnDesign = {};
-  if (!cfg) return out;
-  if (cfg.hideOnBreakpoints && cfg.hideOnBreakpoints.length > 0) out.hideOnBreakpoints = cfg.hideOnBreakpoints;
-  if (cfg.textHorizontalAlign) out.textHorizontalAlign = cfg.textHorizontalAlign;
-  if (cfg.textVerticalAlign) out.textVerticalAlign = cfg.textVerticalAlign;
-  const media = cleanMedia(cfg.media);
-  if (media) out.media = media;
-  return out;
-};
-
-const cleanDesign = (d: TextDesign | undefined, columnCount: number): TextDesign | undefined => {
-  if (!d) return undefined;
-  const out: TextDesign = {};
-  const backgroundColor = nonEmpty(d.backgroundColor);
-  const textColor = nonEmpty(d.textColor);
-  const backgroundUrl = nonEmpty(d.backgroundUrl);
-  if (backgroundColor) out.backgroundColor = backgroundColor;
-  if (textColor) out.textColor = textColor;
-  if (backgroundUrl) out.backgroundUrl = backgroundUrl;
-  if (backgroundUrl && d.parallax) out.parallax = true;
-
-  // Ratios are only valid for 2..4 columns; align length to the column count.
-  if (d.columnLayout && columnCount > 1) {
-    const layout = d.columnLayout.slice(0, columnCount).map((n) => (Number.isFinite(n) && n > 0 ? n : 1));
-    while (layout.length < columnCount) layout.push(1);
-    if (layout.length >= 2 && layout.length <= 4) out.columnLayout = layout;
-  }
-
-  // Per-column config: clean each entry, drop trailing empties, keep index alignment.
-  if (d.columnConfig) {
-    const cfgs = d.columnConfig.slice(0, columnCount).map(cleanColumnDesign);
-    let lastNonEmpty = -1;
-    cfgs.forEach((c, i) => { if (Object.keys(c).length > 0) lastNonEmpty = i; });
-    if (lastNonEmpty >= 0) out.columnConfig = cfgs.slice(0, lastNonEmpty + 1);
-  }
-
-  return Object.keys(out).length > 0 ? out : undefined;
-};
-
-const normalize = (next: TextSectionProps): TextSectionProps => {
-  const cleaned = next.content.columns.map(cleanColumn);
-  const columns = cleaned.length > 0 ? cleaned : [{}];
-  const content = { columns };
-  const design = cleanDesign(next.design, columns.length);
-  const base: TextSectionProps = { type: next.type, sectionName: next.sectionName, content };
-  return design ? { ...base, design } : base;
-};
-
 /**
  * Editor for a Text section. Controlled: reads `value`, emits changes via
  * `onChange`. Colocated with its renderer (`TextSection.tsx`). Every emit is
@@ -175,7 +97,7 @@ export const TextSectionEditor: React.FC<SectionEditorProps<'text'>> = ({ value,
   // Stable, page-unique key prefix so column blocks don't clash across sections.
   const keyBase = `${pageName}.${value.sectionName}`;
 
-  const emit = (next: TextSectionProps) => onChange(normalize(next));
+  const emit = (next: TextSectionProps) => onChange(normalizeTextSection(next));
 
   const t = (id: string, values?: Record<string, string | number>) =>
     intl.formatMessage({ id: `page.manage.pages.section.text.${id}` }, values);

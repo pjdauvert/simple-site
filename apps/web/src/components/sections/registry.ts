@@ -6,6 +6,8 @@ import {
   type SectionType,
   SectionTypesEnum,
 } from '@simple-site/interfaces';
+import { normalizeHeroSection } from './HeroSection.normalize';
+import { normalizeTextSection } from './TextSection.normalize';
 
 /**
  * Props every section editor receives. An editor is a controlled component: it
@@ -50,6 +52,11 @@ export interface SectionDefinition<T extends SectionType = SectionType> {
   Editor: React.LazyExoticComponent<SectionEditor<T>>;
   /** Build a blank, schema-valid section of this type with the given name. */
   createDefault: (sectionName: string) => SectionProps<T>;
+  /**
+   * Canonicalize a section (drop empty optionals) so it serializes clean. Used by
+   * the form editor and by inline edits, which patch raw values at a path.
+   */
+  normalize: (section: SectionProps<T>) => SectionProps<T>;
 }
 
 const HeroRenderer: React.LazyExoticComponent<SectionRenderer<'hero'>> = lazy(() =>
@@ -73,6 +80,7 @@ const heroDefinition: SectionDefinition<'hero'> = {
   Renderer: HeroRenderer,
   Editor: HeroEditor,
   createDefault: (sectionName) => ({ type: SectionTypesEnum.HERO, sectionName, content: {} }),
+  normalize: normalizeHeroSection,
 };
 
 const textDefinition: SectionDefinition<'text'> = {
@@ -87,6 +95,7 @@ const textDefinition: SectionDefinition<'text'> = {
     sectionName,
     content: { columns: [{ title: '', paragraph: '' }] },
   }),
+  normalize: normalizeTextSection,
 };
 
 /** Lookup table: section type → its definition. */

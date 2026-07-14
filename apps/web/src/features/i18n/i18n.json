@@ -381,7 +381,14 @@
     "page.manage.pages.homeCannotDelete": "The home page cannot be deleted.",
     "manage.nav.collapse": "Collapse menu",
     "manage.nav.expand": "Expand menu",
-    "page.manage.pages.selectTheme": "Preview theme"
+    "page.manage.pages.selectTheme": "Preview theme",
+    "page.manage.pages.inline.field.title": "Add a title…",
+    "page.manage.pages.inline.field.subtitle": "Add a subtitle…",
+    "page.manage.pages.inline.field.label": "Label…",
+    "page.manage.pages.inline.field.value": "Value…",
+    "page.manage.pages.inline.field.paragraph": "Write something…",
+    "page.manage.pages.inline.addImage": "Add an image",
+    "page.manage.pages.inline.changeImage": "Change image"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -765,6 +772,13 @@
     "page.manage.pages.homeCannotDelete": "La page d'accueil ne peut pas être supprimée.",
     "manage.nav.collapse": "Réduire le menu",
     "manage.nav.expand": "Développer le menu",
-    "page.manage.pages.selectTheme": "Thème d'aperçu"
+    "page.manage.pages.selectTheme": "Thème d'aperçu",
+    "page.manage.pages.inline.field.title": "Ajouter un titre…",
+    "page.manage.pages.inline.field.subtitle": "Ajouter un sous-titre…",
+    "page.manage.pages.inline.field.label": "Libellé…",
+    "page.manage.pages.inline.field.value": "Valeur…",
+    "page.manage.pages.inline.field.paragraph": "Écrivez quelque chose…",
+    "page.manage.pages.inline.addImage": "Ajouter une image",
+    "page.manage.pages.inline.changeImage": "Changer l'image"
   }
 }
