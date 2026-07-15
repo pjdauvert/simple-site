@@ -44,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
             sx={{ px: { xs: 3, sm: 4 }, py: { xs: 1, sm: 1.5 } }}>
             <EditableText sectionName={sectionName} path={`ctaButtons.${i}.label`} value={cta.label} autoWidth />
           </Button>
-          <InlineDesignPopover corner="top-right" label={t('ctaButtons.settings')}>
+          <InlineDesignPopover corner="bottom-right" label={t('ctaButtons.settings')}>
             <Suspense fallback={null}><CtaDesignPanel index={i} cta={cta} /></Suspense>
           </InlineDesignPopover>
         </Box>
@@ -63,7 +63,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             <EditableText sectionName={sectionName} path={`featuringItems.${i}.value`} value={item.value} />
           </Typography>
-          <InlineDesignPopover corner="top-right" label={t('featuring.settings')} width={220}>
+          <InlineDesignPopover corner="bottom-right" label={t('featuring.settings')} width={220}>
             <Suspense fallback={null}><FeaturingDesignPanel index={i} /></Suspense>
           </InlineDesignPopover>
         </Box>

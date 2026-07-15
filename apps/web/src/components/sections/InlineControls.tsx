@@ -44,7 +44,7 @@ interface InlineDesignPopoverProps {
  */
 export const InlineDesignPopover: React.FC<InlineDesignPopoverProps> = ({
   label,
-  corner = 'top-right',
+  corner = 'bottom-right',
   icon,
   width = 300,
   children,

@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Box, Chip, IconButton, Paper, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
@@ -40,7 +40,10 @@ export const SectionBottomSheet: React.FC<SectionBottomSheetProps> = ({
   const Editor = def.Editor as React.ComponentType<SectionEditorProps>;
 
   return (
-    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: 3 }}>
+    // Rendered inside the selected section's card, so it reads as the section's
+    // own settings footer: the selection accent continues across the top, and the
+    // paper background sets the editing surface apart from the section content.
+    <Box sx={{ borderTop: '2px solid', borderColor: 'primary.main', bgcolor: 'background.paper', color: 'text.primary' }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.5, py: 1, bgcolor: 'action.hover' }}>
         <Chip size="small" icon={<def.Icon fontSize="small" />} label={<FormattedMessage id={def.labelKey} />} />
         <Typography variant="subtitle2" color="text.secondary" noWrap sx={{ flexGrow: 1 }}>
@@ -69,6 +72,6 @@ export const SectionBottomSheet: React.FC<SectionBottomSheetProps> = ({
           />
         </Suspense>
       </Box>
-    </Paper>
+    </Box>
   );
 };

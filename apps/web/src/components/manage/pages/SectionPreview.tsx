@@ -113,14 +113,13 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
           // Selecting a different section (by clicking its content) closes any open panel.
           const select = () => { onSelectSection(index); setDesignOpenIndex(null); };
           return (
-            <React.Fragment key={`${section.sectionName}-${index}`}>
             <Box
+              key={`${section.sectionName}-${index}`}
               role={selected ? undefined : 'button'}
               tabIndex={selected ? undefined : 0}
               onClick={selected ? undefined : select}
               onKeyDown={selected ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } }}
               sx={{
-                position: 'relative',
                 cursor: selected ? 'default' : 'pointer',
                 borderRadius: 1,
                 outline: selected ? '2px solid' : '1px dashed',
@@ -130,7 +129,9 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
                 '&:hover .section-toolbar': { opacity: 1 },
               }}
             >
-              {/* Floating toolbar (interactive; above the non-interactive render). */}
+              {/* Content area: the positioning context for the floating toolbar. */}
+              <Box sx={{ position: 'relative' }}>
+              {/* Floating toolbar — anchored bottom-right of the section content. */}
               <Stack
                 className="section-toolbar"
                 direction="row"
@@ -138,7 +139,7 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
                 alignItems="center"
                 sx={{
                   position: 'absolute',
-                  top: 8,
+                  bottom: 8,
                   right: 8,
                   zIndex: 2,
                   bgcolor: 'background.paper',
@@ -200,17 +201,17 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
                   )}
                 </Suspense>
               </Box>
-            </Box>
+              </Box>
 
-            {selected && designOpenIndex === index && (
-              <SectionBottomSheet
-                page={page}
-                sectionIndex={index}
-                onChangeSection={onChangeSection}
-                onClose={() => setDesignOpenIndex(null)}
-              />
-            )}
-            </React.Fragment>
+              {selected && designOpenIndex === index && (
+                <SectionBottomSheet
+                  page={page}
+                  sectionIndex={index}
+                  onChangeSection={onChangeSection}
+                  onClose={() => setDesignOpenIndex(null)}
+                />
+              )}
+            </Box>
           );
         })}
       </Stack>
