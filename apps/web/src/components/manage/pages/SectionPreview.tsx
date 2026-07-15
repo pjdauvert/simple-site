@@ -2,25 +2,16 @@ import React, { Suspense, useState } from 'react';
 import {
   Box,
   Button,
-  Chip,
-  IconButton,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
   Paper,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  ArrowDownward as DownIcon,
-  ArrowUpward as UpIcon,
-  DeleteOutline as DeleteIcon,
-  Edit as EditIcon,
-} from '@mui/icons-material';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { Add as AddIcon } from '@mui/icons-material';
+import { FormattedMessage } from 'react-intl';
 import {
   type PageConfiguration,
   type SectionProps,
@@ -31,6 +22,7 @@ import { Loading } from '../../Loading';
 import { SECTION_DEFINITIONS, SECTION_REGISTRY } from '../../sections/registry';
 import { SectionEditProvider } from './SectionEditProvider';
 import { SectionBottomSheet } from './SectionBottomSheet';
+import { SectionToolbar } from './SectionToolbar';
 
 /**
  * The selected section is interactive so its editable slots can be typed into,
@@ -65,7 +57,6 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
   onAddSection,
   onChangeSection,
 }) => {
-  const intl = useIntl();
   const [addAnchor, setAddAnchor] = useState<null | HTMLElement>(null);
   // Which section has its design panel open below it. Toggled by the section's
   // floating "edit" control; only shown for the currently-selected section.
@@ -126,60 +117,23 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
                 outlineColor: selected ? 'primary.main' : 'divider',
                 outlineOffset: 2,
                 overflow: 'hidden',
-                '&:hover .section-toolbar': { opacity: 1 },
               }}
             >
               {/* Content area: the positioning context for the floating toolbar. */}
               <Box sx={{ position: 'relative' }}>
-              {/* Floating toolbar — anchored bottom-right of the section content. */}
-              <Stack
-                className="section-toolbar"
-                direction="row"
-                spacing={0.5}
-                alignItems="center"
-                sx={{
-                  position: 'absolute',
-                  bottom: 8,
-                  right: 8,
-                  zIndex: 2,
-                  bgcolor: 'background.paper',
-                  borderRadius: 1,
-                  boxShadow: 2,
-                  p: 0.25,
-                  opacity: selected ? 1 : 0,
-                  transition: 'opacity 120ms',
-                }}
-              >
-                <Chip size="small" icon={<def.Icon fontSize="small" />} label={<FormattedMessage id={def.labelKey} />} />
-                <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.section.edit' })}>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => { e.stopPropagation(); onSelectSection(index); setDesignOpenIndex((prev) => (prev === index ? null : index)); }}
-                    aria-label={intl.formatMessage({ id: 'page.manage.pages.section.edit' })}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.section.moveUp' })}>
-                  <span>
-                    <IconButton size="small" disabled={index === 0} onClick={(e) => { e.stopPropagation(); onMoveSection(index, index - 1); }} aria-label={intl.formatMessage({ id: 'page.manage.pages.section.moveUp' })}>
-                      <UpIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.section.moveDown' })}>
-                  <span>
-                    <IconButton size="small" disabled={index === page.sections.length - 1} onClick={(e) => { e.stopPropagation(); onMoveSection(index, index + 1); }} aria-label={intl.formatMessage({ id: 'page.manage.pages.section.moveDown' })}>
-                      <DownIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.section.delete' })}>
-                  <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); onRemoveSection(index); }} aria-label={intl.formatMessage({ id: 'page.manage.pages.section.delete' })}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
+              {/* The toolbar appears only while the section is selected. */}
+              {selected && (
+                <SectionToolbar
+                  icon={def.Icon}
+                  labelKey={def.labelKey}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < page.sections.length - 1}
+                  onEdit={() => setDesignOpenIndex((prev) => (prev === index ? null : index))}
+                  onMoveUp={() => onMoveSection(index, index - 1)}
+                  onMoveDown={() => onMoveSection(index, index + 1)}
+                  onRemove={() => onRemoveSection(index)}
+                />
+              )}
 
               {/*
                 Unselected: non-interactive, so a click anywhere selects the section.
