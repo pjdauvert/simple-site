@@ -114,13 +114,28 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
               onClick={selected ? undefined : select}
               onKeyDown={selected ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } }}
               sx={{
+                position: 'relative',
                 cursor: selected ? 'default' : 'pointer',
-                outline: selected ? '2px solid' : '1px dashed',
-                outlineColor: selected ? selectionColor : 'divider',
-                outlineOffset: -1,
                 overflow: 'hidden',
               }}
             >
+              {/*
+                Selection frame as an overlay, so the 2px border is visible on all
+                four sides — above the rendered section's own (often full-bleed)
+                background, which otherwise paints over an inset outline.
+              */}
+              <Box
+                aria-hidden
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  boxSizing: 'border-box',
+                  pointerEvents: 'none',
+                  zIndex: 4,
+                  border: selected ? '2px solid' : '1px dashed',
+                  borderColor: selected ? selectionColor : 'divider',
+                }}
+              />
               {/* Content area: the positioning context for the floating toolbar. */}
               <Box sx={{ position: 'relative' }}>
               {/* The toolbar appears only while the section is selected. */}
