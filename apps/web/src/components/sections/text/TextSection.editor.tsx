@@ -25,9 +25,9 @@ import type {
   TextDesign,
   TextSectionProps,
 } from '@simple-site/interfaces';
-import type { SectionEditorProps } from './registry';
+import type { SectionEditorProps } from '../registry';
 import { normalizeTextSection } from './TextSection.normalize';
-import { ColorField } from '../manage/themes/ColorField';
+import { ColorField } from '../../manage/themes/ColorField';
 
 // Enum value types, derived from the interface (the schemas don't export TS types).
 type Breakpoint = NonNullable<TextColumnDesign['hideOnBreakpoints']>[number];

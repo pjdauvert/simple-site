@@ -2,10 +2,10 @@ import React from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import type { HeroSectionProps, ZoneStyle } from '@simple-site/interfaces';
-import { useAppTheme } from '../../hooks/useAppTheme';
-import { EditableText } from './EditableText';
-import { EditableImage } from './EditableImage';
-import { useSlotVisible } from './sectionEdit';
+import { useAppTheme } from '../../../hooks/useAppTheme';
+import { EditableText } from '../EditableText';
+import { EditableImage } from '../EditableImage';
+import { useSlotVisible } from '../sectionEdit';
 
 function zoneStyle(zone?: ZoneStyle): React.CSSProperties | undefined {
   if (!zone?.style && !zone?.cssVars) return undefined;

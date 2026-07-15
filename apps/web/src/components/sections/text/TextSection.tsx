@@ -2,11 +2,11 @@ import React from 'react';
 import { Box, Container, Typography, useTheme, useMediaQuery } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import type { TextColumnContent, TextColumnDesign, TextSectionProps } from '@simple-site/interfaces';
-import { useAppTheme } from '../../hooks/useAppTheme';
-import { EditableText } from './EditableText';
-import { EditableImage } from './EditableImage';
-import { EditableMarkdown } from './EditableMarkdown';
-import { useSlotVisible } from './sectionEdit';
+import { useAppTheme } from '../../../hooks/useAppTheme';
+import { EditableText } from '../EditableText';
+import { EditableImage } from '../EditableImage';
+import { EditableMarkdown } from '../EditableMarkdown';
+import { useSlotVisible } from '../sectionEdit';
 
 const VERT_ALIGN: Record<string, string> = { center: 'center', bottom: 'flex-end', stretch: 'stretch' };
 const MEDIA_VERT: Record<string, string> = { top: 'top', bottom: 'bottom' };

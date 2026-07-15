@@ -6,8 +6,8 @@ import {
   type SectionType,
   SectionTypesEnum,
 } from '@simple-site/interfaces';
-import { normalizeHeroSection } from './HeroSection.normalize';
-import { normalizeTextSection } from './TextSection.normalize';
+import { normalizeHeroSection } from './hero/HeroSection.normalize';
+import { normalizeTextSection } from './text/TextSection.normalize';
 
 /**
  * Props every section editor receives. An editor is a controlled component: it
@@ -60,16 +60,16 @@ export interface SectionDefinition<T extends SectionType = SectionType> {
 }
 
 const HeroRenderer: React.LazyExoticComponent<SectionRenderer<'hero'>> = lazy(() =>
-  import('./HeroSection').then((m) => ({ default: m.HeroSection })),
+  import('./hero/HeroSection').then((m) => ({ default: m.HeroSection })),
 );
 const TextRenderer: React.LazyExoticComponent<SectionRenderer<'text'>> = lazy(() =>
-  import('./TextSection').then((m) => ({ default: m.TextSection })),
+  import('./text/TextSection').then((m) => ({ default: m.TextSection })),
 );
 const HeroEditor: React.LazyExoticComponent<SectionEditor<'hero'>> = lazy(() =>
-  import('./HeroSection.editor').then((m) => ({ default: m.HeroSectionEditor })),
+  import('./hero/HeroSection.editor').then((m) => ({ default: m.HeroSectionEditor })),
 );
 const TextEditor: React.LazyExoticComponent<SectionEditor<'text'>> = lazy(() =>
-  import('./TextSection.editor').then((m) => ({ default: m.TextSectionEditor })),
+  import('./text/TextSection.editor').then((m) => ({ default: m.TextSectionEditor })),
 );
 
 const heroDefinition: SectionDefinition<'hero'> = {

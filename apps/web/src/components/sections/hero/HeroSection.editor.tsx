@@ -17,7 +17,7 @@ import {
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { HeroArtwork, HeroCtaButton, HeroSectionProps } from '@simple-site/interfaces';
-import type { SectionEditorProps } from './registry';
+import type { SectionEditorProps } from '../registry';
 import { normalizeHeroSection } from './HeroSection.normalize';
 
 type HeroContent = HeroSectionProps['content'];

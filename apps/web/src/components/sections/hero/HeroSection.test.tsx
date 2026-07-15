@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import type { HeroSectionProps, SiteThemeConfig, ThemeConfig } from '@simple-site/interfaces';
-import { ThemeContext } from '../../features/theme/ThemeContext';
-import type { ThemeContextValue } from '../../features/theme/ThemeContext';
+import { ThemeContext } from '../../../features/theme/ThemeContext';
+import type { ThemeContextValue } from '../../../features/theme/ThemeContext';
 import { HeroSection } from './HeroSection';
 
 /**

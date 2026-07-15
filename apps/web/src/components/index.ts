@@ -1,5 +1,5 @@
-export { HeroSection } from './sections/HeroSection';
-export { TextSection } from './sections/TextSection';
+export { HeroSection } from './sections/hero/HeroSection';
+export { TextSection } from './sections/text/TextSection';
 export { Loading } from './Loading';
 export { PasswordStrengthField } from '../features/auth/PasswordStrengthField';
 export type { PasswordStrengthFieldProps } from '../features/auth/PasswordStrengthField';
