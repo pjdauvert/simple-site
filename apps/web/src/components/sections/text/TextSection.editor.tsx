@@ -2,11 +2,9 @@ import React from 'react';
 import {
   Box,
   Button,
-  Chip,
   Divider,
   FormControlLabel,
   IconButton,
-  MenuItem,
   Paper,
   Stack,
   Switch,
@@ -19,63 +17,26 @@ import {
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import type {
-  Media,
-  TextColumnDesign,
-  TextDesign,
-  TextSectionProps,
-} from '@simple-site/interfaces';
+import type { TextDesign, TextSectionProps } from '@simple-site/interfaces';
 import type { SectionEditorProps } from '../registry';
 import { normalizeTextSection } from './TextSection.normalize';
 import { ColorField } from '../../manage/themes/ColorField';
 
-// Enum value types, derived from the interface (the schemas don't export TS types).
-type Breakpoint = NonNullable<TextColumnDesign['hideOnBreakpoints']>[number];
-type HAlign = NonNullable<TextColumnDesign['textHorizontalAlign']>;
-type VAlign = NonNullable<TextColumnDesign['textVerticalAlign']>;
-type MediaPos = NonNullable<Media['position']>;
-
-const BREAKPOINTS: Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
-const H_ALIGNS: HAlign[] = ['left', 'center', 'right', 'span'];
-const V_ALIGNS: VAlign[] = ['top', 'middle', 'bottom', 'stretch'];
-const POSITIONS: MediaPos[] = ['cover', 'contain'];
-
 const MAX_COLUMNS = 4;
 
-interface EnumSelectProps {
-  label: string;
-  value?: string;
-  options: readonly string[];
-  optionLabel: (v: string) => string;
-  noneLabel: string;
-  onChange: (v: string | undefined) => void;
-}
-
-/** A small Select with a leading "default" (unset) option; emits `undefined` when cleared. */
-const EnumSelect: React.FC<EnumSelectProps> = ({ label, value, options, optionLabel, noneLabel, onChange }) => (
-  <TextField
-    select
-    size="small"
-    fullWidth
-    label={label}
-    value={value ?? ''}
-    onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
-  >
-    <MenuItem value=""><em>{noneLabel}</em></MenuItem>
-    {options.map((o) => <MenuItem key={o} value={o}>{optionLabel(o)}</MenuItem>)}
-  </TextField>
-);
-
 /**
- * Editor for a Text section — **structure and design only**. Copy (column titles,
- * paragraphs, images) is edited in place on the rendered section, via the editable
- * slots the renderer declares (`EditableText` / `EditableMarkdown` / `EditableImage`),
- * so it is deliberately not duplicated here.
+ * Editor for a Text section — **structure and section-level design only**.
+ *
+ * Copy and per-column design/media are edited in place on the rendered section:
+ * column titles/paragraphs via the editable slots the renderer declares
+ * (`EditableText` / `EditableMarkdown`), and each column's design + media via a
+ * floating popover on the column itself (`ColumnDesignPanel`). Only structure
+ * (add/remove columns, custom widths) and section-wide design (colors, background)
+ * live here, so they are deliberately not duplicated.
  *
  * Controlled: reads `value`, emits changes via `onChange`. Colocated with its
  * renderer (`TextSection.tsx`). Every emit is normalized so empty fields drop out
- * and the section stays schema-valid. Rendered in a wide bottom sheet under the
- * preview, hence the side-by-side column layout.
+ * and the section stays schema-valid.
  */
 export const TextSectionEditor: React.FC<SectionEditorProps<'text'>> = ({ value, onChange, pageName }) => {
   const intl = useIntl();
@@ -88,9 +49,6 @@ export const TextSectionEditor: React.FC<SectionEditorProps<'text'>> = ({ value,
 
   const t = (id: string, values?: Record<string, string | number>) =>
     intl.formatMessage({ id: `page.manage.pages.section.text.${id}` }, values);
-  const alignLabel = (v: string) => t(`align.${v}`);
-  const posLabel = (v: string) => t(`position.${v}`);
-  const noneLabel = t('align.none');
 
   // --- structure ---
   const addColumn = () => {
@@ -112,33 +70,6 @@ export const TextSectionEditor: React.FC<SectionEditorProps<'text'>> = ({ value,
       design = d;
     }
     emit({ ...value, content: { columns: nextColumns }, design });
-  };
-
-  // --- per-column design ---
-  const updateColumnDesign = (index: number, patch: Partial<TextColumnDesign>) => {
-    const design = value.design ?? {};
-    const cfgs = [...(design.columnConfig ?? [])];
-    while (cfgs.length <= index) cfgs.push({});
-    cfgs[index] = { ...cfgs[index], ...patch };
-    emit({ ...value, design: { ...design, columnConfig: cfgs } });
-  };
-
-  const toggleBreakpoint = (index: number, bp: Breakpoint) => {
-    const current = value.design?.columnConfig?.[index]?.hideOnBreakpoints ?? [];
-    const set = new Set<Breakpoint>(current);
-    if (set.has(bp)) set.delete(bp); else set.add(bp);
-    const nextArr = BREAKPOINTS.filter((b) => set.has(b));
-    updateColumnDesign(index, { hideOnBreakpoints: nextArr });
-  };
-
-  /** Media design only — the image itself is picked in place on the rendered section. */
-  const patchColumnMedia = (index: number, patch: Partial<Media>) => {
-    const design = value.design ?? {};
-    const cfgs = [...(design.columnConfig ?? [])];
-    const cur = cfgs[index];
-    if (!cur?.media) return;
-    cfgs[index] = { ...cur, media: { ...cur.media, ...patch } };
-    emit({ ...value, design: { ...design, columnConfig: cfgs } });
   };
 
   // --- section design ---
@@ -187,137 +118,37 @@ export const TextSectionEditor: React.FC<SectionEditorProps<'text'>> = ({ value,
         </Button>
       </Box>
 
-      {/* One cell per column — the editor sits in a wide bottom sheet, so columns
-          are laid out side by side, mirroring the section itself. */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 2, alignItems: 'start' }}>
-        {columns.map((col, i) => {
-          const cfg = value.design?.columnConfig?.[i];
-          const media = cfg?.media;
-          return (
-            <Paper key={`${keyBase}-col-${i}`} variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      <FormattedMessage id="page.manage.pages.section.text.column" values={{ number: i + 1 }} />
-                    </Typography>
-                    {/* Read-only context: the copy itself is edited in place on the section. */}
-                    <Typography variant="subtitle2" noWrap title={col.title ?? ''}>
-                      {col.title || t('column', { number: i + 1 })}
-                    </Typography>
-                  </Box>
-                  <Tooltip title={t('removeColumn')}>
-                    <span>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => removeColumn(i)}
-                        disabled={columns.length <= 1}
-                        aria-label={t('removeColumn')}
-                      >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                </Box>
-
-                <Divider textAlign="left">
-                  <Typography variant="caption" color="text.secondary">{t('columnDesign')}</Typography>
-                </Divider>
-
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>{t('hideOnBreakpoints')}</Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {BREAKPOINTS.map((bp) => {
-                      const active = cfg?.hideOnBreakpoints?.includes(bp) ?? false;
-                      return (
-                        <Chip
-                          key={bp}
-                          label={t(`breakpoint.${bp}`)}
-                          size="small"
-                          color={active ? 'primary' : 'default'}
-                          variant={active ? 'filled' : 'outlined'}
-                          onClick={() => toggleBreakpoint(i, bp)}
-                        />
-                      );
-                    })}
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
-                  <EnumSelect
-                    label={t('textHorizontalAlign')}
-                    value={cfg?.textHorizontalAlign}
-                    options={H_ALIGNS}
-                    optionLabel={alignLabel}
-                    noneLabel={noneLabel}
-                    onChange={(v) => updateColumnDesign(i, { textHorizontalAlign: v as HAlign | undefined })}
-                  />
-                  <EnumSelect
-                    label={t('textVerticalAlign')}
-                    value={cfg?.textVerticalAlign}
-                    options={V_ALIGNS}
-                    optionLabel={alignLabel}
-                    noneLabel={noneLabel}
-                    onChange={(v) => updateColumnDesign(i, { textVerticalAlign: v as VAlign | undefined })}
-                  />
-                </Box>
-
-                <Divider textAlign="left">
-                  <Typography variant="caption" color="text.secondary">{t('media')}</Typography>
-                </Divider>
-
-                {media ? (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
-                    <EnumSelect
-                      label={t('mediaPosition')}
-                      value={media.position}
-                      options={POSITIONS}
-                      optionLabel={posLabel}
-                      noneLabel={noneLabel}
-                      onChange={(v) => patchColumnMedia(i, { position: v as MediaPos | undefined })}
-                    />
-                    <Box sx={{ display: { xs: 'none', md: 'block' } }} />
-                    <EnumSelect
-                      label={t('mediaVerticalAlign')}
-                      value={media.verticalAlign}
-                      options={V_ALIGNS}
-                      optionLabel={alignLabel}
-                      noneLabel={noneLabel}
-                      onChange={(v) => patchColumnMedia(i, { verticalAlign: v as VAlign | undefined })}
-                    />
-                    <EnumSelect
-                      label={t('mediaHorizontalAlign')}
-                      value={media.horizontalAlign}
-                      options={H_ALIGNS}
-                      optionLabel={alignLabel}
-                      noneLabel={noneLabel}
-                      onChange={(v) => patchColumnMedia(i, { horizontalAlign: v as HAlign | undefined })}
-                    />
-                    <TextField
-                      label={t('mediaMaxWidth')}
-                      value={media.maxWidth ?? ''}
-                      onChange={(e) => patchColumnMedia(i, { maxWidth: e.target.value })}
-                      size="small"
-                      fullWidth
-                    />
-                    <TextField
-                      label={t('mediaMaxHeight')}
-                      value={media.maxHeight ?? ''}
-                      onChange={(e) => patchColumnMedia(i, { maxHeight: e.target.value })}
-                      size="small"
-                      fullWidth
-                    />
-                  </Box>
-                ) : (
-                  <Typography variant="caption" color="text.secondary">
-                    <FormattedMessage id="page.manage.pages.section.text.mediaEmpty" />
-                  </Typography>
-                )}
-              </Stack>
-            </Paper>
-          );
-        })}
+      {/* One cell per column — structure only. The copy and each column's design +
+          media are edited in place on the rendered section. */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, alignItems: 'start' }}>
+        {columns.map((col, i) => (
+          <Paper key={`${keyBase}-col-${i}`} variant="outlined" sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  <FormattedMessage id="page.manage.pages.section.text.column" values={{ number: i + 1 }} />
+                </Typography>
+                {/* Read-only context: the copy itself is edited in place on the section. */}
+                <Typography variant="subtitle2" noWrap title={col.title ?? ''}>
+                  {col.title || t('column', { number: i + 1 })}
+                </Typography>
+              </Box>
+              <Tooltip title={t('removeColumn')}>
+                <span>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => removeColumn(i)}
+                    disabled={columns.length <= 1}
+                    aria-label={t('removeColumn')}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          </Paper>
+        ))}
       </Box>
 
       <Divider />

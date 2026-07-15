@@ -18,6 +18,12 @@ interface MediaUrlFieldProps {
    * (e.g. behind the `media` feature flag) — this component stays flag-agnostic.
    */
   enablePicker?: boolean;
+  /**
+   * Show the thumbnail preview under the field. Defaults to `true`; set `false`
+   * when the image is already visible elsewhere (e.g. edited in place on a
+   * rendered section), so the field is just the URL + picker.
+   */
+  preview?: boolean;
 }
 
 /** Fixed height of the preview zone; images taller than this scale down to fit. */
@@ -41,6 +47,7 @@ export const MediaUrlField: React.FC<MediaUrlFieldProps> = ({
   helperText,
   fullWidth,
   enablePicker = false,
+  preview = true,
 }) => {
   const intl = useIntl();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -77,43 +84,45 @@ export const MediaUrlField: React.FC<MediaUrlFieldProps> = ({
         } : undefined}
       />
 
-      <Box
-        sx={{
-          height: PREVIEW_HEIGHT,
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'flex-start',
-          overflow: 'hidden',
-          borderRadius: 1,
-          border: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'action.hover',
-        }}
-      >
-        {showImage ? (
-          <Box
-            component="img"
-            src={trimmed}
-            alt={intl.formatMessage({ id: 'page.manage.site.preview.alt' })}
-            onError={() => setImageError(true)}
-            sx={{ display: 'block', maxHeight: '100%', maxWidth: '100%' }}
-          />
-        ) : (
-          <Box
-            aria-label={intl.formatMessage({ id: 'page.manage.site.preview.empty' })}
-            sx={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'text.disabled',
-            }}
-          >
-            <HideImageIcon />
-          </Box>
-        )}
-      </Box>
+      {preview && (
+        <Box
+          sx={{
+            height: PREVIEW_HEIGHT,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'flex-start',
+            overflow: 'hidden',
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'action.hover',
+          }}
+        >
+          {showImage ? (
+            <Box
+              component="img"
+              src={trimmed}
+              alt={intl.formatMessage({ id: 'page.manage.site.preview.alt' })}
+              onError={() => setImageError(true)}
+              sx={{ display: 'block', maxHeight: '100%', maxWidth: '100%' }}
+            />
+          ) : (
+            <Box
+              aria-label={intl.formatMessage({ id: 'page.manage.site.preview.empty' })}
+              sx={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'text.disabled',
+              }}
+            >
+              <HideImageIcon />
+            </Box>
+          )}
+        </Box>
+      )}
 
       {enablePicker && (
         <ImagePickerDialog

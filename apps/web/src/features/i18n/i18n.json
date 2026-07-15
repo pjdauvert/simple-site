@@ -385,7 +385,12 @@
     "page.manage.pages.sheet.collapse": "Collapse panel",
     "page.manage.pages.sheet.expand": "Expand panel",
     "page.manage.pages.sheet.close": "Close (deselect section)",
-    "page.manage.pages.section.text.mediaEmpty": "No image yet — click the image area on the section to add one."
+    "page.manage.pages.section.text.mediaEmpty": "No image yet — click the image area on the section to add one.",
+    "page.manage.pages.section.hero.ctaButtons.settings": "Button settings",
+    "page.manage.pages.section.hero.featuring.settings": "Item settings",
+    "page.manage.pages.section.hero.artwork.settings": "Artwork settings",
+    "page.manage.pages.section.text.editColumn": "Edit column {number}",
+    "page.manage.pages.section.text.mediaUrl": "Image URL"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -773,6 +778,11 @@
     "page.manage.pages.sheet.collapse": "Réduire le panneau",
     "page.manage.pages.sheet.expand": "Développer le panneau",
     "page.manage.pages.sheet.close": "Fermer (désélectionner la section)",
-    "page.manage.pages.section.text.mediaEmpty": "Aucune image — cliquez sur la zone image de la section pour en ajouter une."
+    "page.manage.pages.section.text.mediaEmpty": "Aucune image — cliquez sur la zone image de la section pour en ajouter une.",
+    "page.manage.pages.section.hero.ctaButtons.settings": "Réglages du bouton",
+    "page.manage.pages.section.hero.featuring.settings": "Réglages de l'élément",
+    "page.manage.pages.section.hero.artwork.settings": "Réglages de l'illustration",
+    "page.manage.pages.section.text.editColumn": "Modifier la colonne {number}",
+    "page.manage.pages.section.text.mediaUrl": "URL de l'image"
   }
 }

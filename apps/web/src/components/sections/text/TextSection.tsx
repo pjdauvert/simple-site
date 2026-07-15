@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Box, Container, Typography, useTheme, useMediaQuery } from '@mui/material';
 import Grid from '@mui/material/Grid2';
+import { useIntl } from 'react-intl';
 import type { TextColumnContent, TextColumnDesign, TextSectionProps } from '@simple-site/interfaces';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { EditableText } from '../EditableText';
-import { EditableImage } from '../EditableImage';
 import { EditableMarkdown } from '../EditableMarkdown';
-import { useSlotVisible } from '../sectionEdit';
+import { InlineDesignPopover } from '../InlineControls';
+import { useSectionEdit, useSlotVisible } from '../sectionEdit';
+
+// Per-column design + media are edited in place, via a floating popover on the
+// column. That panel pulls in the media-library UI, so it is lazy-imported to stay
+// out of the public section chunk — it only mounts while editing inline.
+const ColumnDesignPanel = lazy(() => import('./TextColumnPanel').then((m) => ({ default: m.ColumnDesignPanel })));
 
 const VERT_ALIGN: Record<string, string> = { center: 'center', bottom: 'flex-end', stretch: 'stretch' };
 const MEDIA_VERT: Record<string, string> = { top: 'top', bottom: 'bottom' };
@@ -22,6 +28,9 @@ function getVisibleLayout(layout: number[], allCount: number, visibleIndices: nu
 export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, design }) => {
   const { siteThemeConfig, themeConfig } = useAppTheme();
   const muiTheme = useTheme();
+  const intl = useIntl();
+  // Present only while editing inline (admin preview); undefined on the public site.
+  const edit = useSectionEdit();
   // Publicly an empty field renders nothing; while editing inline, empty slots
   // still render so they can be filled in place.
   const showSlot = useSlotVisible();
@@ -71,11 +80,11 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
     );
   }
 
-  function renderMedia(media: TextColumnDesign['media'] | undefined, index: number) {
+  function renderMedia(media: TextColumnDesign['media'] | undefined) {
     const justify = IMG_JUSTIFY[media?.horizontalAlign ?? ''] ?? '0 auto 0 0';
     return (
-      <EditableImage
-        designPath={`columnConfig.${index}.media.url`}
+      <Box
+        component="img"
         src={media?.url}
         alt="Column media"
         sx={{
@@ -97,7 +106,20 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
 
     return (
       <Grid key={index} size={{ xs: 12, md: gridSize }}
-        sx={{ display: 'flex', flexDirection: 'column', justifyContent: VERT_ALIGN[colDesign?.textVerticalAlign ?? ''] ?? 'flex-start' }}>
+        sx={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: VERT_ALIGN[colDesign?.textVerticalAlign ?? ''] ?? 'flex-start' }}>
+        {/* Renders nothing on the public site; a floating design/media gear while
+            editing inline. The panel is lazy so it stays out of the public chunk. */}
+        {edit && (
+          <InlineDesignPopover
+            corner="top-right"
+            width={360}
+            label={intl.formatMessage({ id: 'page.manage.pages.section.text.editColumn' }, { number: index + 1 })}
+          >
+            <Suspense fallback={null}>
+              <ColumnDesignPanel index={index} colDesign={colDesign} />
+            </Suspense>
+          </InlineDesignPopover>
+        )}
         {media?.position === 'cover' ? (
           <Box sx={{
             backgroundImage: `url(${media.url})`,
@@ -112,12 +134,9 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
           </Box>
         ) : (
           <>
-            {/*
-              Publicly the image slot only appears when the column has one. While
-              editing it always mounts, so a column with no image yet shows an
-              "add an image" placeholder that opens the media library.
-            */}
-            {showSlot(media?.url) && renderMedia(media, index)}
+            {/* The column image only renders when the column has one; its URL is
+                managed in the inline design popover above. */}
+            {media?.url && renderMedia(media)}
             {renderColumnContent(col, index, colDesign)}
           </>
         )}
