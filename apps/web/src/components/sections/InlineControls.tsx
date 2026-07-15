@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Box, IconButton, Popover, Tooltip } from '@mui/material';
 import {
   Add as AddIcon,
-  TuneOutlined as TuneIcon,
+  EditOutlined as EditIcon,
 } from '@mui/icons-material';
 import { useSectionEdit } from './sectionEdit';
 
@@ -63,7 +63,7 @@ export const InlineDesignPopover: React.FC<InlineDesignPopoverProps> = ({
           aria-label={label}
           sx={floatingButtonSx(corner)}
         >
-          {icon ?? <TuneIcon fontSize="small" />}
+          {icon ?? <EditIcon fontSize="small" />}
         </IconButton>
       </Tooltip>
       <Popover

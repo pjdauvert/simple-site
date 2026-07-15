@@ -41,7 +41,6 @@ import { PageSelector } from './PageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { ReorderPagesDialog } from './ReorderPagesDialog';
 import { SectionPreview } from './SectionPreview';
-import { SectionBottomSheet } from './SectionBottomSheet';
 import { PageSettingsDialog } from './PageSettingsDialog';
 import { createPage, createSection, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
@@ -341,16 +340,6 @@ export const PagesEditor: React.FC = () => {
           </Paper>
         )}
       </Box>
-
-      {/* Design & structure for the selected section, docked under the preview. */}
-      {currentPage && selectedSection !== null && (
-        <SectionBottomSheet
-          page={currentPage}
-          sectionIndex={selectedSection}
-          onChangeSection={changeSection}
-          onClose={() => setSelectedSection(null)}
-        />
-      )}
 
       {currentPage && (
         <PageSettingsDialog

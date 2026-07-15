@@ -90,7 +90,7 @@ describe('PagesEditor', () => {
     expect(saved.themes).toEqual([]);
   });
 
-  it('adds a section and docks its design controls in the bottom sheet', async () => {
+  it('opens a section design panel below the section from its edit control', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
     fireEvent.click(await screen.findByRole('button', { name: /^done$/i }));
@@ -98,7 +98,11 @@ describe('PagesEditor', () => {
     fireEvent.click(await screen.findByRole('button', { name: /add section/i }));
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Hero' }));
 
-    // The bottom sheet carries design/structure only — copy is edited on the section.
+    // Selecting a section does not open the panel; its floating "edit" control does.
+    expect(screen.queryByLabelText('Layout')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /edit section/i }));
+
+    // The panel carries section-level design only — copy is edited on the section.
     expect(await screen.findByLabelText('Layout')).toBeInTheDocument();
     expect(
       screen.getByText('Text and images are edited directly on the section'),

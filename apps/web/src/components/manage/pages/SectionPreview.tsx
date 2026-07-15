@@ -30,6 +30,7 @@ import {
 import { Loading } from '../../Loading';
 import { SECTION_DEFINITIONS, SECTION_REGISTRY } from '../../sections/registry';
 import { SectionEditProvider } from './SectionEditProvider';
+import { SectionBottomSheet } from './SectionBottomSheet';
 
 /**
  * The selected section is interactive so its editable slots can be typed into,
@@ -66,6 +67,9 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
 }) => {
   const intl = useIntl();
   const [addAnchor, setAddAnchor] = useState<null | HTMLElement>(null);
+  // Which section has its design panel open below it. Toggled by the section's
+  // floating "edit" control; only shown for the currently-selected section.
+  const [designOpenIndex, setDesignOpenIndex] = useState<number | null>(null);
 
   const openAdd = (e: React.MouseEvent<HTMLElement>) => setAddAnchor(e.currentTarget);
   const closeAdd = () => setAddAnchor(null);
@@ -106,13 +110,15 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
           const Renderer = def.Renderer as React.ComponentType<SectionProps<SectionType>>;
           const selected = index === selectedSectionIndex;
           const scopedName = sectionScope(page.pageName, section.sectionName);
+          // Selecting a different section (by clicking its content) closes any open panel.
+          const select = () => { onSelectSection(index); setDesignOpenIndex(null); };
           return (
+            <React.Fragment key={`${section.sectionName}-${index}`}>
             <Box
-              key={`${section.sectionName}-${index}`}
               role={selected ? undefined : 'button'}
               tabIndex={selected ? undefined : 0}
-              onClick={selected ? undefined : () => onSelectSection(index)}
-              onKeyDown={selected ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSection(index); } }}
+              onClick={selected ? undefined : select}
+              onKeyDown={selected ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } }}
               sx={{
                 position: 'relative',
                 cursor: selected ? 'default' : 'pointer',
@@ -145,7 +151,11 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
               >
                 <Chip size="small" icon={<def.Icon fontSize="small" />} label={<FormattedMessage id={def.labelKey} />} />
                 <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.section.edit' })}>
-                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); onSelectSection(index); }} aria-label={intl.formatMessage({ id: 'page.manage.pages.section.edit' })}>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => { e.stopPropagation(); onSelectSection(index); setDesignOpenIndex((prev) => (prev === index ? null : index)); }}
+                    aria-label={intl.formatMessage({ id: 'page.manage.pages.section.edit' })}
+                  >
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -191,6 +201,16 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
                 </Suspense>
               </Box>
             </Box>
+
+            {selected && designOpenIndex === index && (
+              <SectionBottomSheet
+                page={page}
+                sectionIndex={index}
+                onChangeSection={onChangeSection}
+                onClose={() => setDesignOpenIndex(null)}
+              />
+            )}
+            </React.Fragment>
           );
         })}
       </Stack>
