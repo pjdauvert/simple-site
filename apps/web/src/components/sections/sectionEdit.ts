@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { SectionProps, SectionType } from '@simple-site/interfaces';
 
 /**
  * Operations an inline section editor exposes to the editable slots a renderer
@@ -10,6 +11,12 @@ export interface SectionEditContextValue {
   setContentAt: (path: string, value: unknown) => void;
   /** Patch a value at a dotted path within the section's `design`. */
   setDesignAt: (path: string, value: unknown) => void;
+  /**
+   * Apply an arbitrary transformation to the whole section, then normalize + emit.
+   * The escape hatch for edits a single path can't express — e.g. removing a
+   * column together with its index-aligned `columnConfig` / `columnLayout` entries.
+   */
+  mutate: (fn: (section: SectionProps<SectionType>) => SectionProps<SectionType>) => void;
   /** Open the media library and write the chosen URL to a dotted `design` path. */
   pickImageAt: (designPath: string) => void;
   /** False when the media library is unavailable (feature flag off) — image slots stay read-only. */

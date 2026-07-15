@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Chip, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import type { Media, TextColumnDesign } from '@simple-site/interfaces';
+import type { Media, TextColumnDesign, TextDesign, TextSectionProps } from '@simple-site/interfaces';
 import { useSectionEdit } from '../sectionEdit';
 import { MediaUrlField } from '../../media/MediaUrlField';
 
@@ -43,6 +44,8 @@ const EnumSelect: React.FC<EnumSelectProps> = ({ label, value, options, optionLa
 interface ColumnDesignPanelProps {
   index: number;
   colDesign?: TextColumnDesign;
+  /** Total number of columns — deletion is disabled at the minimum of 1. */
+  columnCount: number;
 }
 
 /**
@@ -54,10 +57,26 @@ interface ColumnDesignPanelProps {
  * This pulls in the media-library UI (`MediaUrlField`), so `TextSection` lazy-imports
  * it to keep it out of the public section chunk — it only mounts while editing.
  */
-export const ColumnDesignPanel: React.FC<ColumnDesignPanelProps> = ({ index, colDesign }) => {
+export const ColumnDesignPanel: React.FC<ColumnDesignPanelProps> = ({ index, colDesign, columnCount }) => {
   // Only rendered while a section is selected inline, so the context is always present.
   const edit = useSectionEdit()!;
   const intl = useIntl();
+
+  // Removing a column also drops its index-aligned columnConfig / columnLayout
+  // entries, so it goes through `mutate` (a single path op can't express it).
+  const removeColumn = () =>
+    edit.mutate((s) => {
+      const ts = s as TextSectionProps;
+      const columns = ts.content.columns.filter((_, i) => i !== index);
+      let design = ts.design;
+      if (design) {
+        const d: TextDesign = { ...design };
+        if (d.columnConfig) d.columnConfig = d.columnConfig.filter((_, i) => i !== index);
+        if (d.columnLayout) d.columnLayout = d.columnLayout.filter((_, i) => i !== index);
+        design = d;
+      }
+      return { ...ts, content: { columns }, design };
+    });
 
   const t = (id: string, values?: Record<string, string | number>) =>
     intl.formatMessage({ id: `page.manage.pages.section.text.${id}` }, values);
@@ -180,6 +199,19 @@ export const ColumnDesignPanel: React.FC<ColumnDesignPanelProps> = ({ index, col
           />
         </Box>
       )}
+
+      <Divider />
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          size="small"
+          color="error"
+          startIcon={<DeleteOutlineIcon />}
+          disabled={columnCount <= 1}
+          onClick={removeColumn}
+        >
+          {t('removeColumn')}
+        </Button>
+      </Box>
     </Stack>
   );
 };

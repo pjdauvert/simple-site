@@ -1,78 +1,37 @@
 import React from 'react';
-import {
-  Box,
-  Button,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  Paper,
-  Stack,
-  Switch,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import {
-  Add as AddIcon,
-  DeleteOutline as DeleteOutlineIcon,
-} from '@mui/icons-material';
+import { Box, FormControlLabel, Stack, Switch, TextField, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { TextDesign, TextSectionProps } from '@simple-site/interfaces';
 import type { SectionEditorProps } from '../registry';
 import { normalizeTextSection } from './TextSection.normalize';
 import { ColorField } from '../../manage/themes/ColorField';
-
-const MAX_COLUMNS = 4;
+import { MediaUrlField } from '../../media/MediaUrlField';
+import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 
 /**
- * Editor for a Text section — **structure and section-level design only**.
+ * Editor for a Text section — **section-level design only**, grouped as Text
+ * (colour), Background (colour, image, parallax) and Columns (custom widths).
  *
- * Copy and per-column design/media are edited in place on the rendered section:
- * column titles/paragraphs via the editable slots the renderer declares
- * (`EditableText` / `EditableMarkdown`), and each column's design + media via a
- * floating popover on the column itself (`ColumnDesignPanel`). Only structure
- * (add/remove columns, custom widths) and section-wide design (colors, background)
- * live here, so they are deliberately not duplicated.
+ * Everything else is edited in place on the rendered section: copy via the
+ * editable slots the renderer declares, each column's design + media and its
+ * deletion via a floating popover on the column, and column addition via an inline
+ * control — so none of that is duplicated here.
  *
- * Controlled: reads `value`, emits changes via `onChange`. Colocated with its
- * renderer (`TextSection.tsx`). Every emit is normalized so empty fields drop out
- * and the section stays schema-valid.
+ * Controlled: reads `value`, emits via `onChange`, normalized so empty fields drop.
  */
 export const TextSectionEditor: React.FC<SectionEditorProps<'text'>> = ({ value, onChange, pageName }) => {
   const intl = useIntl();
+  const flags = useFeatureFlags();
+  const enablePicker = Boolean(flags?.media);
 
   const columns = value.content.columns;
-  // Stable, page-unique key prefix so column blocks don't clash across sections.
+  // Stable, page-unique key prefix so width fields don't clash across sections.
   const keyBase = `${pageName}.${value.sectionName}`;
 
   const emit = (next: TextSectionProps) => onChange(normalizeTextSection(next));
-
   const t = (id: string, values?: Record<string, string | number>) =>
     intl.formatMessage({ id: `page.manage.pages.section.text.${id}` }, values);
 
-  // --- structure ---
-  const addColumn = () => {
-    if (columns.length >= MAX_COLUMNS) return;
-    const nextColumns = [...columns, {}];
-    let design = value.design;
-    if (design?.columnLayout) design = { ...design, columnLayout: [...design.columnLayout, 1] };
-    emit({ ...value, content: { columns: nextColumns }, design });
-  };
-
-  const removeColumn = (index: number) => {
-    if (columns.length <= 1) return;
-    const nextColumns = columns.filter((_, i) => i !== index);
-    let design = value.design;
-    if (design) {
-      const d: TextDesign = { ...design };
-      if (d.columnConfig) d.columnConfig = d.columnConfig.filter((_, i) => i !== index);
-      if (d.columnLayout) d.columnLayout = d.columnLayout.filter((_, i) => i !== index);
-      design = d;
-    }
-    emit({ ...value, content: { columns: nextColumns }, design });
-  };
-
-  // --- section design ---
   const patchDesign = (patch: Partial<TextDesign>) => {
     const design = value.design ?? {};
     emit({ ...value, design: { ...design, ...patch } });
@@ -110,82 +69,47 @@ export const TextSectionEditor: React.FC<SectionEditorProps<'text'>> = ({ value,
   };
 
   return (
-    <Stack spacing={2}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-        <Typography variant="subtitle2"><FormattedMessage id="page.manage.pages.section.text.columns" /></Typography>
-        <Button size="small" startIcon={<AddIcon />} onClick={addColumn} disabled={columns.length >= MAX_COLUMNS}>
-          <FormattedMessage id="page.manage.pages.section.text.addColumn" />
-        </Button>
-      </Box>
-
-      {/* One cell per column — structure only. The copy and each column's design +
-          media are edited in place on the rendered section. */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, alignItems: 'start' }}>
-        {columns.map((col, i) => (
-          <Paper key={`${keyBase}-col-${i}`} variant="outlined" sx={{ p: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  <FormattedMessage id="page.manage.pages.section.text.column" values={{ number: i + 1 }} />
-                </Typography>
-                {/* Read-only context: the copy itself is edited in place on the section. */}
-                <Typography variant="subtitle2" noWrap title={col.title ?? ''}>
-                  {col.title || t('column', { number: i + 1 })}
-                </Typography>
-              </Box>
-              <Tooltip title={t('removeColumn')}>
-                <span>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => removeColumn(i)}
-                    disabled={columns.length <= 1}
-                    aria-label={t('removeColumn')}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-          </Paper>
-        ))}
-      </Box>
-
-      <Divider />
-
-      <Typography variant="subtitle2"><FormattedMessage id="page.manage.pages.section.text.design" /></Typography>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 1.5, alignItems: 'start' }}>
-        <ColorField
-          label={t('backgroundColor')}
-          value={value.design?.backgroundColor ?? ''}
-          onChange={(v) => patchDesign({ backgroundColor: v })}
-        />
+    <Stack spacing={3}>
+      {/* Text */}
+      <Box>
+        <Typography variant="subtitle2" gutterBottom>{t('group.text')}</Typography>
         <ColorField
           label={t('textColor')}
           value={value.design?.textColor ?? ''}
           onChange={(v) => patchDesign({ textColor: v })}
         />
-        {/* The section background has no inline affordance on the rendered section
-            (it is a CSS background, not an image slot), so it stays editable here. */}
-        <TextField
-          label={t('backgroundUrl')}
-          value={value.design?.backgroundUrl ?? ''}
-          onChange={(e) => setBackgroundUrl(e.target.value)}
-          size="small"
-          fullWidth
-        />
       </Box>
 
-      {value.design?.backgroundUrl && (
-        <FormControlLabel
-          control={<Switch checked={Boolean(value.design?.parallax)} onChange={(e) => patchDesign({ parallax: e.target.checked })} />}
-          label={<FormattedMessage id="page.manage.pages.section.text.parallax" />}
-        />
-      )}
+      {/* Background */}
+      <Box>
+        <Typography variant="subtitle2" gutterBottom>{t('group.background')}</Typography>
+        <Stack spacing={1.5}>
+          <ColorField
+            label={t('backgroundColor')}
+            value={value.design?.backgroundColor ?? ''}
+            onChange={(v) => patchDesign({ backgroundColor: v })}
+          />
+          <MediaUrlField
+            label={t('backgroundUrl')}
+            value={value.design?.backgroundUrl ?? ''}
+            onChange={setBackgroundUrl}
+            enablePicker={enablePicker}
+            preview={false}
+            fullWidth
+          />
+          {value.design?.backgroundUrl && (
+            <FormControlLabel
+              control={<Switch checked={Boolean(value.design?.parallax)} onChange={(e) => patchDesign({ parallax: e.target.checked })} />}
+              label={<FormattedMessage id="page.manage.pages.section.text.parallax" />}
+            />
+          )}
+        </Stack>
+      </Box>
 
+      {/* Columns */}
       {columns.length > 1 && (
         <Box>
+          <Typography variant="subtitle2" gutterBottom>{t('group.columns')}</Typography>
           <FormControlLabel
             control={<Switch checked={Boolean(value.design?.columnLayout)} onChange={(e) => toggleCustomWidths(e.target.checked)} />}
             label={<FormattedMessage id="page.manage.pages.section.text.customColumnWidths" />}

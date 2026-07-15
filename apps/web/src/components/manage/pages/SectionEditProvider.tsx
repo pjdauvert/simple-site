@@ -35,6 +35,7 @@ export const SectionEditProvider: React.FC<SectionEditProviderProps> = ({ sectio
 
     return {
       canPickImage,
+      mutate: (fn) => emit(fn(section)),
       setContentAt: (path, val) => emit(setAtPath(section, `content.${path}`, val)),
       setDesignAt: (path, val) => emit(setAtPath(section, `design.${path}`, val)),
       pickImageAt: (designPath) => setPickerPath(designPath),

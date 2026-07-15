@@ -384,7 +384,10 @@
     "page.manage.pages.section.hero.featuring.settings": "Item settings",
     "page.manage.pages.section.hero.artwork.settings": "Artwork settings",
     "page.manage.pages.section.text.editColumn": "Edit column {number}",
-    "page.manage.pages.section.text.mediaUrl": "Image URL"
+    "page.manage.pages.section.text.mediaUrl": "Image URL",
+    "page.manage.pages.section.text.group.text": "Text",
+    "page.manage.pages.section.text.group.background": "Background",
+    "page.manage.pages.section.text.group.columns": "Columns"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -771,6 +774,9 @@
     "page.manage.pages.section.hero.featuring.settings": "Réglages de l'élément",
     "page.manage.pages.section.hero.artwork.settings": "Réglages de l'illustration",
     "page.manage.pages.section.text.editColumn": "Modifier la colonne {number}",
-    "page.manage.pages.section.text.mediaUrl": "URL de l'image"
+    "page.manage.pages.section.text.mediaUrl": "URL de l'image",
+    "page.manage.pages.section.text.group.text": "Texte",
+    "page.manage.pages.section.text.group.background": "Arrière-plan",
+    "page.manage.pages.section.text.group.columns": "Colonnes"
   }
 }

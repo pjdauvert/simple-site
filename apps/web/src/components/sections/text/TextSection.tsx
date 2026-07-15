@@ -6,8 +6,10 @@ import type { TextColumnContent, TextColumnDesign, TextSectionProps } from '@sim
 import { useAppTheme } from '../../../hooks/useAppTheme';
 import { EditableText } from '../EditableText';
 import { EditableMarkdown } from '../EditableMarkdown';
-import { InlineDesignPopover } from '../InlineControls';
+import { InlineDesignPopover, InlineAddButton } from '../InlineControls';
 import { useSectionEdit, useSlotVisible } from '../sectionEdit';
+
+const MAX_COLUMNS = 4;
 
 // Per-column design + media are edited in place, via a floating popover on the
 // column. That panel pulls in the media-library UI, so it is lazy-imported to stay
@@ -116,7 +118,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
             label={intl.formatMessage({ id: 'page.manage.pages.section.text.editColumn' }, { number: index + 1 })}
           >
             <Suspense fallback={null}>
-              <ColumnDesignPanel index={index} colDesign={colDesign} />
+              <ColumnDesignPanel index={index} colDesign={colDesign} columnCount={content.columns.length} />
             </Suspense>
           </InlineDesignPopover>
         )}
@@ -159,6 +161,16 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
         <Grid container spacing={4}>
           {visibleIndices.map((colIndex, visibleIndex) => renderColumn(colIndex, visibleIndex))}
         </Grid>
+        {/* Inline "add column" — editing only, up to the max; renders nothing publicly. */}
+        {edit && content.columns.length < MAX_COLUMNS && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <InlineAddButton
+              contentPath="columns"
+              blank={{}}
+              label={intl.formatMessage({ id: 'page.manage.pages.section.text.addColumn' })}
+            />
+          </Box>
+        )}
       </Container>
     </Box>
   );
