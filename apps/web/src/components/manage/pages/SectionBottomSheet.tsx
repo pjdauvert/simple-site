@@ -14,6 +14,8 @@ import { SECTION_REGISTRY, type SectionEditorProps } from '../../sections/regist
 interface SectionBottomSheetProps {
   page: PageConfiguration;
   sectionIndex: number;
+  /** Selection accent (admin theme), continued across the panel's top border. */
+  accentColor: string;
   onChangeSection: (index: number, next: SectionProps<SectionType>) => void;
   onClose: () => void;
 }
@@ -28,6 +30,7 @@ interface SectionBottomSheetProps {
 export const SectionBottomSheet: React.FC<SectionBottomSheetProps> = ({
   page,
   sectionIndex,
+  accentColor,
   onChangeSection,
   onClose,
 }) => {
@@ -43,7 +46,7 @@ export const SectionBottomSheet: React.FC<SectionBottomSheetProps> = ({
     // Rendered inside the selected section's card, so it reads as the section's
     // own settings footer: the selection accent continues across the top, and the
     // paper background sets the editing surface apart from the section content.
-    <Box sx={{ borderTop: '2px solid', borderColor: 'primary.main', bgcolor: 'background.paper', color: 'text.primary' }}>
+    <Box sx={{ borderTop: '2px solid', borderColor: accentColor, bgcolor: 'background.paper', color: 'text.primary' }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.5, py: 1, bgcolor: 'action.hover' }}>
         <Chip size="small" icon={<def.Icon fontSize="small" />} label={<FormattedMessage id={def.labelKey} />} />
         <Typography variant="subtitle2" color="text.secondary" noWrap sx={{ flexGrow: 1 }}>

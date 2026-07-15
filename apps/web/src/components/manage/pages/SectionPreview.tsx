@@ -35,6 +35,8 @@ const suppressNavigation = (e: React.MouseEvent) => {
 interface SectionPreviewProps {
   page: PageConfiguration;
   selectedSectionIndex: number | null;
+  /** Admin-theme colour for the selection accent (passed so it survives the preview theme). */
+  selectionColor: string;
   onSelectSection: (index: number) => void;
   onMoveSection: (from: number, to: number) => void;
   onRemoveSection: (index: number) => void;
@@ -51,6 +53,7 @@ interface SectionPreviewProps {
 export const SectionPreview: React.FC<SectionPreviewProps> = ({
   page,
   selectedSectionIndex,
+  selectionColor,
   onSelectSection,
   onMoveSection,
   onRemoveSection,
@@ -113,7 +116,7 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
               sx={{
                 cursor: selected ? 'default' : 'pointer',
                 outline: selected ? '2px solid' : '1px dashed',
-                outlineColor: selected ? 'primary.main' : 'divider',
+                outlineColor: selected ? selectionColor : 'divider',
                 outlineOffset: -1,
                 overflow: 'hidden',
               }}
@@ -160,6 +163,7 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
                 <SectionBottomSheet
                   page={page}
                   sectionIndex={index}
+                  accentColor={selectionColor}
                   onChangeSection={onChangeSection}
                   onClose={() => setDesignOpenIndex(null)}
                 />

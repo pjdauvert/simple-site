@@ -16,6 +16,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   FileDownloadOutlined as DownloadIcon,
@@ -56,6 +57,9 @@ import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } fr
 export const PagesEditor: React.FC = () => {
   const intl = useIntl();
   const notify = useNotifications();
+  // Captured here (outside the previewed theme) so the section selection accent
+  // always uses the admin theme's secondary colour, not the page's preview theme.
+  const selectionColor = useTheme().palette.secondary.main;
 
   const [pages, setPages] = useState<PageConfiguration[]>([]);
   const [themes, setThemes] = useState<ThemeConfig[]>([]);
@@ -252,6 +256,7 @@ export const PagesEditor: React.FC = () => {
     <SectionPreview
       page={currentPage}
       selectedSectionIndex={selectedSection}
+      selectionColor={selectionColor}
       onSelectSection={selectSection}
       onMoveSection={moveSection}
       onRemoveSection={removeSection}
