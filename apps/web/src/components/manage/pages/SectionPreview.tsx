@@ -95,7 +95,7 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
 
   return (
     <Box>
-      <Stack spacing={1.5}>
+      <Stack spacing={0}>
         {page.sections.map((section, index) => {
           const def = SECTION_REGISTRY[section.type];
           const Renderer = def.Renderer as React.ComponentType<SectionProps<SectionType>>;
@@ -112,10 +112,9 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
               onKeyDown={selected ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(); } }}
               sx={{
                 cursor: selected ? 'default' : 'pointer',
-                borderRadius: 1,
                 outline: selected ? '2px solid' : '1px dashed',
                 outlineColor: selected ? 'primary.main' : 'divider',
-                outlineOffset: 2,
+                outlineOffset: -1,
                 overflow: 'hidden',
               }}
             >
