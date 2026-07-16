@@ -35,9 +35,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
   const t = (suffix: string) => intl.formatMessage({ id: `page.manage.pages.section.hero.${suffix}` });
   const backgroundColor = design?.backgroundColor || themeConfig.backgroundColor;
   const textColor = design?.textColor || (backgroundColor === themeConfig.backgroundColor ? 'inherit' : undefined);
+  const isSplit = design?.layout === 'split';
 
   const ctaRow = (!!content.ctaButtons?.length || edit) && (
-    <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', mb: content.featuringItems?.length ? { xs: 3, sm: 4 } : 0 }}>
+    <Box sx={{ display: 'flex', flexDirection: isSplit ? 'column' : 'row', gap: 1.5, flexWrap: isSplit ? 'nowrap' : 'wrap', alignItems: 'center', mb: content.featuringItems?.length ? { xs: 3, sm: 4 } : 0 }}>
       {content.ctaButtons?.map((cta, i) => (
         <Box key={i} sx={{ position: 'relative', display: 'inline-flex' }}>
           <Button variant={cta.variant ?? 'contained'} size="large" href={cta.link}
@@ -71,8 +72,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
       <InlineAddButton contentPath="featuringItems" blank={{ label: '', value: '' }} label={t('featuring.add')} />
     </Box>
   );
-
-  const isSplit = design?.layout === 'split';
 
   let inner: React.ReactNode;
 
@@ -156,6 +155,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
         py: isSplit ? { xs: 6, sm: 8, md: 10 } : { xs: 4, sm: 6, md: 8 },
         px: { xs: 2, sm: 3 },
         backgroundColor, color: textColor,
+        ...(design?.backgroundUrl && {
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.3),rgba(0,0,0,0.3)),url(${design.backgroundUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }),
       }}
       style={zoneStyle(design?.sectionStyle)}>
       <Container maxWidth={siteThemeConfig.containerMaxWidth}>

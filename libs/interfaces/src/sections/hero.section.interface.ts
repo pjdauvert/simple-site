@@ -42,6 +42,7 @@ const HeroDesignSchema = BaseSectionDesignSchema.extend({
   columnLayout: z.tuple([z.number().positive(), z.number().positive()]).optional(),
   artworkSide:  z.enum(['left', 'right']).optional(),
   artwork:      HeroArtworkSchema.optional(),
+  backgroundUrl: UrlOrPathSchema.optional(),
   sectionStyle: ZoneStyleSchema.optional(),
   contentStyle: ZoneStyleSchema.optional(),
   artworkStyle: ZoneStyleSchema.optional(),

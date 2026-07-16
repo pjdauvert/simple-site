@@ -78,23 +78,25 @@ Each page object:
 
 Sections are typed via a Zod discriminated union on the `type` field. Currently supported types: `hero`, `text`.
 
-**Hero section:**
+**Hero section:** (all fields optional except each item's own required keys — see `HeroSectionPropsSchema` in `libs/interfaces`)
 ```json
 {
   "sectionName": "hero",
   "type": "hero",
   "content": {
-    "title": "string (optional)",
-    "subtitle": "string (optional)",
-    "ctaLabel": "string (optional)",
-    "ctaLink": "string (optional)"
+    "title": "string",
+    "subtitle": "string",
+    "ctaButtons": [{ "label": "string", "link": "string", "variant": "contained | outlined | text" }],
+    "featuringItems": [{ "label": "string", "value": "string" }]
   },
   "design": {
-    "backgroundColor": "string (optional)",
-    "textColor": "string (optional)",
-    "imageUrl": "string (optional)",
-    "videoUrl": "string (optional)",
-    "parallax": "boolean (optional)"
+    "backgroundColor": "string",
+    "textColor": "string",
+    "backgroundUrl": "url or path (section background image)",
+    "layout": "centered | split",
+    "columnLayout": [1.1, 1],
+    "artworkSide": "left | right",
+    "artwork": { "imageUrl": "url or path", "alt": "string", "verticalAlign": "…", "horizontalAlign": "…" }
   }
 }
 ```

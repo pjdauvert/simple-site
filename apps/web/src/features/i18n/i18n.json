@@ -387,7 +387,11 @@
     "page.manage.pages.section.text.mediaUrl": "Image URL",
     "page.manage.pages.section.text.group.text": "Text",
     "page.manage.pages.section.text.group.background": "Background",
-    "page.manage.pages.section.text.group.columns": "Columns"
+    "page.manage.pages.section.text.group.columns": "Columns",
+    "page.manage.pages.section.hero.group.text": "Text",
+    "page.manage.pages.section.hero.group.background": "Background",
+    "page.manage.pages.section.hero.group.design": "Design",
+    "page.manage.pages.section.hero.backgroundUrl": "Background image"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -777,6 +781,10 @@
     "page.manage.pages.section.text.mediaUrl": "URL de l'image",
     "page.manage.pages.section.text.group.text": "Texte",
     "page.manage.pages.section.text.group.background": "Arrière-plan",
-    "page.manage.pages.section.text.group.columns": "Colonnes"
+    "page.manage.pages.section.text.group.columns": "Colonnes",
+    "page.manage.pages.section.hero.group.text": "Texte",
+    "page.manage.pages.section.hero.group.background": "Arrière-plan",
+    "page.manage.pages.section.hero.group.design": "Conception",
+    "page.manage.pages.section.hero.backgroundUrl": "Image d'arrière-plan"
   }
 }

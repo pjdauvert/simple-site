@@ -43,6 +43,7 @@ const cleanDesign = (d?: Partial<HeroDesign>): HeroDesign | undefined => {
   if (d.artworkSide) out.artworkSide = d.artworkSide;
   const artwork = cleanArtwork(d.artwork);
   if (artwork) out.artwork = artwork;
+  if (nonEmpty(d.backgroundUrl)) out.backgroundUrl = d.backgroundUrl;
   if (d.sectionStyle) out.sectionStyle = d.sectionStyle; // advanced: pass-through
   if (d.contentStyle) out.contentStyle = d.contentStyle; // advanced: pass-through
   if (d.artworkStyle) out.artworkStyle = d.artworkStyle; // advanced: pass-through
