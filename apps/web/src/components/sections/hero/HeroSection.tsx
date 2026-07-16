@@ -38,7 +38,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
   const isSplit = design?.layout === 'split';
 
   const ctaRow = (!!content.ctaButtons?.length || edit) && (
-    <Box sx={{ display: 'flex', flexDirection: isSplit ? 'column' : 'row', gap: 1.5, flexWrap: isSplit ? 'nowrap' : 'wrap', alignItems: 'center', mb: content.featuringItems?.length ? { xs: 3, sm: 4 } : 0 }}>
+    <Box sx={{ display: 'flex', flexDirection: isSplit ? 'column' : 'row', gap: 1.5, flexWrap: isSplit ? 'nowrap' : 'wrap', justifyContent: isSplit ? 'flex-start' : 'center', alignItems: isSplit ? 'flex-start' : 'center', mb: content.featuringItems?.length ? { xs: 3, sm: 4 } : 0 }}>
       {content.ctaButtons?.map((cta, i) => (
         <Box key={i} sx={{ position: 'relative', display: 'inline-flex' }}>
           <Button variant={cta.variant ?? 'contained'} size="large" href={cta.link}
