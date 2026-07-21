@@ -21,14 +21,17 @@ Configuration is versioned with a **draft → publish** model — admins edit a 
     "siteName": "string (required)",
     "logoUrl": "string (optional)",
     "faviconUrl": "string (optional)",
-    "containerMaxWidth": "'xs'|'sm'|'md'|'lg'|'xl'|false (optional)"
+    "containerMaxWidth": "'xs'|'sm'|'md'|'lg'|'xl'|false (optional)",
+    "defaultLanguage": "BCP-47 locale code (optional, defaults to 'en')"
   },
   "themes": [ /* one or more ThemeConfig objects — see Themes below */ ],
   "pages":  [ /* one or more PageConfiguration objects — see Pages below */ ]
 }
 ```
 
-The `site` section is editable from the **General** tab of the `/manage/site` configuration page, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled. The `themes` array is editable from the **Themes** tab there (add / edit / delete), which saves via `PUT /api/config/themes`. `pages` are edited from the **Pages** tab — a page & section editor (add/remove/reorder pages and sections, edit one section at a time with a live preview, import/export pages as JSON) — which saves the whole draft via `POST /api/config`.
+`defaultLanguage` is the site's **default language** — the language the config's own text (section content, menu titles) is written in. It is validated as an Intl-resolvable BCP-47 code (`en`, `fr-CA`, `zh-Hant`, …) and Zod-defaults to `en`, so legacy configs without the field keep working unchanged. It is meant to be **set once at setup** (in the seed / imported config): there is deliberately no in-app control to change it, since flipping it would re-interpret every config text as a different language. See [Translations](#translations) below for how it interacts with the translations blob.
+
+The `site` section is editable from the **General** tab of the `/manage/site` configuration page, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled (`defaultLanguage` is not exposed in the form — it is carried through saves unchanged). The `themes` array is editable from the **Themes** tab there (add / edit / delete), which saves via `PUT /api/config/themes`. `pages` are edited from the **Pages** tab — a page & section editor (add/remove/reorder pages and sections, edit one section at a time with a live preview, import/export pages as JSON) — which saves the whole draft via `POST /api/config`.
 
 ### Themes
 
@@ -149,13 +152,13 @@ curl -X POST https://<your-site>/api/config/publish \
 
 ## Translations
 
-Translations live in a separate Netlify Blobs entry, seeded from `apps/functions/src/handlers/seed/i18n.json`.
+Translations live in a separate Netlify Blobs entry, seeded from `apps/functions/src/handlers/seed/i18n.json`. The blob holds **override languages only**: the default language (`config.site.defaultLanguage`) never has a dictionary, because its text *is* the site configuration — the content values the config defines are the default-language messages. Any stored dictionary for the default language is lazily stripped by the API (idempotent migration), so older blobs converge automatically.
 
-The frontend fetches the active locale's dictionary via `GET /api/translations/:locale` on startup and re-fetches whenever the user switches language. React Intl falls back to the content values defined in the site configuration if a key is missing **or empty** (empty translations are dropped from the overlay so a not-yet-translated key shows its config original instead of blank).
+The frontend fetches the active locale's dictionary via `GET /api/translations/:locale` on startup and re-fetches whenever the user switches language (the default language returns `{}` — no overlay needed). React Intl falls back to the content values defined in the site configuration if a key is missing **or empty** (empty translations are dropped from the overlay so a not-yet-translated key shows its config original instead of blank).
 
 ### Supported locales
 
-Languages are **data-driven**: the set of offered languages is the keys of the stored translations blob, discovered at runtime (`GET /api/translations`). Any ISO 639-1 (two-letter) code is accepted, and `en` is the base locale — always present, the fallback for an unknown locale, and not removable. `I18nLocalesEnum` in `libs/interfaces/src/i18n.interface.ts` is now only the bundled defaults/seed, not a hard gate. Add / import / remove languages from the **Translations** page under `/manage` (no code change required).
+Languages are **data-driven**: the set of offered languages is the config's default language plus the keys of the stored translations blob, discovered at runtime (`GET /api/translations` returns `{ defaultLanguage, translations }`). Any Intl-resolvable **BCP-47** code is accepted — region and script variants included (`fr-CA`, `zh-Hant`) — validated and canonicalized by `toCanonicalLocale` / `isLocaleCode` in `libs/interfaces/src/i18n.interface.ts` (`fr-ca` is stored as `fr-CA`; unresolvable codes like `xx` are rejected). The default language is the fallback for an unknown saved/browser locale — resolution tries an exact match, then a language-subtag match (`fr-BE` → `fr`), then the config default — and is not removable; the language switcher (public site and `/manage`) lists it with a "Default" chip. `I18nLocalesEnum` is now only the bundled seed defaults, not a hard gate. Add / import / remove override languages from the **Translations** page under `/manage` (no code change required).
 
 ### Key format
 
@@ -174,17 +177,19 @@ Keys are derived from the config by a single shared helper (`collectI18nEntries`
 
 ### Adding or updating translations
 
-**Translations page (`/manage/translations`)** — the recommended path. Pick a language and edit values inline. The editor cross-references the config: keys the site needs but that aren't translated show as **missing** (error), keys present in the blob but not referenced by the config show as **extra** (warning). You can **add** a language (generates every config key empty, ready to fill), **import** an `i18n.json`-shaped file (one or more languages at once), or **remove** a language (`en` excepted). Saving replaces that language's dictionary (`PUT /api/translations/:locale`).
+**Default language** — its text is not managed here at all: edit it inline on the **Pages** tab (the config values *are* the default-language messages). The Translations page edits **overrides** only — the default language never appears in its language selector, though each key shows its config original alongside for reference.
 
-**Local dev** — edit `apps/functions/src/handlers/seed/i18n.json`.
+**Translations page (`/manage/translations`)** — the recommended path for override languages. Pick a language and edit values inline. The editor cross-references the config: keys the site needs but that aren't translated show as **missing** (error), keys present in the blob but not referenced by the config show as **extra** (warning). You can **add** a language (any Intl-resolvable BCP-47 code, validated live as you type; generates every config key empty, ready to fill), **import** an `i18n.json`-shaped file (one or more languages at once; a default-language entry is skipped), or **remove** a language (the default excepted, and the last remaining override is protected). Saving replaces that language's dictionary (`PUT /api/translations/:locale`). The page accepts a `?key=<encoded full key>` deep link that prefills the filter and scrolls to / highlights that key — the inline text/markdown fields in the Pages editor open it via their floating **Translate** button.
 
-**Live (scripted)** — POST only the keys that changed (existing keys not included in the body are preserved):
+**Local dev** — edit `apps/functions/src/handlers/seed/i18n.json` (override languages only — no default-language dictionary).
+
+**Live (scripted)** — POST only the keys that changed (existing keys not included in the body are preserved). Targeting the default language returns `409`:
 
 ```bash
-curl -X POST https://<your-site>/api/translations/en \
+curl -X POST https://<your-site>/api/translations/fr \
   -H "Content-Type: application/json" \
   -d '{
-    "page.home.hero.content.title": "Welcome to Our Site",
-    "page.home.hero.content.subtitle": "Modern React Application"
+    "page.home.hero.content.title": "Bienvenue sur notre site",
+    "page.home.hero.content.subtitle": "Application React moderne"
   }'
 ```

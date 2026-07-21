@@ -21,12 +21,12 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | POST | `/api/config/versions/:key/publish` | Re-publish (roll back to) an archive (admin) |
 | POST | `/api/config/versions/:key/draft` | Start a new draft from a version (admin) |
 | DELETE | `/api/config/versions/:key` | Delete an archive (admin) |
-| GET | `/api/translations` | Retrieve the whole translations blob — all languages (public) |
+| GET | `/api/translations` | Retrieve the default language + all override dictionaries (public) |
 | GET | `/api/translations/:language` | Retrieve translation dictionary for a locale (public) |
-| POST | `/api/translations/:language` | Merge translations into a locale (admin) |
-| PUT | `/api/translations/:language` | Replace a locale's whole dictionary (admin) |
-| PUT | `/api/translations` | Bulk-import an `i18n.json`-shaped file — upsert languages (admin) |
-| DELETE | `/api/translations/:language` | Remove a language (admin; base locale protected) |
+| POST | `/api/translations/:language` | Merge translations into an override locale (admin) |
+| PUT | `/api/translations/:language` | Replace an override locale's whole dictionary (admin) |
+| PUT | `/api/translations` | Bulk-import an `i18n.json`-shaped file — upsert override languages (admin) |
+| DELETE | `/api/translations/:language` | Remove an override language (admin; default + last override protected) |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
 | GET | `/api/db-query` | Fetch sample users from MongoDB |
 | GET | `/api/features` | Report enabled feature flags (public) |
@@ -75,11 +75,11 @@ Replaces the whole **draft** configuration (never writes live). The body must be
 
 ### `PUT /api/config/site`
 
-Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `containerMaxWidth`) of the **draft**. The server reads the draft (or the published config if no draft exists), replaces its `site` object with the (Zod-validated) body, re-validates the whole `SiteConfig`, then persists the draft — so `themes` and `pages` are left untouched, and the change does not go live until published. Backs the **General** tab of the `/manage/site` configuration page.
+Updates only the `site` section (`siteName`, `logoUrl`, `faviconUrl`, `containerMaxWidth`, `defaultLanguage`) of the **draft**. The server reads the draft (or the published config if no draft exists), replaces its `site` object with the (Zod-validated) body, re-validates the whole `SiteConfig`, then persists the draft — so `themes` and `pages` are left untouched, and the change does not go live until published. Backs the **General** tab of the `/manage/site` configuration page.
 
 ```json
 // Request body — a SiteThemeConfig object
-{ "siteName": "Simple Site", "logoUrl": "/logo.svg", "faviconUrl": "/favicon.ico", "containerMaxWidth": "lg" }
+{ "siteName": "Simple Site", "logoUrl": "/logo.svg", "faviconUrl": "/favicon.ico", "containerMaxWidth": "lg", "defaultLanguage": "en" }
 
 // 200 OK
 { "ok": true, "data": { "message": "Site settings updated successfully" } }
@@ -178,20 +178,20 @@ Permanently deletes an archive. Deleting `published` or `draft` is rejected (`40
 
 ---
 
-Languages are **data-driven**: `:language` is any ISO 639-1 (two-letter) code, and the set of offered languages is the keys of the stored blob. `GET` routes are public; mutations are admin-gated. `en` is the base locale — always present and never removable.
+Languages are **data-driven**: `:language` is any Intl-resolvable **BCP-47** locale code — region and script variants included (`fr`, `fr-CA`, `zh-Hant`) — canonicalized before storage and matching (`fr-ca` ≡ `fr-CA`; unresolvable codes like `xx` → `400`). The set of offered languages is the config's **default language** (`config.site.defaultLanguage`, see [configuration.md](configuration.md#translations)) plus the keys of the stored blob, which holds **override** languages only. The default language never has a dictionary — its text lives in the site configuration — so mutations targeting it return `409 CONFLICT`, and any stored dictionary for it is lazily stripped from the blob on every request (an idempotent migration, so pre-existing blobs converge automatically). `GET` routes are public; mutations are admin-gated.
 
 ### `GET /api/translations`
 
-Returns the whole translations blob (every language's dictionary). The public site uses it to discover the available languages; the admin editor loads it wholesale. **Public.**
+Returns the default language and every **override** language's dictionary (the default language has no dictionary). The public site uses it to discover the available languages; the admin editor loads it wholesale. **Public.**
 
 ```json
 // 200 OK
-{ "ok": true, "data": { "en": { "home.content.title": "Welcome" }, "fr": { "home.content.title": "Bienvenue" } } }
+{ "ok": true, "data": { "defaultLanguage": "en", "translations": { "fr": { "home.content.title": "Bienvenue" } } } }
 ```
 
 ### `GET /api/translations/:language`
 
-Returns the translation dictionary for the requested locale (`{}` if the language exists but is empty). **Public.**
+Returns the translation dictionary for the requested locale (`{}` if the language exists but is empty — including the default language, which never has one). **Public.**
 
 ```json
 // 200 OK
@@ -200,31 +200,31 @@ Returns the translation dictionary for the requested locale (`{}` if the languag
 
 ### `POST /api/translations/:language`
 
-Merges the provided key/value pairs into the stored dictionary for the given locale. Existing keys are overwritten; absent keys are preserved (never removes keys).
+Merges the provided key/value pairs into the stored dictionary for the given override locale. Existing keys are overwritten; absent keys are preserved (never removes keys). Returns `409 CONFLICT` when `:language` is the default language.
 
 ```json
 // Request body — flat record of dotted translation keys → string values
-{ "home.content.title": "Welcome to Our Site" }
+{ "home.content.title": "Bienvenue sur notre site" }
 
 // 200 OK
-{ "ok": true, "data": { "message": "en translations updated successfully" } }
+{ "ok": true, "data": { "message": "fr translations updated successfully" } }
 ```
 
 ### `PUT /api/translations/:language`
 
-Replaces a locale's **entire** dictionary — keys omitted from the body are removed (unlike `POST`, which only merges). Backs the editor's Save (and Add, which seeds every config key empty).
+Replaces an override locale's **entire** dictionary — keys omitted from the body are removed (unlike `POST`, which only merges). Backs the editor's Save (and Add, which seeds every config key empty). Returns `409 CONFLICT` when `:language` is the default language.
 
 ```json
 // Request body — the complete desired dictionary for the locale
-{ "home.content.title": "Welcome to Our Site" }
+{ "home.content.title": "Bienvenue sur notre site" }
 
 // 200 OK
-{ "ok": true, "data": { "message": "en translations replaced successfully" } }
+{ "ok": true, "data": { "message": "fr translations replaced successfully" } }
 ```
 
 ### `PUT /api/translations`
 
-Bulk-imports an `i18n.json`-shaped file: the body is validated as a `Record<locale, dictionary>` and each language it contains is upserted (replaced), leaving other existing languages untouched. Invalid files return `400 INVALID_REQUEST`.
+Bulk-imports an `i18n.json`-shaped file: the body is validated as a `Record<locale, dictionary>` and each language it contains is upserted (replaced, under its canonical code), leaving other existing languages untouched. An entry for the default language is **skipped** — config wins — and doesn't count in the reported total. Invalid files return `400 INVALID_REQUEST`.
 
 ```json
 // Request body — one or more languages at once
@@ -236,7 +236,7 @@ Bulk-imports an `i18n.json`-shaped file: the body is validated as a `Record<loca
 
 ### `DELETE /api/translations/:language`
 
-Removes a language entirely. Returns `409 CONFLICT` for the base locale (`en`) or when it would remove the last remaining language.
+Removes an override language entirely. Returns `409 CONFLICT` for the default language or when it would remove the last remaining override.
 
 ```json
 // 200 OK
@@ -365,6 +365,7 @@ All responses — success and error — share the same top-level shape:
 | `401` | Missing or invalid Netlify Identity JWT on a protected endpoint |
 | `404` | Blob store key not found |
 | `405` | HTTP method not allowed for this endpoint |
+| `409` | Conflict — e.g. publish with no draft, or a translations mutation targeting the default language / last override |
 | `500` | Internal error, Zod schema violation in stored data |
 
 ---
@@ -428,7 +429,7 @@ The token is obtained via the Netlify Identity service at `/.netlify/identity` (
 | `config:draft` | Working draft `SiteConfig` (exists only when there are unpublished changes) |
 | `config:archive:<YYYYMMDDHHMMSS>` | Snapshot of a previously-published config |
 | `config:versions` | Manifest: version names + the archive list (source of truth for the panel) |
-| `translations` | i18n dictionaries (not versioned) |
+| `translations` | Override-language i18n dictionaries — the default language never has one (not versioned) |
 
 ---
 

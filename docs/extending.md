@@ -268,11 +268,11 @@ Add the section object to a page in the seed file (`apps/functions/src/handlers/
 }
 ```
 
-Every key the collector emits needs a value in each language. Manage them from the **Translations** page under `/manage` — expected keys come straight from `collectI18nEntries`, so the new section's keys appear automatically, flagged as *missing* until filled. For local dev add them to the seed `apps/functions/src/handlers/seed/i18n.json` (both `en` and `fr`); `seed.test.ts` enforces that the seed config and translations stay in lockstep — no missing or extra keys — so it fails until every new key is present and non-empty.
+The config values you just added *are* the default-language text (`config.site.defaultLanguage`) — nothing else to do for that language. Every key the collector emits then needs a value in each **override** language. Manage them from the **Translations** page under `/manage` — expected keys come straight from `collectI18nEntries`, so the new section's keys appear automatically, flagged as *missing* until filled. For local dev add them to the seed `apps/functions/src/handlers/seed/i18n.json` (override locales only — `fr` in the bundled seed; the default language must **not** have a dictionary there); `seed.test.ts` enforces that the seed config and translations stay in lockstep — no default-language dictionary, and no missing or extra keys per override — so it fails until every new key is present and non-empty.
 
 ```json
 {
-  "page.home.new-section.content.title": "Our New Section",
+  "page.home.new-section.content.title": "Notre nouvelle section",
   "page.home.new-section.content.images.0.alt": "Image 1"
 }
 ```
