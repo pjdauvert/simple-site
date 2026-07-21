@@ -1,8 +1,10 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
+import { Box } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
 import { sectionContentKey } from '@simple-site/interfaces';
 import { useSectionEdit } from './sectionEdit';
+import { InlineTranslateButton } from './InlineControls';
 
 // The rich-text surface is admin-only and pulls in Lexical, so it is loaded lazily
 // and never reaches the public bundle.
@@ -29,6 +31,7 @@ interface EditableMarkdownProps {
  */
 export const EditableMarkdown: React.FC<EditableMarkdownProps> = ({ sectionName, path, value }) => {
   const edit = useSectionEdit();
+  const [focused, setFocused] = useState(false);
 
   if (!edit) {
     if (!value) return null;
@@ -40,8 +43,16 @@ export const EditableMarkdown: React.FC<EditableMarkdownProps> = ({ sectionName,
   }
 
   return (
-    <Suspense fallback={<ReactMarkdown>{value ?? ''}</ReactMarkdown>}>
-      <MarkdownRichEditor value={value ?? ''} onChange={(next) => edit.setContentAt(path, next)} />
-    </Suspense>
+    // Lexical owns focus inside the editor, so track it in the capture phase.
+    <Box
+      sx={{ position: 'relative' }}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={() => setFocused(false)}
+    >
+      <Suspense fallback={<ReactMarkdown>{value ?? ''}</ReactMarkdown>}>
+        <MarkdownRichEditor value={value ?? ''} onChange={(next) => edit.setContentAt(path, next)} />
+      </Suspense>
+      <InlineTranslateButton visible={focused} i18nKey={sectionContentKey(sectionName, path)} />
+    </Box>
   );
 };

@@ -4,7 +4,9 @@ import { Box, IconButton, Popover, Tooltip } from '@mui/material';
 import {
   Add as AddIcon,
   EditOutlined as EditIcon,
+  Translate as TranslateIcon,
 } from '@mui/icons-material';
+import { useIntl } from 'react-intl';
 import { useSectionEdit } from './sectionEdit';
 
 type Corner = 'top-right' | 'bottom-right' | 'top-left' | 'bottom-left';
@@ -76,6 +78,45 @@ export const InlineDesignPopover: React.FC<InlineDesignPopoverProps> = ({
         <Box sx={{ p: 2, width, maxWidth: '92vw' }}>{children}</Box>
       </Popover>
     </>
+  );
+};
+
+interface InlineTranslateButtonProps {
+  /** The field's exact i18n key, e.g. `page.home.hero.content.title`. */
+  i18nKey: string;
+  /** Shown only while the decorated field has focus. */
+  visible: boolean;
+}
+
+/**
+ * A floating "translate" trigger shown over a focused editable text slot; opens
+ * the Translations editor in a new tab, deep-linked to the field's key. The
+ * decorated wrapper must be `position: relative`. Callers render it only in the
+ * edit branch, so it never reaches the public site.
+ */
+export const InlineTranslateButton: React.FC<InlineTranslateButtonProps> = ({
+  i18nKey,
+  visible,
+}) => {
+  const intl = useIntl();
+  if (!visible) return null;
+
+  const label = intl.formatMessage({ id: 'page.manage.pages.inline.translate' });
+  return (
+    <Tooltip title={label}>
+      <IconButton
+        size="small"
+        aria-label={label}
+        // Keep the field focused so the click lands before any blur hides the button.
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() =>
+          window.open(`/manage/translations?key=${encodeURIComponent(i18nKey)}`, '_blank', 'noopener')
+        }
+        sx={floatingButtonSx('top-right')}
+      >
+        <TranslateIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
   );
 };
 

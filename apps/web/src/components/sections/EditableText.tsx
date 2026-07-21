@@ -1,9 +1,11 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { sectionContentKey } from '@simple-site/interfaces';
 import { useSectionEdit } from './sectionEdit';
 import { inlineFieldStyles } from './inlineField';
+import { InlineTranslateButton } from './InlineControls';
 
 const InlineInput = styled('input')(inlineFieldStyles);
 const InlineTextArea = styled('textarea')(inlineFieldStyles);
@@ -48,6 +50,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const edit = useSectionEdit();
   const intl = useIntl();
   const ref = useRef<HTMLTextAreaElement>(null);
+  const [focused, setFocused] = useState(false);
 
   // Auto-grow the textarea so wrapped text keeps the height it renders at.
   useLayoutEffect(() => {
@@ -67,25 +70,33 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const placeholder = placeholderKey ? intl.formatMessage({ id: placeholderKey }) : undefined;
   const commit = (next: string) => edit.setContentAt(path, next);
 
-  if (multiline) {
-    return (
-      <InlineTextArea
-        ref={ref}
-        rows={1}
-        value={value ?? ''}
-        placeholder={placeholder}
-        onChange={(e) => commit(e.target.value)}
-      />
-    );
-  }
-
   return (
-    <InlineInput
-      value={value ?? ''}
-      placeholder={placeholder}
-      onChange={(e) => commit(e.target.value)}
-      size={autoWidth ? Math.max((value ?? '').length, placeholder?.length ?? 0, 4) : undefined}
-      sx={autoWidth ? { width: 'auto' } : undefined}
-    />
+    <Box
+      component="span"
+      sx={{ position: 'relative', display: 'inline-block', width: autoWidth ? 'auto' : '100%' }}
+    >
+      {multiline ? (
+        <InlineTextArea
+          ref={ref}
+          rows={1}
+          value={value ?? ''}
+          placeholder={placeholder}
+          onChange={(e) => commit(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+      ) : (
+        <InlineInput
+          value={value ?? ''}
+          placeholder={placeholder}
+          onChange={(e) => commit(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          size={autoWidth ? Math.max((value ?? '').length, placeholder?.length ?? 0, 4) : undefined}
+          sx={autoWidth ? { width: 'auto' } : undefined}
+        />
+      )}
+      <InlineTranslateButton visible={focused} i18nKey={sectionContentKey(sectionName, path)} />
+    </Box>
   );
 };

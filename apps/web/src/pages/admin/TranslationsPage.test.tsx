@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, waitFor, within } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
+import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
 import type { SiteConfig } from '@simple-site/interfaces';
 import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
@@ -35,18 +36,25 @@ const draftConfig = {
   }],
 } as unknown as SiteConfig;
 
-const blob = () => ({
-  en: { 'home.menuTitle': 'Home', 'home.hero1.content.title': 'Welcome EN', 'orphan.key': 'Extra' },
-  fr: { 'home.menuTitle': 'Accueil' },
+// `en` is the default language (edited inline on the pages), so the payload's
+// `translations` holds only the override languages. `es` sorts first → initial selection.
+const payload = () => ({
+  defaultLanguage: 'en',
+  translations: {
+    es: { 'home.menuTitle': 'Inicio', 'home.hero1.content.title': 'Bienvenido ES', 'orphan.key': 'Extra' },
+    fr: { 'home.menuTitle': 'Accueil' },
+  },
 });
 
-const renderPage = () =>
+const renderPage = (initialEntries: string[] = ['/']) =>
   render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <TranslationsPage />
-      </NotificationsProvider>
-    </IntlProvider>,
+    <MemoryRouter initialEntries={initialEntries}>
+      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
+        <NotificationsProvider>
+          <TranslationsPage />
+        </NotificationsProvider>
+      </IntlProvider>
+    </MemoryRouter>,
   );
 
 const selectLanguage = async (match: RegExp) => {
@@ -61,22 +69,23 @@ const fileWith = (content: string) => ({ name: 'i18n.json', text: () => Promise.
 describe('TranslationsPage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(loadAllTranslations).mockResolvedValue(blob());
+    vi.mocked(loadAllTranslations).mockResolvedValue(payload());
     vi.mocked(loadDraftConfig).mockResolvedValue(draftConfig);
     vi.mocked(replaceTranslations).mockResolvedValue(undefined);
     vi.mocked(importTranslations).mockResolvedValue(undefined);
     vi.mocked(deleteLanguage).mockResolvedValue(undefined);
   });
 
-  it('merges config + blob keys, shows originals, and flags extra keys', async () => {
+  it('selects the first override, shows originals, flags extras and the default language', async () => {
     renderPage();
-    expect(await screen.findByLabelText('home.hero1.content.title')).toHaveValue('Welcome EN');
-    expect(screen.getByLabelText('home.menuTitle')).toHaveValue('Home');
+    expect(await screen.findByLabelText('home.hero1.content.title')).toHaveValue('Bienvenido ES');
+    expect(screen.getByLabelText('home.menuTitle')).toHaveValue('Inicio');
     expect(screen.getByText('Welcome')).toBeInTheDocument(); // config original column
     expect(screen.getByLabelText('orphan.key')).toHaveValue('Extra');
     expect(screen.getByText('extra')).toBeInTheDocument(); // row tag
     expect(screen.getByText('1 extra')).toBeInTheDocument();
     expect(screen.getByText('0 missing')).toBeInTheDocument();
+    expect(screen.getByText('Default language: English (en)')).toBeInTheDocument();
   });
 
   it('switches language and flags missing config keys', async () => {
@@ -91,28 +100,54 @@ describe('TranslationsPage', () => {
   it('saves the selected language via replaceTranslations', async () => {
     renderPage();
     const field = await screen.findByLabelText('home.menuTitle');
-    fireEvent.change(field, { target: { value: 'Home 2' } });
+    fireEvent.change(field, { target: { value: 'Inicio 2' } });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /save/i }));
     });
-    expect(replaceTranslations).toHaveBeenCalledWith('en', {
-      'home.menuTitle': 'Home 2',
-      'home.hero1.content.title': 'Welcome EN',
+    expect(replaceTranslations).toHaveBeenCalledWith('es', {
+      'home.menuTitle': 'Inicio 2',
+      'home.hero1.content.title': 'Bienvenido ES',
       'orphan.key': 'Extra',
     });
     await waitFor(() => expect(screen.getByText(/translations saved/i)).toBeInTheDocument());
   });
 
-  it('adds a language, generating the config keys empty', async () => {
+  it('adds a language, canonicalizing the code and seeding config keys empty', async () => {
     renderPage();
     await screen.findByLabelText('home.menuTitle');
     fireEvent.click(screen.getByRole('button', { name: /add language/i }));
-    fireEvent.change(await screen.findByLabelText(/language code/i), { target: { value: 'de' } });
+    fireEvent.change(await screen.findByLabelText(/language code/i), { target: { value: 'fr-ca' } });
+    // Live validation resolves the display name + canonical code.
+    expect(screen.getByText(/Français canadien \(fr-CA\)/i)).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
     });
-    expect(replaceTranslations).toHaveBeenCalledWith('de', { 'home.menuTitle': '', 'home.hero1.content.title': '' });
-    await waitFor(() => expect(screen.getByText(/Deutsch added/i)).toBeInTheDocument());
+    expect(replaceTranslations).toHaveBeenCalledWith('fr-CA', { 'home.menuTitle': '', 'home.hero1.content.title': '' });
+    await waitFor(() => expect(screen.getByText(/added/i)).toBeInTheDocument());
+  });
+
+  it('rejects an unresolvable language code', async () => {
+    renderPage();
+    await screen.findByLabelText('home.menuTitle');
+    fireEvent.click(screen.getByRole('button', { name: /add language/i }));
+    fireEvent.change(await screen.findByLabelText(/language code/i), { target: { value: 'xx' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+    });
+    expect(replaceTranslations).not.toHaveBeenCalled();
+    expect(screen.getByText(/enter a valid language code/i)).toBeInTheDocument();
+  });
+
+  it('rejects the default language', async () => {
+    renderPage();
+    await screen.findByLabelText('home.menuTitle');
+    fireEvent.click(screen.getByRole('button', { name: /add language/i }));
+    fireEvent.change(await screen.findByLabelText(/language code/i), { target: { value: 'en' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+    });
+    expect(replaceTranslations).not.toHaveBeenCalled();
+    expect(screen.getByText(/this is the default language/i)).toBeInTheDocument();
   });
 
   it('rejects an invalid import file', async () => {
@@ -151,6 +186,7 @@ describe('TranslationsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText(/native/i)).toBeChecked();
+    expect(within(dialog).getByLabelText(/Español/)).toBeChecked();
     expect(within(dialog).getByLabelText(/Français/)).toBeChecked();
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Export' }));
@@ -160,26 +196,41 @@ describe('TranslationsPage', () => {
     clickSpy.mockRestore();
   });
 
-  it('blocks removing the base language and removes others', async () => {
+  it('removes an override and blocks removing the last one', async () => {
     renderPage();
     await screen.findByLabelText('home.menuTitle');
-    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled(); // en is protected
-
-    await selectLanguage(/Français/);
-    const removeBtn = await screen.findByRole('button', { name: 'Remove' });
-    await waitFor(() => expect(removeBtn).toBeEnabled());
+    const removeBtn = screen.getByRole('button', { name: 'Remove' });
+    expect(removeBtn).toBeEnabled(); // two overrides → removable
     fireEvent.click(removeBtn);
     const dialog = await screen.findByRole('dialog');
     await act(async () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
     });
-    expect(deleteLanguage).toHaveBeenCalledWith('fr');
+    expect(deleteLanguage).toHaveBeenCalledWith('es');
     await waitFor(() => expect(screen.getByText(/removed/i)).toBeInTheDocument());
+    // Wait out the dialog's close transition, then check: fr is the last override → protected.
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled();
+  });
+
+  it('shows guidance when there are no override languages', async () => {
+    vi.mocked(loadAllTranslations).mockResolvedValue({ defaultLanguage: 'en', translations: {} });
+    renderPage();
+    expect(await screen.findByText(/add a language to start translating/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add language/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled();
+  });
+
+  it('prefills the filter from the ?key= query param', async () => {
+    renderPage(['/?key=home.menuTitle']);
+    expect(await screen.findByLabelText('home.menuTitle')).toHaveValue('Inicio');
+    await waitFor(() => expect(screen.getByLabelText('Filter keys')).toHaveValue('home.menuTitle'));
+    expect(screen.queryByLabelText('home.hero1.content.title')).not.toBeInTheDocument(); // filtered out
   });
 });
 
 describe('buildExportPayload', () => {
-  const translations = { en: { a: 'A' }, fr: { a: 'Af' } };
+  const translations = { es: { a: 'Aes' }, fr: { a: 'Af' } };
   const originals = { a: 'Orig' };
 
   it('maps native to the config originals and languages to their dicts', () => {
