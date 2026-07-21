@@ -1,5 +1,6 @@
-export { ColorField } from './ColorField';
+export { ThemesEditor } from './ThemesEditor';
 export { ThemeEditor } from './ThemeEditor';
+export { ColorField } from './ColorField';
 export {
   COLOR_FIELDS,
   draftToTheme,

@@ -75,8 +75,8 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 │  ├─ /manage/site       Site configuration (tabs) │
 │  │    ├─ general  SiteSettingsForm → GET /api/config/draft│
 │  │    │                             PUT /api/config/site │
-│  │    ├─ themes   (stub → PR #65)                 │
-│  │    └─ pages    (stub)                          │
+│  │    ├─ themes   ThemesTab   → PUT /api/config/themes│
+│  │    └─ pages    PagesEditor → POST /api/config  │
 │  ├─ /manage/translations  editor (per-language) │
 │  │    keys = config ∪ blob; add/import/remove lang│
 │  │    GET /api/translations · PUT/DELETE /:locale │
@@ -99,7 +99,11 @@ Languages are **data-driven**, not compile-time: the available set is the keys o
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
 
-The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages, addressed by URL sub-routes under `/manage/site`), Translations, and the flag-gated Media library.
+The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, foldable to an icons-only mini variant via an edge toggle whose state persists in `localStorage`; temporary/toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages, addressed by URL sub-routes under `/manage/site`), Translations, and the flag-gated Media library.
+
+### Pages editor — in-place editing
+
+The **Pages** tab edits page content directly on a live preview rendered by the *real* section components. Each renderer declares its editable fields as slots (`EditableText` / `EditableMarkdown` / `EditableImage` in `components/sections/`) keyed by the same content path the i18n collector uses; a slot reads an optional `SectionEditContext` (via `useAppTheme`-style context) — absent on the public site (it renders plain, unchanged), present when a section is selected in the editor (it becomes an in-place field inheriting the surrounding typography). Design & structure that has no place on the canvas (layout, colours, breakpoints, add/remove of repeatable items) live in a bottom sheet docked under the preview; page settings (route, page name, delete) are a dialog. Markdown paragraphs use a lazy-loaded [Lexical](https://lexical.dev) rich-text surface that serialises to the same Markdown string stored in the config — kept in its own `lexical-vendor` chunk so it never reaches the public bundle. Inline edits and the design forms both emit through each section type's `normalize` (registry) so the saved section is always schema-clean. Saving still writes the whole draft via `POST /api/config`.
 
 ## Media Management
 

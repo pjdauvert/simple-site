@@ -103,6 +103,30 @@ describe('SiteConfigSchema', () => {
     };
     expect(() => SiteConfigSchema.parse(config)).toThrow(ZodError);
   });
+
+  it('accepts multiple pages with distinct routes and names', () => {
+    const config = {
+      ...validConfig,
+      pages: [minimalPage, { ...minimalPage, route: '/two', pageName: 'page.two' }],
+    };
+    expect(() => SiteConfigSchema.parse(config)).not.toThrow();
+  });
+
+  it('throws ZodError when two pages share a route', () => {
+    const config = {
+      ...validConfig,
+      pages: [minimalPage, { ...minimalPage, pageName: 'page.two' }], // same route '/'
+    };
+    expect(() => SiteConfigSchema.parse(config)).toThrow(ZodError);
+  });
+
+  it('throws ZodError when two pages share a pageName', () => {
+    const config = {
+      ...validConfig,
+      pages: [minimalPage, { ...minimalPage, route: '/two' }], // same pageName 'page.home'
+    };
+    expect(() => SiteConfigSchema.parse(config)).toThrow(ZodError);
+  });
 });
 
 // Mock fetch globally

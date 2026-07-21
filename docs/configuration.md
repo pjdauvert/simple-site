@@ -28,7 +28,7 @@ Configuration is versioned with a **draft → publish** model — admins edit a 
 }
 ```
 
-The `site` section is editable from the **General** tab of the `/manage/site` configuration page, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled. The `themes` array is editable from the **Themes** tab there (add / edit / delete), which saves via `PUT /api/config/themes`. `pages` are edited by replacing the whole config via `POST /api/config`.
+The `site` section is editable from the **General** tab of the `/manage/site` configuration page, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled. The `themes` array is editable from the **Themes** tab there (add / edit / delete), which saves via `PUT /api/config/themes`. `pages` are edited from the **Pages** tab — a page & section editor (add/remove/reorder pages and sections, edit one section at a time with a live preview, import/export pages as JSON) — which saves the whole draft via `POST /api/config`.
 
 ### Themes
 
@@ -71,28 +71,32 @@ Each page object:
 
 - `pageName` is used as the prefix for all i18n keys on that page (e.g. `page.home.hero.content.title`).
 - `route` must be unique. Routes are registered automatically — no router changes needed.
+- Both `route` and `pageName` must be **unique across all pages**. This is enforced by `SiteConfigSchema` itself, so it holds both in the admin **Pages** editor (form validation) and at the API — `POST /api/config` rejects a config with duplicates.
+- The home page (`route: "/home"`) is reserved: the Pages editor won't let you delete it or change its `route` / `pageName`.
 
 ### Sections
 
 Sections are typed via a Zod discriminated union on the `type` field. Currently supported types: `hero`, `text`.
 
-**Hero section:**
+**Hero section:** (all fields optional except each item's own required keys — see `HeroSectionPropsSchema` in `libs/interfaces`)
 ```json
 {
   "sectionName": "hero",
   "type": "hero",
   "content": {
-    "title": "string (optional)",
-    "subtitle": "string (optional)",
-    "ctaLabel": "string (optional)",
-    "ctaLink": "string (optional)"
+    "title": "string",
+    "subtitle": "string",
+    "ctaButtons": [{ "label": "string", "link": "string", "variant": "contained | outlined | text" }],
+    "featuringItems": [{ "label": "string", "value": "string" }]
   },
   "design": {
-    "backgroundColor": "string (optional)",
-    "textColor": "string (optional)",
-    "imageUrl": "string (optional)",
-    "videoUrl": "string (optional)",
-    "parallax": "boolean (optional)"
+    "backgroundColor": "string",
+    "textColor": "string",
+    "backgroundUrl": "url or path (section background image)",
+    "layout": "centered | split",
+    "columnLayout": [1.1, 1],
+    "artworkSide": "left | right",
+    "artwork": { "imageUrl": "url or path", "alt": "string", "verticalAlign": "…", "horizontalAlign": "…" }
   }
 }
 ```

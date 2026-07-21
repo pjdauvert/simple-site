@@ -2,7 +2,16 @@
 
 ## Adding a New Section Type
 
-Sections are typed via a Zod discriminated union on the `type` field, shared between the frontend and the functions. Each section type lives in its **own interface file** and owns both its schema and the knowledge of which of its content fields are translatable — so nothing about a section leaks into a central switch.
+Sections are typed via a Zod discriminated union on the `type` field, shared between the frontend and the functions. A section type is defined in two places, and both keep each type self-contained (nothing about a section leaks into a central switch):
+
+- **Contracts** — `libs/interfaces/src/sections/<type>.section.interface.ts`: the schema plus a collector declaring which content fields are translatable.
+- **UI** — `apps/web/src/components/sections/<type>/`: the renderer, normalizer and editor, colocated in a per-type folder. Shared editing primitives (`EditableText`, `EditableImage`, `EditableMarkdown`, `InlineControls`, `registry.ts`, `sectionEdit.ts`) live one level up at `components/sections/`.
+
+**How editing works** — the renderer is the *single source of layout*, used by both the public site and the admin live preview. There is no separate preview markup:
+
+- **Content** (text, markdown, images) is edited **in place on the rendered section**. The renderer declares each editable field as a *slot* (`EditableText` / `EditableMarkdown` / `EditableImage`); a slot reads an optional `SectionEditContext` — absent on the public site (it renders plain), present when the section is selected in the editor (it becomes an in-place field).
+- **Section-level design** (layout, colours, background) is edited in a small panel that opens **below the selected section**, from the section's floating toolbar. That panel renders the section's `*.editor.tsx`.
+- **Per-item design** and **add/remove of repeatable items** happen via floating controls on the canvas (`InlineDesignPopover`, `InlineAddButton`).
 
 ### 1. Register the type — `libs/interfaces/src/sections/section.interface.ts`
 
@@ -56,7 +65,7 @@ export const collectNewI18n: SectionI18nCollector<NewSectionProps> = ({ content 
 };
 ```
 
-`add(path, value)` records a `(scoped key → value)` entry and skips empty/absent values — mirroring the renderer's `field && <FormattedMessage>` guard. The key it builds (`sectionContentKey(scope, path)` → `${scope}.content.${path}`) **must match** the id the renderer looks up (step 5).
+`add(path, value)` records a `(scoped key → value)` entry and skips empty/absent values. The `path` it uses (e.g. `title`, `images.0.alt`) is exactly the `path` the renderer's editable slot passes (step 5) — `sectionContentKey(scope, path)` builds the same `${scope}.content.${path}` key on both sides, so the two never drift.
 
 Then export the new file from `libs/interfaces/src/sections/index.ts`:
 
@@ -96,54 +105,154 @@ switch (section.type) {
 }
 ```
 
-This dispatch is the **only** central i18n touch-point — the field details stay in the section file. It keeps the public renderers and the admin Translations editor deriving the *same* keys, so the editor never shows false “missing / extra” warnings for the new section.
+This dispatch is the **only** central i18n touch-point — the field details stay in the section file. It keeps the public renderers and the admin Translations editor deriving the *same* keys, so the editor never shows false "missing / extra" warnings for the new section.
 
-### 5. Create the React component — `apps/web/src/components/sections/NewSection.tsx`
+### 5. Create the renderer with editable slots — `apps/web/src/components/sections/new/NewSection.tsx`
 
-Build the `<FormattedMessage>` id with the shared `sectionContentKey` builder so it matches the collector's keys exactly. `sectionName` is already page-scoped by the `Page` renderer.
+Declare each editable field as a slot instead of a hard-coded `<FormattedMessage>` / `<img>`:
+
+- `EditableText` — a plain / multi-line string (`path`, `value`, `multiline?`, `autoWidth?`).
+- `EditableMarkdown` — a Markdown body (rendered with `react-markdown` publicly; a lazy-loaded rich-text surface while editing).
+- `EditableImage` — an image (`designPath`, `src`, `alt?`); clicking it while editing opens the media library.
+
+Each renders exactly as before on the public site (config value = i18n *default*, a translation for the scoped key wins, empty renders nothing) and becomes an in-place field when a `SectionEditContext` is present. Wrap optional fields in `useSlotVisible()` so an empty field still renders (as a ghost placeholder) while editing — otherwise there'd be nothing to click.
 
 ```typescript
 import React from 'react';
-import { Container, Box } from '@mui/material';
-import { FormattedMessage } from 'react-intl';
+import { Container, Box, Typography } from '@mui/material';
 import type { NewSectionProps } from '@simple-site/interfaces';
-import { sectionContentKey } from '@simple-site/interfaces';
-import { useAppTheme } from '../../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
+import { EditableText } from '../EditableText';
+import { EditableImage } from '../EditableImage';
+import { useSlotVisible } from '../sectionEdit';
 
-export const NewSection: React.FC<NewSectionProps> = ({ sectionName, content, design }) => {
+export const NewSection: React.FC<NewSectionProps> = ({ sectionName, content }) => {
   const { siteThemeConfig } = useAppTheme();
+  const showSlot = useSlotVisible();
   return (
     <Box>
       <Container maxWidth={siteThemeConfig.containerMaxWidth}>
-        <FormattedMessage
-          id={sectionContentKey(sectionName, 'title')}
-          defaultMessage={content.title}
-        />
-        {/* render the rest of content here — one FormattedMessage per key the collector emits */}
+        {showSlot(content.title) && (
+          <Typography variant="h2">
+            <EditableText sectionName={sectionName} path="title" value={content.title} multiline />
+          </Typography>
+        )}
+        {content.images.map((img, i) => (
+          <EditableImage key={i} designPath={`images.${i}.url`} src={img.url} alt={img.alt ?? ''} />
+        ))}
+        {/* one Editable* slot per key the collector emits */}
       </Container>
     </Box>
   );
 };
 ```
 
-### 6. Register + render the component
+Repeatable items and on-canvas design controls are added here too — see step 8.
 
-Export it from `apps/web/src/components/index.ts`:
+### 6. Add a normalizer — `apps/web/src/components/sections/new/NewSection.normalize.ts`
 
-```typescript
-export { NewSection } from './sections/NewSection';
-```
-
-…and add the render case in `apps/web/src/pages/dynamic/PageSection.tsx`:
+Both the section editor and inline edits emit through one canonicaliser that drops empty optional fields (and omits empty arrays/objects) so the section always serializes clean — mirror `hero/HeroSection.normalize.ts` / `text/TextSection.normalize.ts`:
 
 ```typescript
-import { NewSection } from '../../components';
+import type { NewSectionProps } from '@simple-site/interfaces';
 
-case SectionTypesEnum.NEW:
-  return <NewSection {...props} />;
+export const normalizeNewSection = (section: NewSectionProps): NewSectionProps => {
+  /* build a fresh object keeping only non-empty fields */
+  return section;
+};
 ```
 
-### 7. Add a section to the config
+### 7. Create the section editor — `apps/web/src/components/sections/new/NewSection.editor.tsx`
+
+This is **section-level design only** — it renders in the panel below the selected section and handles what has no place on the canvas (layout, colours, background). Content, per-item design and add/remove of items are all edited on the canvas, so they are **not** duplicated here. It's a controlled component typed by `SectionEditorProps<'new'>` (from `registry.ts`) that always emits through your normalizer. Group related fields under `Typography` subheadings. Use `ColorField` (from `../../manage/themes/ColorField`) for colours and `MediaUrlField` with `preview={false}` (from `../../media/MediaUrlField`, gated on the `media` feature flag) for image URLs, since the image already shows on the section. Labels use `react-intl`, id-only, under `page.manage.pages.section.new.*`.
+
+```typescript
+import React from 'react';
+import { Box, Stack, Typography } from '@mui/material';
+import { FormattedMessage, useIntl } from 'react-intl';
+import type { NewSectionProps } from '@simple-site/interfaces';
+import type { SectionEditorProps } from '../registry';
+import { normalizeNewSection } from './NewSection.normalize';
+import { ColorField } from '../../manage/themes/ColorField';
+
+type NewDesign = NonNullable<NewSectionProps['design']>;
+
+export const NewSectionEditor: React.FC<SectionEditorProps<'new'>> = ({ value, onChange }) => {
+  const intl = useIntl();
+  const t = (suffix: string) => intl.formatMessage({ id: `page.manage.pages.section.new.${suffix}` });
+  const setDesign = (patch: Partial<NewDesign>) =>
+    onChange(normalizeNewSection({ ...value, design: { ...value.design, ...patch } }));
+
+  return (
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="subtitle2" gutterBottom><FormattedMessage id="page.manage.pages.section.new.group.background" /></Typography>
+        <ColorField label={t('backgroundColor')} value={value.design?.backgroundColor ?? ''} onChange={(v) => setDesign({ backgroundColor: v })} />
+      </Box>
+    </Stack>
+  );
+};
+```
+
+### 8. (Optional) On-canvas design & repeatable items
+
+If the section has per-item design or repeatable lists, wire the controls into the **renderer** (step 5). They read the editing context via `useSectionEdit()` and render `null` on the public site, so they are safe to include unconditionally:
+
+- **`InlineAddButton`** — an inline "+" for a repeatable `content` list: `<InlineAddButton contentPath="images" blank={{ url: '' }} label={t('addImage')} />`.
+- **`InlineDesignPopover`** — a floating gear over an element that opens a popover holding that item's design panel. The item's element must be `position: relative`. Because a design panel may pull in heavier UI (e.g. `MediaUrlField`), keep it in a separate module and **lazy-import** it so it stays out of the public section chunk:
+
+```typescript
+const ItemDesignPanel = lazy(() => import('./NewDesignPanels').then((m) => ({ default: m.ItemDesignPanel })));
+// …inside the item, which is position: relative:
+{edit && (
+  <InlineDesignPopover corner="bottom-right" label={t('image.settings')}>
+    <Suspense fallback={null}><ItemDesignPanel index={i} /></Suspense>
+  </InlineDesignPopover>
+)}
+```
+
+The design panel (`new/NewDesignPanels.tsx`) is admin-only and controlled through the same context. `useSectionEdit()` exposes:
+
+- `setContentAt(path, value)` / `setDesignAt(path, value)` — patch a dotted path within `content` / `design`.
+- `addItemAt(contentPath, blank)` / `removeItemAt(contentPath, index)` — repeatable lists.
+- `pickImageAt(designPath)` / `canPickImage` — open the media library and write the chosen URL.
+- `mutate(fn)` — the escape hatch for compound edits a single path can't express (e.g. removing an item together with its index-aligned design entries).
+
+Every op runs the result through the type's `normalize`, so an inline edit produces exactly the object the editor would.
+
+### 9. Register in the section registry — `apps/web/src/components/sections/registry.ts`
+
+The registry is the single dispatch point: the public renderer (`apps/web/src/pages/dynamic/PageSection.tsx`), the admin **Pages editor** (`/manage/site/pages`), and the add-section picker all read from it. Add one entry — a lazy renderer, a lazy editor, an icon, a label key, a `createDefault` factory for a blank schema-valid section, and the `normalize` function:
+
+```typescript
+const NewRenderer = lazy(() => import('./new/NewSection').then((m) => ({ default: m.NewSection })));
+const NewEditor   = lazy(() => import('./new/NewSection.editor').then((m) => ({ default: m.NewSectionEditor })));
+
+const newDefinition: SectionDefinition<'new'> = {
+  type: SectionTypesEnum.NEW,
+  labelKey: 'page.manage.pages.sectionType.new',
+  label: 'New',
+  Icon: SomeOutlinedIcon, // any @mui/icons-material component
+  Renderer: NewRenderer,
+  Editor: NewEditor,
+  createDefault: (sectionName) => ({ type: SectionTypesEnum.NEW, sectionName, content: { images: [] } }),
+  normalize: normalizeNewSection, // from step 6 — used by the editor AND by inline edits
+};
+
+export const SECTION_REGISTRY: { [K in SectionType]: SectionDefinition<K> } = {
+  [SectionTypesEnum.HERO]: heroDefinition,
+  [SectionTypesEnum.TEXT]: textDefinition,
+  [SectionTypesEnum.NEW]:  newDefinition, // ← add here
+};
+```
+
+No change to `PageSection.tsx` is needed — it dispatches through `SECTION_REGISTRY`. Add the section-type picker label to i18n (`page.manage.pages.sectionType.new`, en + fr) plus every label your editor/panels reference, so the "Add section" menu and the design forms render.
+
+### 10. Lock the public rendering with a test — `apps/web/src/components/sections/new/NewSection.test.tsx`
+
+The renderer is dual-use, so add a characterization test that renders it **without** an editing context and asserts the public output (i18n default vs translation, empty fields render nothing) — mirror `hero/HeroSection.test.tsx` / `text/TextSection.test.tsx`. It stays green whether or not the editing seam changes, proving the public site is unaffected.
+
+### 11. Add a section to the config, and its translations
 
 Add the section object to a page in the seed file (`apps/functions/src/handlers/seed/siteConfig.json`) for local dev, or POST the updated config to `/api/config` in production:
 
@@ -153,17 +262,13 @@ Add the section object to a page in the seed file (`apps/functions/src/handlers/
   "type": "new",
   "content": {
     "title": "Our New Section",
-    "images": [
-      { "url": "/img1.jpg", "alt": "Image 1" }
-    ]
+    "images": [{ "url": "/img1.jpg", "alt": "Image 1" }]
   },
   "design": { "columns": 2 }
 }
 ```
 
-### 8. Add translations
-
-Every key the collector emits for this section needs a value in each language. Manage them from the **Translations** page under `/manage` — because expected keys come straight from `collectI18nEntries`, the new section's keys appear automatically, flagged as *missing* until filled. For local dev, add them to the seed `apps/functions/src/handlers/seed/i18n.json` (both `en` and `fr`); the `seed.test.ts` parity check enforces that the seed config and translations stay in lockstep — no missing or extra keys — so it will fail until every new key is present and non-empty.
+Every key the collector emits needs a value in each language. Manage them from the **Translations** page under `/manage` — expected keys come straight from `collectI18nEntries`, so the new section's keys appear automatically, flagged as *missing* until filled. For local dev add them to the seed `apps/functions/src/handlers/seed/i18n.json` (both `en` and `fr`); `seed.test.ts` enforces that the seed config and translations stay in lockstep — no missing or extra keys — so it fails until every new key is present and non-empty.
 
 ```json
 {

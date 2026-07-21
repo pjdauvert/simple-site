@@ -1,31 +1,23 @@
-import React, { lazy, Suspense } from 'react';
-import { type SectionProps, type SectionType, SectionTypesEnum } from '@simple-site/interfaces';
+import React, { Suspense } from 'react';
+import { type SectionProps, type SectionType } from '@simple-site/interfaces';
 import { Loading } from '../../components/Loading';
+import { SECTION_REGISTRY } from '../../components/sections/registry';
 
-// Lazy load section components - each will be in a separate chunk
-const HeroSection = lazy(() => 
-  import('../../components/sections/HeroSection').then(module => ({ default: module.HeroSection }))
-);
-const TextSection = lazy(() => 
-  import('../../components/sections/TextSection').then(module => ({ default: module.TextSection }))
-);
-
+/**
+ * Renders a single section by dispatching on its `type` through the section
+ * registry (which colocates each type's renderer, editor and defaults). The
+ * renderer is looked up by `props.type`, so the cast to the union-props
+ * component type is sound.
+ */
 export const PageSection: React.FC<SectionProps<SectionType>> = (props) => {
-  // Helper to wrap each section in Suspense
-  const renderSection = () => {
-    switch (props.type) {
-      case SectionTypesEnum.HERO:
-        return <HeroSection {...props} />;
-      case SectionTypesEnum.TEXT:
-        return <TextSection {...props} />;
-      default:
-        return null;
-    }
-  };
+  const definition = SECTION_REGISTRY[props.type];
+  if (!definition) return null;
+
+  const Renderer = definition.Renderer as React.ComponentType<SectionProps<SectionType>>;
 
   return (
     <Suspense fallback={<Loading />}>
-      {renderSection()}
+      <Renderer {...props} />
     </Suspense>
   );
 };

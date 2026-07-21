@@ -1,0 +1,1 @@
+export { PagesEditor } from './PagesEditor';

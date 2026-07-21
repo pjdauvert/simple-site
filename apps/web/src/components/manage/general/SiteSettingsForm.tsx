@@ -12,11 +12,11 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { SiteThemeConfig } from '@simple-site/interfaces';
 import { SiteThemeConfigSchema, UrlOrPathSchema } from '@simple-site/interfaces';
-import { loadDraftConfig } from '../../services/configVersionService';
-import { updateSiteSettings } from '../../services/siteConfigService';
-import { useFeatureFlags } from '../../hooks/useFeatureFlags';
-import { useNotifications } from '../../hooks/useNotifications';
-import { MediaUrlField } from '../media';
+import { loadDraftConfig } from '../../../services/configVersionService';
+import { updateSiteSettings } from '../../../services/siteConfigService';
+import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
+import { useNotifications } from '../../../hooks/useNotifications';
+import { MediaUrlField } from '../../media';
 
 const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 /** Select value: '' = inherit/default, 'false' = full width, otherwise a breakpoint. */

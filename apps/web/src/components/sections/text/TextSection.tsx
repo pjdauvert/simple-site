@@ -1,11 +1,20 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Box, Container, Typography, useTheme, useMediaQuery } from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import { FormattedMessage } from 'react-intl';
-import ReactMarkdown from 'react-markdown';
+import { useIntl } from 'react-intl';
 import type { TextColumnContent, TextColumnDesign, TextSectionProps } from '@simple-site/interfaces';
-import { sectionContentKey } from '@simple-site/interfaces';
-import { useAppTheme } from '../../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
+import { EditableText } from '../EditableText';
+import { EditableMarkdown } from '../EditableMarkdown';
+import { InlineDesignPopover, InlineAddButton } from '../InlineControls';
+import { useSectionEdit, useSlotVisible } from '../sectionEdit';
+
+const MAX_COLUMNS = 4;
+
+// Per-column design + media are edited in place, via a floating popover on the
+// column. That panel pulls in the media-library UI, so it is lazy-imported to stay
+// out of the public section chunk — it only mounts while editing inline.
+const ColumnDesignPanel = lazy(() => import('./TextColumnPanel').then((m) => ({ default: m.ColumnDesignPanel })));
 
 const VERT_ALIGN: Record<string, string> = { center: 'center', bottom: 'flex-end', stretch: 'stretch' };
 const MEDIA_VERT: Record<string, string> = { top: 'top', bottom: 'bottom' };
@@ -21,6 +30,12 @@ function getVisibleLayout(layout: number[], allCount: number, visibleIndices: nu
 export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, design }) => {
   const { siteThemeConfig, themeConfig } = useAppTheme();
   const muiTheme = useTheme();
+  const intl = useIntl();
+  // Present only while editing inline (admin preview); undefined on the public site.
+  const edit = useSectionEdit();
+  // Publicly an empty field renders nothing; while editing inline, empty slots
+  // still render so they can be filled in place.
+  const showSlot = useSlotVisible();
 
   const isXs = useMediaQuery(muiTheme.breakpoints.only('xs'));
   const isSm = useMediaQuery(muiTheme.breakpoints.only('sm'));
@@ -42,12 +57,12 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
   function renderColumnContent(col: TextColumnContent, index: number, colDesign?: TextColumnDesign) {
     return (
       <Box sx={{ textAlign: colDesign?.textHorizontalAlign ?? 'left' }}>
-        {col.title && (
+        {showSlot(col.title) && (
           <Typography variant="h4" component="h2" gutterBottom>
-            <FormattedMessage id={sectionContentKey(sectionName, `columns.${index}.title`)} defaultMessage={col.title} />
+            <EditableText sectionName={sectionName} path={`columns.${index}.title`} value={col.title} multiline />
           </Typography>
         )}
-        {col.paragraph && (
+        {showSlot(col.paragraph) && (
           <Box sx={{
             '& p': { mb: 2 },
             '& h1,& h2,& h3,& h4,& h5,& h6': { mt: 2, mb: 1 },
@@ -56,25 +71,28 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
             '& code': { backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' },
             '& pre': { backgroundColor: 'rgba(0,0,0,0.1)', padding: 2, borderRadius: 1, overflow: 'auto' },
           }}>
-            <FormattedMessage id={sectionContentKey(sectionName, `columns.${index}.paragraph`)} defaultMessage={col.paragraph}>
-              {(msg) => <ReactMarkdown>{String(msg)}</ReactMarkdown>}
-            </FormattedMessage>
+            <EditableMarkdown
+              sectionName={sectionName}
+              path={`columns.${index}.paragraph`}
+              value={col.paragraph}
+            />
           </Box>
         )}
       </Box>
     );
   }
 
-  function renderMedia(media: NonNullable<TextColumnDesign['media']>) {
-    const justify = IMG_JUSTIFY[media.horizontalAlign ?? ''] ?? '0 auto 0 0';
+  function renderMedia(media: TextColumnDesign['media'] | undefined) {
+    const justify = IMG_JUSTIFY[media?.horizontalAlign ?? ''] ?? '0 auto 0 0';
     return (
-      <Box component="img"
-        src={media.url}
+      <Box
+        component="img"
+        src={media?.url}
         alt="Column media"
         sx={{
           width: '100%', height: 'auto', display: 'block',
-          maxHeight: media.maxHeight ?? '400px',
-          maxWidth: media.maxWidth ?? undefined,
+          maxHeight: media?.maxHeight ?? '400px',
+          maxWidth: media?.maxWidth ?? undefined,
           objectFit: 'contain', borderRadius: 2, mb: 2,
           margin: justify,
         }}
@@ -90,7 +108,20 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
 
     return (
       <Grid key={index} size={{ xs: 12, md: gridSize }}
-        sx={{ display: 'flex', flexDirection: 'column', justifyContent: VERT_ALIGN[colDesign?.textVerticalAlign ?? ''] ?? 'flex-start' }}>
+        sx={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: VERT_ALIGN[colDesign?.textVerticalAlign ?? ''] ?? 'flex-start' }}>
+        {/* Renders nothing on the public site; a floating design/media gear while
+            editing inline. The panel is lazy so it stays out of the public chunk. */}
+        {edit && (
+          <InlineDesignPopover
+            corner="bottom-right"
+            width={360}
+            label={intl.formatMessage({ id: 'page.manage.pages.section.text.editColumn' }, { number: index + 1 })}
+          >
+            <Suspense fallback={null}>
+              <ColumnDesignPanel index={index} colDesign={colDesign} columnCount={content.columns.length} />
+            </Suspense>
+          </InlineDesignPopover>
+        )}
         {media?.position === 'cover' ? (
           <Box sx={{
             backgroundImage: `url(${media.url})`,
@@ -105,7 +136,9 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
           </Box>
         ) : (
           <>
-            {media && renderMedia(media)}
+            {/* The column image only renders when the column has one; its URL is
+                managed in the inline design popover above. */}
+            {media?.url && renderMedia(media)}
             {renderColumnContent(col, index, colDesign)}
           </>
         )}
@@ -128,6 +161,16 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
         <Grid container spacing={4}>
           {visibleIndices.map((colIndex, visibleIndex) => renderColumn(colIndex, visibleIndex))}
         </Grid>
+        {/* Inline "add column" — editing only, up to the max; renders nothing publicly. */}
+        {edit && content.columns.length < MAX_COLUMNS && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <InlineAddButton
+              contentPath="columns"
+              blank={{}}
+              label={intl.formatMessage({ id: 'page.manage.pages.section.text.addColumn' })}
+            />
+          </Box>
+        )}
       </Container>
     </Box>
   );

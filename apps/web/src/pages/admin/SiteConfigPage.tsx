@@ -1,7 +1,6 @@
-import { Alert, Box, Paper, Tab, Tabs, Typography } from '@mui/material';
+import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
-import { SiteSettingsForm } from '../../components/manage';
 
 const TABS = ['general', 'themes', 'pages'] as const;
 type TabKey = (typeof TABS)[number];
@@ -44,17 +43,3 @@ export const SiteConfigPage: React.FC = () => {
     </Box>
   );
 };
-
-/** General tab — the existing site-settings form (self-notifies on save). */
-export const GeneralTab: React.FC = () => (
-  <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-    <SiteSettingsForm />
-  </Paper>
-);
-
-/** Pages tab — placeholder shell for future page-structure management. */
-export const PagesTab: React.FC = () => (
-  <Alert severity="info">
-    <FormattedMessage id="page.manage.site.pages.comingSoon" />
-  </Alert>
-);
