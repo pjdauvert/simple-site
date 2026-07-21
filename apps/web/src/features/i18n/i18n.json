@@ -1,6 +1,7 @@
 {
   "en": {
     "language.switch": "Switch Language",
+    "language.default": "Default",
     "theme.switch": "Switch Theme",
     "footer.copyright": "© Simple Site. All rights reserved.",
     "footer.license": "License AGPL-3.0",
@@ -395,6 +396,7 @@
   },
   "fr": {
     "language.switch": "Changer de Langue",
+    "language.default": "Par défaut",
     "theme.switch": "Changer de Thème",
     "footer.copyright": "© Simple Site. Tous droits réservés.",
     "footer.license": "Licence AGPL-3.0",

@@ -1,5 +1,5 @@
-import type { ApiResponseErrorPayload, ApiResponseSuccessPayload, I18n, I18nDictionary, Locale, SiteConfig } from '@simple-site/interfaces';
-import { BASE_LOCALE, I18nDictionarySchema, I18nSchema, SiteConfigSchema, isLocaleCode } from '@simple-site/interfaces';
+import type { ApiResponseErrorPayload, ApiResponseSuccessPayload, I18nDictionary, Locale, SiteConfig, TranslationsPayload } from '@simple-site/interfaces';
+import { BASE_LOCALE, I18nDictionarySchema, SiteConfigSchema, TranslationsPayloadSchema, toCanonicalLocale } from '@simple-site/interfaces';
 import apiService from './apiService';
 
 export type SiteConfigLoaderType = () => Promise<SiteConfig>;
@@ -28,17 +28,25 @@ export const loadTranslations: TranslationLoaderType = async (locale) => {
   return I18nDictionarySchema.parse((response as ApiResponseSuccessPayload<I18nDictionary>).data);
 }
 
-export type LanguagesLoaderType = () => Promise<Locale[]>;
+export interface LanguagesInfo {
+  defaultLocale: Locale;
+  locales: Locale[];
+}
 
-/** The languages the site currently offers — the keys of the translations blob. */
+export type LanguagesLoaderType = () => Promise<LanguagesInfo>;
+
+/** The languages the site currently offers — the config default language plus the blob override keys. */
 export const loadLanguages: LanguagesLoaderType = async () => {
-  const response = await apiService.get<I18n>('translations');
+  const response = await apiService.get<TranslationsPayload>('translations');
   if (!response.ok) {
     const error = (response as ApiResponseErrorPayload).message;
     throw new Error(error);
   }
-  const i18n = I18nSchema.parse((response as ApiResponseSuccessPayload<I18n>).data);
-  return Object.keys(i18n) as Locale[];
+  const { defaultLanguage, translations } = TranslationsPayloadSchema.parse(
+    (response as ApiResponseSuccessPayload<TranslationsPayload>).data,
+  );
+  const overrides = Object.keys(translations).filter(locale => locale !== defaultLanguage).sort();
+  return { defaultLocale: defaultLanguage, locales: [defaultLanguage, ...overrides] };
 }
 
 export const LOCALE_KEY = 'app.locale';
@@ -63,19 +71,20 @@ export const initLocale = (): Locale => {
     return BASE_LOCALE;
   }
 
-  // Languages are data-driven, so we only format-validate here (ISO 639-1); the
-  // IntlProvider reconciles against the actual available languages once they load,
-  // falling back to the base locale if the saved/browser one isn't offered.
-  let locale = localStorage.getItem(LOCALE_KEY) as Locale | null;
-  if (!locale || !isLocaleCode(locale)) {
+  // Languages are data-driven, so we only format-validate here (any Intl-resolvable
+  // BCP-47 tag, region/script kept); the IntlProvider reconciles against the actual
+  // available languages once they load.
+  const saved = localStorage.getItem(LOCALE_KEY);
+  let locale = saved ? toCanonicalLocale(saved) : undefined;
+  if (!locale) {
     const browserLocale =
       (navigator.languages && navigator.languages.length > 0
         ? navigator.languages[0]
         : navigator.language) || BASE_LOCALE;
-    locale = browserLocale.split('-')[0] as Locale;
-    if (!isLocaleCode(locale)) {
-      locale = BASE_LOCALE;
-    }
+    locale =
+      toCanonicalLocale(browserLocale) ??
+      toCanonicalLocale(browserLocale.split('-')[0]) ??
+      BASE_LOCALE;
     localStorage.setItem(LOCALE_KEY, locale);
   }
   return locale;

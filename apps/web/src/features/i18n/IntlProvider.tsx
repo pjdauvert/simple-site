@@ -6,6 +6,7 @@ import type { IntlContextValue } from './IntlContext';
 import { BASE_LOCALE, I18nSchema } from '@simple-site/interfaces';
 import type { I18n, I18nDictionary, Locale } from '@simple-site/interfaces';
 import { initLocale, LOCALE_KEY } from '../../services/initService';
+import type { LanguagesInfo } from '../../services/initService';
 import { ErrorPage } from '../../pages/error/ErrorPage'
 import staticTranslations from '../i18n/i18n.json';
 
@@ -25,9 +26,18 @@ const getLocalizedStaticMessages = (locale: Locale): I18nDictionary => staticBun
 const withoutEmpty = (dict: I18nDictionary): I18nDictionary =>
   Object.fromEntries(Object.entries(dict).filter(([, value]) => value !== ''));
 
+const primarySubtag = (locale: Locale): string => locale.split('-')[0];
+
+// Exact match wins; otherwise the first available locale sharing the language subtag
+// (fr-CA → fr); otherwise the config-defined default language.
+const reconcileLocale = (current: Locale, { defaultLocale, locales }: LanguagesInfo): Locale => {
+  if (locales.includes(current)) return current;
+  return locales.find(locale => primarySubtag(locale) === primarySubtag(current)) ?? defaultLocale;
+};
+
 interface IntlProviderProps {
   loadTranslations?: (locale: Locale) => Promise<I18nDictionary>;
-  loadLanguages?: () => Promise<Locale[]>;
+  loadLanguages?: () => Promise<LanguagesInfo>;
   children: ReactNode;
 }
 
@@ -43,18 +53,20 @@ export const IntlProvider: React.FC<IntlProviderProps> = ({
   const [messages, setMessages] = useState<I18nDictionary>(() => getLocalizedStaticMessages(initialLocale));
   // Seed from the bundled languages; replaced by the live set once the API responds.
   const [availableLocales, setAvailableLocales] = useState<Locale[]>(() => Object.keys(staticBundle) as Locale[]);
+  const [defaultLocale, setDefaultLocale] = useState<Locale>(BASE_LOCALE);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load the live set of languages (data-driven) and reconcile the active locale
-  // against it — an unavailable saved/browser locale falls back to the base locale.
+  // Load the live set of languages (config default + overrides) and reconcile the
+  // active locale against it (exact → language subtag → config default language).
   useEffect(() => {
     if (!loadLanguages) return;
     let cancelled = false;
     loadLanguages()
-      .then(langs => {
-        if (cancelled || langs.length === 0) return;
-        setAvailableLocales(langs);
-        setLocale(current => (langs.includes(current) ? current : BASE_LOCALE));
+      .then(info => {
+        if (cancelled || info.locales.length === 0) return;
+        setAvailableLocales(info.locales);
+        setDefaultLocale(info.defaultLocale);
+        setLocale(current => reconcileLocale(current, info));
       })
       .catch(() => { /* keep the bundled languages when the list can't be fetched */ });
     return () => { cancelled = true; };
@@ -88,22 +100,23 @@ export const IntlProvider: React.FC<IntlProviderProps> = ({
     localStorage.setItem(LOCALE_KEY, newLocale);
   };
 
-  // Languages are data-driven: the available set comes from the translations blob
-  // (see `loadLanguages`), so admins add / import / remove languages at runtime via
-  // the Translations page. A requested locale that isn't offered falls back to
-  // BASE_LOCALE, and any key a language hasn't translated falls back to its
-  // defaultMessage (the config original).
+  // Languages are data-driven: the available set is the config default language plus
+  // the translations blob override keys (see `loadLanguages`), so admins add / import /
+  // remove languages at runtime via the Translations page. A requested locale that
+  // isn't offered falls back to the config default language, and any key a language
+  // hasn't translated falls back to its defaultMessage (the config original).
   const contextValue: IntlContextValue = {
     locale,
     switchLanguage,
     availableLocales,
+    defaultLocale,
   };
 
   if (error) return <ErrorPage title='Error loading translations' message={error.message} />;
 
   return (
     <IntlContext.Provider value={contextValue}>
-      <ReactIntlProvider locale={locale} messages={messages} defaultLocale={BASE_LOCALE}>
+      <ReactIntlProvider locale={locale} messages={messages} defaultLocale={defaultLocale}>
         { children }
       </ReactIntlProvider>
     </IntlContext.Provider>

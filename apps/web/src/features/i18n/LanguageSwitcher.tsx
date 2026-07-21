@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import { Chip, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import { Language } from '@mui/icons-material';
 import { FormattedMessage } from 'react-intl';
 import type { Locale } from '@simple-site/interfaces';
@@ -7,7 +7,7 @@ import { useAppIntl } from '../../hooks/useIntl';
 import { languageLabel } from './languageNames';
 
 export const LanguageSwitcher: React.FC = () => {
-  const { locale, switchLanguage, availableLocales } = useAppIntl();
+  const { locale, switchLanguage, availableLocales, defaultLocale } = useAppIntl();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -38,6 +38,14 @@ export const LanguageSwitcher: React.FC = () => {
             onClick={() => handleLanguageSelect(loc)}
           >
             {languageLabel(loc)}
+            {loc === defaultLocale && (
+              <Chip
+                size="small"
+                variant="outlined"
+                label={<FormattedMessage id="language.default" />}
+                sx={{ ml: 1 }}
+              />
+            )}
           </MenuItem>
         ))}
       </Menu>

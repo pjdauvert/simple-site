@@ -37,7 +37,7 @@ const router = createBrowserRouter([
     element:<Shell><AuthRouter /></Shell>,
   },{
     path: '/manage/*',
-    element: <Shell><ManageRouter /></Shell>,
+    element: <Shell languagesLoader={loadLanguages}><ManageRouter /></Shell>,
   },
   {
     path: '*',
