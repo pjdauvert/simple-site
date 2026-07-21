@@ -46,6 +46,9 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
   const [container, setContainer] = useState<ContainerChoice>('');
+  // Set once at setup and not editable in-app; carried through saves so the
+  // schema default can't silently reset it.
+  const [defaultLanguage, setDefaultLanguage] = useState('en');
 
   // Snapshot of the loaded (or last-saved) values, to enable Save only when dirty.
   const [initial, setInitial] = useState({ siteName: '', logoUrl: '', faviconUrl: '', container: '' as ContainerChoice });
@@ -71,6 +74,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
         setLogoUrl(loaded.logoUrl);
         setFaviconUrl(loaded.faviconUrl);
         setContainer(loaded.container);
+        setDefaultLanguage(config.site.defaultLanguage);
         setInitial(loaded);
       })
       .catch((err) => {
@@ -98,6 +102,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
 
     const site: SiteThemeConfig = {
       siteName: name,
+      defaultLanguage,
       ...(logo ? { logoUrl: logo } : {}),
       ...(favicon ? { faviconUrl: favicon } : {}),
       ...(container === '' ? {} : { containerMaxWidth: container === 'false' ? false : container }),

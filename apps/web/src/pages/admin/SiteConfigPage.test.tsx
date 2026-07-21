@@ -111,6 +111,7 @@ describe('SiteConfigPage', () => {
     });
     expect(updateSiteSettings).toHaveBeenCalledWith({
       siteName: 'New Name',
+      defaultLanguage: 'en',
       logoUrl: '/logo.svg',
       faviconUrl: '/favicon.ico',
       containerMaxWidth: 'lg',

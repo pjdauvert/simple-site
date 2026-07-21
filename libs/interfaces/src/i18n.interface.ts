@@ -9,16 +9,39 @@ export const I18nLocalesEnum = {
     FR: 'fr',
 } as const;
 
-// The base locale — always present, the fallback when a requested locale is unknown,
-// and the one language that cannot be removed.
+// Last-resort fallback only, used when no site config is in scope (e.g. SSR before the
+// config loads). The authoritative default language lives in `config.site.defaultLanguage`.
 export const BASE_LOCALE: string = I18nLocalesEnum.EN;
 
-// i18n Locale schema — any ISO 639-1 (two-letter, lowercase) code.
-export const I18nLocaleSchema = z.string().regex(/^[a-z]{2}$/);
-export type Locale = z.infer<typeof I18nLocaleSchema>;
+/**
+ * Normalizes a locale code to its canonical BCP-47 form (e.g. `fr-ca` → `fr-CA`,
+ * `zh-hant` → `zh-Hant`), or returns undefined when the code is malformed or names a
+ * language the runtime cannot resolve to a display name.
+ */
+export const toCanonicalLocale = (code: string): string | undefined => {
+    const trimmed = code.trim();
+    if (!trimmed) return undefined;
+    let canonical: string | undefined;
+    try {
+        canonical = Intl.getCanonicalLocales(trimmed)[0];
+    } catch {
+        return undefined;
+    }
+    if (!canonical) return undefined;
+    try {
+        const name = new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' }).of(canonical);
+        return name === undefined ? undefined : canonical;
+    } catch {
+        return undefined;
+    }
+};
 
-/** True when `value` is a syntactically valid locale code (ISO 639-1). */
-export const isLocaleCode = (value: string): boolean => I18nLocaleSchema.safeParse(value).success;
+/** True when `value` is an Intl-resolvable locale code (BCP-47, region/script variants included). */
+export const isLocaleCode = (value: string): boolean => toCanonicalLocale(value) !== undefined;
+
+// i18n Locale schema — any Intl-resolvable BCP-47 locale code.
+export const I18nLocaleSchema = z.string().refine(isLocaleCode, 'Unknown or malformed locale code');
+export type Locale = z.infer<typeof I18nLocaleSchema>;
 
 // i18n Dictionary schema
 // The dictionary is a record of locales, each containing a record of keys and values, where keys are strings allowing a-z, A-Z, 0-9, _ and . characters.
@@ -29,3 +52,11 @@ export type I18nDictionary = z.infer<typeof I18nDictionarySchema>;
 // i18n schema
 export const I18nSchema = z.record(I18nLocaleSchema, I18nDictionarySchema);
 export type I18n = z.infer<typeof I18nSchema>;
+
+// `GET /api/translations` response shape: the config-defined default language plus the
+// override dictionaries (the default language has no dictionary — its text lives in the site config).
+export const TranslationsPayloadSchema = z.object({
+    defaultLanguage: I18nLocaleSchema,
+    translations: I18nSchema,
+});
+export type TranslationsPayload = z.infer<typeof TranslationsPayloadSchema>;

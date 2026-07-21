@@ -8,6 +8,8 @@ import {
   menuTitleKey,
   sectionContentKey,
   sectionScope,
+  SiteThemeConfigSchema,
+  toCanonicalLocale,
 } from '@simple-site/interfaces';
 
 // A representative config exercising menu titles + a hero + a text section. Cast because
@@ -105,13 +107,60 @@ describe('section collectors (each type owns its translatable fields)', () => {
   });
 });
 
+describe('toCanonicalLocale', () => {
+  it('canonicalizes resolvable BCP-47 tags', () => {
+    expect(toCanonicalLocale('en')).toBe('en');
+    expect(toCanonicalLocale('fr')).toBe('fr');
+    expect(toCanonicalLocale('fr-CA')).toBe('fr-CA');
+    expect(toCanonicalLocale('fr-ca')).toBe('fr-CA');
+    expect(toCanonicalLocale('zh-hant')).toBe('zh-Hant');
+    expect(toCanonicalLocale('pt-BR')).toBe('pt-BR');
+    // Intl canonicalization also maps case and ISO 639-2 aliases.
+    expect(toCanonicalLocale('EN')).toBe('en');
+    expect(toCanonicalLocale('eng')).toBe('en');
+  });
+
+  it('returns undefined for malformed or unknown codes', () => {
+    expect(toCanonicalLocale('')).toBeUndefined();
+    expect(toCanonicalLocale('  ')).toBeUndefined();
+    expect(toCanonicalLocale('en_US')).toBeUndefined(); // underscore is not BCP-47 → Intl throws
+    expect(toCanonicalLocale('x')).toBeUndefined();
+    expect(toCanonicalLocale('e1')).toBeUndefined();
+    // Well-formed but not a known language → DisplayNames yields no name.
+    expect(toCanonicalLocale('xx')).toBeUndefined();
+    expect(toCanonicalLocale('zz')).toBeUndefined();
+  });
+});
+
 describe('isLocaleCode', () => {
-  it('accepts ISO 639-1 codes and rejects malformed ones', () => {
+  it('accepts Intl-resolvable codes and rejects unknown or malformed ones', () => {
     expect(isLocaleCode('de')).toBe(true);
     expect(isLocaleCode('fr')).toBe(true);
-    expect(isLocaleCode('EN')).toBe(false);
-    expect(isLocaleCode('eng')).toBe(false);
+    expect(isLocaleCode('fr-CA')).toBe(true);
+    expect(isLocaleCode('zh-Hant')).toBe(true);
+    expect(isLocaleCode('pt-BR')).toBe(true);
+    expect(isLocaleCode('xx')).toBe(false);
+    expect(isLocaleCode('zz')).toBe(false);
+    expect(isLocaleCode('')).toBe(false);
+    expect(isLocaleCode('  ')).toBe(false);
+    expect(isLocaleCode('en_US')).toBe(false);
     expect(isLocaleCode('x')).toBe(false);
     expect(isLocaleCode('e1')).toBe(false);
+  });
+});
+
+describe('SiteThemeConfigSchema.defaultLanguage', () => {
+  it('defaults to en when absent (legacy configs)', () => {
+    const parsed = SiteThemeConfigSchema.parse({ siteName: 'S' });
+    expect(parsed.defaultLanguage).toBe('en');
+  });
+
+  it('accepts a resolvable BCP-47 tag', () => {
+    const parsed = SiteThemeConfigSchema.parse({ siteName: 'S', defaultLanguage: 'fr-CA' });
+    expect(parsed.defaultLanguage).toBe('fr-CA');
+  });
+
+  it('rejects an unknown language code', () => {
+    expect(SiteThemeConfigSchema.safeParse({ siteName: 'S', defaultLanguage: 'xx' }).success).toBe(false);
   });
 });
