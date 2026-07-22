@@ -227,6 +227,22 @@ describe('TranslationsPage', () => {
     await waitFor(() => expect(screen.getByLabelText('Filter keys')).toHaveValue('home.menuTitle'));
     expect(screen.queryByLabelText('home.hero1.content.title')).not.toBeInTheDocument(); // filtered out
   });
+
+  it('ANDs space-separated filter tokens and clears via the adornment button', async () => {
+    renderPage();
+    expect(await screen.findByLabelText('home.menuTitle')).toHaveValue('Inicio');
+
+    // "hero title" → only keys containing both tokens.
+    fireEvent.change(screen.getByLabelText('Filter keys'), { target: { value: 'hero title' } });
+    expect(screen.getByLabelText('home.hero1.content.title')).toBeInTheDocument();
+    expect(screen.queryByLabelText('home.menuTitle')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('orphan.key')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filter' }));
+    expect(screen.getByLabelText('Filter keys')).toHaveValue('');
+    expect(screen.getByLabelText('home.menuTitle')).toBeInTheDocument();
+    expect(screen.getByLabelText('orphan.key')).toBeInTheDocument();
+  });
 });
 
 describe('buildExportPayload', () => {

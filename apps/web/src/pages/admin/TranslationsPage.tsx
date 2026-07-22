@@ -15,6 +15,7 @@ import {
   FormControlLabel,
   FormGroup,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -25,6 +26,7 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon,
+  Clear as ClearIcon,
   DeleteOutline as DeleteOutlineIcon,
   Download as DownloadIcon,
   UploadFile as UploadFileIcon,
@@ -134,9 +136,10 @@ export const TranslationsPage: React.FC = () => {
 
   const rows = useMemo<Row[]>(() => {
     const keys = new Set<string>([...expectedMap.keys(), ...Object.keys(dict)]);
-    const needle = filter.trim().toLowerCase();
+    // Space-separated tokens are ANDed: "home page" matches keys containing both.
+    const needles = filter.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return [...keys]
-      .filter((key) => !needle || key.toLowerCase().includes(needle))
+      .filter((key) => needles.every((needle) => key.toLowerCase().includes(needle)))
       .sort()
       .map((key) => {
         const value = dict[key] ?? '';
@@ -355,7 +358,20 @@ export const TranslationsPage: React.FC = () => {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               size="small"
-              sx={{ minWidth: 220 }}
+              sx={{ minWidth: 320, flexGrow: 1, maxWidth: 560 }}
+              InputProps={{
+                endAdornment: filter && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setFilter('')}
+                      aria-label={intl.formatMessage({ id: 'page.manage.translations.filter.clear' })}
+                    >
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Box sx={{ flexGrow: 1 }} />
             <Chip size="small" color="error" variant="outlined"
