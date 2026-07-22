@@ -35,6 +35,12 @@ interface InlineDesignPopoverProps {
   icon?: ReactNode;
   /** Popover panel width in px. */
   width?: number;
+  /**
+   * Fade the trigger in only while its closest `.inline-reveal-zone` ancestor is
+   * hovered (or the trigger is keyboard-focused / its popover is open) — keeps
+   * crowded areas clean until the admin points at them.
+   */
+  revealOnHover?: boolean;
   children: ReactNode;
 }
 
@@ -49,11 +55,27 @@ export const InlineDesignPopover: React.FC<InlineDesignPopoverProps> = ({
   corner = 'bottom-right',
   icon,
   width = 300,
+  revealOnHover,
   children,
 }) => {
   const edit = useSectionEdit();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   if (!edit) return null;
+
+  // Base transition runs on leave (ease-out); the hovered state re-declares it
+  // so the fade-in eases in.
+  const revealSx = revealOnHover && !anchor
+    ? {
+        opacity: 0,
+        pointerEvents: 'none' as const,
+        transition: 'opacity 180ms ease-out',
+        '.inline-reveal-zone:hover &, &:focus-visible': {
+          opacity: 1,
+          pointerEvents: 'auto',
+          transition: 'opacity 180ms ease-in',
+        },
+      }
+    : {};
 
   return (
     <>
@@ -63,7 +85,7 @@ export const InlineDesignPopover: React.FC<InlineDesignPopoverProps> = ({
           className="inline-design-trigger"
           onClick={(e) => setAnchor(e.currentTarget)}
           aria-label={label}
-          sx={floatingButtonSx(corner)}
+          sx={{ ...floatingButtonSx(corner), ...revealSx }}
         >
           {icon ?? <EditIcon fontSize="small" />}
         </IconButton>

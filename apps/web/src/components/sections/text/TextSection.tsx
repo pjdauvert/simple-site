@@ -108,13 +108,32 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
 
     return (
       <Grid key={index} size={{ xs: 12, md: gridSize }}
-        sx={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: VERT_ALIGN[colDesign?.textVerticalAlign ?? ''] ?? 'flex-start' }}>
+        className={edit ? 'inline-reveal-zone' : undefined}
+        sx={{
+          position: 'relative', display: 'flex', flexDirection: 'column',
+          justifyContent: VERT_ALIGN[colDesign?.textVerticalAlign ?? ''] ?? 'flex-start',
+          // While editing, hovering a column subtly outlines it and reveals its
+          // gear (see InlineDesignPopover's revealOnHover). Outline, not border,
+          // so the layout never shifts. Base transition runs on leave (ease-out);
+          // the hovered state re-declares it so the fade-in eases in.
+          ...(edit && {
+            borderRadius: 1,
+            outline: '1px dashed transparent',
+            outlineOffset: '4px',
+            transition: 'outline-color 180ms ease-out',
+            '&:hover': {
+              outlineColor: muiTheme.palette.divider,
+              transition: 'outline-color 180ms ease-in',
+            },
+          }),
+        }}>
         {/* Renders nothing on the public site; a floating design/media gear while
             editing inline. The panel is lazy so it stays out of the public chunk. */}
         {edit && (
           <InlineDesignPopover
             corner="bottom-right"
             width={360}
+            revealOnHover
             label={intl.formatMessage({ id: 'page.manage.pages.section.text.editColumn' }, { number: index + 1 })}
           >
             <Suspense fallback={null}>
