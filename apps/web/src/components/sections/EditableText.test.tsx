@@ -75,10 +75,11 @@ describe('EditableText translate affordance', () => {
     fireEvent.focus(screen.getByRole('textbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Translate…' }));
 
+    // No `noopener`: the opener link is what lets sessionStorage (dev mock auth)
+    // clone into the new tab.
     expect(open).toHaveBeenCalledWith(
       `/manage/translations?key=${encodeURIComponent(KEY)}`,
       '_blank',
-      'noopener',
     );
   });
 });

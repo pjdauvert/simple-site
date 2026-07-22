@@ -109,8 +109,10 @@ export const InlineTranslateButton: React.FC<InlineTranslateButtonProps> = ({
         aria-label={label}
         // Keep the field focused so the click lands before any blur hides the button.
         onMouseDown={(e) => e.preventDefault()}
+        // Same-origin target, deliberately no `noopener`: severing the opener would
+        // stop sessionStorage cloning into the new tab, logging out dev mock auth.
         onClick={() =>
-          window.open(`/manage/translations?key=${encodeURIComponent(i18nKey)}`, '_blank', 'noopener')
+          window.open(`/manage/translations?key=${encodeURIComponent(i18nKey)}`, '_blank')
         }
         sx={floatingButtonSx('top-right')}
       >
