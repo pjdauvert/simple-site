@@ -123,7 +123,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
             editing inline. The panel is lazy so it stays out of the public chunk. */}
         {edit && (
           <InlineDesignPopover
-            corner="bottom-right"
+            corner="top-right"
             width={360}
             revealOnHover
             label={intl.formatMessage({ id: 'page.manage.pages.section.text.editColumn' }, { number: index + 1 })}
