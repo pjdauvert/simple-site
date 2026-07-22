@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Box, IconButton, Popover, Tooltip } from '@mui/material';
+import { INLINE_REVEAL_ZONE } from './inlineReveal';
 import {
   Add as AddIcon,
   EditOutlined as EditIcon,
@@ -69,7 +70,7 @@ export const InlineDesignPopover: React.FC<InlineDesignPopoverProps> = ({
         opacity: 0,
         pointerEvents: 'none' as const,
         transition: 'opacity 180ms ease-out',
-        '.inline-reveal-zone:hover &, &:focus-visible': {
+        [`.${INLINE_REVEAL_ZONE}:hover &, &:focus-visible`]: {
           opacity: 1,
           pointerEvents: 'auto',
           transition: 'opacity 180ms ease-in',

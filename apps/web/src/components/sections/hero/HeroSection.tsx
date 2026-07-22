@@ -8,6 +8,7 @@ import { EditableText } from '../EditableText';
 import { EditableImage } from '../EditableImage';
 import { useSlotVisible, useSectionEdit } from '../sectionEdit';
 import { InlineDesignPopover, InlineAddButton } from '../InlineControls';
+import { INLINE_REVEAL_ZONE, inlineRevealZoneSx } from '../inlineReveal';
 
 // Admin-only design panels for the inline popovers; lazy so the public bundle
 // never pulls them in (they render nothing without an editing context anyway).
@@ -40,12 +41,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
   const ctaRow = (!!content.ctaButtons?.length || edit) && (
     <Box sx={{ display: 'flex', flexDirection: isSplit ? 'column' : 'row', gap: 1.5, flexWrap: isSplit ? 'nowrap' : 'wrap', justifyContent: isSplit ? 'flex-start' : 'center', alignItems: isSplit ? 'flex-start' : 'center', mb: content.featuringItems?.length ? { xs: 3, sm: 4 } : 0 }}>
       {content.ctaButtons?.map((cta, i) => (
-        <Box key={i} sx={{ position: 'relative', display: 'inline-flex' }}>
+        <Box key={i}
+          className={edit ? INLINE_REVEAL_ZONE : undefined}
+          sx={[{ position: 'relative', display: 'inline-flex' }, Boolean(edit) && inlineRevealZoneSx]}>
           <Button variant={cta.variant ?? 'contained'} size="large" href={cta.link}
             sx={{ px: { xs: 3, sm: 4 }, py: { xs: 1, sm: 1.5 } }}>
             <EditableText sectionName={sectionName} path={`ctaButtons.${i}.label`} value={cta.label} autoWidth />
           </Button>
-          <InlineDesignPopover corner="bottom-right" label={t('ctaButtons.settings')}>
+          <InlineDesignPopover corner="bottom-right" revealOnHover label={t('ctaButtons.settings')}>
             <Suspense fallback={null}><CtaDesignPanel index={i} cta={cta} /></Suspense>
           </InlineDesignPopover>
         </Box>
@@ -57,14 +60,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
   const featuringRow = (!!content.featuringItems?.length || edit) && (
     <Box sx={{ display: 'flex', gap: 3.5, flexWrap: 'wrap', alignItems: 'flex-start', pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
       {content.featuringItems?.map((item, i) => (
-        <Box key={i} sx={{ position: 'relative' }}>
+        <Box key={i}
+          className={edit ? INLINE_REVEAL_ZONE : undefined}
+          sx={[{ position: 'relative' }, Boolean(edit) && inlineRevealZoneSx]}>
           <Typography variant="caption" sx={{ display: 'block', letterSpacing: '0.8px', textTransform: 'uppercase', color: 'text.secondary', mb: 0.5 }}>
             <EditableText sectionName={sectionName} path={`featuringItems.${i}.label`} value={item.label} />
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             <EditableText sectionName={sectionName} path={`featuringItems.${i}.value`} value={item.value} />
           </Typography>
-          <InlineDesignPopover corner="bottom-right" label={t('featuring.settings')} width={220}>
+          <InlineDesignPopover corner="bottom-right" revealOnHover label={t('featuring.settings')} width={220}>
             <Suspense fallback={null}><FeaturingDesignPanel index={i} /></Suspense>
           </InlineDesignPopover>
         </Box>
