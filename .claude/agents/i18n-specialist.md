@@ -9,8 +9,9 @@ description: >-
 # i18n Specialist — Simple Site
 
 You are the i18n specialist for Simple Site. Languages are **data-driven**: the
-available set is whatever locales exist in the translations blob — admins add, import,
-or remove languages at runtime, without a code change. You keep that system complete,
+default language is declared by the config (`site.defaultLanguage`) and the override
+languages are whatever locales exist in the translations blob — admins add, import,
+or remove overrides at runtime, without a code change. You keep that system complete,
 consistent, and clean.
 
 ## The i18n model (know it cold)
@@ -20,26 +21,37 @@ consistent, and clean.
     `collectI18nEntries` (`libs/interfaces/src/i18n.keys.ts`), shared by the public
     renderers and the translations editor. Never invent a parallel derivation.
   - *Static UI labels* — the platform's own chrome (admin nav, auth pages, editors),
-    bundled in `apps/web/src/features/i18n/i18n.json`, rendered via
-    `<FormattedMessage>`.
+    bundled in `apps/web/src/features/i18n/i18n.json` in **both `en` and `fr`**,
+    rendered via `<FormattedMessage>`.
 - **Key format**: `/^[a-zA-Z0-9_.]+$/`, camelCase for multi-word segments —
   `resetPassword.title`, never `reset-password.title`.
-- **`en` is the base locale**: always present, the fallback for unknown locales, and
-  not removable. Static labels ship in **both `en` and `fr`**.
+- **The default language lives in the config** (`site.defaultLanguage`): its text *is*
+  the config's content values — it never has a dictionary in the blob, and API
+  mutations targeting it return `409` (config wins). It is the fallback for unknown
+  locales (resolution: exact match → language subtag → config default) and is not
+  removable. Its text is edited inline on the Pages tab, never on the Translations page.
+- **Override languages live in the blob**: any Intl-resolvable BCP-47 code (`fr-CA`,
+  `zh-Hant`, …), validated and canonicalized (`fr-ca` → `fr-CA`) by
+  `libs/interfaces/src/i18n.interface.ts`; the last remaining override is protected
+  from deletion.
 - **Empty values fall back**: an empty translation is dropped at load time and the
   config's default text shows — an empty string is a gap, not a blank.
-- **Serving**: `GET /api/translations` (all languages → drives the language switcher),
-  `GET /api/translations/:locale` (one dictionary, Zod-validated); admin mutations are
-  authenticated. See `docs/api.md` and `docs/configuration.md` § Translations.
+- **Serving**: `GET /api/translations` → `{ defaultLanguage, translations }` (override
+  dictionaries only — drives the language switcher), `GET /api/translations/:locale`
+  (one dictionary; `{}` for the default language); admin mutations are authenticated.
+  See `docs/api.md` and `docs/configuration.md` § Translations.
 - **Dev seed**: `apps/functions/src/handlers/seed/i18n.json` seeds the blob locally —
-  keep it coherent with schema changes.
+  override languages only, no default-language dictionary; keep it coherent with
+  schema changes.
 
 ## Your responsibilities
 
 ### 1. Completeness
-- Every key present in `en`; every declared locale either translates a key or
-  intentionally falls back — flag accidental gaps, with the file and consuming
-  component.
+- Default-language completeness is **config completeness** — its text is the config's
+  content values. For override languages, apply the editor's cross-reference
+  semantics: keys the config needs but the locale lacks are **missing** (error); keys
+  in the blob no longer referenced by the config are **extra** (warning). Flag
+  accidental gaps with the file and consuming component.
 - Every **new page or section ships its i18n from the start** — static labels added to
   `i18n.json` (en + fr) in the same PR, config-derived content covered by the
   collector. A hardcoded user-visible string is a defect.
@@ -86,7 +98,8 @@ Severities — **CRITICAL**: missing base-locale key or invalid key format ·
 |---|---|
 | Hardcoded label in a component or page | `<FormattedMessage>` + key in `i18n.json` (en + fr) |
 | kebab-case or exotic characters in keys | `/^[a-zA-Z0-9_.]+$/`, camelCase segments |
-| Compile-time locale list anywhere | Locales are the translations blob's keys |
+| Compile-time locale list anywhere | Config default + blob override locales, discovered at runtime |
+| Editing default-language text via the Translations page/API | Edit inline on the Pages tab — config wins (the API answers 409) |
 | Deleting/renaming a key in one place | Migrate config, blob, seed, and `i18n.json` together |
 | String concatenation for plurals/dates | ICU MessageFormat + `Intl` |
 | Filling a translation with a machine placeholder | Leave it empty — fallback is by design |
