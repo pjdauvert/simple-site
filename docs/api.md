@@ -13,6 +13,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | POST | `/api/config` | Replace the **draft** configuration (admin) |
 | PUT | `/api/config/site` | Update the `site` section of the **draft** (admin) |
 | PUT | `/api/config/themes` | Replace the `themes` array of the **draft** (admin) |
+| PUT | `/api/config/menu` | Replace the `menu` of the **draft** (admin) |
 | POST | `/api/config/publish` | Publish the draft — promote it live, archive the previous (admin) |
 | POST | `/api/config/import` | Upload a configuration as the new named draft (admin) |
 | GET | `/api/config/versions` | List versions: published, draft, archives (admin) |
@@ -95,6 +96,21 @@ Replaces the entire `themes` array of the **draft** (add / edit / delete are all
 
 // 200 OK
 { "ok": true, "data": { "message": "Themes updated successfully" } }
+```
+
+### `PUT /api/config/menu`
+
+Replaces the `menu` of the **draft** — the ordered list of navigation entries with per-entry visibility (see [configuration.md](configuration.md#menu)). The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `menu`, re-validates the whole `SiteConfig` — rejecting duplicate entries, references to unknown pages, and page routes on feature-reserved paths — then persists the draft. Backs the **Menu** tab of the `/manage/site` configuration page.
+
+```json
+// Request body — a MenuConfig object
+{ "entries": [
+  { "type": "page", "pageName": "page.home", "visible": true },
+  { "type": "feature", "feature": "team", "visible": false }
+] }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Menu updated successfully" } }
 ```
 
 ### `POST /api/config/publish`
