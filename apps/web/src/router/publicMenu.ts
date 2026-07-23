@@ -1,5 +1,6 @@
 import {
   ALL_FEATURE_PAGE_IDS,
+  FEATURE_PAGE_ROUTES,
   type FeaturePageId,
   type MenuItem,
   type SiteConfig,
@@ -22,7 +23,14 @@ export interface FeaturePageDefinition {
   flag: keyof FeatureFlags;
 }
 
-export const FEATURE_PAGE_REGISTRY: Partial<Record<FeaturePageId, FeaturePageDefinition>> = {};
+export const FEATURE_PAGE_REGISTRY: Partial<Record<FeaturePageId, FeaturePageDefinition>> = {
+  team: {
+    route: FEATURE_PAGE_ROUTES.team,
+    pageName: 'team', // nav label i18n key: `team.menuTitle`
+    defaultLabel: 'Team',
+    flag: 'team',
+  },
+};
 
 /** The feature pages this app version can render whose flag is currently on. */
 export const enabledFeaturePages = (flags: FeatureFlags): FeaturePageId[] =>

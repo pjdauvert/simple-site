@@ -8,12 +8,13 @@ import { NotificationsProvider } from '../../../features/notifications/Notificat
 import { MenuEditor } from './MenuEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
+import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 
 vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../../services/menuService', () => ({ updateMenu: vi.fn() }));
 vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(() => ({ media: false })),
-  ALL_DISABLED: { media: false },
+  useFeatureFlags: vi.fn(),
+  ALL_DISABLED: { media: false, team: false },
 }));
 
 const page = (pageName: string, route: string, menuTitle: string) =>
@@ -35,6 +36,7 @@ function renderEditor() {
 describe('MenuEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false });
     vi.mocked(updateMenu).mockResolvedValue(undefined);
   });
 

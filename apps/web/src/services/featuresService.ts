@@ -5,6 +5,8 @@ import apiService from './apiService';
 export interface FeatureFlags {
   /** Admin Media library (page, nav entry, and `/api/media*` endpoints). */
   media: boolean;
+  /** Team feature (admin /manage/team, public /team pages, and `/api/team`). */
+  team: boolean;
 }
 
 /** Fetches the feature flags the server currently has enabled. */

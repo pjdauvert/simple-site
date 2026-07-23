@@ -1,0 +1,1 @@
+export { TeamEditor } from './TeamEditor';

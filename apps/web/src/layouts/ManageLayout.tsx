@@ -19,6 +19,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Dashboard as DashboardIcon,
+  Groups as GroupsIcon,
   Logout as LogoutIcon,
   Menu as MenuIcon,
   PermMedia as PermMediaIcon,
@@ -42,6 +43,7 @@ const COLLAPSED_KEY = 'manage.nav.collapsed';
 const ICONS: Record<string, React.ReactNode> = {
   '/manage': <DashboardIcon />,
   '/manage/site': <SettingsIcon />,
+  '/manage/team': <GroupsIcon />,
   '/manage/translations': <TranslateIcon />,
   '/manage/media': <PermMediaIcon />,
 };

@@ -7,6 +7,8 @@ import type { MenuItem } from '@simple-site/interfaces';
 import { useSiteConfig } from '../hooks/useSiteConfig';
 import { ALL_DISABLED, useFeatureFlags } from '../hooks/useFeatureFlags';
 import { resolveMenuItems } from './publicMenu';
+import { TeamPage } from '../pages/team/TeamPage';
+import { TeamMemberPage } from '../pages/team/TeamMemberPage';
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
@@ -27,6 +29,10 @@ export const AppRouter: React.FC = () => {
         {config.pages.map(page => (
           <Route key={page.route} path={page.route} element={<Page {...page} />} />
         ))}
+        {/* Feature routes are always registered; the pages gate themselves on the
+            runtime flags (off → 404) so deep links never flash the catch-all. */}
+        <Route path="/team" element={<TeamPage />} />
+        <Route path="/team/member/:slug" element={<TeamMemberPage />} />
         <Route path="*" Component={NotFoundPage} />
       </Routes>
     </MainLayout>

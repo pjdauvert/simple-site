@@ -1,9 +1,10 @@
 # Configuration
 
-Site configuration and translations are stored in **Netlify Blobs** and fetched at runtime by the frontend — there is no static config file bundled with the built assets.
+Site configuration, translations and the team are stored in **Netlify Blobs** and fetched at runtime by the frontend — there is no static config file bundled with the built assets.
 
 - Configuration: the **published** config is fetched via `GET /api/config`, validated against `SiteConfigSchema`
 - Translations: fetched via `GET /api/translations/:locale`, validated against `I18nDictionarySchema`
+- Team (flag-gated): fetched via `GET /api/team`, validated against `TeamConfigSchema` — see [Team](#team)
 
 Both blobs are seeded automatically on the first dev request from the JSON files in `apps/functions/src/handlers/seed/`.
 
@@ -216,3 +217,30 @@ curl -X POST https://<your-site>/api/translations/fr \
     "page.home.hero.content.subtitle": "Application React moderne"
   }'
 ```
+
+---
+
+## Team
+
+The team lives in its **own blob** (key `team`, seeded in dev from `apps/functions/src/handlers/seed/team.json`) behind the **`FEATURE_TEAM`** flag — when the flag is off, `/manage/team`, the public `/team*` pages and the whole `/api/team` surface behave as if they don't exist (404).
+
+```json
+{
+  "members": [
+    {
+      "slug": "jane-doe",
+      "name": "Jane Doe",
+      "jobTitle": "Founder & CEO",
+      "photoUrl": "/images/team/jane-doe.jpg",
+      "biography": { "en": "markdown…", "fr": "markdown…" }
+    }
+  ]
+}
+```
+
+- **Direct save** — unlike the site configuration there is **no draft/publish step**: saving from `/manage/team` (`PUT /api/team`, whole-list replace) is live immediately. The editor says so explicitly.
+- **`slug`** is the member's public URL identifier (`/team/member/<slug>`): lowercase kebab-case, unique across members, auto-derived from the name in the editor until edited by hand.
+- **`biography`** is a per-locale record of markdown, stored **inside the member** — independent of the translations blob. The editor shows a language switch only when the platform offers more than one language; public rendering uses the active locale, falling back to the base locale, then to the first non-empty entry. `name`, `jobTitle` and `photoUrl` are language-neutral.
+- **Array order** is the display order of the public team overview.
+- **Public rendering** — `/team` shows the 404 page with no members, the single member's profile with exactly one, and clickable summary cards with several. Unknown slugs 404.
+- The **menu** links to `/team` through a `{ "type": "feature", "feature": "team" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.

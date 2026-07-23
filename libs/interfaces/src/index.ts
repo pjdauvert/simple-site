@@ -7,6 +7,7 @@ export * from './media.interface.js';
 export * from './menu.interface.js';
 export * from './page.interface.js';
 export * from './site.interface.js';
+export * from './team.interface.js';
 export * from './theme.interface.js';
 export * from './url.interface.js';
 export * from './sections/index.js';

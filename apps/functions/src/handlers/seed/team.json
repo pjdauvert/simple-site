@@ -1,0 +1,23 @@
+{
+  "members": [
+    {
+      "slug": "jane-doe",
+      "name": "Jane Doe",
+      "jobTitle": "Founder & CEO",
+      "photoUrl": "/images/team/jane-doe.jpg",
+      "biography": {
+        "en": "Jane founded the company in 2020 after a decade in product design.\n\nShe leads the team with a focus on **simple, accessible experiences** and spends her spare time restoring old synthesizers.",
+        "fr": "Jane a fondé l'entreprise en 2020 après dix ans dans le design produit.\n\nElle dirige l'équipe avec une attention particulière aux **expériences simples et accessibles** et passe son temps libre à restaurer de vieux synthétiseurs."
+      }
+    },
+    {
+      "slug": "john-smith",
+      "name": "John Smith",
+      "jobTitle": "Lead Engineer",
+      "biography": {
+        "en": "John builds the platform end to end — from the blob store to the pixel grid.\n\nBefore joining, he shipped embedded software for weather balloons.",
+        "fr": "John construit la plateforme de bout en bout — du stockage blob à la grille de pixels.\n\nAvant de nous rejoindre, il développait des logiciels embarqués pour des ballons météo."
+      }
+    }
+  ]
+}

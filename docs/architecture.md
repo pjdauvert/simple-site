@@ -76,7 +76,10 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 │  │    ├─ general  SiteSettingsForm → GET /api/config/draft│
 │  │    │                             PUT /api/config/site │
 │  │    ├─ themes   ThemesTab   → PUT /api/config/themes│
-│  │    └─ pages    PagesEditor → POST /api/config  │
+│  │    ├─ pages    PagesEditor → POST /api/config  │
+│  │    └─ menu     MenuEditor  → PUT /api/config/menu│
+│  ├─ /manage/team   TeamEditor (FEATURE_TEAM flag) │
+│  │    GET/PUT /api/team — direct save, own blob   │
 │  ├─ /manage/translations  editor (overrides only)│
 │  │    keys = config ∪ blob; add/import/remove lang│
 │  │    GET /api/translations · PUT/DELETE /:locale │
@@ -100,7 +103,13 @@ Languages are **data-driven**, not compile-time: the available set is the config
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
 
-The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, foldable to an icons-only mini variant via an edge toggle whose state persists in `localStorage`; temporary/toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages, addressed by URL sub-routes under `/manage/site`), Translations, and the flag-gated Media library.
+The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, foldable to an icons-only mini variant via an edge toggle whose state persists in `localStorage`; temporary/toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages / Menu, addressed by URL sub-routes under `/manage/site`), the flag-gated Team editor, Translations, and the flag-gated Media library.
+
+The public navigation is resolved from the config's optional `menu` (ordered entries referencing config pages and feature pages, each with a visibility toggle — see [configuration.md](configuration.md#menu)); configs without a `menu` fall back to the pages array order. Feature pages (the flag-gated public pages shipped by optional features — `/team` today) register their route/label in `apps/web/src/router/publicMenu.ts` and their routes in `AppRouter` ahead of the catch-all; the pages gate themselves on the runtime flags.
+
+### Team
+
+The Team feature (`FEATURE_TEAM`) stores members — name, job title, photo URL (typically an ImageKit URL picked from the media library), per-locale markdown biography, and a unique URL slug — in its **own blob** (key `team`), served by its own function (`team.mts` / `TeamModule`). Saves from `/manage/team` are **live immediately**: the team deliberately sits outside the config draft → publish cycle. Publicly, `/team` renders a 404 with no members, the single member's profile with one, and an overview of clickable member cards with several; each member also has `/team/member/<slug>`. Biographies follow the active locale and fall back to the base locale (stored inside the member record, independent of the translations blob).
 
 ### Pages editor — in-place editing
 
