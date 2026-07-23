@@ -1,4 +1,4 @@
-import type { PageConfiguration, SectionProps, SectionType } from '@simple-site/interfaces';
+import { type PageConfiguration, type SectionProps, type SectionType, isReservedRoute } from '@simple-site/interfaces';
 import { SECTION_REGISTRY } from '../../sections/registry';
 
 /** i18n key segments must match this (see the i18n key convention). */
@@ -46,7 +46,7 @@ export const createPage = (existingRoutes: string[], existingPageNames: string[]
 
 /** Field-level problems on a single page, used to flag inputs after a failed save. */
 export interface PageFieldErrors {
-  route?: 'empty' | 'duplicate';
+  route?: 'empty' | 'duplicate' | 'reserved';
   pageName?: 'empty' | 'duplicate' | 'pattern';
 }
 
@@ -64,6 +64,7 @@ export const validatePages = (pages: PageConfiguration[]): PageFieldErrors[] => 
     const pageName = p.pageName.trim();
     if (!route) errors.route = 'empty';
     else if ((routeCounts.get(route) ?? 0) > 1) errors.route = 'duplicate';
+    else if (isReservedRoute(route)) errors.route = 'reserved';
     if (!pageName) errors.pageName = 'empty';
     else if (!I18N_SEGMENT.test(pageName)) errors.pageName = 'pattern';
     else if ((nameCounts.get(pageName) ?? 0) > 1) errors.pageName = 'duplicate';

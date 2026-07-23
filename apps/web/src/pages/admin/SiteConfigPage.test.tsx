@@ -10,6 +10,7 @@ import { SiteConfigPage } from './SiteConfigPage';
 import { GeneralTab } from './GeneralTab';
 import { ThemesTab } from './ThemesTab';
 import { PagesTab } from './PagesTab';
+import { MenuTab } from './MenuTab';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
@@ -17,7 +18,8 @@ import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn(), saveDraftConfig: vi.fn() }));
 vi.mock('../../services/siteConfigService', () => ({ updateSiteSettings: vi.fn() }));
 vi.mock('../../services/themesService', () => ({ updateThemes: vi.fn() }));
-vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
+vi.mock('../../services/menuService', () => ({ updateMenu: vi.fn() }));
+vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn(), ALL_DISABLED: { media: false } }));
 
 const siteConfig = (site: Partial<SiteThemeConfig> = {}): SiteConfig =>
   ({
@@ -45,6 +47,7 @@ function renderSiteConfig(initialPath = '/manage/site/general') {
               <Route path="general" element={<GeneralTab />} />
               <Route path="themes" element={<ThemesTab />} />
               <Route path="pages" element={<PagesTab />} />
+              <Route path="menu" element={<MenuTab />} />
             </Route>
           </Routes>
         </NotificationsProvider>
@@ -61,11 +64,12 @@ describe('SiteConfigPage', () => {
     vi.mocked(useFeatureFlags).mockReturnValue({ media: true });
   });
 
-  it('renders the General / Themes / Pages tabs', async () => {
+  it('renders the General / Themes / Pages / Menu tabs', async () => {
     renderSiteConfig();
     expect(screen.getByRole('tab', { name: 'General' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Themes' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Pages' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Menu' })).toBeInTheDocument();
     await screen.findByLabelText(/site name/i);
   });
 
@@ -84,6 +88,16 @@ describe('SiteConfigPage', () => {
   it('shows the Pages editor when navigated to directly', async () => {
     renderSiteConfig('/manage/site/pages');
     expect(await screen.findByRole('button', { name: /add page/i })).toBeInTheDocument();
+  });
+
+  it('shows the Menu editor when navigated to directly', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue({
+      ...siteConfig(),
+      pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }],
+    } as SiteConfig);
+    renderSiteConfig('/manage/site/menu');
+    expect(await screen.findByRole('button', { name: /save menu/i })).toBeInTheDocument();
+    expect(screen.getByText('Home')).toBeInTheDocument();
   });
 
   it('prefills the General form from the loaded draft', async () => {

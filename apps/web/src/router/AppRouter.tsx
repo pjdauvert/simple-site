@@ -5,15 +5,20 @@ import { Page } from '../pages/dynamic/Page';
 import { NotFoundPage } from '../pages/error/NotFoundPage';
 import type { MenuItem } from '@simple-site/interfaces';
 import { useSiteConfig } from '../hooks/useSiteConfig';
+import { ALL_DISABLED, useFeatureFlags } from '../hooks/useFeatureFlags';
+import { resolveMenuItems } from './publicMenu';
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
   if (!siteContext) throw new Error('AppRouter must be called within <SiteConfigProvider>');
   const { config } = siteContext;
+  const flags = useFeatureFlags();
 
+  // While flags load, feature entries resolve as disabled — page links render
+  // immediately and feature links pop in once the flags arrive.
   const menuItems: MenuItem[] = useMemo(
-    () => config.pages.map(({ pageName, route, menuTitle }) => ({ menuTitle, pageName, route })),
-    [config.pages]
+    () => resolveMenuItems(config, flags ?? ALL_DISABLED),
+    [config, flags]
   );
 
   return (

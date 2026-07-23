@@ -5,6 +5,7 @@ import { SiteConfigPage } from "../pages/admin/SiteConfigPage";
 import { GeneralTab } from "../pages/admin/GeneralTab";
 import { ThemesTab } from "../pages/admin/ThemesTab";
 import { PagesTab } from "../pages/admin/PagesTab";
+import { MenuTab } from "../pages/admin/MenuTab";
 import { TranslationsPage } from "../pages/admin/TranslationsPage";
 import { MediaPage } from "../pages/admin/MediaPage";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -40,6 +41,7 @@ const ManageArea: React.FC = () => {
           <Route path="general" element={<GeneralTab />} />
           <Route path="themes" element={<ThemesTab />} />
           <Route path="pages" element={<PagesTab />} />
+          <Route path="menu" element={<MenuTab />} />
         </Route>
         <Route path="translations" element={<TranslationsPage />} />
         {flags.media && <Route path="media" element={<MediaPage />} />}
