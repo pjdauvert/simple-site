@@ -33,11 +33,12 @@ const DEFAULT_LIGHT_THEME: ThemeConfig = {
   menuHoverColor: 'rgba(255,255,255,0.10)',
 };
 
-const DEFAULT_SITE_CONFIG: SiteThemeConfig = { 
+const DEFAULT_SITE_CONFIG: SiteThemeConfig = {
   siteName: 'Simple-Site',
+  defaultLanguage: 'en',
   logoUrl: "/logo.svg",
   faviconUrl: "/logo.svg",
-  containerMaxWidth: "lg" 
+  containerMaxWidth: "lg"
 };
 
 export const DEFAULT_SITE: SiteConfig =  { 

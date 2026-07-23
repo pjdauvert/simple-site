@@ -15,6 +15,7 @@ import {
   FormControlLabel,
   FormGroup,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -25,13 +26,15 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon,
+  Clear as ClearIcon,
   DeleteOutline as DeleteOutlineIcon,
   Download as DownloadIcon,
   UploadFile as UploadFileIcon,
 } from '@mui/icons-material';
+import { useSearchParams } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { I18n, I18nDictionary, Locale } from '@simple-site/interfaces';
-import { BASE_LOCALE, I18nSchema, collectI18nEntries, isLocaleCode } from '@simple-site/interfaces';
+import { I18nSchema, collectI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
 import { loadDraftConfig } from '../../services/configVersionService';
 import {
   deleteLanguage,
@@ -53,27 +56,34 @@ interface Row {
 }
 
 /**
- * Translations editor. The key list is the union of the keys the site config references
+ * Translations editor for the override languages. The default language's text lives in
+ * the site config and is edited inline on the pages, so it never appears in the language
+ * selector here. The key list is the union of the keys the site config references
  * (via `collectI18nEntries`, each carrying its original value) and the keys already in
  * the translations blob for the selected language. Keys expected by the config but not
  * yet translated show as `missing` (error); keys in the blob the config doesn't use show
  * as `additional` (warning). Admins pick a language, edit values, and add / import /
- * remove languages.
+ * remove languages. A `?key=` query param prefills the filter and highlights that row.
  */
 export const TranslationsPage: React.FC = () => {
   const intl = useIntl();
   const notify = useNotifications();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchParams] = useSearchParams();
+  const deepLinkKey = searchParams.get('key');
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  // The last-saved blob and an editable working copy of it (edits persist across
-  // language switches; Save persists the selected language only).
+  // The last-saved override blob and an editable working copy of it (edits persist
+  // across language switches; Save persists the selected language only).
   const [saved, setSaved] = useState<I18n>({});
   const [working, setWorking] = useState<I18n>({});
+  const [defaultLanguage, setDefaultLanguage] = useState<Locale>('');
   const [expected, setExpected] = useState<{ key: string; defaultValue: string }[]>([]);
-  const [language, setLanguage] = useState<Locale>(BASE_LOCALE);
+  const [language, setLanguage] = useState<Locale>('');
   const [filter, setFilter] = useState('');
+  const [highlightKey, setHighlightKey] = useState<string | null>(null);
+  const highlightScrolled = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -86,13 +96,14 @@ export const TranslationsPage: React.FC = () => {
   useEffect(() => {
     let active = true;
     Promise.all([loadAllTranslations(), loadDraftConfig()])
-      .then(([blob, config]) => {
+      .then(([payload, config]) => {
         if (!active) return;
-        setSaved(blob);
-        setWorking(blob);
+        setDefaultLanguage(payload.defaultLanguage);
+        setSaved(payload.translations);
+        setWorking(payload.translations);
         setExpected(collectI18nEntries(config));
-        const langs = Object.keys(blob) as Locale[];
-        setLanguage(langs.includes(BASE_LOCALE) ? BASE_LOCALE : (langs[0] ?? BASE_LOCALE));
+        const langs = (Object.keys(payload.translations) as Locale[]).sort();
+        setLanguage(langs[0] ?? '');
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.translations.error.load' }));
@@ -101,6 +112,23 @@ export const TranslationsPage: React.FC = () => {
     return () => { active = false; };
   }, [intl]);
 
+  // Deep link (?key=...) — prefill the filter with the exact key and briefly highlight
+  // the matching row; the row ref below scrolls it into view once it renders.
+  useEffect(() => {
+    if (loading || !deepLinkKey) return;
+    setFilter(deepLinkKey);
+    setHighlightKey(deepLinkKey);
+    const timer = setTimeout(() => setHighlightKey(null), 3000);
+    return () => clearTimeout(timer);
+  }, [loading, deepLinkKey]);
+
+  const highlightRowRef = (node: HTMLDivElement | null) => {
+    if (node && !highlightScrolled.current) {
+      highlightScrolled.current = true;
+      node.scrollIntoView?.({ block: 'center' });
+    }
+  };
+
   const languages = useMemo(() => (Object.keys(working) as Locale[]).sort(), [working]);
   const expectedMap = useMemo(() => new Map(expected.map((e) => [e.key, e.defaultValue])), [expected]);
   const originals = useMemo<I18nDictionary>(() => Object.fromEntries(expected.map((e) => [e.key, e.defaultValue])), [expected]);
@@ -108,9 +136,10 @@ export const TranslationsPage: React.FC = () => {
 
   const rows = useMemo<Row[]>(() => {
     const keys = new Set<string>([...expectedMap.keys(), ...Object.keys(dict)]);
-    const needle = filter.trim().toLowerCase();
+    // Space-separated tokens are ANDed: "home page" matches keys containing both.
+    const needles = filter.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return [...keys]
-      .filter((key) => !needle || key.toLowerCase().includes(needle))
+      .filter((key) => needles.every((needle) => key.toLowerCase().includes(needle)))
       .sort()
       .map((key) => {
         const value = dict[key] ?? '';
@@ -163,12 +192,17 @@ export const TranslationsPage: React.FC = () => {
   };
 
   const handleAdd = async () => {
-    const code = addCode.trim().toLowerCase();
-    if (!isLocaleCode(code)) {
+    const canonical = toCanonicalLocale(addCode);
+    if (!canonical) {
       setAddError(intl.formatMessage({ id: 'page.manage.translations.add.invalid' }));
       return;
     }
-    if (code in working) {
+    // The default language is edited inline on the pages — it has no override dictionary.
+    if (canonical === defaultLanguage) {
+      setAddError(intl.formatMessage({ id: 'page.manage.translations.add.isDefault' }));
+      return;
+    }
+    if (canonical in working) {
       setAddError(intl.formatMessage({ id: 'page.manage.translations.add.exists' }));
       return;
     }
@@ -176,14 +210,14 @@ export const TranslationsPage: React.FC = () => {
     const seeded: I18nDictionary = Object.fromEntries(expected.map((e) => [e.key, '']));
     setSubmitting(true);
     try {
-      await replaceTranslations(code, seeded);
-      setSaved((prev) => ({ ...prev, [code]: seeded }));
-      setWorking((prev) => ({ ...prev, [code]: seeded }));
-      setLanguage(code);
+      await replaceTranslations(canonical, seeded);
+      setSaved((prev) => ({ ...prev, [canonical]: seeded }));
+      setWorking((prev) => ({ ...prev, [canonical]: seeded }));
+      setLanguage(canonical);
       setAddOpen(false);
       setAddCode('');
       setAddError(null);
-      notify.success(intl.formatMessage({ id: 'page.manage.translations.add.success' }, { language: languageLabel(code) }));
+      notify.success(intl.formatMessage({ id: 'page.manage.translations.add.success' }, { language: languageLabel(canonical) }));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.translations.error.save' }));
     } finally {
@@ -223,8 +257,8 @@ export const TranslationsPage: React.FC = () => {
       setSaved(drop);
       setWorking((prev) => {
         const next = drop(prev);
-        const remaining = Object.keys(next) as Locale[];
-        setLanguage(remaining.includes(BASE_LOCALE) ? BASE_LOCALE : (remaining[0] ?? BASE_LOCALE));
+        const remaining = (Object.keys(next) as Locale[]).sort();
+        setLanguage(remaining[0] ?? '');
         return next;
       });
       setRemoveOpen(false);
@@ -256,6 +290,7 @@ export const TranslationsPage: React.FC = () => {
   }
 
   const gridColumns = { xs: '1fr', md: 'minmax(160px, 260px) minmax(120px, 1fr) 2fr 40px' };
+  const addCanonical = toCanonicalLocale(addCode);
 
   return (
     <Box sx={{ p: { xs: 2, sm: 4 } }}>
@@ -275,6 +310,11 @@ export const TranslationsPage: React.FC = () => {
             ))}
           </Select>
         </FormControl>
+        <Chip
+          size="small"
+          variant="outlined"
+          label={`${intl.formatMessage({ id: 'page.manage.translations.defaultLanguage' })}: ${languageLabel(defaultLanguage)} (${defaultLanguage})`}
+        />
         <Button startIcon={<AddIcon />} onClick={() => { setAddCode(''); setAddError(null); setAddOpen(true); }}>
           <FormattedMessage id="page.manage.translations.add" />
         </Button>
@@ -287,7 +327,7 @@ export const TranslationsPage: React.FC = () => {
         <Button
           color="error"
           startIcon={<DeleteOutlineIcon />}
-          disabled={language === BASE_LOCALE || languages.length <= 1}
+          disabled={!languages.includes(language) || languages.length <= 1}
           onClick={() => setRemoveOpen(true)}
         >
           <FormattedMessage id="page.manage.translations.remove" />
@@ -306,87 +346,111 @@ export const TranslationsPage: React.FC = () => {
         />
       </Stack>
 
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap' }}>
-        <TextField
-          label={intl.formatMessage({ id: 'page.manage.translations.filter' })}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          size="small"
-          sx={{ minWidth: 220 }}
-        />
-        <Box sx={{ flexGrow: 1 }} />
-        <Chip size="small" color="error" variant="outlined"
-          label={intl.formatMessage({ id: 'page.manage.translations.legend.missing' }, { count: missingCount })} />
-        <Chip size="small" color="warning" variant="outlined"
-          label={intl.formatMessage({ id: 'page.manage.translations.legend.additional' }, { count: additionalCount })} />
-      </Stack>
-
-      {rows.length === 0 ? (
-        <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-          <FormattedMessage id="page.manage.translations.empty" />
-        </Typography>
+      {languages.length === 0 ? (
+        <Alert severity="info">
+          <FormattedMessage id="page.manage.translations.noOverrides" />
+        </Alert>
       ) : (
-        <Box>
-          <Box sx={{ display: { xs: 'none', md: 'grid' }, gridTemplateColumns: gridColumns, gap: 1, px: 1, mb: 0.5 }}>
-            <Typography variant="overline" color="text.secondary"><FormattedMessage id="page.manage.translations.col.key" /></Typography>
-            <Typography variant="overline" color="text.secondary"><FormattedMessage id="page.manage.translations.col.original" /></Typography>
-            <Typography variant="overline" color="text.secondary"><FormattedMessage id="page.manage.translations.col.value" /></Typography>
-            <Box />
-          </Box>
-
-          {rows.map((row) => (
-            <Box
-              key={row.key}
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: gridColumns,
-                gap: 1,
-                alignItems: 'center',
-                px: 1,
-                py: 0.5,
-                borderLeft: 3,
-                borderColor:
-                  row.status === 'missing' ? 'error.main' : row.status === 'additional' ? 'warning.main' : 'transparent',
-                borderRadius: 0.5,
-                '&:hover': { bgcolor: 'action.hover' },
+        <>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap' }}>
+            <TextField
+              label={intl.formatMessage({ id: 'page.manage.translations.filter' })}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              size="small"
+              sx={{ minWidth: 320, flexGrow: 1, maxWidth: 560 }}
+              InputProps={{
+                endAdornment: filter && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setFilter('')}
+                      aria-label={intl.formatMessage({ id: 'page.manage.translations.filter.clear' })}
+                    >
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
-            >
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{row.key}</Typography>
-                {row.status === 'additional' && (
-                  <Chip size="small" color="warning" variant="outlined"
-                    label={intl.formatMessage({ id: 'page.manage.translations.tag.extra' })} />
-                )}
-              </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
-                {row.original ?? '—'}
-              </Typography>
-              <TextField
-                value={row.value}
-                onChange={(e) => setValue(row.key, e.target.value)}
-                inputProps={{ 'aria-label': row.key }}
-                error={row.status === 'missing'}
-                size="small"
-                fullWidth
-              />
-              <Tooltip title={intl.formatMessage({ id: 'page.manage.translations.removeKey' }, { key: row.key })}>
-                <IconButton size="small" onClick={() => removeKey(row.key)}
-                  aria-label={intl.formatMessage({ id: 'page.manage.translations.removeKey' }, { key: row.key })}>
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          ))}
-        </Box>
-      )}
+            />
+            <Box sx={{ flexGrow: 1 }} />
+            <Chip size="small" color="error" variant="outlined"
+              label={intl.formatMessage({ id: 'page.manage.translations.legend.missing' }, { count: missingCount })} />
+            <Chip size="small" color="warning" variant="outlined"
+              label={intl.formatMessage({ id: 'page.manage.translations.legend.additional' }, { count: additionalCount })} />
+          </Stack>
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting || !dirty}>
-          {submitting ? <CircularProgress size={20} color="inherit" /> : (
-            <FormattedMessage id="page.manage.translations.save" values={{ language: languageLabel(language) }} />
+          {rows.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+              <FormattedMessage id="page.manage.translations.empty" />
+            </Typography>
+          ) : (
+            <Box>
+              <Box sx={{ display: { xs: 'none', md: 'grid' }, gridTemplateColumns: gridColumns, gap: 1, px: 1, mb: 0.5 }}>
+                <Typography variant="overline" color="text.secondary"><FormattedMessage id="page.manage.translations.col.key" /></Typography>
+                <Typography variant="overline" color="text.secondary"><FormattedMessage id="page.manage.translations.col.original" /></Typography>
+                <Typography variant="overline" color="text.secondary"><FormattedMessage id="page.manage.translations.col.value" /></Typography>
+                <Box />
+              </Box>
+
+              {rows.map((row) => (
+                <Box
+                  key={row.key}
+                  ref={row.key === highlightKey ? highlightRowRef : undefined}
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: gridColumns,
+                    gap: 1,
+                    alignItems: 'center',
+                    px: 1,
+                    py: 0.5,
+                    borderLeft: 3,
+                    borderColor:
+                      row.status === 'missing' ? 'error.main' : row.status === 'additional' ? 'warning.main' : 'transparent',
+                    borderRadius: 0.5,
+                    bgcolor: row.key === highlightKey ? 'action.selected' : undefined,
+                    transition: 'background-color 1.5s ease',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                >
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{row.key}</Typography>
+                    {row.status === 'additional' && (
+                      <Chip size="small" color="warning" variant="outlined"
+                        label={intl.formatMessage({ id: 'page.manage.translations.tag.extra' })} />
+                    )}
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                    {row.original ?? '—'}
+                  </Typography>
+                  <TextField
+                    value={row.value}
+                    onChange={(e) => setValue(row.key, e.target.value)}
+                    inputProps={{ 'aria-label': row.key }}
+                    error={row.status === 'missing'}
+                    size="small"
+                    fullWidth
+                  />
+                  <Tooltip title={intl.formatMessage({ id: 'page.manage.translations.removeKey' }, { key: row.key })}>
+                    <IconButton size="small" onClick={() => removeKey(row.key)}
+                      aria-label={intl.formatMessage({ id: 'page.manage.translations.removeKey' }, { key: row.key })}>
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              ))}
+            </Box>
           )}
-        </Button>
-      </Box>
+
+          <Box sx={{ mt: 3 }}>
+            <Button variant="contained" onClick={handleSave} disabled={submitting || !dirty}>
+              {submitting ? <CircularProgress size={20} color="inherit" /> : (
+                <FormattedMessage id="page.manage.translations.save" values={{ language: languageLabel(language) }} />
+              )}
+            </Button>
+          </Box>
+        </>
+      )}
 
       {/* Add-language dialog */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)}>
@@ -399,8 +463,15 @@ export const TranslationsPage: React.FC = () => {
             value={addCode}
             onChange={(e) => { setAddCode(e.target.value); setAddError(null); }}
             onKeyDown={(e) => { if (e.key === 'Enter') void handleAdd(); }}
-            error={Boolean(addError)}
-            helperText={addError ?? (isLocaleCode(addCode.trim().toLowerCase()) ? languageLabel(addCode.trim().toLowerCase()) : ' ')}
+            error={Boolean(addError) || (addCode.trim() !== '' && !addCanonical)}
+            helperText={
+              addError
+                ?? (addCanonical
+                  ? `${languageLabel(addCanonical)} (${addCanonical})`
+                  : addCode.trim() !== ''
+                    ? intl.formatMessage({ id: 'page.manage.translations.add.invalid' })
+                    : ' ')
+            }
             size="small"
             fullWidth
           />

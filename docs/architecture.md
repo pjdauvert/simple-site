@@ -77,7 +77,7 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 │  │    │                             PUT /api/config/site │
 │  │    ├─ themes   ThemesTab   → PUT /api/config/themes│
 │  │    └─ pages    PagesEditor → POST /api/config  │
-│  ├─ /manage/translations  editor (per-language) │
+│  ├─ /manage/translations  editor (overrides only)│
 │  │    keys = config ∪ blob; add/import/remove lang│
 │  │    GET /api/translations · PUT/DELETE /:locale │
 │  └─ /manage/media  MediaPage (FEATURE_MEDIA flag) │
@@ -86,7 +86,8 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 ┌──────────────────────────────────────────────────┐
 │  AppIntlProvider                                 │
 │  (locale from localStorage / browser)            │
-│  ↓  GET /api/translations → available languages   │
+│  ↓  GET /api/translations                         │
+│    → { defaultLanguage, override languages }      │
 │  GET /api/translations/:locale                   │
 │    → Zod (I18nDictionarySchema)                  │
 │  ↓  (empty values dropped → config default)       │
@@ -95,7 +96,7 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 └──────────────────────────────────────────────────┘
 ```
 
-Languages are **data-driven**, not compile-time: the available set is the keys of the translations blob (`GET /api/translations`), so admins add / import / remove languages from the Translations page without a code change. `en` is the base locale (always present, the fallback for an unknown locale, not removable). i18n keys are derived from the config's page/section structure by one shared helper (`collectI18nEntries` in `libs/interfaces`), used by both the public renderers and the editor.
+Languages are **data-driven**, not compile-time: the available set is the config's **default language** (`config.site.defaultLanguage`, Zod-defaulted to `en`) plus the keys of the translations blob — the blob holds **override** languages only, since the default language's text lives in the site config itself (`GET /api/translations` returns `{ defaultLanguage, translations }`). Admins add / import / remove override languages from the Translations page without a code change; locale codes are any Intl-resolvable BCP-47 tag, stored canonicalized (`fr-CA`, `zh-Hant`). The default language is the fallback for an unknown locale (resolution: exact match → language-subtag match → config default) and is not removable. i18n keys are derived from the config's page/section structure by one shared helper (`collectI18nEntries` in `libs/interfaces`), used by both the public renderers and the editor.
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
 

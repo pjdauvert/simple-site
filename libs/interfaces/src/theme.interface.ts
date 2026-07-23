@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { UrlOrPathSchema } from "./url.interface.js";
 import { BreakpointSchema } from "./layout.interface.js";
+import { BASE_LOCALE, I18nLocaleSchema } from "./i18n.interface.js";
 
 // ThemeConfig schema
 export const ThemeConfigSchema = z.object({
@@ -28,6 +29,8 @@ export const SiteThemeConfigSchema = z.object({
   logoUrl: UrlOrPathSchema.optional(),
   faviconUrl: UrlOrPathSchema.optional(),
   containerMaxWidth: z.union([BreakpointSchema, z.literal(false)]).optional(),
+  // Set once at setup; deliberately no in-app control to change it (config text is written in this language).
+  defaultLanguage: I18nLocaleSchema.default(BASE_LOCALE),
 });
 
 export type SiteThemeConfig = z.infer<typeof SiteThemeConfigSchema>;

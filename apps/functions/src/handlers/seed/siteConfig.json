@@ -3,7 +3,8 @@
     "siteName": "Simple Site",
     "logoUrl": "/logo.svg",
     "faviconUrl": "/favicon.ico",
-    "containerMaxWidth": "lg"
+    "containerMaxWidth": "lg",
+    "defaultLanguage": "en"
   },
   "themes": [
     {

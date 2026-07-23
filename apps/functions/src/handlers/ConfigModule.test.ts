@@ -114,7 +114,7 @@ describe('ConfigModule', () => {
     // Published stays as-is; the change lands on the draft.
     expect(JSON.parse(data.get('config')!).site.siteName).toBe('Old Name');
     const draft = JSON.parse(data.get('config:draft')!);
-    expect(draft.site).toEqual({ siteName: 'New Name', logoUrl: '/new.svg', containerMaxWidth: 'md' });
+    expect(draft.site).toEqual({ siteName: 'New Name', logoUrl: '/new.svg', containerMaxWidth: 'md', defaultLanguage: 'en' });
     expect(draft.themes).toEqual(storedConfig.themes); // untouched
     const draftSummary = JSON.parse(data.get('config:versions')!).draft;
     expect(draftSummary).not.toBeNull();
@@ -196,7 +196,8 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config')!).themes).toEqual(storedConfig.themes);
     const draft = JSON.parse(data.get('config:draft')!);
     expect(draft.themes).toEqual(newThemes);
-    expect(draft.site).toEqual(storedConfig.site); // site untouched
+    // Site untouched (the schema injects the defaultLanguage default on parse).
+    expect(draft.site).toEqual({ ...storedConfig.site, defaultLanguage: 'en' });
     expect(draft.pages).toEqual(storedConfig.pages); // pages untouched
   });
 
