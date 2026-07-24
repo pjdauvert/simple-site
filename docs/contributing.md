@@ -19,6 +19,10 @@ npm run typecheck    # tsc --noEmit across all projects
 
 Pre-commit hooks (Lefthook) run `lint` and `typecheck` automatically. Do not bypass them with `--no-verify`.
 
+## Continuous Integration
+
+Every pull request runs the same gates in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) on each pushed commit: install, lint, typecheck, tests, and build. A superseded run is cancelled when new commits arrive. All checks must pass before merge — fix the underlying issue rather than re-running.
+
 ## Browser Support
 
 Modern browsers supporting ES6+ and React 19:
