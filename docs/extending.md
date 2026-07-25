@@ -117,6 +117,8 @@ Declare each editable field as a slot instead of a hard-coded `<FormattedMessage
 
 Each renders exactly as before on the public site (config value = i18n *default*, a translation for the scoped key wins, empty renders nothing) and becomes an in-place field when a `SectionEditContext` is present. Wrap optional fields in `useSlotVisible()` so an empty field still renders (as a ghost placeholder) while editing — otherwise there'd be nothing to click.
 
+Inside the admin **Pages preview** these text/markdown slots always show the **original config value untranslated**, whether or not their section is the selected (editable) one — a `SectionPreviewContext` makes them bypass `FormattedMessage`. The admin is editing the source config, so the `/manage` language switcher must not re-translate the previewed content; and since the manage area never loads the site's content translations, going through `FormattedMessage` there would only fall back to the same value while flooding the console with `MISSING_TRANSLATION`. New text/markdown slots get this for free by rendering through `EditableText` / `EditableMarkdown`.
+
 ```typescript
 import React from 'react';
 import { Container, Box, Typography } from '@mui/material';

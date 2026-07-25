@@ -20,6 +20,7 @@ import {
 } from '@simple-site/interfaces';
 import { Loading } from '../../Loading';
 import { SECTION_DEFINITIONS, SECTION_REGISTRY } from '../../sections/registry';
+import { SectionPreviewContext } from '../../sections/sectionEdit';
 import { SectionEditProvider } from './SectionEditProvider';
 import { SectionBottomSheet } from './SectionBottomSheet';
 import { SectionToolbar } from './SectionToolbar';
@@ -97,7 +98,8 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
   }
 
   return (
-    <Box>
+    <SectionPreviewContext.Provider value={true}>
+      <Box>
       <Stack spacing={0}>
         {page.sections.map((section, index) => {
           const def = SECTION_REGISTRY[section.type];
@@ -189,6 +191,7 @@ export const SectionPreview: React.FC<SectionPreviewProps> = ({
       </Stack>
 
       <Box sx={{ mt: 2, textAlign: 'center' }}>{addButton}</Box>
-    </Box>
+      </Box>
+    </SectionPreviewContext.Provider>
   );
 };

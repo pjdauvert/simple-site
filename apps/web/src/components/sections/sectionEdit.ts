@@ -37,6 +37,21 @@ export const SectionEditContext = createContext<SectionEditContextValue | undefi
 export const useSectionEdit = (): SectionEditContextValue | undefined => useContext(SectionEditContext);
 
 /**
+ * True while a section renders inside the admin page preview. In this mode the
+ * editable text/markdown slots show their *original config value* directly instead
+ * of routing through `FormattedMessage`: the admin edits the source config, so the
+ * admin language switcher must not translate the previewed content — and, since the
+ * manage area never loads the site's content translations, going through
+ * `FormattedMessage` would only fall back to the same value while flooding the
+ * console with `MISSING_TRANSLATION` for every slot. Absent (false) on the public
+ * site, where content is translated as before.
+ */
+export const SectionPreviewContext = createContext(false);
+
+/** Whether the current render is inside the admin page preview. */
+export const useInSectionPreview = (): boolean => useContext(SectionPreviewContext);
+
+/**
  * Whether a renderer should render a slot at all. Publicly an empty field renders
  * nothing (unchanged behaviour); while editing, empty slots still render so they
  * can be filled in place.

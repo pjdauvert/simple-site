@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { EditableText } from './EditableText';
-import { SectionEditContext } from './sectionEdit';
+import { SectionEditContext, SectionPreviewContext } from './sectionEdit';
 import type { SectionEditContextValue } from './sectionEdit';
 
 /**
@@ -66,6 +66,24 @@ describe('EditableText translate affordance', () => {
 
     fireEvent.blur(screen.getByRole('textbox'));
     expect(screen.queryByRole('button', { name: 'Translate…' })).not.toBeInTheDocument();
+  });
+
+  it('in the admin preview (unselected section) renders the original config value untranslated, without an intl lookup', () => {
+    const onError = vi.fn();
+    // Messages deliberately lack the section content key: the public path would
+    // fall back to defaultMessage but log MISSING_TRANSLATION; the preview path
+    // renders the raw value and never touches intl.
+    render(
+      <IntlProvider locale="en" messages={messages} onError={onError}>
+        <SectionPreviewContext.Provider value={true}>
+          <EditableText sectionName={SECTION} path={PATH} value="Contact us" />
+        </SectionPreviewContext.Provider>
+      </IntlProvider>,
+    );
+
+    expect(screen.getByText('Contact us')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it('opens the Translations editor in a new tab, deep-linked to the field key', () => {
