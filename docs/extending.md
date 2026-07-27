@@ -117,6 +117,8 @@ Declare each editable field as a slot instead of a hard-coded `<FormattedMessage
 
 Each renders exactly as before on the public site (config value = i18n *default*, a translation for the scoped key wins, empty renders nothing) and becomes an in-place field when a `SectionEditContext` is present. Wrap optional fields in `useSlotVisible()` so an empty field still renders (as a ghost placeholder) while editing — otherwise there'd be nothing to click.
 
+Inside the admin **Pages preview** these text/markdown slots always show the **original config value untranslated**, whether or not their section is the selected (editable) one — a `SectionPreviewContext` makes them bypass `FormattedMessage`. The admin is editing the source config, so the `/manage` language switcher must not re-translate the previewed content; and since the manage area never loads the site's content translations, going through `FormattedMessage` there would only fall back to the same value while flooding the console with `MISSING_TRANSLATION`. New text/markdown slots get this for free by rendering through `EditableText` / `EditableMarkdown`.
+
 ```typescript
 import React from 'react';
 import { Container, Box, Typography } from '@mui/material';
@@ -276,6 +278,19 @@ The config values you just added *are* the default-language text (`config.site.d
   "page.home.new-section.content.images.0.alt": "Image 1"
 }
 ```
+
+---
+
+## Adding a Feature Page to the Menu
+
+Feature pages are public pages shipped by optional features (as opposed to config-driven pages) — `team` is the first; contact, gallery, events… follow the same path. They own a fixed route, are gated by a runtime feature flag, and can be linked from the navigation via the **Menu** tab. To add one:
+
+1. **Declare the id and its reserved route** — `libs/interfaces/src/menu.interface.ts`: add the id to `FeaturePagesEnum` (which feeds `FeaturePageIdSchema`) and its route to `FEATURE_PAGE_ROUTES`. The route (and everything nested under it) immediately becomes reserved: config pages can no longer claim it.
+2. **Add the feature flag** — `apps/functions/src/handlers/FeaturesModule.ts` (new `FEATURE_<X>` env var, reported by `GET /api/features`) and the `FeatureFlags` interface in `apps/web/src/services/featuresService.ts` (+ `ALL_DISABLED` in `hooks/useFeatureFlags.ts`). Document the variable in `.env.example`.
+3. **Register the page in the web registry** — `apps/web/src/router/publicMenu.ts`: add a `FEATURE_PAGE_REGISTRY` entry `{ route, pageName, defaultLabel, flag }`. The nav label i18n key is `` `${pageName}.menuTitle` `` — add it to `apps/web/src/features/i18n/i18n.json` (all languages).
+4. **Register the routes** — add the feature's `<Route>` elements in `apps/web/src/router/AppRouter.tsx` **before** the `*` catch-all. Register them unconditionally and let the page component gate itself on the flag (render `NotFoundPage` when off) — conditional registration flashes a 404 while flags load.
+
+Nothing else is needed for the menu: `reconcileMenu` appends the new feature's entry (hidden) to stored menus once the flag is on, the Menu tab shows it with a *Feature* badge (greyed while the flag is off, without losing its position), and `resolveMenuItems` renders it in the public nav when visible and enabled.
 
 ---
 

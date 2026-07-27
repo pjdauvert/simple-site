@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -22,7 +21,6 @@ import {
   FileDownloadOutlined as DownloadIcon,
   FileUploadOutlined as UploadIcon,
   Save as SaveIcon,
-  SwapVert as ReorderIcon,
   TuneOutlined as SettingsIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -34,25 +32,28 @@ import {
   type ThemeConfig,
   SiteConfigSchema,
   isHomePage,
+  reconcileMenu,
 } from '@simple-site/interfaces';
 import { loadDraftConfig, saveDraftConfig } from '../../../services/configVersionService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { ScopedAppTheme } from '../../../features/theme/ScopedAppTheme';
 import { PageSelector } from './PageSelector';
 import { ThemeSelector } from './ThemeSelector';
-import { ReorderPagesDialog } from './ReorderPagesDialog';
 import { SectionPreview } from './SectionPreview';
+import { Loader } from '../../Loader';
 import { PageSettingsDialog } from './PageSettingsDialog';
 import { createPage, createSection, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
 
 /**
  * Pages tab of /manage/site: a full page & section editor. Reads the working
- * draft (`GET /api/config/draft`); a left-aligned page picker + reorder control
- * sit alongside import/export/save, the preview fills the width, and page settings
- * / the section editor live in a foldable right drawer. Saves the whole draft
- * (`POST /api/config`) — re-fetching first so concurrent edits to `site`/`themes`
- * are preserved. Changes go live only when published from the Config Versions panel.
+ * draft (`GET /api/config/draft`); a left-aligned page picker sits alongside
+ * import/export/save, the preview fills the width, and page settings / the
+ * section editor live in a foldable right drawer. Navigation ordering/visibility
+ * lives on the Menu tab. Saves the whole draft (`POST /api/config`) — re-fetching
+ * first so concurrent edits to `site`/`themes` are preserved, and reconciling the
+ * draft's menu with the new pages set. Changes go live only when published from
+ * the Config Versions panel.
  */
 export const PagesEditor: React.FC = () => {
   const intl = useIntl();
@@ -68,7 +69,6 @@ export const PagesEditor: React.FC = () => {
   const [selectedPage, setSelectedPage] = useState(0);
   const [selectedSection, setSelectedSection] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [reorderOpen, setReorderOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -127,17 +127,6 @@ export const PagesEditor: React.FC = () => {
     setSelectedPage((prev) => Math.max(0, prev >= index ? prev - 1 : prev));
     setSelectedSection(null);
     setSettingsOpen(false);
-  };
-
-  // Reorder keeps the same page selected by tracking its object reference.
-  const movePage = (from: number, to: number) => {
-    setPages((prev) => {
-      const selectedRef = prev[selectedPage];
-      const next = moveItem(prev, from, to);
-      const newIndex = next.indexOf(selectedRef);
-      if (newIndex >= 0) setSelectedPage(newIndex);
-      return next;
-    });
   };
 
   const selectPage = (index: number) => {
@@ -231,7 +220,10 @@ export const PagesEditor: React.FC = () => {
     try {
       // Re-fetch so a concurrent edit to site/themes on the draft isn't clobbered.
       const current = await loadDraftConfig();
-      const parsed = SiteConfigSchema.safeParse({ ...current, pages: normalized });
+      // Keep the draft's menu consistent with the new pages set (deleted/renamed
+      // pages are pruned, new ones appended); feature entries are left untouched.
+      const menu = current.menu ? reconcileMenu(current.menu, normalized, []) : undefined;
+      const parsed = SiteConfigSchema.safeParse({ ...current, pages: normalized, menu });
       if (!parsed.success) {
         notify.error(intl.formatMessage({ id: 'page.manage.pages.error.invalid' }));
         return;
@@ -246,7 +238,7 @@ export const PagesEditor: React.FC = () => {
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -279,13 +271,6 @@ export const PagesEditor: React.FC = () => {
         {themes.length >= 2 && (
           <ThemeSelector themes={themes} selected={selectedThemeName} onSelect={setSelectedThemeName} />
         )}
-        <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.reorder' })}>
-          <span>
-            <IconButton onClick={() => setReorderOpen(true)} disabled={pages.length < 2} aria-label={intl.formatMessage({ id: 'page.manage.pages.reorder' })}>
-              <ReorderIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
         <Tooltip title={intl.formatMessage({ id: 'page.manage.pages.settings.title' })}>
           <span>
             <IconButton
@@ -307,7 +292,7 @@ export const PagesEditor: React.FC = () => {
           <FormattedMessage id="page.manage.pages.export" />
         </Button>
         <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={submitting}>
-          {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.pages.save" />}
+          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.pages.save" />}
         </Button>
       </Stack>
 
@@ -358,8 +343,6 @@ export const PagesEditor: React.FC = () => {
           onClose={() => setSettingsOpen(false)}
         />
       )}
-
-      <ReorderPagesDialog open={reorderOpen} pages={pages} onClose={() => setReorderOpen(false)} onMove={movePage} />
 
       <Dialog open={deletePageIndex !== null} onClose={() => setDeletePageIndex(null)} maxWidth="xs" fullWidth>
         <DialogTitle><FormattedMessage id="page.manage.pages.confirmDelete.title" /></DialogTitle>

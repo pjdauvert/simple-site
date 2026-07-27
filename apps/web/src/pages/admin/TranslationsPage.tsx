@@ -5,7 +5,6 @@ import {
   Button,
   Checkbox,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -36,6 +35,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import type { I18n, I18nDictionary, Locale } from '@simple-site/interfaces';
 import { I18nSchema, collectI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
 import { loadDraftConfig } from '../../services/configVersionService';
+import { Loader } from '../../components/Loader';
 import {
   deleteLanguage,
   importTranslations,
@@ -283,7 +283,7 @@ export const TranslationsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
   if (loadError) {
     return <Box sx={{ p: { xs: 2, sm: 4 } }}><Alert severity="error">{loadError}</Alert></Box>;
@@ -444,7 +444,7 @@ export const TranslationsPage: React.FC = () => {
 
           <Box sx={{ mt: 3 }}>
             <Button variant="contained" onClick={handleSave} disabled={submitting || !dirty}>
-              {submitting ? <CircularProgress size={20} color="inherit" /> : (
+              {submitting ? <Loader variant="triskelion" size={20} /> : (
                 <FormattedMessage id="page.manage.translations.save" values={{ language: languageLabel(language) }} />
               )}
             </Button>

@@ -224,6 +224,54 @@ describe('ConfigModule', () => {
     expect(store.set).not.toHaveBeenCalled();
   });
 
+  it('PUT /api/config/menu writes the DRAFT menu and leaves pages/themes/site untouched', async () => {
+    const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
+    const { data } = makeStore({ config });
+    const menu = { entries: [
+      { type: 'feature', feature: 'team', visible: false },
+      { type: 'page', pageName: 'page.home', visible: true },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.message).toMatch(/updated/i);
+
+    const draft = JSON.parse(data.get('config:draft')!);
+    expect(draft.menu).toEqual(menu);
+    expect(draft.pages).toEqual(config.pages);
+    expect(draft.themes).toEqual(config.themes);
+    expect(JSON.parse(data.get('config')!).menu).toBeUndefined(); // published untouched
+  });
+
+  it('PUT /api/config/menu rejects an entry referencing an unknown page', async () => {
+    const { data } = makeStore();
+    const menu = { entries: [{ type: 'page', pageName: 'page.ghost', visible: true }] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/menu rejects duplicate entries', async () => {
+    const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
+    const { data } = makeStore({ config });
+    const menu = { entries: [
+      { type: 'page', pageName: 'page.home', visible: true },
+      { type: 'page', pageName: 'page.home', visible: false },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(500);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('POST /api/config rejects a page using a feature-reserved route', async () => {
+    const { data } = makeStore();
+    const config = { ...storedConfig, pages: [{ menuTitle: 'Team', pageName: 'page.team', route: '/team', sections: [] }] };
+    const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
   it('POST /api/config/publish promotes the draft and archives the previous published config', async () => {
     const { data } = makeStore({ config: storedConfig, 'config:draft': withSiteName('Draft Name') });
     const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));

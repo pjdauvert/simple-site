@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { IntlProvider as ReactIntlProvider } from 'react-intl';
+import type { IntlConfig } from 'react-intl';
 import { IntlContext } from './IntlContext';
 import type { IntlContextValue } from './IntlContext';
 import { BASE_LOCALE, I18nSchema } from '@simple-site/interfaces';
@@ -25,6 +26,19 @@ const getLocalizedStaticMessages = (locale: Locale): I18nDictionary => staticBun
 // language starts with every config key present-but-empty, to be filled in.
 const withoutEmpty = (dict: I18nDictionary): I18nDictionary =>
   Object.fromEntries(Object.entries(dict).filter(([, value]) => value !== ''));
+
+// react-intl reports every formatting problem through `onError`, whose default
+// handler is `console.error`. A missing (or empty) translation is an *intended*
+// state here — any key a language hasn't translated falls back to its
+// defaultMessage, the config original (see IntlProvider docs below) — so letting
+// it log floods the console with one error per untranslated slot on every
+// partially-translated locale. Swallow MISSING_TRANSLATION and surface the rest.
+// (Genuinely-missing keys are still caught at build time by `i18nKeys.test.ts` and
+// flagged in the Translations editor.)
+const onIntlError: NonNullable<IntlConfig['onError']> = (err) => {
+  if (String(err.code) === 'MISSING_TRANSLATION') return;
+  console.error(err);
+};
 
 const primarySubtag = (locale: Locale): string => locale.split('-')[0];
 
@@ -116,7 +130,7 @@ export const IntlProvider: React.FC<IntlProviderProps> = ({
 
   return (
     <IntlContext.Provider value={contextValue}>
-      <ReactIntlProvider locale={locale} messages={messages} defaultLocale={defaultLocale}>
+      <ReactIntlProvider locale={locale} messages={messages} defaultLocale={defaultLocale} onError={onIntlError}>
         { children }
       </ReactIntlProvider>
     </IntlContext.Provider>

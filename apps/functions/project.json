@@ -8,7 +8,7 @@
       "outputs": ["{workspaceRoot}/dist/apps/functions"],
       "dependsOn": ["^build"],
       "options": {
-        "command": "tsc -p apps/functions/tsconfig.build.json"
+        "command": "rm -rf dist/apps/functions && tsc -p apps/functions/tsconfig.build.json"
       }
     },
     "typecheck": {

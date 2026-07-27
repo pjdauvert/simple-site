@@ -1,6 +1,5 @@
 import {
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -8,6 +7,7 @@ import {
   TextField,
 } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { Loader } from '../Loader';
 
 interface RenameDialogProps {
   open: boolean;
@@ -53,7 +53,7 @@ export const RenameDialog: React.FC<RenameDialogProps> = ({
           <FormattedMessage id="page.media.cancel" />
         </Button>
         <Button onClick={onConfirm} variant="contained" disabled={loading || value.trim().length === 0}>
-          {loading ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.media.rename" />}
+          {loading ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.media.rename" />}
         </Button>
       </DialogActions>
     </Dialog>

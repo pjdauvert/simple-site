@@ -1,6 +1,5 @@
 import {
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -8,6 +7,7 @@ import {
   DialogTitle,
 } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
+import { Loader } from '../Loader';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -59,7 +59,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           <FormattedMessage id="page.media.cancel" />
         </Button>
         <Button onClick={onConfirm} color="error" variant="contained" disabled={loading}>
-          {loading ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.media.confirm" />}
+          {loading ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.media.confirm" />}
         </Button>
       </DialogActions>
     </Dialog>

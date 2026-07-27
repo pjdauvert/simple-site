@@ -10,6 +10,7 @@ import {
     ConfigImportRequestSchema,
     ConfigRenameRequestSchema,
     MAX_CONFIG_VERSIONS,
+    MenuConfigSchema,
     type SiteConfig,
     SiteConfigSchema,
     SiteThemeConfigSchema,
@@ -259,6 +260,16 @@ export class ConfigModule extends BaseHandler {
         return this.createSuccessResponse({ message: 'Themes updated successfully' });
     };
 
+    /** PUT /api/config/menu — replace the `menu` of the DRAFT. */
+    private updateMenu = async (store: Store, body: string, path: string): Promise<Response> => {
+        const menu = MenuConfigSchema.parse(JSON.parse(body));
+        const current = await this.readDraft(store, path);
+        // Full re-parse validates menu integrity (no duplicates, no unknown page refs).
+        const merged = SiteConfigSchema.parse({ ...current, menu });
+        await this.writeDraft(store, merged);
+        return this.createSuccessResponse({ message: 'Menu updated successfully' });
+    };
+
     /** POST /api/config — replace the whole DRAFT (never writes live). */
     private setDraft = async (store: Store, body: string): Promise<Response> => {
         const config = SiteConfigSchema.parse(JSON.parse(body));
@@ -434,6 +445,10 @@ export class ConfigModule extends BaseHandler {
             if (method === 'PUT' && pathname === '/api/config/themes') {
                 this.requireJson(request, path);
                 return await this.updateThemes(store, await request.text(), path);
+            }
+            if (method === 'PUT' && pathname === '/api/config/menu') {
+                this.requireJson(request, path);
+                return await this.updateMenu(store, await request.text(), path);
             }
             if (method === 'POST' && pathname === '/api/config/publish') {
                 return await this.publishDraft(store, path);

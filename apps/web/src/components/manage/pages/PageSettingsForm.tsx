@@ -15,6 +15,7 @@ interface PageSettingsFormProps {
 const ROUTE_ERROR: Record<NonNullable<PageFieldErrors['route']>, string> = {
   empty: 'page.manage.pages.error.routeEmpty',
   duplicate: 'page.manage.pages.error.routeDuplicate',
+  reserved: 'page.manage.pages.error.routeReserved',
 };
 const PAGENAME_ERROR: Record<NonNullable<PageFieldErrors['pageName']>, string> = {
   empty: 'page.manage.pages.error.pageNameEmpty',

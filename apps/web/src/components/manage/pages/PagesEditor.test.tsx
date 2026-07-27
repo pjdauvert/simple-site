@@ -182,7 +182,7 @@ describe('PagesEditor', () => {
     expect(screen.queryByRole('button', { name: /preview theme/i })).not.toBeInTheDocument();
   });
 
-  it('reorders pages from the reorder dialog', async () => {
+  it('no longer offers page reordering — the Menu tab owns nav order', async () => {
     vi.mocked(loadDraftConfig).mockResolvedValue(
       configWith([
         { menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] },
@@ -190,20 +190,53 @@ describe('PagesEditor', () => {
       ]),
     );
     renderEditor();
-    fireEvent.click(await screen.findByRole('button', { name: /reorder pages/i }));
+    await screen.findByRole('button', { name: /^save$/i });
+    expect(screen.queryByRole('button', { name: /reorder/i })).not.toBeInTheDocument();
+  });
 
-    // Move the second page (About) up above Home.
-    const upButtons = await screen.findAllByRole('button', { name: /move up/i });
-    fireEvent.click(upButtons[1]);
-    fireEvent.click(screen.getByRole('button', { name: /done/i }));
+  it('rejects a feature-reserved route and blocks save', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: /add page/i }));
+    const route = await screen.findByLabelText(/route/i);
+    fireEvent.change(route, { target: { value: '/team' } });
+    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
-    // Wait for the dialog to finish closing before the toolbar is queryable again.
-    const saveBtn = await screen.findByRole('button', { name: /^save$/i });
-    await act(async () => {
-      fireEvent.click(saveBtn);
-    });
+    const save = await screen.findByRole('button', { name: /^save$/i });
+    await act(async () => { fireEvent.click(save); });
+    expect(saveDraftConfig).not.toHaveBeenCalled();
+
+    // Reopening the page settings shows the reserved-route error on the field.
+    fireEvent.click(screen.getByRole('button', { name: /^page settings$/i }));
+    expect(
+      await screen.findByText('This route is reserved for a feature page.'),
+    ).toBeInTheDocument();
+  });
+
+  it('reconciles the draft menu with the pages on save (prunes stale, appends missing, keeps features)', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue({
+      ...configWith([
+        { menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] },
+        { menuTitle: 'About', pageName: 'page.about', route: '/about', sections: [] },
+      ]),
+      menu: {
+        entries: [
+          { type: 'feature', feature: 'team', visible: false },
+          { type: 'page', pageName: 'page.gone', visible: true },
+          { type: 'page', pageName: 'page.home', visible: true },
+        ],
+      },
+    } as SiteConfig);
+    renderEditor();
+
+    const save = await screen.findByRole('button', { name: /^save$/i });
+    await act(async () => { fireEvent.click(save); });
+
     await waitFor(() => expect(saveDraftConfig).toHaveBeenCalled());
     const saved = vi.mocked(saveDraftConfig).mock.calls[0][0] as SiteConfig;
-    expect(saved.pages.map((p) => p.route)).toEqual(['/about', '/home']);
+    expect(saved.menu?.entries).toEqual([
+      { type: 'feature', feature: 'team', visible: false },
+      { type: 'page', pageName: 'page.home', visible: true },
+      { type: 'page', pageName: 'page.about', visible: true },
+    ]);
   });
 });

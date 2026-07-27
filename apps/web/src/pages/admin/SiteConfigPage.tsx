@@ -2,11 +2,11 @@ import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 
-const TABS = ['general', 'themes', 'pages'] as const;
+const TABS = ['general', 'themes', 'pages', 'menu'] as const;
 type TabKey = (typeof TABS)[number];
 
 /**
- * Site-configuration shell: a tab bar (General / Themes / Pages) over an <Outlet/>.
+ * Site-configuration shell: a tab bar (General / Themes / Pages / Menu) over an <Outlet/>.
  * Each tab is a URL sub-route (`/manage/site/<tab>`) so tabs are deep-linkable and
  * survive a reload. The active tab is derived from the current path.
  */
@@ -37,6 +37,12 @@ export const SiteConfigPage: React.FC = () => {
           component={RouterLink}
           to="pages"
           label={<FormattedMessage id="page.manage.site.tab.pages" />}
+        />
+        <Tab
+          value="menu"
+          component={RouterLink}
+          to="menu"
+          label={<FormattedMessage id="page.manage.site.tab.menu" />}
         />
       </Tabs>
       <Outlet />

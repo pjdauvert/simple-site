@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { sectionContentKey } from '@simple-site/interfaces';
-import { useSectionEdit } from './sectionEdit';
+import { useSectionEdit, useInSectionPreview } from './sectionEdit';
 import { inlineFieldStyles } from './inlineField';
 import { InlineTranslateButton } from './InlineControls';
 
@@ -48,6 +48,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   autoWidth,
 }) => {
   const edit = useSectionEdit();
+  const inPreview = useInSectionPreview();
   const intl = useIntl();
   const ref = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
@@ -62,6 +63,8 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   if (!edit) {
     if (!value) return null;
+    // Admin preview (unselected section): show the original config value, untranslated.
+    if (inPreview) return <>{value}</>;
     return <FormattedMessage id={sectionContentKey(sectionName, path)} defaultMessage={value} />;
   }
 

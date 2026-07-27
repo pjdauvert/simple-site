@@ -25,13 +25,14 @@ Configuration is versioned with a **draft → publish** model — admins edit a 
     "defaultLanguage": "BCP-47 locale code (optional, defaults to 'en')"
   },
   "themes": [ /* one or more ThemeConfig objects — see Themes below */ ],
-  "pages":  [ /* one or more PageConfiguration objects — see Pages below */ ]
+  "pages":  [ /* one or more PageConfiguration objects — see Pages below */ ],
+  "menu":   { /* optional MenuConfig — see Menu below */ }
 }
 ```
 
 `defaultLanguage` is the site's **default language** — the language the config's own text (section content, menu titles) is written in. It is validated as an Intl-resolvable BCP-47 code (`en`, `fr-CA`, `zh-Hant`, …) and Zod-defaults to `en`, so legacy configs without the field keep working unchanged. It is meant to be **set once at setup** (in the seed / imported config): there is deliberately no in-app control to change it, since flipping it would re-interpret every config text as a different language. See [Translations](#translations) below for how it interacts with the translations blob.
 
-The `site` section is editable from the **General** tab of the `/manage/site` configuration page, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled (`defaultLanguage` is not exposed in the form — it is carried through saves unchanged). The `themes` array is editable from the **Themes** tab there (add / edit / delete), which saves via `PUT /api/config/themes`. `pages` are edited from the **Pages** tab — a page & section editor (add/remove/reorder pages and sections, edit one section at a time with a live preview, import/export pages as JSON) — which saves the whole draft via `POST /api/config`.
+The `site` section is editable from the **General** tab of the `/manage/site` configuration page, which saves via `PUT /api/config/site` (see [api.md](./api.md)); `logoUrl` / `faviconUrl` can be picked from the Media library when that feature is enabled (`defaultLanguage` is not exposed in the form — it is carried through saves unchanged). The `themes` array is editable from the **Themes** tab there (add / edit / delete), which saves via `PUT /api/config/themes`. `pages` are edited from the **Pages** tab — a page & section editor (add/remove/reorder pages and sections, edit one section at a time with a live preview, import/export pages as JSON) — which saves the whole draft via `POST /api/config`. Navigation ordering and visibility live on the **Menu** tab, which saves via `PUT /api/config/menu`.
 
 ### Themes
 
@@ -75,7 +76,29 @@ Each page object:
 - `pageName` is used as the prefix for all i18n keys on that page (e.g. `page.home.hero.content.title`).
 - `route` must be unique. Routes are registered automatically — no router changes needed.
 - Both `route` and `pageName` must be **unique across all pages**. This is enforced by `SiteConfigSchema` itself, so it holds both in the admin **Pages** editor (form validation) and at the API — `POST /api/config` rejects a config with duplicates.
+- Routes may not use a **feature-reserved route** (`/team`, or anything nested under one — see `FEATURE_PAGE_ROUTES` in `libs/interfaces/src/menu.interface.ts`). Feature pages own those URLs; the Pages editor and the API both reject them.
 - The home page (`route: "/home"`) is reserved: the Pages editor won't let you delete it or change its `route` / `pageName`.
+
+### Menu
+
+The optional `menu` decouples the public navigation from the raw pages list. It is an **ordered list of entries referencing their target** — config pages by `pageName`, feature pages by id — so a page rename can never leave a stale copy of its title or route in the menu:
+
+```json
+{
+  "entries": [
+    { "type": "page", "pageName": "page.home", "visible": true },
+    { "type": "feature", "feature": "team", "visible": false }
+  ]
+}
+```
+
+- **Order** = navigation order. **`visible: false`** keeps the target reachable at its URL while hiding it from the nav.
+- **Feature entries** point at pages shipped by optional features (`team` today; contact, gallery, events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering.
+- **No `menu`** (older configs) → the nav derives from the pages array order, exactly as before the Menu tab existed.
+- **Integrity** is enforced by `SiteConfigSchema`: no duplicate entries and no references to unknown pages can be stored.
+- **Reconciliation** — the shared `reconcileMenu` helper keeps the menu in sync with the pages set: entries of deleted pages are pruned, new pages are appended (visible), and newly-enabled features are appended (hidden) until an admin opts them in. The Menu tab applies it on load; the Pages editor applies it on save. Note that renaming a `pageName` counts as delete + re-add, so that entry returns to the end of the menu with default visibility.
+
+The **Menu** tab of `/manage/site` edits this: reorder with the up/down controls, toggle visibility per entry, then save (`PUT /api/config/menu` — writes the draft; publish to go live).
 
 ### Sections
 

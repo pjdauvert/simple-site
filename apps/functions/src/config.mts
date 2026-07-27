@@ -8,6 +8,8 @@ export const config: Config = {
   path: [
     '/api/config',
     '/api/config/site',
+    '/api/config/themes',
+    '/api/config/menu',
     '/api/config/draft',
     '/api/config/publish',
     '/api/config/import',

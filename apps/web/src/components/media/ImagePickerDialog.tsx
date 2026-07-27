@@ -4,7 +4,6 @@ import {
   Button,
   ButtonBase,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -16,6 +15,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import type { MediaFile, MediaFolder } from '@simple-site/interfaces';
 import { listMedia } from '../../services/mediaService';
+import { Loader } from '../Loader';
 import { useNotifications } from '../../hooks/useNotifications';
 import { MediaBreadcrumbs } from './MediaBreadcrumbs';
 
@@ -83,7 +83,7 @@ export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onCl
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress />
+            <Loader variant="triskelion" size={48} />
           </Box>
         ) : (
           <Box>

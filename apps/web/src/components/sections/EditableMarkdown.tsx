@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
 import { sectionContentKey } from '@simple-site/interfaces';
-import { useSectionEdit } from './sectionEdit';
+import { useSectionEdit, useInSectionPreview } from './sectionEdit';
 import { InlineTranslateButton } from './InlineControls';
 
 // The rich-text surface is admin-only and pulls in Lexical, so it is loaded lazily
@@ -31,10 +31,13 @@ interface EditableMarkdownProps {
  */
 export const EditableMarkdown: React.FC<EditableMarkdownProps> = ({ sectionName, path, value }) => {
   const edit = useSectionEdit();
+  const inPreview = useInSectionPreview();
   const [focused, setFocused] = useState(false);
 
   if (!edit) {
     if (!value) return null;
+    // Admin preview (unselected section): show the original config value, untranslated.
+    if (inPreview) return <ReactMarkdown>{value}</ReactMarkdown>;
     return (
       <FormattedMessage id={sectionContentKey(sectionName, path)} defaultMessage={value}>
         {(msg) => <ReactMarkdown>{String(msg)}</ReactMarkdown>}

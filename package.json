@@ -15,7 +15,8 @@
     "test": "nx run-many -t test --projects=web,functions",
     "test:ui": "nx run web:test-ui",
     "preview": "nx run-many -t build --projects=web,functions && netlify dev",
-    "clear:blobs": "rm -rf apps/functions/.netlify/blobs-serve .netlify/blobs-serve"
+    "clear:blobs": "rm -rf apps/functions/.netlify/blobs-serve .netlify/blobs-serve",
+    "clear:functions": "rm -rf apps/functions/.netlify/functions-serve apps/functions/.netlify/functions-internal apps/functions/.netlify/v1 .netlify/functions-serve .netlify/functions-internal .netlify/v1"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
