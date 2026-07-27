@@ -87,19 +87,20 @@ The optional `menu` decouples the public navigation from the raw pages list. It 
 ```json
 {
   "entries": [
-    { "type": "page", "pageName": "page.home", "visible": true },
-    { "type": "feature", "feature": "team", "visible": false }
+    { "type": "page", "pageName": "page.home", "visible": true, "menuTitle": "Welcome" },
+    { "type": "feature", "feature": "team", "visible": false, "menuTitle": "Our team" }
   ]
 }
 ```
 
 - **Order** = navigation order. **`visible: false`** keeps the target reachable at its URL while hiding it from the nav.
+- **`menuTitle`** (optional) renames the entry in the nav: for a page entry it overrides the page's own title (absent → the page's `menuTitle`); for a feature entry it is the label itself (absent → the feature's default, e.g. "Team"). Rename inline from the Menu tab; an emptied field reverts to the fallback. Like every config label it is a translation **default** — per-language values are managed on the **Translations** page under the `${pageName|feature}.menuTitle` key (menu labels are part of `collectI18nEntries`, so they appear there automatically).
 - **Feature entries** point at pages shipped by optional features (`team` today; contact, gallery, events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering.
 - **No `menu`** (older configs) → the nav derives from the pages array order, exactly as before the Menu tab existed.
 - **Integrity** is enforced by `SiteConfigSchema`: no duplicate entries and no references to unknown pages can be stored.
 - **Reconciliation** — the shared `reconcileMenu` helper keeps the menu in sync with the pages set: entries of deleted pages are pruned, new pages are appended (visible), and newly-enabled features are appended (hidden) until an admin opts them in. The Menu tab applies it on load; the Pages editor applies it on save. Note that renaming a `pageName` counts as delete + re-add, so that entry returns to the end of the menu with default visibility.
 
-The **Menu** tab of `/manage/site` edits this: reorder with the up/down controls, toggle visibility per entry, then save (`PUT /api/config/menu` — writes the draft; publish to go live).
+The **Menu** tab of `/manage/site` edits this: reorder with the up/down controls, rename with the pencil control, toggle visibility per entry, then save (`PUT /api/config/menu` — writes the draft; publish to go live).
 
 ### Sections
 

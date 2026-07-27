@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { MenuEntry } from '@simple-site/interfaces';
-import { entryRows } from './menuDraft';
+import { entryRows, normalizedMenuTitle } from './menuDraft';
 
 const pages = [
   { pageName: 'page.home', route: '/home', menuTitle: 'Home' },
@@ -14,11 +14,22 @@ describe('entryRows', () => {
       {
         entry: entries[0],
         label: 'About',
+        baseLabel: 'About',
         route: '/about',
         kind: 'page',
         available: true,
       },
     ]);
+  });
+
+  it('prefers a custom label and keeps the fallback as baseLabel', () => {
+    const pageEntry: MenuEntry = { type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' };
+    const featureEntry: MenuEntry = { type: 'feature', feature: 'team', visible: true, menuTitle: 'Notre équipe' };
+    const [pageRow, featureRow] = entryRows([pageEntry, featureEntry], pages, { media: false, team: true });
+    expect(pageRow.label).toBe('Who we are');
+    expect(pageRow.baseLabel).toBe('About');
+    expect(featureRow.label).toBe('Notre équipe');
+    expect(featureRow.baseLabel).toBe('Team');
   });
 
   it('marks feature rows unavailable while their flag is off', () => {
@@ -41,5 +52,13 @@ describe('entryRows', () => {
     const [row] = entryRows(entries, pages, { media: false, team: false });
     expect(row.label).toBe('page.gone');
     expect(row.available).toBe(false);
+  });
+});
+
+describe('normalizedMenuTitle', () => {
+  it('trims the value and clears it when empty or equal to the fallback', () => {
+    expect(normalizedMenuTitle('  Who we are ', 'About')).toBe('Who we are');
+    expect(normalizedMenuTitle('   ', 'About')).toBeUndefined();
+    expect(normalizedMenuTitle('About', 'About')).toBeUndefined();
   });
 });

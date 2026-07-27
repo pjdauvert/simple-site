@@ -60,6 +60,50 @@ describe('MenuEditor', () => {
     });
   });
 
+  it('renames an entry inline and saves the custom label', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith([page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')]),
+    );
+    renderEditor();
+    await screen.findByText('About');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^rename$/i })[1]);
+    const field = screen.getByRole('textbox', { name: /^rename$/i });
+    expect(field).toHaveAttribute('placeholder', 'About'); // fallback = the page's own title
+    fireEvent.change(field, { target: { value: 'Who we are' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(await screen.findByText('Who we are')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries[1]).toEqual({ type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' });
+  });
+
+  it('clears a custom label when the rename field is emptied', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [{ type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' }] },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('Welcome');
+
+    fireEvent.click(screen.getByRole('button', { name: /^rename$/i }));
+    const field = screen.getByRole('textbox', { name: /^rename$/i });
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(await screen.findByText('Home')).toBeInTheDocument(); // reverted to the page title
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries[0]).toEqual({ type: 'page', pageName: 'page.home', visible: true });
+  });
+
   it('moves an entry up and saves the new order', async () => {
     vi.mocked(loadDraftConfig).mockResolvedValue(
       configWith([page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')]),

@@ -34,6 +34,15 @@ export const FEATURE_PAGE_ROUTES: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: '/team',
 };
 
+/**
+ * Default nav label per feature page — used when a menu entry has no custom
+ * `menuTitle` yet, and as the default value of the `${feature}.menuTitle`
+ * translation key (see `collectI18nEntries`).
+ */
+export const FEATURE_PAGE_DEFAULT_LABELS: Record<FeaturePageId, string> = {
+  [FeaturePagesEnum.TEAM]: 'Team',
+};
+
 /** True when `route` is a feature-owned route or nests under one (e.g. `/team/member/x`). */
 export const isReservedRoute = (route: string): boolean =>
   Object.values(FEATURE_PAGE_ROUTES).some((reserved) => route === reserved || route.startsWith(`${reserved}/`));
@@ -46,14 +55,24 @@ export const isReservedRoute = (route: string): boolean =>
 // renames can never leave a stale copy behind. `visible: false` keeps a page
 // reachable at its URL while hiding it from the navigation. When `menu` is absent
 // from the site config, the navigation falls back to the pages array order.
+//
+// `menuTitle` is the entry's editable nav label: for a page entry it is an
+// optional override of the page's own title (absent → the page's `menuTitle`);
+// for a feature entry it is the label itself (absent → the feature's default).
+// Like every config label it is a translation DEFAULT — per-language values are
+// managed on the Translations page under the `${pageName|feature}.menuTitle` key.
 // ---------------------------------------------------------------------------
 
 export const MenuEntrySchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("page"), pageName: z.string(), visible: z.boolean() }),
-  z.object({ type: z.literal("feature"), feature: FeaturePageIdSchema, visible: z.boolean() }),
+  z.object({ type: z.literal("page"), pageName: z.string(), visible: z.boolean(), menuTitle: z.string().optional() }),
+  z.object({ type: z.literal("feature"), feature: FeaturePageIdSchema, visible: z.boolean(), menuTitle: z.string().optional() }),
 ]);
 
 export type MenuEntry = z.infer<typeof MenuEntrySchema>;
+
+/** The nav label a feature entry renders: its custom title, else the feature default. */
+export const featureEntryLabel = (entry: Extract<MenuEntry, { type: "feature" }>): string =>
+  entry.menuTitle ?? FEATURE_PAGE_DEFAULT_LABELS[entry.feature];
 
 export const MenuConfigSchema = z.object({
   entries: z.array(MenuEntrySchema),

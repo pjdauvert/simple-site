@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reconcileMenu, type MenuConfig, type SiteConfig } from '@simple-site/interfaces';
+import { collectI18nEntries, reconcileMenu, type MenuConfig, type SiteConfig } from '@simple-site/interfaces';
 import { resolveMenuItems } from './publicMenu';
 import type { FeatureFlags } from '../services/featuresService';
 
@@ -53,6 +53,20 @@ describe('resolveMenuItems', () => {
     expect(resolveMenuItems(config, { media: false, team: true })).toEqual([
       { menuTitle: 'Team', pageName: 'team', route: '/team' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
+    ]);
+  });
+
+  it('renders custom entry labels — a page override and a renamed feature', () => {
+    const config = configWith(
+      [page('page.home', '/home', 'Home')],
+      { entries: [
+        { type: 'feature', feature: 'team', visible: true, menuTitle: 'Notre équipe' },
+        { type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' },
+      ] },
+    );
+    expect(resolveMenuItems(config, { media: false, team: true }).map((i) => i.menuTitle)).toEqual([
+      'Notre équipe',
+      'Welcome',
     ]);
   });
 
@@ -111,6 +125,33 @@ describe('reconcileMenu', () => {
     expect(reconcileMenu(menu, pages, []).entries).toEqual([
       { type: 'page', pageName: 'page.home', visible: false },
       { type: 'page', pageName: 'page.about', visible: true },
+    ]);
+  });
+});
+
+describe('collectI18nEntries (menu labels)', () => {
+  it('emits the feature label key with its custom or default title', () => {
+    const config = configWith(
+      [page('page.home', '/home', 'Home')],
+      { entries: [{ type: 'feature', feature: 'team', visible: true }] },
+    );
+    expect(collectI18nEntries(config)).toContainEqual({ key: 'team.menuTitle', defaultValue: 'Team' });
+
+    const renamed = configWith(
+      [page('page.home', '/home', 'Home')],
+      { entries: [{ type: 'feature', feature: 'team', visible: true, menuTitle: 'Notre équipe' }] },
+    );
+    expect(collectI18nEntries(renamed)).toContainEqual({ key: 'team.menuTitle', defaultValue: 'Notre équipe' });
+  });
+
+  it('lets a page entry override win the page.menuTitle key over the page title', () => {
+    const config = configWith(
+      [page('page.home', '/home', 'Home')],
+      { entries: [{ type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' }] },
+    );
+    const entries = collectI18nEntries(config);
+    expect(entries.filter((e) => e.key === 'page.home.menuTitle')).toEqual([
+      { key: 'page.home.menuTitle', defaultValue: 'Welcome' },
     ]);
   });
 });
