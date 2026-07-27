@@ -4,7 +4,6 @@ import {
   Avatar,
   Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -28,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { BASE_LOCALE, TeamConfigSchema, type Locale, type TeamMember } from '@simple-site/interfaces';
+import { Loader } from '../../Loader';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';
 import { useNotifications } from '../../../hooks/useNotifications';
@@ -123,7 +123,7 @@ export const TeamEditor: React.FC = () => {
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -228,7 +228,7 @@ export const TeamEditor: React.FC = () => {
 
       <Box sx={{ mt: 3 }}>
         <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.team.save" />}
+          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.team.save" />}
         </Button>
       </Box>
 
