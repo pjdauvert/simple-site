@@ -11,6 +11,38 @@ import { UrlOrPathSchema } from "./url.interface.js";
 /** URL-safe member identifier: lowercase kebab-case (e.g. `jane-doe`). */
 export const TEAM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/**
+ * Social networks a member profile can link to. Extending the set means adding
+ * it here, in `SocialLinksSchema`, and mapping its icon in the web app's
+ * `pages/team/socialIcons.tsx`.
+ */
+export const SocialNetworksEnum = {
+  LINKEDIN: "linkedin",
+  X: "x",
+  GITHUB: "github",
+  INSTAGRAM: "instagram",
+  FACEBOOK: "facebook",
+  YOUTUBE: "youtube",
+  WEBSITE: "website",
+} as const;
+
+export type SocialNetworkId = (typeof SocialNetworksEnum)[keyof typeof SocialNetworksEnum];
+
+/** Display order of the social icons row. */
+export const ALL_SOCIAL_NETWORKS: readonly SocialNetworkId[] = Object.values(SocialNetworksEnum);
+
+export const SocialLinksSchema = z.object({
+  linkedin: UrlOrPathSchema.optional(),
+  x: UrlOrPathSchema.optional(),
+  github: UrlOrPathSchema.optional(),
+  instagram: UrlOrPathSchema.optional(),
+  facebook: UrlOrPathSchema.optional(),
+  youtube: UrlOrPathSchema.optional(),
+  website: UrlOrPathSchema.optional(),
+});
+
+export type SocialLinks = z.infer<typeof SocialLinksSchema>;
+
 export const TeamMemberSchema = z.object({
   slug: z.string().regex(TEAM_SLUG_PATTERN),
   name: z.string().min(1),
@@ -22,9 +54,18 @@ export const TeamMemberSchema = z.object({
    * to the base locale, then to the first non-empty entry.
    */
   biography: z.record(I18nLocaleSchema, z.string()).default({}),
+  /** Optional social links; the profile renders an icon per non-empty entry. */
+  socialLinks: SocialLinksSchema.optional(),
 });
 
 export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+/** The member's non-empty social links, in display order. */
+export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId, string]> =>
+  ALL_SOCIAL_NETWORKS.flatMap((network) => {
+    const href = member.socialLinks?.[network]?.trim();
+    return href ? [[network, href] as [SocialNetworkId, string]] : [];
+  });
 
 // Array order = display order on the public team overview page.
 export const TeamConfigSchema = z

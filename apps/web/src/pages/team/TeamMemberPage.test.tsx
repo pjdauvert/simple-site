@@ -30,6 +30,7 @@ const jane: TeamMember = {
   jobTitle: 'Founder',
   photoUrl: '/img/jane.jpg',
   biography: { en: 'English bio', fr: 'Bio française' },
+  socialLinks: { linkedin: 'https://linkedin.com/in/jane', website: 'https://jane.example.com' },
 };
 
 function renderAt(path: string, locale: 'en' | 'fr' = 'en') {
@@ -60,10 +61,36 @@ describe('TeamMemberPage (public /team/member/:slug)', () => {
     expect(await screen.findByRole('heading', { name: 'Jane Doe' })).toBeInTheDocument();
     expect(screen.getByText('Founder')).toBeInTheDocument();
     expect(screen.getByText('English bio')).toBeInTheDocument();
+    // Square face-focused crop for the circular portrait.
     expect(screen.getByRole('img', { name: 'Jane Doe' })).toHaveAttribute(
       'src',
-      '/img/jane.jpg?tr=w-480,q-80,f-auto',
+      '/img/jane.jpg?tr=w-480,h-480,fo-face,q-80,f-auto',
     );
+  });
+
+  it('renders one social icon per provided link, in display order', async () => {
+    renderAt('/team/member/jane-doe');
+    await screen.findByRole('heading', { name: 'Jane Doe' });
+
+    const links = screen.getAllByRole('link');
+    expect(links.map((l) => l.getAttribute('aria-label'))).toEqual(['LinkedIn', 'Website']);
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute('href', 'https://linkedin.com/in/jane');
+    expect(screen.getByRole('link', { name: 'Website' })).toHaveAttribute('target', '_blank');
+  });
+
+  it('renders no social row when the member has no links', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [{ ...jane, socialLinks: undefined }] });
+    renderAt('/team/member/jane-doe');
+    await screen.findByRole('heading', { name: 'Jane Doe' });
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('renders an initial avatar instead of a photo when none is set', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [{ ...jane, photoUrl: undefined }] });
+    renderAt('/team/member/jane-doe');
+    await screen.findByRole('heading', { name: 'Jane Doe' });
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('J')).toBeInTheDocument();
   });
 
   it('sets the document title to the member and site names', async () => {

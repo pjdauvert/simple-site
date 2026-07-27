@@ -9,9 +9,18 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { BASE_LOCALE, slugify, type Locale, type TeamMember } from '@simple-site/interfaces';
+import {
+  ALL_SOCIAL_NETWORKS,
+  BASE_LOCALE,
+  UrlOrPathSchema,
+  slugify,
+  type Locale,
+  type SocialNetworkId,
+  type TeamMember,
+} from '@simple-site/interfaces';
 import { MediaUrlField } from '../../media';
 import type { MemberFieldErrors } from './teamDraft';
 
@@ -78,6 +87,12 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
 
   const nameError = showErrors && errors.name ? errors.name : undefined;
   const slugError = showErrors && errors.slug ? errors.slug : undefined;
+
+  const setSocialLink = (network: SocialNetworkId, value: string) =>
+    onChange({ ...member, socialLinks: { ...member.socialLinks, [network]: value } });
+  /** Live feedback only — the save-time schema parse is the backstop. */
+  const socialLinkInvalid = (value: string | undefined): boolean =>
+    Boolean(value?.trim()) && !UrlOrPathSchema.safeParse(value?.trim()).success;
   const localeLabel = (locale: Locale): string =>
     locale === BASE_LOCALE
       ? `${locale.toUpperCase()} · ${intl.formatMessage({ id: 'page.manage.team.field.biography.default' })}`
@@ -149,6 +164,30 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
             minRows={6}
             helperText={intl.formatMessage({ id: 'page.manage.team.field.biography.help' })}
           />
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              <FormattedMessage id="page.manage.team.field.socialLinks" />
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+              {ALL_SOCIAL_NETWORKS.map((network) => (
+                <TextField
+                  key={network}
+                  label={intl.formatMessage({ id: `page.team.social.${network}` })}
+                  value={member.socialLinks?.[network] ?? ''}
+                  onChange={(e) => setSocialLink(network, e.target.value)}
+                  size="small"
+                  fullWidth
+                  placeholder="https://…"
+                  error={socialLinkInvalid(member.socialLinks?.[network])}
+                  helperText={
+                    socialLinkInvalid(member.socialLinks?.[network])
+                      ? intl.formatMessage({ id: 'page.manage.team.error.socialUrl' })
+                      : undefined
+                  }
+                />
+              ))}
+            </Box>
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions>

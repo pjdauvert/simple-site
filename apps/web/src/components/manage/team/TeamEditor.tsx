@@ -33,7 +33,7 @@ import { loadLanguages } from '../../../services/initService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { moveItem } from '../pages/pagesDraft';
-import { createMember, membersAreValid, validateMembers } from './teamDraft';
+import { createMember, membersAreValid, normalizeSocialLinks, validateMembers } from './teamDraft';
 import { MemberFormDialog } from './MemberFormDialog';
 
 /**
@@ -104,6 +104,7 @@ export const TeamEditor: React.FC = () => {
       slug: m.slug.trim(),
       name: m.name.trim(),
       jobTitle: m.jobTitle.trim(),
+      socialLinks: normalizeSocialLinks(m.socialLinks),
     }));
     const parsed = TeamConfigSchema.safeParse({ members: normalized });
     if (!parsed.success) {

@@ -8,6 +8,10 @@
       "biography": {
         "en": "Jane founded the company in 2020 after a decade in product design.\n\nShe leads the team with a focus on **simple, accessible experiences** and spends her spare time restoring old synthesizers.",
         "fr": "Jane a fondé l'entreprise en 2020 après dix ans dans le design produit.\n\nElle dirige l'équipe avec une attention particulière aux **expériences simples et accessibles** et passe son temps libre à restaurer de vieux synthétiseurs."
+      },
+      "socialLinks": {
+        "linkedin": "https://www.linkedin.com/in/jane-doe",
+        "website": "https://janedoe.example.com"
       }
     },
     {

@@ -1,7 +1,23 @@
-import { TEAM_SLUG_PATTERN, type TeamMember } from '@simple-site/interfaces';
+import {
+  ALL_SOCIAL_NETWORKS,
+  TEAM_SLUG_PATTERN,
+  type SocialLinks,
+  type TeamMember,
+} from '@simple-site/interfaces';
 
 /** A blank member, opened straight in the edit dialog (slug derives from the name). */
 export const createMember = (): TeamMember => ({ slug: '', name: '', jobTitle: '', biography: {} });
+
+/** Trims every link and drops empty ones; returns undefined when nothing remains. */
+export const normalizeSocialLinks = (links: SocialLinks | undefined): SocialLinks | undefined => {
+  if (!links) return undefined;
+  const normalized: SocialLinks = {};
+  for (const network of ALL_SOCIAL_NETWORKS) {
+    const value = links[network]?.trim();
+    if (value) normalized[network] = value;
+  }
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+};
 
 /** Field-level problems on a single member, used to flag inputs after a failed save. */
 export interface MemberFieldErrors {

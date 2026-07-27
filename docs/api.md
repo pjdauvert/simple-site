@@ -287,7 +287,8 @@ Public — the site renders `/team` and `/team/member/<slug>` from it. Returns `
 { "ok": true, "data": { "members": [
   { "slug": "jane-doe", "name": "Jane Doe", "jobTitle": "Founder & CEO",
     "photoUrl": "/images/team/jane-doe.jpg",
-    "biography": { "en": "Jane founded…", "fr": "Jane a fondé…" } }
+    "biography": { "en": "Jane founded…", "fr": "Jane a fondé…" },
+    "socialLinks": { "linkedin": "https://www.linkedin.com/in/jane-doe" } }
 ] } }
 ```
 

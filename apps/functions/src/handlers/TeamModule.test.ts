@@ -78,6 +78,20 @@ describe('TeamModule', () => {
     expect(stored.members.map((m: { slug: string }) => m.slug)).toEqual(['jane-doe', 'john-smith']);
   });
 
+  it('PUT /api/team accepts social links and rejects invalid ones', async () => {
+    const { data } = makeStore();
+    const ok = await handle(jsonRequest('https://site.test/api/team', 'PUT', {
+      members: [member('jane-doe', { socialLinks: { linkedin: 'https://linkedin.com/in/jane' } })],
+    }));
+    expect(ok.status).toBe(200);
+    expect(JSON.parse(data.get('team')!).members[0].socialLinks.linkedin).toBe('https://linkedin.com/in/jane');
+
+    const bad = await handle(jsonRequest('https://site.test/api/team', 'PUT', {
+      members: [member('john-smith', { socialLinks: { website: 'not a url' } })],
+    }));
+    expect(bad.status).toBe(500);
+  });
+
   it('PUT /api/team rejects duplicate slugs', async () => {
     const { data } = makeStore();
     const res = await handle(jsonRequest('https://site.test/api/team', 'PUT', {

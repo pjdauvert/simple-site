@@ -66,6 +66,26 @@ describe('TeamEditor', () => {
     expect(saved.members[0]).toMatchObject({ slug: 'ela-dupont', name: 'Éla Dupont' });
   });
 
+  it('saves social links, dropping emptied ones', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [{ ...member('jane-doe', 'Jane'), socialLinks: { website: 'https://old.example.com' } }],
+    });
+    renderEditor();
+    await screen.findByText('Jane');
+
+    fireEvent.click(screen.getByRole('button', { name: /edit member/i }));
+    fireEvent.change(await screen.findByLabelText('LinkedIn'), { target: { value: 'https://linkedin.com/in/jane' } });
+    fireEvent.change(screen.getByLabelText(/website|site web/i), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
+
+    const save = await screen.findByRole('button', { name: /save team/i });
+    await act(async () => { fireEvent.click(save); });
+
+    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
+    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.members[0].socialLinks).toEqual({ linkedin: 'https://linkedin.com/in/jane' });
+  });
+
   it('keeps a hand-edited slug when the name changes afterwards', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add member/i }));

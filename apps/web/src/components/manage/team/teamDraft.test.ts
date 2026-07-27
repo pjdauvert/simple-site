@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { pickBiography, slugify, type TeamMember } from '@simple-site/interfaces';
-import { createMember, membersAreValid, validateMembers } from './teamDraft';
+import { createMember, membersAreValid, normalizeSocialLinks, validateMembers } from './teamDraft';
 
 const member = (slug: string, name = 'Jane Doe'): TeamMember =>
   ({ slug, name, jobTitle: '', biography: {} });
@@ -39,6 +39,15 @@ describe('validateMembers', () => {
     expect(errors[0].slug).toBe('duplicate');
     expect(errors[1].slug).toBe('duplicate');
     expect(membersAreValid(errors)).toBe(false);
+  });
+});
+
+describe('normalizeSocialLinks', () => {
+  it('trims links, drops empty ones, and collapses to undefined when nothing remains', () => {
+    expect(normalizeSocialLinks({ linkedin: ' https://li.example ', x: '  ', github: '' }))
+      .toEqual({ linkedin: 'https://li.example' });
+    expect(normalizeSocialLinks({ x: '   ' })).toBeUndefined();
+    expect(normalizeSocialLinks(undefined)).toBeUndefined();
   });
 });
 
