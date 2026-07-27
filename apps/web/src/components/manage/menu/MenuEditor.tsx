@@ -25,6 +25,7 @@ import {
   menuEntryId,
   reconcileMenu,
 } from '@simple-site/interfaces';
+import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
 import { useNotifications } from '../../../hooks/useNotifications';
@@ -189,7 +190,7 @@ export const MenuEditor: React.FC = () => {
 
       <Box sx={{ mt: 3 }}>
         <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.menu.save" />}
+          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.menu.save" />}
         </Button>
       </Box>
     </Box>
