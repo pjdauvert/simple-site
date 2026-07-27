@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, CircularProgress, Collapse, Typography } from '@mui/material';
+import { Box, Button, Collapse, Typography } from '@mui/material';
 import { CreateNewFolder as CreateNewFolderIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useSearchParams } from 'react-router-dom';
@@ -14,6 +14,7 @@ import {
   renameMedia,
   uploadMedia,
 } from '../../services/mediaService';
+import { Loader } from '../../components/Loader';
 import {
   DeleteConfirmDialog,
   DropZone,
@@ -351,7 +352,7 @@ export const MediaPage: React.FC = () => {
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
+          <Loader variant="triskelion" size={48} />
         </Box>
       ) : (
         <Box>

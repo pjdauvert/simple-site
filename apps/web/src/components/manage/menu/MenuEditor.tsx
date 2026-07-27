@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   IconButton,
   List,
   ListItem,
@@ -101,7 +100,7 @@ export const MenuEditor: React.FC = () => {
     return <Alert severity="error">{loadError}</Alert>;
   }
   if (entries === null || pages === null) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
 
   const rows = entryRows(entries, pages, flags);

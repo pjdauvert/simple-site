@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -33,6 +32,7 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ConfigVersionSummary, ConfigVersionsManifest, SiteConfig } from '@simple-site/interfaces';
 import { MAX_CONFIG_VERSIONS, SiteConfigSchema } from '@simple-site/interfaces';
+import { Loader } from '../Loader';
 import {
   deleteVersion,
   getVersionConfig,
@@ -208,7 +208,7 @@ export const ConfigVersionsPanel: React.FC<{ refreshSignal?: number }> = ({ refr
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
+        <Loader variant="triskelion" size={48} />
       </Box>
     );
   }

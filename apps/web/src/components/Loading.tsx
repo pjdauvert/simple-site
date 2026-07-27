@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { Loader } from './Loader';
 
 interface LoadingProps {
   message?: string;
@@ -19,7 +20,7 @@ export const Loading: React.FC<LoadingProps> = ({ message = 'Loading...' }) => {
         gap: 3,
       }}
     >
-      <CircularProgress size={60} color="primary" />
+      <Loader variant="triskelion" size={72} />
       <Typography variant="h5" component="div">
         {message}
       </Typography>

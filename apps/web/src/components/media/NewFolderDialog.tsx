@@ -1,6 +1,5 @@
 import {
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -8,6 +7,7 @@ import {
   TextField,
 } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { Loader } from '../Loader';
 
 interface NewFolderDialogProps {
   open: boolean;
@@ -47,7 +47,7 @@ export const NewFolderDialog: React.FC<NewFolderDialogProps> = ({
           <FormattedMessage id="page.media.cancel" />
         </Button>
         <Button onClick={onConfirm} variant="contained" disabled={loading || value.trim().length === 0}>
-          {loading ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.media.create" />}
+          {loading ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.media.create" />}
         </Button>
       </DialogActions>
     </Dialog>

@@ -6,7 +6,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Typography,
 } from '@mui/material';
 import {
@@ -19,6 +18,7 @@ import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateThemes } from '../../../services/themesService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { ThemeEditor } from './ThemeEditor';
+import { Loader } from '../../Loader';
 import { draftToTheme, isDraftValid, newThemeDraft, themeToDraft, type ThemeDraft } from './themeFields';
 
 /**
@@ -83,7 +83,7 @@ export const ThemesEditor: React.FC = () => {
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -127,7 +127,7 @@ export const ThemesEditor: React.FC = () => {
 
       <Box sx={{ mt: 3 }}>
         <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.themes.save" />}
+          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.themes.save" />}
         </Button>
       </Box>
     </Box>

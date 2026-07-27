@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   MenuItem,
   Stack,
   TextField,
@@ -17,6 +16,7 @@ import { updateSiteSettings } from '../../../services/siteConfigService';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { MediaUrlField } from '../../media';
+import { Loader } from '../../Loader';
 
 const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 /** Select value: '' = inherit/default, 'false' = full width, otherwise a breakpoint. */
@@ -130,7 +130,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
+        <Loader variant="triskelion" size={48} />
       </Box>
     );
   }
@@ -200,7 +200,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
 
         <Box>
           <Button type="submit" variant="contained" disabled={submitting || !isDirty}>
-            {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.site.save" />}
+            {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.site.save" />}
           </Button>
         </Box>
       </Stack>

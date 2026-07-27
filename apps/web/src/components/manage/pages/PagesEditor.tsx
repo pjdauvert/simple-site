@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -41,6 +40,7 @@ import { ScopedAppTheme } from '../../../features/theme/ScopedAppTheme';
 import { PageSelector } from './PageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { SectionPreview } from './SectionPreview';
+import { Loader } from '../../Loader';
 import { PageSettingsDialog } from './PageSettingsDialog';
 import { createPage, createSection, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
@@ -238,7 +238,7 @@ export const PagesEditor: React.FC = () => {
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -292,7 +292,7 @@ export const PagesEditor: React.FC = () => {
           <FormattedMessage id="page.manage.pages.export" />
         </Button>
         <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={submitting}>
-          {submitting ? <CircularProgress size={20} color="inherit" /> : <FormattedMessage id="page.manage.pages.save" />}
+          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.pages.save" />}
         </Button>
       </Stack>
 
