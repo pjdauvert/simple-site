@@ -71,6 +71,12 @@ export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId,
 export const TeamConfigSchema = z
   .object({
     members: z.array(TeamMemberSchema),
+    /**
+     * Team-page layout option: when true, member rows alternate sides — first
+     * member identification left / biography right, second reversed, and so on.
+     * Mobile always stacks identification above biography. Absent → no alternation.
+     */
+    alternateLayout: z.boolean().optional(),
   })
   .refine((team) => new Set(team.members.map((m) => m.slug)).size === team.members.length, {
     message: "Member slugs must be unique",

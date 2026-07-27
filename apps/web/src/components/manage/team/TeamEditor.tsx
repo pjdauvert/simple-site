@@ -9,12 +9,14 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
   Stack,
+  Switch,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -48,6 +50,7 @@ export const TeamEditor: React.FC = () => {
   const flags = useFeatureFlags();
 
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [alternateLayout, setAlternateLayout] = useState(false);
   const [languages, setLanguages] = useState<Locale[]>([BASE_LOCALE]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -67,6 +70,7 @@ export const TeamEditor: React.FC = () => {
       .then(([team, langs]) => {
         if (!active) return;
         setMembers(team.members);
+        setAlternateLayout(Boolean(team.alternateLayout));
         setLanguages(langs.length > 0 ? langs : [BASE_LOCALE]);
       })
       .catch((err) => {
@@ -106,7 +110,7 @@ export const TeamEditor: React.FC = () => {
       jobTitle: m.jobTitle.trim(),
       socialLinks: normalizeSocialLinks(m.socialLinks),
     }));
-    const parsed = TeamConfigSchema.safeParse({ members: normalized });
+    const parsed = TeamConfigSchema.safeParse({ members: normalized, alternateLayout });
     if (!parsed.success) {
       notify.error(intl.formatMessage({ id: 'page.manage.team.error.invalid' }));
       return;
@@ -135,6 +139,12 @@ export const TeamEditor: React.FC = () => {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         <FormattedMessage id="page.manage.team.liveNote" />
       </Typography>
+
+      <FormControlLabel
+        control={<Switch checked={alternateLayout} onChange={(_, checked) => setAlternateLayout(checked)} />}
+        label={<Typography variant="body2"><FormattedMessage id="page.manage.team.alternateLayout" /></Typography>}
+        sx={{ mb: 1 }}
+      />
 
       {members.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

@@ -66,6 +66,21 @@ describe('TeamEditor', () => {
     expect(saved.members[0]).toMatchObject({ slug: 'ela-dupont', name: 'Éla Dupont' });
   });
 
+  it('saves the alternate-layout option', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
+    renderEditor();
+    await screen.findByText('Jane');
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /alternate member sides/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+    });
+
+    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
+    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.alternateLayout).toBe(true);
+  });
+
   it('saves social links, dropping emptied ones', async () => {
     vi.mocked(loadTeam).mockResolvedValue({
       members: [{ ...member('jane-doe', 'Jane'), socialLinks: { website: 'https://old.example.com' } }],

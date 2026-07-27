@@ -7,6 +7,7 @@ import type { TeamMember, ThemeConfig } from '@simple-site/interfaces';
 import messages from '../../features/i18n/i18n.json';
 import { ThemeContext, type ThemeContextValue } from '../../features/theme/ThemeContext';
 import { TeamPage } from './TeamPage';
+import { isReversedRow } from './memberRowLayout';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { loadTeam } from '../../services/teamService';
 
@@ -69,15 +70,25 @@ describe('TeamPage (public /team)', () => {
     expect(screen.queryByText('Our team')).not.toBeInTheDocument();
   });
 
-  it('renders the overview with clickable member cards when there are several members', async () => {
+  it('renders the overview as flat member rows — identity, full bio, linked names', async () => {
     vi.mocked(loadTeam).mockResolvedValue({
       members: [member('jane-doe', 'Jane Doe'), member('john-smith', 'John Smith')],
     });
     renderPage();
     expect(await screen.findByText('Our team')).toBeInTheDocument();
 
+    // Names link to the member pages; biographies are shown in full on the row.
     const jane = screen.getByRole('link', { name: 'Jane Doe' });
     expect(jane).toHaveAttribute('href', '/team/member/jane-doe');
     expect(screen.getByRole('link', { name: 'John Smith' })).toHaveAttribute('href', '/team/member/john-smith');
+    expect(screen.getByText('About Jane Doe')).toBeInTheDocument();
+    expect(screen.getByText('About John Smith')).toBeInTheDocument();
+  });
+});
+
+describe('isReversedRow (alternate layout)', () => {
+  it('flips odd rows only when the option is on', () => {
+    expect([0, 1, 2, 3].map((i) => isReversedRow(i, true))).toEqual([false, true, false, true]);
+    expect([0, 1, 2, 3].map((i) => isReversedRow(i, false))).toEqual([false, false, false, false]);
   });
 });
