@@ -17,6 +17,7 @@ describe('entryRows', () => {
         baseLabel: 'About',
         route: '/about',
         kind: 'page',
+        i18nKey: 'page.about.menuTitle',
         available: true,
       },
     ]);
@@ -37,6 +38,7 @@ describe('entryRows', () => {
     const [row] = entryRows(entries, pages, { media: true, team: false });
     expect(row.kind).toBe('feature');
     expect(row.route).toBe('/team');
+    expect(row.i18nKey).toBe('team.menuTitle');
     expect(row.available).toBe(false); // kept in the list, but greyed and not toggleable
   });
 

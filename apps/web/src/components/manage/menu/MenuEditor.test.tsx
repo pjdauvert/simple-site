@@ -81,6 +81,28 @@ describe('MenuEditor', () => {
     expect(saved.entries[1]).toEqual({ type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' });
   });
 
+  it('opens the Translations page deep-linked to the entry label key', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [
+          { type: 'page', pageName: 'page.home', visible: true },
+          { type: 'feature', feature: 'team', visible: true },
+        ] },
+      ),
+    );
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    renderEditor();
+    await screen.findByText('Home');
+
+    const translateButtons = screen.getAllByRole('button', { name: /translate/i });
+    fireEvent.click(translateButtons[0]);
+    expect(open).toHaveBeenCalledWith('/manage/translations?key=page.home.menuTitle', '_blank');
+    fireEvent.click(translateButtons[1]);
+    expect(open).toHaveBeenCalledWith('/manage/translations?key=team.menuTitle', '_blank');
+    open.mockRestore();
+  });
+
   it('clears a custom label when the rename field is emptied', async () => {
     vi.mocked(loadDraftConfig).mockResolvedValue(
       configWith(

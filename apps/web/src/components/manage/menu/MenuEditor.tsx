@@ -18,6 +18,7 @@ import {
   ArrowDownward as DownIcon,
   ArrowUpward as UpIcon,
   EditOutlined as RenameIcon,
+  Translate as TranslateIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
@@ -152,6 +153,17 @@ export const MenuEditor: React.FC = () => {
                     </IconButton>
                   </span>
                 </Tooltip>
+                <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.translate' })}>
+                  <IconButton
+                    size="small"
+                    // Same-origin target, deliberately no `noopener` (see InlineTranslateButton):
+                    // severing the opener would stop sessionStorage cloning into the new tab.
+                    onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(row.i18nKey)}`, '_blank')}
+                    aria-label={intl.formatMessage({ id: 'page.manage.menu.translate' })}
+                  >
+                    <TranslateIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.moveUp' })}>
                   <span>
                     <IconButton
@@ -193,7 +205,7 @@ export const MenuEditor: React.FC = () => {
             <ListItemText
               disableTypography
               primary={
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ pr: 20 }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ pr: 24 }}>
                   {renamingIndex === index ? (
                     <TextField
                       size="small"
@@ -212,11 +224,6 @@ export const MenuEditor: React.FC = () => {
                   ) : (
                     <Typography variant="body2" noWrap>{row.label}</Typography>
                   )}
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    label={<FormattedMessage id={`page.manage.menu.badge.${row.kind}`} />}
-                  />
                   {!row.available && (
                     <Chip
                       size="small"
@@ -228,9 +235,17 @@ export const MenuEditor: React.FC = () => {
                 </Stack>
               }
               secondary={
-                <Typography variant="caption" color="text.secondary" noWrap component="div">
-                  {row.route}
-                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5, pr: 24 }}>
+                  <Typography variant="caption" color="text.secondary" noWrap component="div">
+                    {row.route}
+                  </Typography>
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={<FormattedMessage id={`page.manage.menu.badge.${row.kind}`} />}
+                    sx={{ height: 18, '& .MuiChip-label': { px: 0.75, fontSize: '0.65rem' } }}
+                  />
+                </Stack>
               }
             />
           </ListItem>

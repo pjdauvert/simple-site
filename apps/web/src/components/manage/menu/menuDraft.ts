@@ -1,6 +1,7 @@
 import {
   FEATURE_PAGE_ROUTES,
   featureEntryLabel,
+  menuTitleKey,
   type MenuEntry,
   type PageConfiguration,
 } from '@simple-site/interfaces';
@@ -20,6 +21,8 @@ export interface MenuEntryRow {
   baseLabel: string;
   route: string;
   kind: 'page' | 'feature';
+  /** The label's translation key (`${pageName|feature}.menuTitle`) on the Translations page. */
+  i18nKey: string;
   /**
    * False for feature entries whose feature is unregistered or flag-off: the row is
    * kept (so ordering survives flag flips) but rendered greyed and not toggleable.
@@ -44,6 +47,7 @@ export const entryRows = (
         baseLabel,
         route: page?.route ?? '',
         kind: 'page' as const,
+        i18nKey: menuTitleKey(entry.pageName),
         available: Boolean(page),
       };
     }
@@ -54,6 +58,7 @@ export const entryRows = (
       baseLabel: featureEntryLabel({ ...entry, menuTitle: undefined }),
       route: FEATURE_PAGE_ROUTES[entry.feature],
       kind: 'feature' as const,
+      i18nKey: menuTitleKey(entry.feature),
       available: Boolean(definition && flags && flags[definition.flag]),
     };
   });
