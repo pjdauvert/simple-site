@@ -33,6 +33,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import {
   BASE_LOCALE,
   TEAM_PRESENTATION_KEY,
+  TEAM_TITLE_KEY,
   TeamConfigSchema,
   type Locale,
   type TeamMember,
@@ -46,6 +47,21 @@ import { moveItem } from '../pages/pagesDraft';
 import { createMember, membersAreValid, normalizeSocialLinks, validateMembers } from './teamDraft';
 import { MemberFormDialog } from './MemberFormDialog';
 
+/** Field adornment opening the Translations page deep-linked to a team key. */
+const TranslateShortcut: React.FC<{ i18nKey: string; label: string }> = ({ i18nKey, label }) => (
+  <Tooltip title={label}>
+    <IconButton
+      size="small"
+      sx={{ alignSelf: 'flex-start' }}
+      // Same-origin target, deliberately no `noopener` (see InlineTranslateButton).
+      onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(i18nKey)}`, '_blank')}
+      aria-label={label}
+    >
+      <TranslateIcon fontSize="small" />
+    </IconButton>
+  </Tooltip>
+);
+
 /**
  * Team editor for /manage/team: list of members (reorder = public overview order)
  * with an edit dialog per member. DIRECT SAVE: unlike the rest of the admin, a
@@ -58,6 +74,7 @@ export const TeamEditor: React.FC = () => {
   const flags = useFeatureFlags();
 
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [title, setTitle] = useState('');
   const [presentation, setPresentation] = useState('');
   const [alternateLayout, setAlternateLayout] = useState(false);
   const [languages, setLanguages] = useState<Locale[]>([BASE_LOCALE]);
@@ -79,6 +96,7 @@ export const TeamEditor: React.FC = () => {
       .then(([team, langs]) => {
         if (!active) return;
         setMembers(team.members);
+        setTitle(team.title ?? '');
         setPresentation(team.presentation ?? '');
         setAlternateLayout(Boolean(team.alternateLayout));
         setLanguages(langs.length > 0 ? langs : [BASE_LOCALE]);
@@ -122,6 +140,7 @@ export const TeamEditor: React.FC = () => {
     }));
     const parsed = TeamConfigSchema.safeParse({
       members: normalized,
+      title: title.trim() || undefined,
       presentation: presentation.trim() || undefined,
       alternateLayout,
     });
@@ -155,6 +174,26 @@ export const TeamEditor: React.FC = () => {
       </Typography>
 
       <TextField
+        label={intl.formatMessage({ id: 'page.manage.team.field.title' })}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        size="small"
+        fullWidth
+        helperText={intl.formatMessage({ id: 'page.manage.team.field.title.help' })}
+        sx={{ mb: 2 }}
+        slotProps={{
+          input: {
+            endAdornment: (
+              <TranslateShortcut
+                i18nKey={TEAM_TITLE_KEY}
+                label={intl.formatMessage({ id: 'page.manage.team.translate' })}
+              />
+            ),
+          },
+        }}
+      />
+
+      <TextField
         label={intl.formatMessage({ id: 'page.manage.team.field.presentation' })}
         value={presentation}
         onChange={(e) => setPresentation(e.target.value)}
@@ -167,17 +206,10 @@ export const TeamEditor: React.FC = () => {
         slotProps={{
           input: {
             endAdornment: (
-              <Tooltip title={intl.formatMessage({ id: 'page.manage.team.translate' })}>
-                <IconButton
-                  size="small"
-                  sx={{ alignSelf: 'flex-start' }}
-                  // Same-origin target, deliberately no `noopener` (see InlineTranslateButton).
-                  onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(TEAM_PRESENTATION_KEY)}`, '_blank')}
-                  aria-label={intl.formatMessage({ id: 'page.manage.team.translate' })}
-                >
-                  <TranslateIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <TranslateShortcut
+                i18nKey={TEAM_PRESENTATION_KEY}
+                label={intl.formatMessage({ id: 'page.manage.team.translate' })}
+              />
             ),
           },
         }}

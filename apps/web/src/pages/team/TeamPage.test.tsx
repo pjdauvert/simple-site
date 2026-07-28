@@ -73,6 +73,7 @@ describe('TeamPage (public /team)', () => {
   it('renders the overview as flat member rows — identity, full bio, linked names', async () => {
     vi.mocked(loadTeam).mockResolvedValue({
       members: [member('jane-doe', 'Jane Doe'), member('john-smith', 'John Smith')],
+      title: 'Our team',
     });
     renderPage();
     expect(await screen.findByText('Our team')).toBeInTheDocument();
@@ -94,12 +95,22 @@ describe('TeamPage (public /team)', () => {
     expect(await screen.findByText('Our wonderful crew')).toBeInTheDocument();
   });
 
-  it('renders no presentation block when the text is not set', async () => {
+  it('renders a customized title, and no heading at all when the title is not set', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [member('jane-doe', 'Jane Doe'), member('john-smith', 'John Smith')],
+      title: 'The crew',
+    });
+    renderPage();
+    expect(await screen.findByRole('heading', { level: 1, name: 'The crew' })).toBeInTheDocument();
+  });
+
+  it('renders no presentation block nor heading when neither is set', async () => {
     vi.mocked(loadTeam).mockResolvedValue({
       members: [member('jane-doe', 'Jane Doe'), member('john-smith', 'John Smith')],
     });
     renderPage();
-    await screen.findByText('Our team');
+    await screen.findByText('Jane Doe');
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByText('Our wonderful crew')).not.toBeInTheDocument();
   });
 });

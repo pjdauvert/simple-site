@@ -52,11 +52,15 @@ describe('normalizeSocialLinks', () => {
 });
 
 describe('collectTeamI18nEntries', () => {
-  it('emits the presentation key only when the text is set', () => {
+  it('emits the title and presentation keys only when their text is set', () => {
+    expect(collectTeamI18nEntries({ members: [], title: 'The crew', presentation: 'Our crew' })).toEqual([
+      { key: 'team.title', defaultValue: 'The crew' },
+      { key: 'team.presentation', defaultValue: 'Our crew' },
+    ]);
     expect(collectTeamI18nEntries({ members: [], presentation: 'Our crew' }))
       .toEqual([{ key: 'team.presentation', defaultValue: 'Our crew' }]);
     expect(collectTeamI18nEntries({ members: [] })).toEqual([]);
-    expect(collectTeamI18nEntries({ members: [], presentation: '   ' })).toEqual([]);
+    expect(collectTeamI18nEntries({ members: [], title: '  ', presentation: '   ' })).toEqual([]);
   });
 });
 

@@ -61,6 +61,8 @@ export const TeamMemberSchema = z.object({
 
 export type TeamMember = z.infer<typeof TeamMemberSchema>;
 
+/** Translation key of the team-page heading. */
+export const TEAM_TITLE_KEY = "team.title";
 /** Translation key of the team presentation text. */
 export const TEAM_PRESENTATION_KEY = "team.presentation";
 
@@ -69,8 +71,12 @@ export const TEAM_PRESENTATION_KEY = "team.presentation";
  * the Translations editor's expected keys alongside `collectI18nEntries` (the
  * team lives in its own blob, so the config walk cannot see it).
  */
-export const collectTeamI18nEntries = (team: TeamConfig): I18nEntry[] =>
-  team.presentation?.trim() ? [{ key: TEAM_PRESENTATION_KEY, defaultValue: team.presentation }] : [];
+export const collectTeamI18nEntries = (team: TeamConfig): I18nEntry[] => {
+  const entries: I18nEntry[] = [];
+  if (team.title?.trim()) entries.push({ key: TEAM_TITLE_KEY, defaultValue: team.title });
+  if (team.presentation?.trim()) entries.push({ key: TEAM_PRESENTATION_KEY, defaultValue: team.presentation });
+  return entries;
+};
 
 /** The member's non-empty social links, in display order. */
 export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId, string]> =>
@@ -83,6 +89,12 @@ export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId,
 export const TeamConfigSchema = z
   .object({
     members: z.array(TeamMemberSchema),
+    /**
+     * Optional team-page heading. A translation DEFAULT like the presentation:
+     * per-language values are managed on the Translations page under
+     * {@link TEAM_TITLE_KEY}. Absent/empty → the page renders no heading.
+     */
+    title: z.string().optional(),
     /**
      * Optional team presentation (markdown), shown above the member list on the
      * team page. Unlike biographies it is a translation DEFAULT: per-language

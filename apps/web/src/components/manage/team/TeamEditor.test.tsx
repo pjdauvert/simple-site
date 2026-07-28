@@ -66,14 +66,19 @@ describe('TeamEditor', () => {
     expect(saved.members[0]).toMatchObject({ slug: 'ela-dupont', name: 'Éla Dupont' });
   });
 
-  it('saves the presentation text and links to its translation key', async () => {
+  it('saves the title and presentation, each linking to its translation key', async () => {
     vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     renderEditor();
     await screen.findByText('Jane');
 
+    fireEvent.change(screen.getByLabelText(/team page title/i), { target: { value: 'The crew' } });
     fireEvent.change(screen.getByLabelText(/team presentation/i), { target: { value: 'Our wonderful crew' } });
-    fireEvent.click(screen.getByRole('button', { name: /translate/i }));
+
+    const translateButtons = screen.getAllByRole('button', { name: /translate/i });
+    fireEvent.click(translateButtons[0]);
+    expect(open).toHaveBeenCalledWith('/manage/translations?key=team.title', '_blank');
+    fireEvent.click(translateButtons[1]);
     expect(open).toHaveBeenCalledWith('/manage/translations?key=team.presentation', '_blank');
     open.mockRestore();
 
@@ -82,6 +87,7 @@ describe('TeamEditor', () => {
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.title).toBe('The crew');
     expect(saved.presentation).toBe('Our wonderful crew');
   });
 

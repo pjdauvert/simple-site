@@ -71,6 +71,7 @@ describe('TeamModule', () => {
     const { data } = makeStore({ team: { members: [member('old-member')] } });
     const res = await handle(jsonRequest('https://site.test/api/team', 'PUT', {
       members: [member('jane-doe'), member('john-smith', { name: 'John Smith', photoUrl: '/img/john.jpg' })],
+      title: 'The crew',
       presentation: 'Our wonderful crew',
       alternateLayout: true,
     }));
@@ -78,6 +79,7 @@ describe('TeamModule', () => {
     expect((await readJson(res)).data.message).toMatch(/updated/i);
     const stored = JSON.parse(data.get('team')!);
     expect(stored.members.map((m: { slug: string }) => m.slug)).toEqual(['jane-doe', 'john-smith']);
+    expect(stored.title).toBe('The crew');
     expect(stored.presentation).toBe('Our wonderful crew');
     expect(stored.alternateLayout).toBe(true);
   });
