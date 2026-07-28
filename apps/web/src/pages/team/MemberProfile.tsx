@@ -2,7 +2,13 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Box, Chip, Container, Paper, Stack, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { pickBiography, type TeamMember } from '@simple-site/interfaces';
+import {
+  MEMBER_PAGE_DESIGN_DEFAULTS,
+  pickBiography,
+  resolveSectionDesign,
+  type TeamMember,
+  type TeamSectionDesign,
+} from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { MemberPortrait } from './MemberPortrait';
@@ -10,6 +16,8 @@ import { SocialLinksRow } from './SocialLinksRow';
 
 interface MemberProfileProps {
   member: TeamMember;
+  /** Member-page design options (portrait shape/border, bio frame). */
+  design?: TeamSectionDesign;
 }
 
 /**
@@ -20,18 +28,25 @@ interface MemberProfileProps {
  * exactly one member. The biography follows the current locale, falling back
  * to the base locale ({@link pickBiography}).
  */
-export const MemberProfile: React.FC<MemberProfileProps> = ({ member }) => {
+export const MemberProfile: React.FC<MemberProfileProps> = ({ member, design }) => {
   const intl = useIntl();
   const { locale } = intl;
   const { siteThemeConfig } = useAppTheme();
   useDocumentTitle(`${member.name} – ${siteThemeConfig.siteName}`);
 
   const biography = pickBiography(member.biography, locale);
+  const resolved = resolveSectionDesign(design, MEMBER_PAGE_DESIGN_DEFAULTS);
 
   return (
     <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'md'} sx={{ py: { xs: 4, md: 6 } }}>
       <Stack alignItems="center" spacing={{ xs: 2, md: 3 }}>
-        <MemberPortrait member={member} size={{ xs: 160, md: 200 }} />
+        <MemberPortrait
+          member={member}
+          size={{ xs: 160, md: 200 }}
+          radius={resolved.pictureRadius}
+          border={resolved.pictureBorder}
+          borderColor={resolved.pictureBorderColor}
+        />
 
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="h3" component="h1" gutterBottom>
@@ -57,17 +72,20 @@ export const MemberProfile: React.FC<MemberProfileProps> = ({ member }) => {
 
         {biography && (
           <Paper
-            variant="outlined"
-            sx={{
+            elevation={0}
+            sx={(theme) => ({
               borderRadius: 3,
-              bgcolor: 'background.paper',
+              bgcolor: resolved.frameBackgroundColor ?? 'background.paper',
+              border: resolved.frameBorder
+                ? `1px solid ${resolved.frameBorderColor || theme.palette.divider}`
+                : 'none',
               p: { xs: 2.5, md: 4 },
               width: '100%',
               maxWidth: 720,
               '& p': { typography: 'body1' },
               '& > :first-of-type': { mt: 0 },
               '& > :last-child': { mb: 0 },
-            }}
+            })}
           >
             <ReactMarkdown>{biography}</ReactMarkdown>
           </Paper>

@@ -125,6 +125,31 @@ describe('TeamMemberPage (public /team/member/:slug)', () => {
     expect(await screen.findByText('English bio')).toBeInTheDocument();
   });
 
+  it('applies the member-page design: portrait radius/border and bio frame overrides', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [jane],
+      design: {
+        memberPage: {
+          pictureRadius: 10,
+          pictureBorder: true,
+          pictureBorderColor: '#ff0000',
+          frameBackgroundColor: '#fafafa',
+          frameBorder: false,
+        },
+      },
+    });
+    renderAt('/team/member/jane-doe');
+    const img = await screen.findByRole('img', { name: 'Jane Doe' });
+    expect(img).toHaveStyle({ borderRadius: '10%' });
+    expect(img).toHaveStyle({ border: '4px solid #ff0000' });
+  });
+
+  it('defaults to a circular, borderless portrait without design options', async () => {
+    renderAt('/team/member/jane-doe');
+    const img = await screen.findByRole('img', { name: 'Jane Doe' });
+    expect(img).toHaveStyle({ borderRadius: '50%' });
+  });
+
   it('renders the 404 page for an unknown slug', async () => {
     renderAt('/team/member/nobody');
     expect(await screen.findByText('Oops — nothing here!')).toBeInTheDocument();

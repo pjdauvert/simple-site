@@ -24,5 +24,5 @@ export const TeamMemberPage: React.FC = () => {
   const member = team.members.find((m) => m.slug === slug);
   if (!member) return <NotFoundPage />;
 
-  return <MemberProfile member={member} />;
+  return <MemberProfile member={member} design={team.design?.memberPage} />;
 };

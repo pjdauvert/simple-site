@@ -50,7 +50,6 @@ export const TeamPageSettings: React.FC = () => {
 
   const [title, setTitle] = useState('');
   const [presentation, setPresentation] = useState('');
-  const [alternateLayout, setAlternateLayout] = useState(false);
   const [showFormerMembers, setShowFormerMembers] = useState(false);
   const [formerMembersTitle, setFormerMembersTitle] = useState('');
   const [loading, setLoading] = useState(true);
@@ -64,7 +63,6 @@ export const TeamPageSettings: React.FC = () => {
         if (!active) return;
         setTitle(team.title ?? '');
         setPresentation(team.presentation ?? '');
-        setAlternateLayout(Boolean(team.alternateLayout));
         setShowFormerMembers(Boolean(team.showFormerMembers));
         setFormerMembersTitle(team.formerMembersTitle ?? '');
       })
@@ -80,11 +78,11 @@ export const TeamPageSettings: React.FC = () => {
     try {
       // Re-fetch so members saved from the Members tab aren't clobbered.
       const current = await loadTeam();
+      // `alternateLayout` and `design` belong to the Design tab; `...current` keeps them.
       const parsed = TeamConfigSchema.safeParse({
         ...current,
         title: title.trim() || undefined,
         presentation: presentation.trim() || undefined,
-        alternateLayout,
         showFormerMembers,
         formerMembersTitle: formerMembersTitle.trim() || undefined,
       });
@@ -136,11 +134,6 @@ export const TeamPageSettings: React.FC = () => {
         slotProps={{ input: { endAdornment: <TranslateShortcut i18nKey={TEAM_PRESENTATION_KEY} label={translateLabel} /> } }}
       />
 
-      <FormControlLabel
-        control={<Switch checked={alternateLayout} onChange={(_, checked) => setAlternateLayout(checked)} />}
-        label={<Typography variant="body2"><FormattedMessage id="page.manage.team.alternateLayout" /></Typography>}
-        sx={{ display: 'flex', mb: 0.5 }}
-      />
       <FormControlLabel
         control={<Switch checked={showFormerMembers} onChange={(_, checked) => setShowFormerMembers(checked)} />}
         label={<Typography variant="body2"><FormattedMessage id="page.manage.team.showFormerMembers" /></Typography>}

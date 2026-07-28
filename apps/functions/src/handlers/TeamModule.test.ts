@@ -76,6 +76,7 @@ describe('TeamModule', () => {
       alternateLayout: true,
       showFormerMembers: true,
       formerMembersTitle: 'Alumni',
+      design: { teamPage: { pictureRadius: 20, pictureBorder: true }, memberPage: { frameBorder: false } },
     }));
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.message).toMatch(/updated/i);
@@ -87,6 +88,10 @@ describe('TeamModule', () => {
     expect(stored.showFormerMembers).toBe(true);
     expect(stored.formerMembersTitle).toBe('Alumni');
     expect(stored.members[1].former).toBe(true);
+    expect(stored.design).toEqual({
+      teamPage: { pictureRadius: 20, pictureBorder: true },
+      memberPage: { frameBorder: false },
+    });
   });
 
   it('PUT /api/team accepts social links and rejects invalid ones', async () => {

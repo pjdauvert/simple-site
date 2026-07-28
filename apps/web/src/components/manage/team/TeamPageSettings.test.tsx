@@ -53,11 +53,19 @@ describe('TeamPageSettings', () => {
     expect(saved.presentation).toBe('Our wonderful crew');
   });
 
-  it('saves the layout switches and the former-members section title', async () => {
+  it('saves the former-members options and leaves the Design-tab fields untouched', async () => {
+    // The stored team already carries Design-tab options (alternate layout, design).
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [],
+      alternateLayout: true,
+      design: { teamPage: { pictureRadius: 20 } },
+    });
     renderSettings();
     await screen.findByLabelText(/team page title/i);
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /alternate member sides/i }));
+    // The alternate-sides switch lives on the Design tab now.
+    expect(screen.queryByRole('checkbox', { name: /alternate member sides/i })).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('checkbox', { name: /show former members/i }));
     // The section-title field appears once the switch is on, with its own shortcut.
     fireEvent.change(await screen.findByLabelText(/former members section title/i), { target: { value: 'Alumni' } });
@@ -67,9 +75,10 @@ describe('TeamPageSettings', () => {
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
-    expect(saved.alternateLayout).toBe(true);
     expect(saved.showFormerMembers).toBe(true);
     expect(saved.formerMembersTitle).toBe('Alumni');
+    expect(saved.alternateLayout).toBe(true); // preserved via the re-fetch merge
+    expect(saved.design).toEqual({ teamPage: { pictureRadius: 20 } });
   });
 
   it('re-fetches on save so members edited from the Members tab are preserved', async () => {

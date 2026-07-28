@@ -36,7 +36,9 @@ export const TeamPage: React.FC = () => {
   const current = team.members.filter((m) => !m.former);
   const formerVisible = team.showFormerMembers ? team.members.filter((m) => m.former) : [];
   if (current.length === 0 && formerVisible.length === 0) return <NotFoundPage />;
-  if (current.length === 1 && formerVisible.length === 0) return <MemberProfile member={current[0]} />;
+  if (current.length === 1 && formerVisible.length === 0) {
+    return <MemberProfile member={current[0]} design={team.design?.memberPage} />;
+  }
 
   return (
     <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'lg'} sx={{ py: { xs: 4, md: 6 } }}>
@@ -60,6 +62,7 @@ export const TeamPage: React.FC = () => {
             key={member.slug}
             member={member}
             reverse={isReversedRow(index, Boolean(team.alternateLayout))}
+            design={team.design?.teamPage}
           />
         ))}
       </Stack>
@@ -77,6 +80,7 @@ export const TeamPage: React.FC = () => {
                 key={member.slug}
                 member={member}
                 reverse={isReversedRow(index, Boolean(team.alternateLayout))}
+                design={team.design?.teamPage}
                 dimmed
               />
             ))}

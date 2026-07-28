@@ -2,15 +2,15 @@ import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 
-const TABS = ['page', 'members'] as const;
+const TABS = ['page', 'members', 'design'] as const;
 type TabKey = (typeof TABS)[number];
 
 /**
- * Team management shell (/manage/team, flag-gated): a tab bar (Page / Members)
- * over an <Outlet/>. Each tab is a URL sub-route (`/manage/team/<tab>`) so tabs
- * are deep-linkable and survive a reload, mirroring the site-configuration page.
- * Both tabs save directly — the team is live immediately, which the caption
- * spells out once for the whole page.
+ * Team management shell (/manage/team, flag-gated): a tab bar (Page / Members /
+ * Design) over an <Outlet/>. Each tab is a URL sub-route (`/manage/team/<tab>`)
+ * so tabs are deep-linkable and survive a reload, mirroring the
+ * site-configuration page. Every tab saves directly — the team is live
+ * immediately, which the caption spells out once for the whole page.
  */
 export const TeamPage: React.FC = () => {
   const { pathname } = useLocation();
@@ -36,6 +36,12 @@ export const TeamPage: React.FC = () => {
           component={RouterLink}
           to="members"
           label={<FormattedMessage id="page.manage.team.tab.members" />}
+        />
+        <Tab
+          value="design"
+          component={RouterLink}
+          to="design"
+          label={<FormattedMessage id="page.manage.team.tab.design" />}
         />
       </Tabs>
       <Outlet />

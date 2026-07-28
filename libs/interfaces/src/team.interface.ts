@@ -96,6 +96,56 @@ export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId,
     return href ? [[network, href] as [SocialNetworkId, string]] : [];
   });
 
+/**
+ * Design options of one team surface (the team page rows, or the member profile
+ * page). Every field is optional — absent values fall back to that surface's
+ * defaults ({@link TEAM_PAGE_DESIGN_DEFAULTS} / {@link MEMBER_PAGE_DESIGN_DEFAULTS})
+ * via {@link resolveSectionDesign}, so stored teams keep their current look.
+ */
+export const TeamSectionDesignSchema = z.object({
+  /** Portrait corner radius in percent: 50 = circle (default), 0 = square. */
+  pictureRadius: z.number().min(0).max(50).optional(),
+  /** Draws a border around the portrait. */
+  pictureBorder: z.boolean().optional(),
+  /** Portrait border color (CSS); absent → the theme's primary color. */
+  pictureBorderColor: z.string().optional(),
+  /** Background color (CSS) of the description frame. */
+  frameBackgroundColor: z.string().optional(),
+  /** Draws a border around the description frame. */
+  frameBorder: z.boolean().optional(),
+  /** Frame border color (CSS); absent → the theme's divider color. */
+  frameBorderColor: z.string().optional(),
+});
+
+export type TeamSectionDesign = z.infer<typeof TeamSectionDesignSchema>;
+
+/** Team page rows are flat by default: circular portrait, no frame. */
+export const TEAM_PAGE_DESIGN_DEFAULTS = { pictureRadius: 50, pictureBorder: false, frameBorder: false } as const;
+/** The member profile keeps its bordered bio card by default. */
+export const MEMBER_PAGE_DESIGN_DEFAULTS = { pictureRadius: 50, pictureBorder: false, frameBorder: true } as const;
+
+export interface ResolvedSectionDesign {
+  pictureRadius: number;
+  pictureBorder: boolean;
+  pictureBorderColor?: string;
+  frameBackgroundColor?: string;
+  frameBorder: boolean;
+  frameBorderColor?: string;
+}
+
+/** Applies a surface's defaults to its (possibly absent) stored design. */
+export const resolveSectionDesign = (
+  design: TeamSectionDesign | undefined,
+  defaults: typeof TEAM_PAGE_DESIGN_DEFAULTS | typeof MEMBER_PAGE_DESIGN_DEFAULTS,
+): ResolvedSectionDesign => ({
+  pictureRadius: design?.pictureRadius ?? defaults.pictureRadius,
+  pictureBorder: design?.pictureBorder ?? defaults.pictureBorder,
+  pictureBorderColor: design?.pictureBorderColor,
+  frameBackgroundColor: design?.frameBackgroundColor,
+  frameBorder: design?.frameBorder ?? defaults.frameBorder,
+  frameBorderColor: design?.frameBorderColor,
+});
+
 // Array order = display order on the public team overview page.
 export const TeamConfigSchema = z
   .object({
@@ -126,6 +176,13 @@ export const TeamConfigSchema = z
      * Absent/empty → the section renders its separator without a heading.
      */
     formerMembersTitle: z.string().optional(),
+    /** Per-surface design options, edited from the team Design tab. */
+    design: z
+      .object({
+        teamPage: TeamSectionDesignSchema.optional(),
+        memberPage: TeamSectionDesignSchema.optional(),
+      })
+      .optional(),
   })
   .refine((team) => new Set(team.members.map((m) => m.slug)).size === team.members.length, {
     message: "Member slugs must be unique",

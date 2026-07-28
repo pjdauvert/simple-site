@@ -242,7 +242,11 @@ The team lives in its **own blob** (key `team`, seeded in dev from `apps/functio
   ],
   "alternateLayout": false,
   "showFormerMembers": false,
-  "formerMembersTitle": "Former members (optional section heading)"
+  "formerMembersTitle": "Former members (optional section heading)",
+  "design": {
+    "teamPage": { "pictureRadius": 50, "pictureBorder": false, "frameBorder": false },
+    "memberPage": { "frameBackgroundColor": "#fafafa" }
+  }
 }
 ```
 
@@ -252,6 +256,7 @@ The team lives in its **own blob** (key `team`, seeded in dev from `apps/functio
 - **`socialLinks`** (optional) — supported networks: `linkedin`, `x`, `github`, `instagram`, `facebook`, `youtube`, `website` (see `SocialNetworksEnum` in `libs/interfaces/src/team.interface.ts`).
 - **`title`** (optional) and **`presentation`** (optional, markdown) — the team page's heading and the introduction text above the member list, both edited from the **Page** tab of `/manage/team` (the **Members** tab manages the people; each tab saves independently by re-fetching and merging, so they can't clobber each other). Absent/empty → not rendered. Unlike biographies they are translation **defaults**: per-language values live on the Translations page under the `team.title` / `team.presentation` keys (each editor field has a shortcut deep-linking to its key, and the Translations editor lists them automatically while the feature is on — `collectTeamI18nEntries`).
 - **`former`** (optional, per member — toggled in the member dialog) moves a member out of the main list and into the team page's **former-members section**, which renders only while **`showFormerMembers`** (switch in the team editor) is on. The section sits under a horizontal separator with an optional heading (**`formerMembersTitle`** — a translation default under `team.formerMembersTitle`, like the page title); its rows render lighter with grayscale portraits — the personal page keeps full color and shows a "Former member" chip next to the job title instead. Hidden former members keep their `/team/member/<slug>` page reachable by URL, like hidden menu entries.
+- **`design`** (optional) — per-surface design options edited from the **Design** tab of `/manage/team`, split between `teamPage` (the member rows) and `memberPage` (the profile page). Each surface offers `pictureRadius` (portrait corner radius, 0–50 % — 50 = circle, with a live shape preview next to the slider), `pictureBorder` + `pictureBorderColor` (theme primary when empty), and the description frame: `frameBackgroundColor`, `frameBorder`, `frameBorderColor` (theme divider when empty). Only deviations from the surface defaults are stored — by default team rows stay flat/frameless and the profile keeps its bordered bio card. The team-page block also hosts the **`alternateLayout`** switch (moved from the Page tab).
 - **Array order** is the display order of the public team overview (within each section).
 - **Public rendering** — `/team` shows the 404 page with no members and the single member's profile with exactly one. With several members it renders flat full-width rows (no panels): the identification block — circular photo (or initial avatar), name linking to the member page, job title, social icons — on one side and the full biography on the other. **`alternateLayout`** (toggle in the team editor) flips sides every other row on desktop; mobile always stacks one column, identification above biography. Unknown slugs 404. The single-member profile shows the circular photo with name and job title underneath, the biography in a card panel, and — only when links are provided — a centered row of social icons below it.
 - The **menu** links to `/team` through a `{ "type": "feature", "feature": "team" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.

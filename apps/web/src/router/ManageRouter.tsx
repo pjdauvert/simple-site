@@ -11,6 +11,7 @@ import { MediaPage } from "../pages/admin/MediaPage";
 import { TeamPage } from "../pages/admin/TeamPage";
 import { TeamPageTab } from "../pages/admin/TeamPageTab";
 import { TeamMembersTab } from "../pages/admin/TeamMembersTab";
+import { TeamDesignTab } from "../pages/admin/TeamDesignTab";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { ManageLayout } from "../layouts/ManageLayout";
 import { Loading } from "../components";
@@ -56,6 +57,7 @@ const ManageArea: React.FC = () => {
             <Route index element={<Navigate to="page" replace />} />
             <Route path="page" element={<TeamPageTab />} />
             <Route path="members" element={<TeamMembersTab />} />
+            <Route path="design" element={<TeamDesignTab />} />
           </Route>
         )}
         <Route path="translations" element={<TranslationsPage />} />
