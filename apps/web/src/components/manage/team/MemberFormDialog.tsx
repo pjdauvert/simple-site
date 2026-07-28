@@ -6,6 +6,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
+  Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -119,6 +121,15 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
             onChange={(e) => onChange({ ...member, jobTitle: e.target.value })}
             size="small"
             fullWidth
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={Boolean(member.former)}
+                onChange={(_, checked) => onChange({ ...member, former: checked || undefined })}
+              />
+            }
+            label={<Typography variant="body2"><FormattedMessage id="page.manage.team.field.former" /></Typography>}
           />
           <TextField
             label={intl.formatMessage({ id: 'page.manage.team.field.slug' })}

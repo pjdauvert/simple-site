@@ -17,8 +17,11 @@ import { isReversedRow } from './memberRowLayout';
  * Public /team dispatcher. The route is always registered; the page gates itself
  * on the runtime `team` flag (flag off → 404, matching the server's behavior) so
  * a direct navigation never flashes the catch-all while flags load. Content:
- * 0 members → 404, exactly 1 → their profile right here, 2+ → flat member rows
- * (in the admin-defined order, alternating sides when the team option is on).
+ * nothing to show → 404, exactly one current member (and no visible former
+ * section) → their profile right here, otherwise flat member rows (in the
+ * admin-defined order, alternating sides when the team option is on), followed
+ * by the "former members" section when the team option shows it. Alternation
+ * restarts per section.
  */
 export const TeamPage: React.FC = () => {
   const flags = useFeatureFlags();
@@ -30,9 +33,10 @@ export const TeamPage: React.FC = () => {
   if (error) return <ErrorPage title="Something went wrong" message={error} />;
   if (team === null) return <Loading />;
 
-  const { members } = team;
-  if (members.length === 0) return <NotFoundPage />;
-  if (members.length === 1) return <MemberProfile member={members[0]} />;
+  const current = team.members.filter((m) => !m.former);
+  const formerVisible = team.showFormerMembers ? team.members.filter((m) => m.former) : [];
+  if (current.length === 0 && formerVisible.length === 0) return <NotFoundPage />;
+  if (current.length === 1 && formerVisible.length === 0) return <MemberProfile member={current[0]} />;
 
   return (
     <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'lg'} sx={{ py: { xs: 4, md: 6 } }}>
@@ -51,7 +55,7 @@ export const TeamPage: React.FC = () => {
         </Box>
       )}
       <Stack spacing={{ xs: 6, md: 8 }}>
-        {members.map((member, index) => (
+        {current.map((member, index) => (
           <MemberRow
             key={member.slug}
             member={member}
@@ -59,6 +63,22 @@ export const TeamPage: React.FC = () => {
           />
         ))}
       </Stack>
+      {formerVisible.length > 0 && (
+        <>
+          <Typography variant="h4" component="h2" gutterBottom sx={{ mt: { xs: 6, md: 10 }, mb: { xs: 3, md: 5 } }}>
+            <FormattedMessage id="page.team.formerMembers" />
+          </Typography>
+          <Stack spacing={{ xs: 6, md: 8 }}>
+            {formerVisible.map((member, index) => (
+              <MemberRow
+                key={member.slug}
+                member={member}
+                reverse={isReversedRow(index, Boolean(team.alternateLayout))}
+              />
+            ))}
+          </Stack>
+        </>
+      )}
     </Container>
   );
 };

@@ -57,6 +57,12 @@ export const TeamMemberSchema = z.object({
   biography: z.record(I18nLocaleSchema, z.string()).default({}),
   /** Optional social links; the profile renders an icon per non-empty entry. */
   socialLinks: SocialLinksSchema.optional(),
+  /**
+   * Former members leave the main list; they render in the team page's
+   * "former members" section — only while {@link TeamConfigSchema.showFormerMembers}
+   * is on. Absent → current member.
+   */
+  former: z.boolean().optional(),
 });
 
 export type TeamMember = z.infer<typeof TeamMemberSchema>;
@@ -107,6 +113,8 @@ export const TeamConfigSchema = z
      * Mobile always stacks identification above biography. Absent → no alternation.
      */
     alternateLayout: z.boolean().optional(),
+    /** When true, the team page shows the "former members" section. Absent → hidden. */
+    showFormerMembers: z.boolean().optional(),
   })
   .refine((team) => new Set(team.members.map((m) => m.slug)).size === team.members.length, {
     message: "Member slugs must be unique",

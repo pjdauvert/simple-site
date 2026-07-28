@@ -91,6 +91,27 @@ describe('TeamEditor', () => {
     expect(saved.presentation).toBe('Our wonderful crew');
   });
 
+  it('toggles a member to former from the dialog and saves it with the section switch', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
+    renderEditor();
+    await screen.findByText('Jane');
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /show former members/i }));
+    fireEvent.click(screen.getByRole('button', { name: /edit member/i }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: /former member/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
+
+    // The list flags the member as former.
+    expect(await screen.findByText('Former')).toBeInTheDocument();
+
+    const save = await screen.findByRole('button', { name: /save team/i });
+    await act(async () => { fireEvent.click(save); });
+    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
+    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.members[0].former).toBe(true);
+    expect(saved.showFormerMembers).toBe(true);
+  });
+
   it('saves the alternate-layout option', async () => {
     vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
     renderEditor();

@@ -113,6 +113,53 @@ describe('TeamPage (public /team)', () => {
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByText('Our wonderful crew')).not.toBeInTheDocument();
   });
+
+  it('shows former members in their own section only when the switch is on', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [
+        member('jane-doe', 'Jane Doe'),
+        member('john-smith', 'John Smith'),
+        { ...member('ada-martin', 'Ada Martin'), former: true },
+      ],
+      showFormerMembers: true,
+    });
+    renderPage();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Former members' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ada Martin' })).toHaveAttribute('href', '/team/member/ada-martin');
+  });
+
+  it('hides former members entirely when the switch is off', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [
+        member('jane-doe', 'Jane Doe'),
+        member('john-smith', 'John Smith'),
+        { ...member('ada-martin', 'Ada Martin'), former: true },
+      ],
+    });
+    renderPage();
+    await screen.findByText('Jane Doe');
+    expect(screen.queryByText('Former members')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ada Martin')).not.toBeInTheDocument();
+  });
+
+  it('keeps the single-profile shortcut only when no former section is visible', async () => {
+    // One current + one hidden former → the single current member's profile.
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [member('jane-doe', 'Jane Doe'), { ...member('ada-martin', 'Ada Martin'), former: true }],
+    });
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Jane Doe' })).toBeInTheDocument();
+    expect(screen.queryByText('Ada Martin')).not.toBeInTheDocument();
+
+    // Same team with the switch on → the list view with the former section.
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [member('jane-doe', 'Jane Doe'), { ...member('ada-martin', 'Ada Martin'), former: true }],
+      showFormerMembers: true,
+    });
+    renderPage();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Former members' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ada Martin' })).toBeInTheDocument();
+  });
 });
 
 describe('isReversedRow (alternate layout)', () => {

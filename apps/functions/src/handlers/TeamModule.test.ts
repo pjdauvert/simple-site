@@ -70,10 +70,11 @@ describe('TeamModule', () => {
   it('PUT /api/team replaces the whole team (live immediately, no draft)', async () => {
     const { data } = makeStore({ team: { members: [member('old-member')] } });
     const res = await handle(jsonRequest('https://site.test/api/team', 'PUT', {
-      members: [member('jane-doe'), member('john-smith', { name: 'John Smith', photoUrl: '/img/john.jpg' })],
+      members: [member('jane-doe'), member('john-smith', { name: 'John Smith', photoUrl: '/img/john.jpg', former: true })],
       title: 'The crew',
       presentation: 'Our wonderful crew',
       alternateLayout: true,
+      showFormerMembers: true,
     }));
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.message).toMatch(/updated/i);
@@ -82,6 +83,8 @@ describe('TeamModule', () => {
     expect(stored.title).toBe('The crew');
     expect(stored.presentation).toBe('Our wonderful crew');
     expect(stored.alternateLayout).toBe(true);
+    expect(stored.showFormerMembers).toBe(true);
+    expect(stored.members[1].former).toBe(true);
   });
 
   it('PUT /api/team accepts social links and rejects invalid ones', async () => {

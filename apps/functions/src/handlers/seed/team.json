@@ -1,6 +1,7 @@
 {
   "title": "Our team",
   "presentation": "We are a small crew of makers who believe simple tools can carry **big ideas**.",
+  "showFormerMembers": true,
   "members": [
     {
       "slug": "jane-doe",
@@ -23,6 +24,16 @@
       "biography": {
         "en": "John builds the platform end to end — from the blob store to the pixel grid.\n\nBefore joining, he shipped embedded software for weather balloons.",
         "fr": "John construit la plateforme de bout en bout — du stockage blob à la grille de pixels.\n\nAvant de nous rejoindre, il développait des logiciels embarqués pour des ballons météo."
+      }
+    },
+    {
+      "slug": "ada-martin",
+      "name": "Ada Martin",
+      "jobTitle": "Co-founder",
+      "former": true,
+      "biography": {
+        "en": "Ada co-founded the company and led design during the first two years.",
+        "fr": "Ada a cofondé l'entreprise et a dirigé le design pendant les deux premières années."
       }
     }
   ]

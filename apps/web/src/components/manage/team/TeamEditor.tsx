@@ -4,6 +4,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -77,6 +78,7 @@ export const TeamEditor: React.FC = () => {
   const [title, setTitle] = useState('');
   const [presentation, setPresentation] = useState('');
   const [alternateLayout, setAlternateLayout] = useState(false);
+  const [showFormerMembers, setShowFormerMembers] = useState(false);
   const [languages, setLanguages] = useState<Locale[]>([BASE_LOCALE]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -99,6 +101,7 @@ export const TeamEditor: React.FC = () => {
         setTitle(team.title ?? '');
         setPresentation(team.presentation ?? '');
         setAlternateLayout(Boolean(team.alternateLayout));
+        setShowFormerMembers(Boolean(team.showFormerMembers));
         setLanguages(langs.length > 0 ? langs : [BASE_LOCALE]);
       })
       .catch((err) => {
@@ -143,6 +146,7 @@ export const TeamEditor: React.FC = () => {
       title: title.trim() || undefined,
       presentation: presentation.trim() || undefined,
       alternateLayout,
+      showFormerMembers,
     });
     if (!parsed.success) {
       notify.error(intl.formatMessage({ id: 'page.manage.team.error.invalid' }));
@@ -218,7 +222,12 @@ export const TeamEditor: React.FC = () => {
       <FormControlLabel
         control={<Switch checked={alternateLayout} onChange={(_, checked) => setAlternateLayout(checked)} />}
         label={<Typography variant="body2"><FormattedMessage id="page.manage.team.alternateLayout" /></Typography>}
-        sx={{ mb: 1 }}
+        sx={{ display: 'flex', mb: 0.5 }}
+      />
+      <FormControlLabel
+        control={<Switch checked={showFormerMembers} onChange={(_, checked) => setShowFormerMembers(checked)} />}
+        label={<Typography variant="body2"><FormattedMessage id="page.manage.team.showFormerMembers" /></Typography>}
+        sx={{ display: 'flex', mb: 1 }}
       />
 
       {members.length === 0 && (
@@ -290,9 +299,18 @@ export const TeamEditor: React.FC = () => {
               </ListItemAvatar>
               <ListItemText
                 primary={
-                  <Typography variant="body2" noWrap color={hasError ? 'error' : undefined} sx={{ pr: 18 }}>
-                    {member.name.trim() || intl.formatMessage({ id: 'page.manage.team.untitled' })}
-                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ pr: 18 }}>
+                    <Typography variant="body2" noWrap color={hasError ? 'error' : undefined}>
+                      {member.name.trim() || intl.formatMessage({ id: 'page.manage.team.untitled' })}
+                    </Typography>
+                    {member.former && (
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={<FormattedMessage id="page.manage.team.badge.former" />}
+                      />
+                    )}
+                  </Stack>
                 }
                 secondary={
                   <Typography variant="caption" color="text.secondary" noWrap component="div" sx={{ pr: 18 }}>
