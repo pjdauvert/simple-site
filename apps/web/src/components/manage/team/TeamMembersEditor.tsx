@@ -10,15 +10,12 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  FormControlLabel,
   IconButton,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
   Stack,
-  Switch,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -28,18 +25,9 @@ import {
   ArrowUpward as UpIcon,
   DeleteOutline as DeleteIcon,
   EditOutlined as EditIcon,
-  Translate as TranslateIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import {
-  BASE_LOCALE,
-  TEAM_FORMER_MEMBERS_TITLE_KEY,
-  TEAM_PRESENTATION_KEY,
-  TEAM_TITLE_KEY,
-  TeamConfigSchema,
-  type Locale,
-  type TeamMember,
-} from '@simple-site/interfaces';
+import { BASE_LOCALE, TeamConfigSchema, type Locale, type TeamMember } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';
@@ -49,38 +37,18 @@ import { moveItem } from '../pages/pagesDraft';
 import { createMember, membersAreValid, normalizeSocialLinks, validateMembers } from './teamDraft';
 import { MemberFormDialog } from './MemberFormDialog';
 
-/** Field adornment opening the Translations page deep-linked to a team key. */
-const TranslateShortcut: React.FC<{ i18nKey: string; label: string }> = ({ i18nKey, label }) => (
-  <Tooltip title={label}>
-    <IconButton
-      size="small"
-      sx={{ alignSelf: 'flex-start' }}
-      // Same-origin target, deliberately no `noopener` (see InlineTranslateButton).
-      onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(i18nKey)}`, '_blank')}
-      aria-label={label}
-    >
-      <TranslateIcon fontSize="small" />
-    </IconButton>
-  </Tooltip>
-);
-
 /**
- * Team editor for /manage/team: list of members (reorder = public overview order)
- * with an edit dialog per member. DIRECT SAVE: unlike the rest of the admin, a
- * save is live immediately — the team has its own blob, outside the config
- * draft/publish cycle — which the caption under the toolbar spells out.
+ * Members tab of /manage/team: the member list (reorder = public overview order)
+ * with an edit dialog per member. Saving re-fetches the stored team and merges
+ * only the members, so page options saved from the Page tab are never clobbered.
+ * DIRECT SAVE: changes are live immediately (the team sits outside draft/publish).
  */
-export const TeamEditor: React.FC = () => {
+export const TeamMembersEditor: React.FC = () => {
   const intl = useIntl();
   const notify = useNotifications();
   const flags = useFeatureFlags();
 
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [title, setTitle] = useState('');
-  const [presentation, setPresentation] = useState('');
-  const [alternateLayout, setAlternateLayout] = useState(false);
-  const [showFormerMembers, setShowFormerMembers] = useState(false);
-  const [formerMembersTitle, setFormerMembersTitle] = useState('');
   const [languages, setLanguages] = useState<Locale[]>([BASE_LOCALE]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -100,11 +68,6 @@ export const TeamEditor: React.FC = () => {
       .then(([team, langs]) => {
         if (!active) return;
         setMembers(team.members);
-        setTitle(team.title ?? '');
-        setPresentation(team.presentation ?? '');
-        setAlternateLayout(Boolean(team.alternateLayout));
-        setShowFormerMembers(Boolean(team.showFormerMembers));
-        setFormerMembersTitle(team.formerMembersTitle ?? '');
         setLanguages(langs.length > 0 ? langs : [BASE_LOCALE]);
       })
       .catch((err) => {
@@ -144,20 +107,15 @@ export const TeamEditor: React.FC = () => {
       jobTitle: m.jobTitle.trim(),
       socialLinks: normalizeSocialLinks(m.socialLinks),
     }));
-    const parsed = TeamConfigSchema.safeParse({
-      members: normalized,
-      title: title.trim() || undefined,
-      presentation: presentation.trim() || undefined,
-      alternateLayout,
-      showFormerMembers,
-      formerMembersTitle: formerMembersTitle.trim() || undefined,
-    });
-    if (!parsed.success) {
-      notify.error(intl.formatMessage({ id: 'page.manage.team.error.invalid' }));
-      return;
-    }
     setSubmitting(true);
     try {
+      // Re-fetch so page options saved from the Page tab aren't clobbered.
+      const current = await loadTeam();
+      const parsed = TeamConfigSchema.safeParse({ ...current, members: normalized });
+      if (!parsed.success) {
+        notify.error(intl.formatMessage({ id: 'page.manage.team.error.invalid' }));
+        return;
+      }
       await saveTeam(parsed.data);
       setMembers(parsed.data.members);
       notify.success(intl.formatMessage({ id: 'page.manage.team.saved' }));
@@ -177,84 +135,6 @@ export const TeamEditor: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 640 }}>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        <FormattedMessage id="page.manage.team.liveNote" />
-      </Typography>
-
-      <TextField
-        label={intl.formatMessage({ id: 'page.manage.team.field.title' })}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        size="small"
-        fullWidth
-        helperText={intl.formatMessage({ id: 'page.manage.team.field.title.help' })}
-        sx={{ mb: 2 }}
-        slotProps={{
-          input: {
-            endAdornment: (
-              <TranslateShortcut
-                i18nKey={TEAM_TITLE_KEY}
-                label={intl.formatMessage({ id: 'page.manage.team.translate' })}
-              />
-            ),
-          },
-        }}
-      />
-
-      <TextField
-        label={intl.formatMessage({ id: 'page.manage.team.field.presentation' })}
-        value={presentation}
-        onChange={(e) => setPresentation(e.target.value)}
-        size="small"
-        fullWidth
-        multiline
-        minRows={3}
-        helperText={intl.formatMessage({ id: 'page.manage.team.field.presentation.help' })}
-        sx={{ mb: 2 }}
-        slotProps={{
-          input: {
-            endAdornment: (
-              <TranslateShortcut
-                i18nKey={TEAM_PRESENTATION_KEY}
-                label={intl.formatMessage({ id: 'page.manage.team.translate' })}
-              />
-            ),
-          },
-        }}
-      />
-
-      <FormControlLabel
-        control={<Switch checked={alternateLayout} onChange={(_, checked) => setAlternateLayout(checked)} />}
-        label={<Typography variant="body2"><FormattedMessage id="page.manage.team.alternateLayout" /></Typography>}
-        sx={{ display: 'flex', mb: 0.5 }}
-      />
-      <FormControlLabel
-        control={<Switch checked={showFormerMembers} onChange={(_, checked) => setShowFormerMembers(checked)} />}
-        label={<Typography variant="body2"><FormattedMessage id="page.manage.team.showFormerMembers" /></Typography>}
-        sx={{ display: 'flex', mb: 1 }}
-      />
-      {showFormerMembers && (
-        <TextField
-          label={intl.formatMessage({ id: 'page.manage.team.field.formerMembersTitle' })}
-          value={formerMembersTitle}
-          onChange={(e) => setFormerMembersTitle(e.target.value)}
-          size="small"
-          fullWidth
-          helperText={intl.formatMessage({ id: 'page.manage.team.field.formerMembersTitle.help' })}
-          sx={{ mb: 2 }}
-          slotProps={{
-            input: {
-              endAdornment: (
-                <TranslateShortcut
-                  i18nKey={TEAM_FORMER_MEMBERS_TITLE_KEY}
-                  label={intl.formatMessage({ id: 'page.manage.team.translate' })}
-                />
-              ),
-            },
-          }}
-        />
-      )}
-
       {members.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           <FormattedMessage id="page.manage.team.empty" />

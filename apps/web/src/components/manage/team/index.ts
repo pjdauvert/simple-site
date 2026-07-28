@@ -1,1 +1,2 @@
-export { TeamEditor } from './TeamEditor';
+export { TeamPageSettings } from './TeamPageSettings';
+export { TeamMembersEditor } from './TeamMembersEditor';

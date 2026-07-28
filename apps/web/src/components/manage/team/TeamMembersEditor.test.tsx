@@ -5,7 +5,7 @@ import { IntlProvider } from 'react-intl';
 import type { TeamConfig, TeamMember } from '@simple-site/interfaces';
 import messages from '../../../features/i18n/i18n.json';
 import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
-import { TeamEditor } from './TeamEditor';
+import { TeamMembersEditor } from './TeamMembersEditor';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';
 
@@ -24,13 +24,13 @@ function renderEditor() {
   return render(
     <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
       <NotificationsProvider>
-        <TeamEditor />
+        <TeamMembersEditor />
       </NotificationsProvider>
     </IntlProvider>,
   );
 }
 
-describe('TeamEditor', () => {
+describe('TeamMembersEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(loadTeam).mockResolvedValue({ members: [] });
@@ -38,10 +38,9 @@ describe('TeamEditor', () => {
     vi.mocked(saveTeam).mockResolvedValue(undefined);
   });
 
-  it('shows the empty state and the direct-save note', async () => {
+  it('shows the empty state', async () => {
     renderEditor();
     expect(await screen.findByText('No team members yet. Add one to get started.')).toBeInTheDocument();
-    expect(screen.getByText(/saves here are live immediately/i)).toBeInTheDocument();
   });
 
   it('adds a member with a slug auto-derived from the name, then saves', async () => {
@@ -66,70 +65,6 @@ describe('TeamEditor', () => {
     expect(saved.members[0]).toMatchObject({ slug: 'ela-dupont', name: 'Éla Dupont' });
   });
 
-  it('saves the title and presentation, each linking to its translation key', async () => {
-    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
-    const open = vi.spyOn(window, 'open').mockReturnValue(null);
-    renderEditor();
-    await screen.findByText('Jane');
-
-    fireEvent.change(screen.getByLabelText(/team page title/i), { target: { value: 'The crew' } });
-    fireEvent.change(screen.getByLabelText(/team presentation/i), { target: { value: 'Our wonderful crew' } });
-
-    const translateButtons = screen.getAllByRole('button', { name: /translate/i });
-    fireEvent.click(translateButtons[0]);
-    expect(open).toHaveBeenCalledWith('/manage/translations?key=team.title', '_blank');
-    fireEvent.click(translateButtons[1]);
-    expect(open).toHaveBeenCalledWith('/manage/translations?key=team.presentation', '_blank');
-    open.mockRestore();
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
-    });
-    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
-    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
-    expect(saved.title).toBe('The crew');
-    expect(saved.presentation).toBe('Our wonderful crew');
-  });
-
-  it('toggles a member to former from the dialog and saves it with the section switch', async () => {
-    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
-    renderEditor();
-    await screen.findByText('Jane');
-
-    fireEvent.click(screen.getByRole('checkbox', { name: /show former members/i }));
-    // The section-title field appears once the switch is on.
-    fireEvent.change(await screen.findByLabelText(/former members section title/i), { target: { value: 'Alumni' } });
-    fireEvent.click(screen.getByRole('button', { name: /edit member/i }));
-    fireEvent.click(await screen.findByRole('checkbox', { name: /former member/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
-
-    // The list flags the member as former.
-    expect(await screen.findByText('Former')).toBeInTheDocument();
-
-    const save = await screen.findByRole('button', { name: /save team/i });
-    await act(async () => { fireEvent.click(save); });
-    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
-    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
-    expect(saved.members[0].former).toBe(true);
-    expect(saved.showFormerMembers).toBe(true);
-    expect(saved.formerMembersTitle).toBe('Alumni');
-  });
-
-  it('saves the alternate-layout option', async () => {
-    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
-    renderEditor();
-    await screen.findByText('Jane');
-
-    fireEvent.click(screen.getByRole('checkbox', { name: /alternate member sides/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
-    });
-
-    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
-    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
-    expect(saved.alternateLayout).toBe(true);
-  });
-
   it('saves social links, dropping emptied ones', async () => {
     vi.mocked(loadTeam).mockResolvedValue({
       members: [{ ...member('jane-doe', 'Jane'), socialLinks: { website: 'https://old.example.com' } }],
@@ -150,6 +85,24 @@ describe('TeamEditor', () => {
     expect(saved.members[0].socialLinks).toEqual({ linkedin: 'https://linkedin.com/in/jane' });
   });
 
+  it('toggles a member to former from the dialog and flags it in the list', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
+    renderEditor();
+    await screen.findByText('Jane');
+
+    fireEvent.click(screen.getByRole('button', { name: /edit member/i }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: /former member/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
+
+    expect(await screen.findByText('Former')).toBeInTheDocument();
+
+    const save = await screen.findByRole('button', { name: /save team/i });
+    await act(async () => { fireEvent.click(save); });
+    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
+    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.members[0].former).toBe(true);
+  });
+
   it('keeps a hand-edited slug when the name changes afterwards', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /add member/i }));
@@ -163,7 +116,6 @@ describe('TeamEditor', () => {
     vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane'), member('jane-doe2', 'Jane 2')] });
     renderEditor();
 
-    // Rename the second slug into a collision.
     const editButtons = await screen.findAllByRole('button', { name: /edit member/i });
     fireEvent.click(editButtons[1]);
     fireEvent.change(await screen.findByLabelText(/url slug/i), { target: { value: 'jane-doe' } });
@@ -210,5 +162,34 @@ describe('TeamEditor', () => {
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
     expect(saved.members.map((m) => m.slug)).toEqual(['john-smith']);
+  });
+
+  it('re-fetches on save so options saved from the Page tab are preserved', async () => {
+    // Initial load: one member, no options. By save time the Page tab stored options.
+    vi.mocked(loadTeam)
+      .mockResolvedValueOnce({ members: [member('jane-doe', 'Jane')] })
+      .mockResolvedValueOnce({
+        members: [member('jane-doe', 'Jane')],
+        title: 'The crew',
+        alternateLayout: true,
+        showFormerMembers: true,
+        formerMembersTitle: 'Alumni',
+      });
+    renderEditor();
+    await screen.findByText('Jane');
+
+    const upDummy = screen.getAllByRole('button', { name: /edit member/i });
+    expect(upDummy).toHaveLength(1);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+    });
+
+    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
+    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.title).toBe('The crew');
+    expect(saved.alternateLayout).toBe(true);
+    expect(saved.showFormerMembers).toBe(true);
+    expect(saved.formerMembersTitle).toBe('Alumni');
+    expect(saved.members.map((m) => m.slug)).toEqual(['jane-doe']);
   });
 });

@@ -78,7 +78,9 @@ Configuration is versioned with a draft → publish model: the **live site** rea
 │  │    ├─ themes   ThemesTab   → PUT /api/config/themes│
 │  │    ├─ pages    PagesEditor → POST /api/config  │
 │  │    └─ menu     MenuEditor  → PUT /api/config/menu│
-│  ├─ /manage/team   TeamEditor (FEATURE_TEAM flag) │
+│  ├─ /manage/team   Team (FEATURE_TEAM flag, tabs) │
+│  │    ├─ page     TeamPageSettings (layout opts)  │
+│  │    └─ members  TeamMembersEditor (people)      │
 │  │    GET/PUT /api/team — direct save, own blob   │
 │  ├─ /manage/translations  editor (overrides only)│
 │  │    keys = config ∪ blob; add/import/remove lang│

@@ -9,6 +9,8 @@ import { MenuTab } from "../pages/admin/MenuTab";
 import { TranslationsPage } from "../pages/admin/TranslationsPage";
 import { MediaPage } from "../pages/admin/MediaPage";
 import { TeamPage } from "../pages/admin/TeamPage";
+import { TeamPageTab } from "../pages/admin/TeamPageTab";
+import { TeamMembersTab } from "../pages/admin/TeamMembersTab";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { ManageLayout } from "../layouts/ManageLayout";
 import { Loading } from "../components";
@@ -49,7 +51,13 @@ const ManageArea: React.FC = () => {
           <Route path="pages" element={<PagesTab />} />
           <Route path="menu" element={<MenuTab />} />
         </Route>
-        {flags.team && <Route path="team" element={<TeamPage />} />}
+        {flags.team && (
+          <Route path="team" element={<TeamPage />}>
+            <Route index element={<Navigate to="page" replace />} />
+            <Route path="page" element={<TeamPageTab />} />
+            <Route path="members" element={<TeamMembersTab />} />
+          </Route>
+        )}
         <Route path="translations" element={<TranslationsPage />} />
         {flags.media && <Route path="media" element={<MediaPage />} />}
       </Routes>
