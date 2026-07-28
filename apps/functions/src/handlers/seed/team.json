@@ -1,40 +1,102 @@
 {
-  "title": "Our team",
-  "presentation": "We are a small crew of makers who believe simple tools can carry **big ideas**.",
+  "title": "Lorem ipsum",
+  "presentation": "Lorem ipsum dolor sit amet, **consectetur adipiscing elit**. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Cras justo odio, dapibus ac facilisis in, egestas eget quam.",
   "showFormerMembers": true,
-  "formerMembersTitle": "Former members",
+  "formerMembersTitle": "Lorem emeriti",
   "members": [
     {
-      "slug": "jane-doe",
-      "name": "Jane Doe",
-      "jobTitle": "Founder & CEO",
-      "photoUrl": "/images/team/jane-doe.jpg",
+      "slug": "elise-moreau",
+      "name": "Élise Moreau",
+      "jobTitle": "Principal Investigator",
+      "photoUrl": "https://picsum.photos/seed/elise-moreau/480/480",
       "biography": {
-        "en": "Jane founded the company in 2020 after a decade in product design.\n\nShe leads the team with a focus on **simple, accessible experiences** and spends her spare time restoring old synthesizers.",
-        "fr": "Jane a fondé l'entreprise en 2020 après dix ans dans le design produit.\n\nElle dirige l'équipe avec une attention particulière aux **expériences simples et accessibles** et passe son temps libre à restaurer de vieux synthétiseurs."
+        "en": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. **Sed posuere consectetur** est at lobortis. Vestibulum id ligula porta felis euismod semper.\n\nDonec ullamcorper nulla non metus auctor fringilla, vivamus sagittis lacus vel augue laoreet rutrum faucibus.",
+        "fr": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. **Aenean lacinia bibendum** nulla sed consectetur. Cras mattis consectetur purus sit amet fermentum.\n\nMaecenas faucibus mollis interdum, praesent commodo cursus magna vel scelerisque nisl consectetur et."
       },
       "socialLinks": {
-        "linkedin": "https://www.linkedin.com/in/jane-doe",
-        "website": "https://janedoe.example.com"
+        "linkedin": "https://www.linkedin.com/in/lorem-ipsum",
+        "website": "https://lorem-ipsum.example.com"
       }
     },
     {
-      "slug": "john-smith",
-      "name": "John Smith",
-      "jobTitle": "Lead Engineer",
+      "slug": "rafael-ortiz",
+      "name": "Rafael Ortiz",
+      "jobTitle": "Lab Manager",
+      "photoUrl": "https://picsum.photos/seed/rafael-ortiz/480/480",
       "biography": {
-        "en": "John builds the platform end to end — from the blob store to the pixel grid.\n\nBefore joining, he shipped embedded software for weather balloons.",
-        "fr": "John construit la plateforme de bout en bout — du stockage blob à la grille de pixels.\n\nAvant de nous rejoindre, il développait des logiciels embarqués pour des ballons météo."
+        "en": "Curabitur blandit tempus porttitor. Nullam quis risus eget urna mollis ornare vel eu leo. Etiam porta sem malesuada magna mollis euismod.",
+        "fr": "Curabitur blandit tempus porttitor. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit."
+      },
+      "socialLinks": {
+        "x": "https://x.com/lorem_ipsum"
       }
     },
     {
-      "slug": "ada-martin",
-      "name": "Ada Martin",
-      "jobTitle": "Co-founder",
+      "slug": "amara-diallo",
+      "name": "Amara Diallo",
+      "jobTitle": "Postdoctoral Researcher",
+      "biography": {
+        "en": "Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. **Morbi leo risus**, porta ac consectetur ac, vestibulum at eros.\n\nPraesent commodo cursus magna, vel scelerisque nisl consectetur et.",
+        "fr": "Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. **Nulla vitae elit libero**, a pharetra augue.\n\nDonec sed odio dui, sed posuere consectetur est at lobortis."
+      },
+      "socialLinks": {
+        "github": "https://github.com/lorem-ipsum"
+      }
+    },
+    {
+      "slug": "jonas-keller",
+      "name": "Jonas Keller",
+      "jobTitle": "PhD Student",
+      "photoUrl": "https://picsum.photos/seed/jonas-keller/480/480",
+      "biography": {
+        "en": "Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Sed posuere consectetur est at lobortis.",
+        "fr": "Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Etiam porta sem malesuada magna mollis euismod."
+      }
+    },
+    {
+      "slug": "mei-tanaka",
+      "name": "Mei Tanaka",
+      "jobTitle": "Research Technician",
+      "biography": {
+        "en": "Maecenas sed diam eget risus varius blandit sit amet non magna. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.",
+        "fr": "Maecenas sed diam eget risus varius blandit sit amet non magna. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh."
+      },
+      "socialLinks": {
+        "instagram": "https://www.instagram.com/lorem.ipsum"
+      }
+    },
+    {
+      "slug": "viktor-sorensen",
+      "name": "Viktor Sørensen",
+      "jobTitle": "Bioinformatician",
       "former": true,
       "biography": {
-        "en": "Ada co-founded the company and led design during the first two years.",
-        "fr": "Ada a cofondé l'entreprise et a dirigé le design pendant les deux premières années."
+        "en": "Donec id elit non mi porta gravida at eget metus. **Integer posuere erat** a ante venenatis dapibus posuere velit aliquet.",
+        "fr": "Donec id elit non mi porta gravida at eget metus. **Nullam id dolor** id nibh ultricies vehicula ut id elit."
+      },
+      "socialLinks": {
+        "github": "https://github.com/lorem-emeritus"
+      }
+    },
+    {
+      "slug": "lucia-bianchi",
+      "name": "Lucia Bianchi",
+      "jobTitle": "Postdoctoral Researcher",
+      "former": true,
+      "photoUrl": "https://picsum.photos/seed/lucia-bianchi/480/480",
+      "biography": {
+        "en": "Cras mattis consectetur purus sit amet fermentum. Sed posuere consectetur est at lobortis, nulla vitae elit libero a pharetra augue.",
+        "fr": "Cras mattis consectetur purus sit amet fermentum. Vestibulum id ligula porta felis euismod semper, aenean lacinia bibendum nulla sed consectetur."
+      }
+    },
+    {
+      "slug": "tom-becker",
+      "name": "Tom Becker",
+      "jobTitle": "Research Intern",
+      "former": true,
+      "biography": {
+        "en": "Etiam porta sem malesuada magna mollis euismod. Nullam quis risus eget urna mollis ornare vel eu leo.",
+        "fr": "Etiam porta sem malesuada magna mollis euismod. Curabitur blandit tempus porttitor, duis mollis est non commodo luctus."
       }
     }
   ]
