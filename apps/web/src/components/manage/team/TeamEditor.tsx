@@ -17,6 +17,7 @@ import {
   ListItemText,
   Stack,
   Switch,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -26,9 +27,16 @@ import {
   ArrowUpward as UpIcon,
   DeleteOutline as DeleteIcon,
   EditOutlined as EditIcon,
+  Translate as TranslateIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { BASE_LOCALE, TeamConfigSchema, type Locale, type TeamMember } from '@simple-site/interfaces';
+import {
+  BASE_LOCALE,
+  TEAM_PRESENTATION_KEY,
+  TeamConfigSchema,
+  type Locale,
+  type TeamMember,
+} from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';
@@ -50,6 +58,7 @@ export const TeamEditor: React.FC = () => {
   const flags = useFeatureFlags();
 
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [presentation, setPresentation] = useState('');
   const [alternateLayout, setAlternateLayout] = useState(false);
   const [languages, setLanguages] = useState<Locale[]>([BASE_LOCALE]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +79,7 @@ export const TeamEditor: React.FC = () => {
       .then(([team, langs]) => {
         if (!active) return;
         setMembers(team.members);
+        setPresentation(team.presentation ?? '');
         setAlternateLayout(Boolean(team.alternateLayout));
         setLanguages(langs.length > 0 ? langs : [BASE_LOCALE]);
       })
@@ -110,7 +120,11 @@ export const TeamEditor: React.FC = () => {
       jobTitle: m.jobTitle.trim(),
       socialLinks: normalizeSocialLinks(m.socialLinks),
     }));
-    const parsed = TeamConfigSchema.safeParse({ members: normalized, alternateLayout });
+    const parsed = TeamConfigSchema.safeParse({
+      members: normalized,
+      presentation: presentation.trim() || undefined,
+      alternateLayout,
+    });
     if (!parsed.success) {
       notify.error(intl.formatMessage({ id: 'page.manage.team.error.invalid' }));
       return;
@@ -139,6 +153,35 @@ export const TeamEditor: React.FC = () => {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         <FormattedMessage id="page.manage.team.liveNote" />
       </Typography>
+
+      <TextField
+        label={intl.formatMessage({ id: 'page.manage.team.field.presentation' })}
+        value={presentation}
+        onChange={(e) => setPresentation(e.target.value)}
+        size="small"
+        fullWidth
+        multiline
+        minRows={3}
+        helperText={intl.formatMessage({ id: 'page.manage.team.field.presentation.help' })}
+        sx={{ mb: 2 }}
+        slotProps={{
+          input: {
+            endAdornment: (
+              <Tooltip title={intl.formatMessage({ id: 'page.manage.team.translate' })}>
+                <IconButton
+                  size="small"
+                  sx={{ alignSelf: 'flex-start' }}
+                  // Same-origin target, deliberately no `noopener` (see InlineTranslateButton).
+                  onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(TEAM_PRESENTATION_KEY)}`, '_blank')}
+                  aria-label={intl.formatMessage({ id: 'page.manage.team.translate' })}
+                >
+                  <TranslateIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            ),
+          },
+        }}
+      />
 
       <FormControlLabel
         control={<Switch checked={alternateLayout} onChange={(_, checked) => setAlternateLayout(checked)} />}

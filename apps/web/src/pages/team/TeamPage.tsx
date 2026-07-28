@@ -1,6 +1,8 @@
 import React from 'react';
-import { Container, Stack, Typography } from '@mui/material';
+import ReactMarkdown from 'react-markdown';
+import { Box, Container, Stack, Typography } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
+import { TEAM_PRESENTATION_KEY } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
 import { ErrorPage } from '../error/ErrorPage';
 import { Loading } from '../../components';
@@ -37,6 +39,15 @@ export const TeamPage: React.FC = () => {
       <Typography variant="h3" component="h1" gutterBottom sx={{ mb: { xs: 3, md: 5 } }}>
         <FormattedMessage id="page.team.title" />
       </Typography>
+      {team.presentation?.trim() && (
+        <Box sx={{ mb: { xs: 4, md: 6 }, '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 } }}>
+          {/* The stored text is the translation default; per-language values from
+              the Translations page take over via the shared key. */}
+          <FormattedMessage id={TEAM_PRESENTATION_KEY} defaultMessage={team.presentation}>
+            {(msg) => <ReactMarkdown>{String(msg)}</ReactMarkdown>}
+          </FormattedMessage>
+        </Box>
+      )}
       <Stack spacing={{ xs: 6, md: 8 }}>
         {members.map((member, index) => (
           <MemberRow

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { BASE_LOCALE, I18nLocaleSchema } from "./i18n.interface.js";
 import { UrlOrPathSchema } from "./url.interface.js";
+import type { I18nEntry } from "./sections/section.interface.js";
 
 /**
  * Team feature — members are stored in their own blob (key `team`), managed from
@@ -60,6 +61,17 @@ export const TeamMemberSchema = z.object({
 
 export type TeamMember = z.infer<typeof TeamMemberSchema>;
 
+/** Translation key of the team presentation text. */
+export const TEAM_PRESENTATION_KEY = "team.presentation";
+
+/**
+ * Translatable (key → default value) pairs the team blob references, merged into
+ * the Translations editor's expected keys alongside `collectI18nEntries` (the
+ * team lives in its own blob, so the config walk cannot see it).
+ */
+export const collectTeamI18nEntries = (team: TeamConfig): I18nEntry[] =>
+  team.presentation?.trim() ? [{ key: TEAM_PRESENTATION_KEY, defaultValue: team.presentation }] : [];
+
 /** The member's non-empty social links, in display order. */
 export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId, string]> =>
   ALL_SOCIAL_NETWORKS.flatMap((network) => {
@@ -71,6 +83,12 @@ export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId,
 export const TeamConfigSchema = z
   .object({
     members: z.array(TeamMemberSchema),
+    /**
+     * Optional team presentation (markdown), shown above the member list on the
+     * team page. Unlike biographies it is a translation DEFAULT: per-language
+     * values are managed on the Translations page under {@link TEAM_PRESENTATION_KEY}.
+     */
+    presentation: z.string().optional(),
     /**
      * Team-page layout option: when true, member rows alternate sides — first
      * member identification left / biography right, second reversed, and so on.

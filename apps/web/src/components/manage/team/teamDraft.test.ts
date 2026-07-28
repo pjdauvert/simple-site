@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickBiography, slugify, type TeamMember } from '@simple-site/interfaces';
+import { collectTeamI18nEntries, pickBiography, slugify, type TeamMember } from '@simple-site/interfaces';
 import { createMember, membersAreValid, normalizeSocialLinks, validateMembers } from './teamDraft';
 
 const member = (slug: string, name = 'Jane Doe'): TeamMember =>
@@ -48,6 +48,15 @@ describe('normalizeSocialLinks', () => {
       .toEqual({ linkedin: 'https://li.example' });
     expect(normalizeSocialLinks({ x: '   ' })).toBeUndefined();
     expect(normalizeSocialLinks(undefined)).toBeUndefined();
+  });
+});
+
+describe('collectTeamI18nEntries', () => {
+  it('emits the presentation key only when the text is set', () => {
+    expect(collectTeamI18nEntries({ members: [], presentation: 'Our crew' }))
+      .toEqual([{ key: 'team.presentation', defaultValue: 'Our crew' }]);
+    expect(collectTeamI18nEntries({ members: [] })).toEqual([]);
+    expect(collectTeamI18nEntries({ members: [], presentation: '   ' })).toEqual([]);
   });
 });
 

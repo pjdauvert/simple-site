@@ -84,6 +84,24 @@ describe('TeamPage (public /team)', () => {
     expect(screen.getByText('About Jane Doe')).toBeInTheDocument();
     expect(screen.getByText('About John Smith')).toBeInTheDocument();
   });
+
+  it('renders the optional presentation text above the member list', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [member('jane-doe', 'Jane Doe'), member('john-smith', 'John Smith')],
+      presentation: 'Our wonderful crew',
+    });
+    renderPage();
+    expect(await screen.findByText('Our wonderful crew')).toBeInTheDocument();
+  });
+
+  it('renders no presentation block when the text is not set', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [member('jane-doe', 'Jane Doe'), member('john-smith', 'John Smith')],
+    });
+    renderPage();
+    await screen.findByText('Our team');
+    expect(screen.queryByText('Our wonderful crew')).not.toBeInTheDocument();
+  });
 });
 
 describe('isReversedRow (alternate layout)', () => {

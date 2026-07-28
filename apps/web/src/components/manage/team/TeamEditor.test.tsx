@@ -66,6 +66,25 @@ describe('TeamEditor', () => {
     expect(saved.members[0]).toMatchObject({ slug: 'ela-dupont', name: 'Éla Dupont' });
   });
 
+  it('saves the presentation text and links to its translation key', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    renderEditor();
+    await screen.findByText('Jane');
+
+    fireEvent.change(screen.getByLabelText(/team presentation/i), { target: { value: 'Our wonderful crew' } });
+    fireEvent.click(screen.getByRole('button', { name: /translate/i }));
+    expect(open).toHaveBeenCalledWith('/manage/translations?key=team.presentation', '_blank');
+    open.mockRestore();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+    });
+    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
+    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.presentation).toBe('Our wonderful crew');
+  });
+
   it('saves the alternate-layout option', async () => {
     vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
     renderEditor();

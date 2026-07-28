@@ -227,6 +227,7 @@ The team lives in its **own blob** (key `team`, seeded in dev from `apps/functio
 
 ```json
 {
+  "presentation": "markdown… (optional, shown above the member list)",
   "members": [
     {
       "slug": "jane-doe",
@@ -245,6 +246,7 @@ The team lives in its **own blob** (key `team`, seeded in dev from `apps/functio
 - **`slug`** is the member's public URL identifier (`/team/member/<slug>`): lowercase kebab-case, unique across members, auto-derived from the name in the editor until edited by hand.
 - **`biography`** is a per-locale record of markdown, stored **inside the member** — independent of the translations blob. The editor shows a language switch only when the platform offers more than one language; public rendering uses the active locale, falling back to the base locale, then to the first non-empty entry. `name`, `jobTitle` and `photoUrl` are language-neutral.
 - **`socialLinks`** (optional) — supported networks: `linkedin`, `x`, `github`, `instagram`, `facebook`, `youtube`, `website` (see `SocialNetworksEnum` in `libs/interfaces/src/team.interface.ts`).
+- **`presentation`** (optional, markdown) — introduction text above the member list on the team page, edited from the team editor. Unlike biographies it is a translation **default**: per-language values live on the Translations page under the `team.presentation` key (the editor field has a shortcut deep-linking to it, and the Translations editor lists the key automatically while the feature is on — `collectTeamI18nEntries`).
 - **Array order** is the display order of the public team overview.
 - **Public rendering** — `/team` shows the 404 page with no members and the single member's profile with exactly one. With several members it renders flat full-width rows (no panels): the identification block — circular photo (or initial avatar), name linking to the member page, job title, social icons — on one side and the full biography on the other. **`alternateLayout`** (toggle in the team editor) flips sides every other row on desktop; mobile always stacks one column, identification above biography. Unknown slugs 404. The single-member profile shows the circular photo with name and job title underneath, the biography in a card panel, and — only when links are provided — a centered row of social icons below it.
 - The **menu** links to `/team` through a `{ "type": "feature", "feature": "team" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.
