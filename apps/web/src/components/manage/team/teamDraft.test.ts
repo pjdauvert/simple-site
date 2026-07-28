@@ -53,9 +53,17 @@ describe('normalizeSocialLinks', () => {
 
 describe('collectTeamI18nEntries', () => {
   it('emits the title and presentation keys only when their text is set', () => {
-    expect(collectTeamI18nEntries({ members: [], title: 'The crew', presentation: 'Our crew' })).toEqual([
+    expect(
+      collectTeamI18nEntries({
+        members: [],
+        title: 'The crew',
+        presentation: 'Our crew',
+        formerMembersTitle: 'Alumni',
+      }),
+    ).toEqual([
       { key: 'team.title', defaultValue: 'The crew' },
       { key: 'team.presentation', defaultValue: 'Our crew' },
+      { key: 'team.formerMembersTitle', defaultValue: 'Alumni' },
     ]);
     expect(collectTeamI18nEntries({ members: [], presentation: 'Our crew' }))
       .toEqual([{ key: 'team.presentation', defaultValue: 'Our crew' }]);

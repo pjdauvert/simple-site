@@ -97,6 +97,8 @@ describe('TeamEditor', () => {
     await screen.findByText('Jane');
 
     fireEvent.click(screen.getByRole('checkbox', { name: /show former members/i }));
+    // The section-title field appears once the switch is on.
+    fireEvent.change(await screen.findByLabelText(/former members section title/i), { target: { value: 'Alumni' } });
     fireEvent.click(screen.getByRole('button', { name: /edit member/i }));
     fireEvent.click(await screen.findByRole('checkbox', { name: /former member/i }));
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
@@ -110,6 +112,7 @@ describe('TeamEditor', () => {
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
     expect(saved.members[0].former).toBe(true);
     expect(saved.showFormerMembers).toBe(true);
+    expect(saved.formerMembersTitle).toBe('Alumni');
   });
 
   it('saves the alternate-layout option', async () => {

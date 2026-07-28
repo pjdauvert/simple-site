@@ -11,6 +11,8 @@ interface MemberRowProps {
   member: TeamMember;
   /** Desktop only: biography left / identification right (mobile always stacks). */
   reverse: boolean;
+  /** Former-members styling: lighter row, grayscale portrait (team page only). */
+  dimmed?: boolean;
 }
 
 /**
@@ -19,7 +21,7 @@ interface MemberRowProps {
  * on one side, the markdown biography on the other. `reverse` flips the sides
  * on desktop; on mobile everything stacks in one column, identification first.
  */
-export const MemberRow: React.FC<MemberRowProps> = ({ member, reverse }) => {
+export const MemberRow: React.FC<MemberRowProps> = ({ member, reverse, dimmed = false }) => {
   const { locale } = useIntl();
   const biography = pickBiography(member.biography, locale);
 
@@ -31,10 +33,11 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, reverse }) => {
         flexDirection: { xs: 'column', md: reverse ? 'row-reverse' : 'row' },
         alignItems: { xs: 'center', md: 'flex-start' },
         gap: { xs: 3, md: 6 },
+        opacity: dimmed ? 0.72 : 1,
       }}
     >
       <Stack alignItems="center" spacing={1.5} sx={{ width: { md: 240 }, flexShrink: 0 }}>
-        <MemberPortrait member={member} size={160} />
+        <MemberPortrait member={member} size={160} grayscale={dimmed} />
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="h5" component="h2" gutterBottom>
             <Link

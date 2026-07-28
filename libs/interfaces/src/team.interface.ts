@@ -71,6 +71,8 @@ export type TeamMember = z.infer<typeof TeamMemberSchema>;
 export const TEAM_TITLE_KEY = "team.title";
 /** Translation key of the team presentation text. */
 export const TEAM_PRESENTATION_KEY = "team.presentation";
+/** Translation key of the former-members section heading. */
+export const TEAM_FORMER_MEMBERS_TITLE_KEY = "team.formerMembersTitle";
 
 /**
  * Translatable (key → default value) pairs the team blob references, merged into
@@ -81,6 +83,9 @@ export const collectTeamI18nEntries = (team: TeamConfig): I18nEntry[] => {
   const entries: I18nEntry[] = [];
   if (team.title?.trim()) entries.push({ key: TEAM_TITLE_KEY, defaultValue: team.title });
   if (team.presentation?.trim()) entries.push({ key: TEAM_PRESENTATION_KEY, defaultValue: team.presentation });
+  if (team.formerMembersTitle?.trim()) {
+    entries.push({ key: TEAM_FORMER_MEMBERS_TITLE_KEY, defaultValue: team.formerMembersTitle });
+  }
   return entries;
 };
 
@@ -115,6 +120,12 @@ export const TeamConfigSchema = z
     alternateLayout: z.boolean().optional(),
     /** When true, the team page shows the "former members" section. Absent → hidden. */
     showFormerMembers: z.boolean().optional(),
+    /**
+     * Optional heading of the "former members" section (above its separator line).
+     * A translation DEFAULT like the page title, under {@link TEAM_FORMER_MEMBERS_TITLE_KEY}.
+     * Absent/empty → the section renders its separator without a heading.
+     */
+    formerMembersTitle: z.string().optional(),
   })
   .refine((team) => new Set(team.members.map((m) => m.slug)).size === team.members.length, {
     message: "Member slugs must be unique",

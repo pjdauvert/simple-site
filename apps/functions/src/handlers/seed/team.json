@@ -2,6 +2,7 @@
   "title": "Our team",
   "presentation": "We are a small crew of makers who believe simple tools can carry **big ideas**.",
   "showFormerMembers": true,
+  "formerMembersTitle": "Former members",
   "members": [
     {
       "slug": "jane-doe",

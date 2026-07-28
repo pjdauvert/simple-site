@@ -114,18 +114,34 @@ describe('TeamPage (public /team)', () => {
     expect(screen.queryByText('Our wonderful crew')).not.toBeInTheDocument();
   });
 
-  it('shows former members in their own section only when the switch is on', async () => {
+  it('shows former members in a separated, dimmed section only when the switch is on', async () => {
     vi.mocked(loadTeam).mockResolvedValue({
       members: [
         member('jane-doe', 'Jane Doe'),
         member('john-smith', 'John Smith'),
-        { ...member('ada-martin', 'Ada Martin'), former: true },
+        { ...member('ada-martin', 'Ada Martin'), former: true, photoUrl: '/img/ada.jpg' },
       ],
       showFormerMembers: true,
+      formerMembersTitle: 'Former members',
     });
-    renderPage();
+    const { container } = renderPage();
     expect(await screen.findByRole('heading', { level: 2, name: 'Former members' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ada Martin' })).toHaveAttribute('href', '/team/member/ada-martin');
+    // Horizontal separator above the section, grayscale portrait on its rows.
+    expect(container.querySelector('hr')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Ada Martin' })).toHaveStyle('filter: grayscale(1)');
+  });
+
+  it('renders the former section without a heading when its title is not set', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [member('jane-doe', 'Jane Doe'), { ...member('ada-martin', 'Ada Martin'), former: true }],
+      showFormerMembers: true,
+    });
+    const { container } = renderPage();
+    expect(await screen.findByText('Ada Martin')).toBeInTheDocument();
+    expect(container.querySelector('hr')).toBeInTheDocument();
+    // No section heading — the member names are the only h2 headings left.
+    expect(screen.queryByRole('heading', { level: 2, name: 'Former members' })).not.toBeInTheDocument();
   });
 
   it('hides former members entirely when the switch is off', async () => {
@@ -155,6 +171,7 @@ describe('TeamPage (public /team)', () => {
     vi.mocked(loadTeam).mockResolvedValue({
       members: [member('jane-doe', 'Jane Doe'), { ...member('ada-martin', 'Ada Martin'), former: true }],
       showFormerMembers: true,
+      formerMembersTitle: 'Former members',
     });
     renderPage();
     expect(await screen.findByRole('heading', { level: 2, name: 'Former members' })).toBeInTheDocument();

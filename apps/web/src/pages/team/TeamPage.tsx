@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Box, Container, Stack, Typography } from '@mui/material';
+import { Box, Container, Divider, Stack, Typography } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
-import { TEAM_PRESENTATION_KEY, TEAM_TITLE_KEY } from '@simple-site/interfaces';
+import { TEAM_FORMER_MEMBERS_TITLE_KEY, TEAM_PRESENTATION_KEY, TEAM_TITLE_KEY } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
 import { ErrorPage } from '../error/ErrorPage';
 import { Loading } from '../../components';
@@ -65,15 +65,19 @@ export const TeamPage: React.FC = () => {
       </Stack>
       {formerVisible.length > 0 && (
         <>
-          <Typography variant="h4" component="h2" gutterBottom sx={{ mt: { xs: 6, md: 10 }, mb: { xs: 3, md: 5 } }}>
-            <FormattedMessage id="page.team.formerMembers" />
-          </Typography>
+          <Divider sx={{ mt: { xs: 6, md: 10 }, mb: { xs: 3, md: 5 } }} />
+          {team.formerMembersTitle?.trim() && (
+            <Typography variant="h4" component="h2" gutterBottom sx={{ mb: { xs: 3, md: 5 } }}>
+              <FormattedMessage id={TEAM_FORMER_MEMBERS_TITLE_KEY} defaultMessage={team.formerMembersTitle} />
+            </Typography>
+          )}
           <Stack spacing={{ xs: 6, md: 8 }}>
             {formerVisible.map((member, index) => (
               <MemberRow
                 key={member.slug}
                 member={member}
                 reverse={isReversedRow(index, Boolean(team.alternateLayout))}
+                dimmed
               />
             ))}
           </Stack>

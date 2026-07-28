@@ -241,7 +241,8 @@ The team lives in its **own blob** (key `team`, seeded in dev from `apps/functio
     }
   ],
   "alternateLayout": false,
-  "showFormerMembers": false
+  "showFormerMembers": false,
+  "formerMembersTitle": "Former members (optional section heading)"
 }
 ```
 
@@ -250,7 +251,7 @@ The team lives in its **own blob** (key `team`, seeded in dev from `apps/functio
 - **`biography`** is a per-locale record of markdown, stored **inside the member** — independent of the translations blob. The editor shows a language switch only when the platform offers more than one language; public rendering uses the active locale, falling back to the base locale, then to the first non-empty entry. `name`, `jobTitle` and `photoUrl` are language-neutral.
 - **`socialLinks`** (optional) — supported networks: `linkedin`, `x`, `github`, `instagram`, `facebook`, `youtube`, `website` (see `SocialNetworksEnum` in `libs/interfaces/src/team.interface.ts`).
 - **`title`** (optional) and **`presentation`** (optional, markdown) — the team page's heading and the introduction text above the member list, both edited from the team editor. Absent/empty → not rendered. Unlike biographies they are translation **defaults**: per-language values live on the Translations page under the `team.title` / `team.presentation` keys (each editor field has a shortcut deep-linking to its key, and the Translations editor lists them automatically while the feature is on — `collectTeamI18nEntries`).
-- **`former`** (optional, per member — toggled in the member dialog) moves a member out of the main list and into the team page's **"Former members" section**, which renders only while **`showFormerMembers`** (switch in the team editor) is on. Hidden former members keep their `/team/member/<slug>` page reachable by URL, like hidden menu entries.
+- **`former`** (optional, per member — toggled in the member dialog) moves a member out of the main list and into the team page's **former-members section**, which renders only while **`showFormerMembers`** (switch in the team editor) is on. The section sits under a horizontal separator with an optional heading (**`formerMembersTitle`** — a translation default under `team.formerMembersTitle`, like the page title); its rows render lighter with grayscale portraits — the personal page keeps full color and shows a "Former member" chip next to the job title instead. Hidden former members keep their `/team/member/<slug>` page reachable by URL, like hidden menu entries.
 - **Array order** is the display order of the public team overview (within each section).
 - **Public rendering** — `/team` shows the 404 page with no members and the single member's profile with exactly one. With several members it renders flat full-width rows (no panels): the identification block — circular photo (or initial avatar), name linking to the member page, job title, social icons — on one side and the full biography on the other. **`alternateLayout`** (toggle in the team editor) flips sides every other row on desktop; mobile always stacks one column, identification above biography. Unknown slugs 404. The single-member profile shows the circular photo with name and job title underneath, the biography in a card panel, and — only when links are provided — a centered row of social icons below it.
 - The **menu** links to `/team` through a `{ "type": "feature", "feature": "team" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.

@@ -85,6 +85,21 @@ describe('TeamMemberPage (public /team/member/:slug)', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
+  it('flags a former member with a chip next to the job title, without dimming the page', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [{ ...jane, former: true }] });
+    renderAt('/team/member/jane-doe');
+    await screen.findByRole('heading', { name: 'Jane Doe' });
+    expect(screen.getByText('Former member')).toBeInTheDocument();
+    // The personal page keeps the photo in full color.
+    expect(screen.getByRole('img', { name: 'Jane Doe' })).not.toHaveStyle('filter: grayscale(1)');
+  });
+
+  it('shows no former chip for a current member', async () => {
+    renderAt('/team/member/jane-doe');
+    await screen.findByRole('heading', { name: 'Jane Doe' });
+    expect(screen.queryByText('Former member')).not.toBeInTheDocument();
+  });
+
   it('renders an initial avatar instead of a photo when none is set', async () => {
     vi.mocked(loadTeam).mockResolvedValue({ members: [{ ...jane, photoUrl: undefined }] });
     renderAt('/team/member/jane-doe');

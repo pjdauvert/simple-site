@@ -33,6 +33,7 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   BASE_LOCALE,
+  TEAM_FORMER_MEMBERS_TITLE_KEY,
   TEAM_PRESENTATION_KEY,
   TEAM_TITLE_KEY,
   TeamConfigSchema,
@@ -79,6 +80,7 @@ export const TeamEditor: React.FC = () => {
   const [presentation, setPresentation] = useState('');
   const [alternateLayout, setAlternateLayout] = useState(false);
   const [showFormerMembers, setShowFormerMembers] = useState(false);
+  const [formerMembersTitle, setFormerMembersTitle] = useState('');
   const [languages, setLanguages] = useState<Locale[]>([BASE_LOCALE]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export const TeamEditor: React.FC = () => {
         setPresentation(team.presentation ?? '');
         setAlternateLayout(Boolean(team.alternateLayout));
         setShowFormerMembers(Boolean(team.showFormerMembers));
+        setFormerMembersTitle(team.formerMembersTitle ?? '');
         setLanguages(langs.length > 0 ? langs : [BASE_LOCALE]);
       })
       .catch((err) => {
@@ -147,6 +150,7 @@ export const TeamEditor: React.FC = () => {
       presentation: presentation.trim() || undefined,
       alternateLayout,
       showFormerMembers,
+      formerMembersTitle: formerMembersTitle.trim() || undefined,
     });
     if (!parsed.success) {
       notify.error(intl.formatMessage({ id: 'page.manage.team.error.invalid' }));
@@ -229,6 +233,27 @@ export const TeamEditor: React.FC = () => {
         label={<Typography variant="body2"><FormattedMessage id="page.manage.team.showFormerMembers" /></Typography>}
         sx={{ display: 'flex', mb: 1 }}
       />
+      {showFormerMembers && (
+        <TextField
+          label={intl.formatMessage({ id: 'page.manage.team.field.formerMembersTitle' })}
+          value={formerMembersTitle}
+          onChange={(e) => setFormerMembersTitle(e.target.value)}
+          size="small"
+          fullWidth
+          helperText={intl.formatMessage({ id: 'page.manage.team.field.formerMembersTitle.help' })}
+          sx={{ mb: 2 }}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <TranslateShortcut
+                  i18nKey={TEAM_FORMER_MEMBERS_TITLE_KEY}
+                  label={intl.formatMessage({ id: 'page.manage.team.translate' })}
+                />
+              ),
+            },
+          }}
+        />
+      )}
 
       {members.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

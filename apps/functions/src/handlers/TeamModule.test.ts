@@ -75,6 +75,7 @@ describe('TeamModule', () => {
       presentation: 'Our wonderful crew',
       alternateLayout: true,
       showFormerMembers: true,
+      formerMembersTitle: 'Alumni',
     }));
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.message).toMatch(/updated/i);
@@ -84,6 +85,7 @@ describe('TeamModule', () => {
     expect(stored.presentation).toBe('Our wonderful crew');
     expect(stored.alternateLayout).toBe(true);
     expect(stored.showFormerMembers).toBe(true);
+    expect(stored.formerMembersTitle).toBe('Alumni');
     expect(stored.members[1].former).toBe(true);
   });
 

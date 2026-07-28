@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Box, Container, Paper, Stack, Typography } from '@mui/material';
-import { useIntl } from 'react-intl';
+import { Box, Chip, Container, Paper, Stack, Typography } from '@mui/material';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { pickBiography, type TeamMember } from '@simple-site/interfaces';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -37,10 +37,21 @@ export const MemberProfile: React.FC<MemberProfileProps> = ({ member }) => {
           <Typography variant="h3" component="h1" gutterBottom>
             {member.name}
           </Typography>
-          {member.jobTitle && (
-            <Typography variant="h6" component="p" color="text.secondary">
-              {member.jobTitle}
-            </Typography>
+          {(member.jobTitle || member.former) && (
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+              {member.jobTitle && (
+                <Typography variant="h6" component="p" color="text.secondary">
+                  {member.jobTitle}
+                </Typography>
+              )}
+              {member.former && (
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={<FormattedMessage id="page.team.formerMember" />}
+                />
+              )}
+            </Stack>
           )}
         </Box>
 
