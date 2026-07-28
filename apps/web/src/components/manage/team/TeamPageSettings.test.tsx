@@ -7,8 +7,10 @@ import messages from '../../../features/i18n/i18n.json';
 import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { TeamPageSettings } from './TeamPageSettings';
 import { loadTeam, saveTeam } from '../../../services/teamService';
+import { loadAllTranslations } from '../../../services/translationsService';
 
 vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: vi.fn() }));
+vi.mock('../../../services/translationsService', () => ({ loadAllTranslations: vi.fn() }));
 
 const member = (slug: string, name: string): TeamMember =>
   ({ slug, name, jobTitle: 'Engineer', biography: { en: 'Bio' } });
@@ -27,7 +29,20 @@ describe('TeamPageSettings', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(loadTeam).mockResolvedValue({ members: [] });
+    vi.mocked(loadAllTranslations).mockResolvedValue({ defaultLanguage: 'en', translations: {} });
     vi.mocked(saveTeam).mockResolvedValue(undefined);
+  });
+
+  it('reminds which default language the texts are entered in', async () => {
+    renderSettings();
+    expect(await screen.findByText(/default language — English \(en\)/i)).toBeInTheDocument();
+  });
+
+  it('hides the reminder when the translations payload cannot be loaded', async () => {
+    vi.mocked(loadAllTranslations).mockRejectedValue(new Error('offline'));
+    renderSettings();
+    await screen.findByLabelText(/team page title/i); // tab still fully usable
+    expect(screen.queryByText(/default language/i)).not.toBeInTheDocument();
   });
 
   it('saves the title and presentation, each linking to its translation key', async () => {

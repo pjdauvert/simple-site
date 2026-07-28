@@ -20,6 +20,8 @@ import {
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadTeam, saveTeam } from '../../../services/teamService';
+import { loadAllTranslations } from '../../../services/translationsService';
+import { languageLabel } from '../../../features/i18n/languageNames';
 import { useNotifications } from '../../../hooks/useNotifications';
 
 /** Field adornment opening the Translations page deep-linked to a team key. */
@@ -52,19 +54,25 @@ export const TeamPageSettings: React.FC = () => {
   const [presentation, setPresentation] = useState('');
   const [showFormerMembers, setShowFormerMembers] = useState(false);
   const [formerMembersTitle, setFormerMembersTitle] = useState('');
+  const [defaultLanguage, setDefaultLanguage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
-    loadTeam()
-      .then((team) => {
+    Promise.all([
+      loadTeam(),
+      // Only feeds the default-language reminder — losing it must not block the tab.
+      loadAllTranslations().catch(() => null),
+    ])
+      .then(([team, translations]) => {
         if (!active) return;
         setTitle(team.title ?? '');
         setPresentation(team.presentation ?? '');
         setShowFormerMembers(Boolean(team.showFormerMembers));
         setFormerMembersTitle(team.formerMembersTitle ?? '');
+        setDefaultLanguage(translations?.defaultLanguage ?? null);
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.team.error.load' }));
@@ -110,6 +118,14 @@ export const TeamPageSettings: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 640 }}>
+      {defaultLanguage && (
+        <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+          <FormattedMessage
+            id="page.manage.team.defaultLanguageNote"
+            values={{ language: `${languageLabel(defaultLanguage)} (${defaultLanguage})` }}
+          />
+        </Alert>
+      )}
       <TextField
         label={intl.formatMessage({ id: 'page.manage.team.field.title' })}
         value={title}
