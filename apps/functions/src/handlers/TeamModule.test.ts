@@ -24,7 +24,7 @@ const jsonRequest = (url: string, method: string, body?: unknown, contentType = 
 const member = (slug: string, over: Record<string, unknown> = {}) => ({
   slug,
   name: 'Jane Doe',
-  jobTitle: 'CEO',
+  jobTitle: { en: 'CEO', fr: 'PDG' },
   biography: { en: 'Hello', fr: 'Bonjour' },
   ...over,
 });
@@ -65,6 +65,14 @@ describe('TeamModule', () => {
     const team = (await readJson(res)).data;
     expect(team.members).toHaveLength(1);
     expect(team.members[0].slug).toBe('jane-doe');
+    expect(team.members[0].jobTitle).toEqual({ en: 'CEO', fr: 'PDG' });
+  });
+
+  it('GET /api/team coerces a legacy plain-string job title into the base-locale record', async () => {
+    makeStore({ team: { members: [member('jane-doe', { jobTitle: 'CEO' })] } });
+    const res = await handle(jsonRequest('https://site.test/api/team', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.members[0].jobTitle).toEqual({ en: 'CEO' });
   });
 
   it('PUT /api/team replaces the whole team (live immediately, no draft)', async () => {

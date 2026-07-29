@@ -13,7 +13,7 @@ vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: v
 vi.mock('../../../services/translationsService', () => ({ loadAllTranslations: vi.fn() }));
 
 const member = (slug: string, name: string): TeamMember =>
-  ({ slug, name, jobTitle: 'Engineer', biography: { en: 'Bio' } });
+  ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
 function renderSettings() {
   return render(

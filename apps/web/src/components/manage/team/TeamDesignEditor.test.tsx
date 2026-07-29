@@ -11,7 +11,7 @@ import { loadTeam, saveTeam } from '../../../services/teamService';
 vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: vi.fn() }));
 
 const member = (slug: string, name: string): TeamMember =>
-  ({ slug, name, jobTitle: 'Engineer', biography: { en: 'Bio' } });
+  ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
 function renderEditor() {
   return render(

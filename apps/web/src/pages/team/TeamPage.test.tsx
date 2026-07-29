@@ -26,7 +26,7 @@ const themeValue: ThemeContextValue = {
 };
 
 const member = (slug: string, name: string, over: Partial<TeamMember> = {}): TeamMember =>
-  ({ slug, name, jobTitle: 'Engineer', biography: { en: `About ${name}` }, ...over });
+  ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: `About ${name}` }, ...over });
 
 function renderPage() {
   return render(
@@ -84,6 +84,27 @@ describe('TeamPage (public /team)', () => {
     expect(screen.getByRole('link', { name: 'John Smith' })).toHaveAttribute('href', '/team/member/john-smith');
     expect(screen.getByText('About Jane Doe')).toBeInTheDocument();
     expect(screen.getByText('About John Smith')).toBeInTheDocument();
+  });
+
+  it('truncates a long biography at a word boundary — the ellipsis links to the member page', async () => {
+    const longBio = `${'word '.repeat(80)}final`;
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [
+        member('jane-doe', 'Jane Doe', { biography: { en: longBio } }),
+        member('john-smith', 'John Smith'),
+      ],
+    });
+    renderPage();
+    await screen.findByText('Jane Doe');
+
+    const more = screen.getByRole('link', { name: '…' });
+    expect(more).toHaveAttribute('href', '/team/member/jane-doe');
+    expect(more).toHaveAttribute('title', 'Read the full biography');
+    // The cut never splits a word, so the tail never reaches the page.
+    expect(screen.queryByText(/final/)).not.toBeInTheDocument();
+    // The short biography stays untouched: one single ellipsis link on the page.
+    expect(screen.getByText('About John Smith')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '…' })).toHaveLength(1);
   });
 
   it('renders the optional presentation text above the member list', async () => {

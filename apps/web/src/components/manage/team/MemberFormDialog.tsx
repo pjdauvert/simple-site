@@ -50,9 +50,10 @@ const SLUG_ERROR: Record<NonNullable<MemberFieldErrors['slug']>, string> = {
 
 /**
  * Edit form for one team member. The slug auto-derives from the name until it is
- * edited by hand (clearing it re-enables derivation); the per-locale biography is
- * markdown, with a language switch shown only when the platform offers several
- * languages (the base locale is the public fallback).
+ * edited by hand (clearing it re-enables derivation). Job title and biography
+ * (markdown) are per-locale texts governed by one language switch, shown only
+ * when the platform offers several languages (the base locale is the public
+ * fallback).
  */
 export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
   open,
@@ -66,13 +67,13 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
 }) => {
   const intl = useIntl();
   const [slugTouched, setSlugTouched] = useState(false);
-  const [bioLocale, setBioLocale] = useState<Locale>(BASE_LOCALE);
+  const [textsLocale, setTextsLocale] = useState<Locale>(BASE_LOCALE);
 
   // Re-arm per member: an already-customized slug must never be silently rewritten.
   useEffect(() => {
     if (!open) return;
     setSlugTouched(member.slug !== '' && member.slug !== slugify(member.name));
-    setBioLocale(BASE_LOCALE);
+    setTextsLocale(languages.includes(BASE_LOCALE) ? BASE_LOCALE : (languages[0] ?? BASE_LOCALE));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -97,7 +98,7 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
     Boolean(value?.trim()) && !UrlOrPathSchema.safeParse(value?.trim()).success;
   const localeLabel = (locale: Locale): string =>
     locale === BASE_LOCALE
-      ? `${locale.toUpperCase()} · ${intl.formatMessage({ id: 'page.manage.team.field.biography.default' })}`
+      ? `${locale.toUpperCase()} · ${intl.formatMessage({ id: 'page.manage.team.field.profileLanguage.default' })}`
       : locale.toUpperCase();
 
   return (
@@ -114,13 +115,6 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
             required
             error={Boolean(nameError)}
             helperText={nameError ? intl.formatMessage({ id: NAME_ERROR[nameError] }) : ' '}
-          />
-          <TextField
-            label={intl.formatMessage({ id: 'page.manage.team.field.jobTitle' })}
-            value={member.jobTitle}
-            onChange={(e) => onChange({ ...member, jobTitle: e.target.value })}
-            size="small"
-            fullWidth
           />
           <FormControlLabel
             control={
@@ -156,9 +150,9 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
             <ToggleButtonGroup
               exclusive
               size="small"
-              value={bioLocale}
-              onChange={(_, next: Locale | null) => { if (next) setBioLocale(next); }}
-              aria-label={intl.formatMessage({ id: 'page.manage.team.field.biography.language' })}
+              value={textsLocale}
+              onChange={(_, next: Locale | null) => { if (next) setTextsLocale(next); }}
+              aria-label={intl.formatMessage({ id: 'page.manage.team.field.profileLanguage' })}
             >
               {languages.map((locale) => (
                 <ToggleButton key={locale} value={locale}>{localeLabel(locale)}</ToggleButton>
@@ -166,9 +160,16 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
             </ToggleButtonGroup>
           )}
           <TextField
+            label={intl.formatMessage({ id: 'page.manage.team.field.jobTitle' })}
+            value={member.jobTitle[textsLocale] ?? ''}
+            onChange={(e) => onChange({ ...member, jobTitle: { ...member.jobTitle, [textsLocale]: e.target.value } })}
+            size="small"
+            fullWidth
+          />
+          <TextField
             label={intl.formatMessage({ id: 'page.manage.team.field.biography' })}
-            value={member.biography[bioLocale] ?? ''}
-            onChange={(e) => onChange({ ...member, biography: { ...member.biography, [bioLocale]: e.target.value } })}
+            value={member.biography[textsLocale] ?? ''}
+            onChange={(e) => onChange({ ...member, biography: { ...member.biography, [textsLocale]: e.target.value } })}
             size="small"
             fullWidth
             multiline

@@ -112,7 +112,7 @@ This dispatch is the **only** central i18n touch-point — the field details sta
 Declare each editable field as a slot instead of a hard-coded `<FormattedMessage>` / `<img>`:
 
 - `EditableText` — a plain / multi-line string (`path`, `value`, `multiline?`, `autoWidth?`).
-- `EditableMarkdown` — a Markdown body (rendered with `react-markdown` publicly; a lazy-loaded rich-text surface while editing).
+- `EditableMarkdown` — a Markdown body (rendered publicly through the shared `Markdown` component — GitHub-flavored markdown with MUI-styled tables and SPA-aware links; a lazy-loaded rich-text surface while editing).
 - `EditableImage` — an image (`designPath`, `src`, `alt?`); clicking it while editing opens the media library.
 
 Each renders exactly as before on the public site (config value = i18n *default*, a translation for the scoped key wins, empty renders nothing) and becomes an in-place field when a `SectionEditContext` is present. Wrap optional fields in `useSlotVisible()` so an empty field still renders (as a ghost placeholder) while editing — otherwise there'd be nothing to click.

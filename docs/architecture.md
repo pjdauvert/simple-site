@@ -9,7 +9,7 @@
 | Validation | Zod — runtime schemas + type inference |
 | Routing | React Router (dynamic, config-driven) |
 | i18n | React Intl |
-| Markdown | React Markdown |
+| Markdown | React Markdown + remark-gfm (GitHub-flavored, shared `Markdown` component) |
 | Build | Vite + Nx |
 | Tests | Vitest |
 | Linting | ESLint + Lefthook git hooks |
@@ -111,7 +111,7 @@ The public navigation is resolved from the config's optional `menu` (ordered ent
 
 ### Team
 
-The Team feature (`FEATURE_TEAM`) stores members — name, job title, photo URL (typically an ImageKit URL picked from the media library), per-locale markdown biography, and a unique URL slug — in its **own blob** (key `team`), served by its own function (`team.mts` / `TeamModule`). Saves from `/manage/team` are **live immediately**: the team deliberately sits outside the config draft → publish cycle. Publicly, `/team` renders a 404 with no members, the single member's profile with one, and an overview of clickable member cards with several; each member also has `/team/member/<slug>`. Biographies follow the active locale and fall back to the base locale (stored inside the member record, independent of the translations blob).
+The Team feature (`FEATURE_TEAM`) stores members — name, photo URL (typically an ImageKit URL picked from the media library), per-locale job title and markdown biography, and a unique URL slug — in its **own blob** (key `team`), served by its own function (`team.mts` / `TeamModule`). Saves from `/manage/team` are **live immediately**: the team deliberately sits outside the config draft → publish cycle. Publicly, `/team` renders a 404 with no members, the single member's profile with one, and flat member rows (identification block + word-safe truncated biography whose ellipsis links to the member page) with several; each member also has `/team/member/<slug>`. Job titles and biographies follow the active locale and fall back to the base locale (stored inside the member record, independent of the translations blob); the member page adds its own language switch when the profile's texts exist in several languages.
 
 ### Pages editor — in-place editing
 

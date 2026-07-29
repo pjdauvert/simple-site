@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { fireEvent } from '@testing-library/dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
@@ -27,7 +28,7 @@ const themeValue: ThemeContextValue = {
 const jane: TeamMember = {
   slug: 'jane-doe',
   name: 'Jane Doe',
-  jobTitle: 'Founder',
+  jobTitle: { en: 'Founder' },
   photoUrl: '/img/jane.jpg',
   biography: { en: 'English bio', fr: 'Bio française' },
   socialLinks: { linkedin: 'https://linkedin.com/in/jane', website: 'https://jane.example.com' },
@@ -123,6 +124,32 @@ describe('TeamMemberPage (public /team/member/:slug)', () => {
     });
     renderAt('/team/member/jane-doe', 'fr');
     expect(await screen.findByText('English bio')).toBeInTheDocument();
+  });
+
+  it('switches job title and biography together through the profile language switch', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [{ ...jane, jobTitle: { en: 'Founder', fr: 'Fondatrice' } }],
+    });
+    renderAt('/team/member/jane-doe');
+    // Platform locale (en) is preselected because the profile has it.
+    expect(await screen.findByText('English bio')).toBeInTheDocument();
+    expect(screen.getByText('Founder')).toBeInTheDocument();
+
+    const group = screen.getByRole('group', { name: 'Profile language' });
+    expect(group).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Français' }));
+    expect(screen.getByText('Bio française')).toBeInTheDocument();
+    expect(screen.getByText('Fondatrice')).toBeInTheDocument();
+    expect(screen.queryByText('Founder')).not.toBeInTheDocument();
+  });
+
+  it('hides the profile language switch when the texts exist in one language only', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [{ ...jane, biography: { en: 'English bio' } }],
+    });
+    renderAt('/team/member/jane-doe');
+    await screen.findByRole('heading', { name: 'Jane Doe' });
+    expect(screen.queryByRole('group', { name: 'Profile language' })).not.toBeInTheDocument();
   });
 
   it('applies the member-page design: portrait radius/border and bio frame overrides', async () => {

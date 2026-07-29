@@ -1,11 +1,10 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Box, Container, Divider, Stack, Typography } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
 import { TEAM_FORMER_MEMBERS_TITLE_KEY, TEAM_PRESENTATION_KEY, TEAM_TITLE_KEY } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
 import { ErrorPage } from '../error/ErrorPage';
-import { Loading } from '../../components';
+import { Loading, Markdown } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useTeam } from '../../hooks/useTeam';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -52,7 +51,7 @@ export const TeamPage: React.FC = () => {
       {team.presentation?.trim() && (
         <Box sx={{ mb: { xs: 4, md: 6 }, '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 } }}>
           <FormattedMessage id={TEAM_PRESENTATION_KEY} defaultMessage={team.presentation}>
-            {(msg) => <ReactMarkdown>{String(msg)}</ReactMarkdown>}
+            {(msg) => <Markdown>{String(msg)}</Markdown>}
           </FormattedMessage>
         </Box>
       )}

@@ -44,17 +44,28 @@ export const SocialLinksSchema = z.object({
 
 export type SocialLinks = z.infer<typeof SocialLinksSchema>;
 
+/** Per-locale member text (job title, biography), keyed by ISO 639-1 code. */
+const LocalizedTextSchema = z.record(I18nLocaleSchema, z.string());
+
 export const TeamMemberSchema = z.object({
   slug: z.string().regex(TEAM_SLUG_PATTERN),
   name: z.string().min(1),
-  jobTitle: z.string(),
+  /**
+   * Per-locale job title. Like the biography it lives inside the member,
+   * independent of the platform translations blob. Legacy blobs stored a plain
+   * string — coerced into the base-locale entry on parse.
+   */
+  jobTitle: z.preprocess(
+    (value) => (typeof value === "string" ? (value.trim() ? { [BASE_LOCALE]: value } : {}) : value),
+    LocalizedTextSchema.default({}),
+  ),
   photoUrl: UrlOrPathSchema.optional(),
   /**
    * Per-locale biography (markdown), keyed by ISO 639-1 code. Stored inside the
    * member — independent of the platform translations blob. Rendering falls back
    * to the base locale, then to the first non-empty entry.
    */
-  biography: z.record(I18nLocaleSchema, z.string()).default({}),
+  biography: LocalizedTextSchema.default({}),
   /** Optional social links; the profile renders an icon per non-empty entry. */
   socialLinks: SocialLinksSchema.optional(),
   /**
@@ -192,13 +203,28 @@ export const TeamConfigSchema = z
 export type TeamConfig = z.infer<typeof TeamConfigSchema>;
 
 /**
- * The biography to render for a locale: exact locale → base locale → first
- * non-empty entry → empty string.
+ * The member text (biography, job title) to render for a locale: exact locale →
+ * base locale → first non-empty entry → empty string.
  */
-export const pickBiography = (biography: TeamMember["biography"], locale: string): string => {
-  if (biography[locale]?.trim()) return biography[locale];
-  if (biography[BASE_LOCALE]?.trim()) return biography[BASE_LOCALE];
-  return Object.values(biography).find((bio) => bio?.trim()) ?? "";
+export const pickLocalizedText = (record: Record<string, string>, locale: string): string => {
+  if (record[locale]?.trim()) return record[locale];
+  if (record[BASE_LOCALE]?.trim()) return record[BASE_LOCALE];
+  return Object.values(record).find((text) => text?.trim()) ?? "";
+};
+
+/**
+ * Languages the member's own texts exist in (non-empty biography or job title),
+ * sorted for a stable order. Drives the profile page's language switch, which
+ * only appears when the member has 2+ of them.
+ */
+export const memberLocales = (member: TeamMember): string[] => {
+  const locales = new Set<string>();
+  for (const record of [member.jobTitle, member.biography]) {
+    for (const [locale, text] of Object.entries(record)) {
+      if (text?.trim()) locales.add(locale);
+    }
+  }
+  return [...locales].sort();
 };
 
 /** Default slug for a name: diacritics stripped, lowercased, kebab-cased. */

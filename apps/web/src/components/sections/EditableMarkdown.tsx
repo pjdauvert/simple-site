@@ -1,8 +1,8 @@
 import { Suspense, lazy, useState } from 'react';
 import { Box } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
-import ReactMarkdown from 'react-markdown';
 import { sectionContentKey } from '@simple-site/interfaces';
+import { Markdown } from '../Markdown';
 import { useSectionEdit, useInSectionPreview } from './sectionEdit';
 import { InlineTranslateButton } from './InlineControls';
 
@@ -37,10 +37,10 @@ export const EditableMarkdown: React.FC<EditableMarkdownProps> = ({ sectionName,
   if (!edit) {
     if (!value) return null;
     // Admin preview (unselected section): show the original config value, untranslated.
-    if (inPreview) return <ReactMarkdown>{value}</ReactMarkdown>;
+    if (inPreview) return <Markdown>{value}</Markdown>;
     return (
       <FormattedMessage id={sectionContentKey(sectionName, path)} defaultMessage={value}>
-        {(msg) => <ReactMarkdown>{String(msg)}</ReactMarkdown>}
+        {(msg) => <Markdown>{String(msg)}</Markdown>}
       </FormattedMessage>
     );
   }
@@ -52,7 +52,7 @@ export const EditableMarkdown: React.FC<EditableMarkdownProps> = ({ sectionName,
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={() => setFocused(false)}
     >
-      <Suspense fallback={<ReactMarkdown>{value ?? ''}</ReactMarkdown>}>
+      <Suspense fallback={<Markdown>{value ?? ''}</Markdown>}>
         <MarkdownRichEditor value={value ?? ''} onChange={(next) => edit.setContentAt(path, next)} />
       </Suspense>
       <InlineTranslateButton visible={focused} i18nKey={sectionContentKey(sectionName, path)} />

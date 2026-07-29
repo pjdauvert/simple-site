@@ -7,7 +7,10 @@
     {
       "slug": "elise-moreau",
       "name": "Élise Moreau",
-      "jobTitle": "Principal Investigator",
+      "jobTitle": {
+        "en": "Principal Investigator",
+        "fr": "Chercheuse principale"
+      },
       "photoUrl": "https://picsum.photos/seed/elise-moreau/480/480",
       "biography": {
         "en": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. **Sed posuere consectetur** est at lobortis. Vestibulum id ligula porta felis euismod semper.\n\nDonec ullamcorper nulla non metus auctor fringilla, vivamus sagittis lacus vel augue laoreet rutrum faucibus.",
@@ -21,7 +24,10 @@
     {
       "slug": "rafael-ortiz",
       "name": "Rafael Ortiz",
-      "jobTitle": "Lab Manager",
+      "jobTitle": {
+        "en": "Lab Manager",
+        "fr": "Responsable de laboratoire"
+      },
       "photoUrl": "https://picsum.photos/seed/rafael-ortiz/480/480",
       "biography": {
         "en": "Curabitur blandit tempus porttitor. Nullam quis risus eget urna mollis ornare vel eu leo. Etiam porta sem malesuada magna mollis euismod.",
@@ -34,7 +40,10 @@
     {
       "slug": "amara-diallo",
       "name": "Amara Diallo",
-      "jobTitle": "Postdoctoral Researcher",
+      "jobTitle": {
+        "en": "Postdoctoral Researcher",
+        "fr": "Chercheur postdoctoral"
+      },
       "biography": {
         "en": "Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. **Morbi leo risus**, porta ac consectetur ac, vestibulum at eros.\n\nPraesent commodo cursus magna, vel scelerisque nisl consectetur et.",
         "fr": "Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. **Nulla vitae elit libero**, a pharetra augue.\n\nDonec sed odio dui, sed posuere consectetur est at lobortis."
@@ -46,7 +55,10 @@
     {
       "slug": "jonas-keller",
       "name": "Jonas Keller",
-      "jobTitle": "PhD Student",
+      "jobTitle": {
+        "en": "PhD Student",
+        "fr": "Doctorant"
+      },
       "photoUrl": "https://picsum.photos/seed/jonas-keller/480/480",
       "biography": {
         "en": "Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Sed posuere consectetur est at lobortis.",
@@ -56,7 +68,10 @@
     {
       "slug": "mei-tanaka",
       "name": "Mei Tanaka",
-      "jobTitle": "Research Technician",
+      "jobTitle": {
+        "en": "Research Technician",
+        "fr": "Technicienne de recherche"
+      },
       "biography": {
         "en": "Maecenas sed diam eget risus varius blandit sit amet non magna. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.",
         "fr": "Maecenas sed diam eget risus varius blandit sit amet non magna. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh."
@@ -68,7 +83,10 @@
     {
       "slug": "viktor-sorensen",
       "name": "Viktor Sørensen",
-      "jobTitle": "Bioinformatician",
+      "jobTitle": {
+        "en": "Bioinformatician",
+        "fr": "Bio-informaticien"
+      },
       "former": true,
       "biography": {
         "en": "Donec id elit non mi porta gravida at eget metus. **Integer posuere erat** a ante venenatis dapibus posuere velit aliquet.",
@@ -81,7 +99,10 @@
     {
       "slug": "lucia-bianchi",
       "name": "Lucia Bianchi",
-      "jobTitle": "Postdoctoral Researcher",
+      "jobTitle": {
+        "en": "Postdoctoral Researcher",
+        "fr": "Chercheuse postdoctorale"
+      },
       "former": true,
       "photoUrl": "https://picsum.photos/seed/lucia-bianchi/480/480",
       "biography": {
@@ -92,7 +113,10 @@
     {
       "slug": "tom-becker",
       "name": "Tom Becker",
-      "jobTitle": "Research Intern",
+      "jobTitle": {
+        "en": "Research Intern",
+        "fr": "Stagiaire de recherche"
+      },
       "former": true,
       "biography": {
         "en": "Etiam porta sem malesuada magna mollis euismod. Nullam quis risus eget urna mollis ornare vel eu leo.",

@@ -27,14 +27,14 @@ import {
   EditOutlined as EditIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { BASE_LOCALE, TeamConfigSchema, type Locale, type TeamMember } from '@simple-site/interfaces';
+import { BASE_LOCALE, TeamConfigSchema, pickLocalizedText, type Locale, type TeamMember } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { moveItem } from '../pages/pagesDraft';
-import { createMember, membersAreValid, normalizeSocialLinks, validateMembers } from './teamDraft';
+import { createMember, membersAreValid, normalizeLocalizedText, normalizeSocialLinks, validateMembers } from './teamDraft';
 import { MemberFormDialog } from './MemberFormDialog';
 
 /**
@@ -104,7 +104,8 @@ export const TeamMembersEditor: React.FC = () => {
       ...m,
       slug: m.slug.trim(),
       name: m.name.trim(),
-      jobTitle: m.jobTitle.trim(),
+      jobTitle: normalizeLocalizedText(m.jobTitle),
+      biography: normalizeLocalizedText(m.biography),
       socialLinks: normalizeSocialLinks(m.socialLinks),
     }));
     setSubmitting(true);
@@ -219,7 +220,9 @@ export const TeamMembersEditor: React.FC = () => {
                 }
                 secondary={
                   <Typography variant="caption" color="text.secondary" noWrap component="div" sx={{ pr: 18 }}>
-                    {[member.jobTitle.trim(), `/team/member/${member.slug || '…'}`].filter(Boolean).join(' — ')}
+                    {[pickLocalizedText(member.jobTitle, intl.locale), `/team/member/${member.slug || '…'}`]
+                      .filter(Boolean)
+                      .join(' — ')}
                   </Typography>
                 }
                 disableTypography

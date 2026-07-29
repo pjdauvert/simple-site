@@ -1,15 +1,16 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Box, Link, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useIntl } from 'react-intl';
 import {
   TEAM_PAGE_DESIGN_DEFAULTS,
-  pickBiography,
+  pickLocalizedText,
   resolveSectionDesign,
   type TeamMember,
   type TeamSectionDesign,
 } from '@simple-site/interfaces';
+import { Markdown } from '../../components';
+import { excerptMarkdown } from './bioExcerpt';
 import { MemberPortrait } from './MemberPortrait';
 import { SocialLinksRow } from './SocialLinksRow';
 
@@ -30,10 +31,20 @@ interface MemberRowProps {
  * on desktop; on mobile everything stacks in one column, identification first.
  */
 export const MemberRow: React.FC<MemberRowProps> = ({ member, reverse, dimmed = false, design }) => {
-  const { locale } = useIntl();
-  const biography = pickBiography(member.biography, locale);
+  const intl = useIntl();
+  const { locale } = intl;
+  const jobTitle = pickLocalizedText(member.jobTitle, locale);
+  const biography = pickLocalizedText(member.biography, locale);
   const resolved = resolveSectionDesign(design, TEAM_PAGE_DESIGN_DEFAULTS);
   const framed = Boolean(resolved.frameBackgroundColor) || resolved.frameBorder;
+
+  // Long biographies are cut at a word boundary; the ellipsis itself is a link
+  // to the member's page, where the full text lives.
+  const excerpt = excerptMarkdown(biography);
+  const bioMarkdown =
+    excerpt === null
+      ? biography
+      : `${excerpt}\u00A0[…](/team/member/${member.slug} "${intl.formatMessage({ id: 'page.team.readMore' })}")`;
 
   return (
     <Box
@@ -66,9 +77,9 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, reverse, dimmed = 
               {member.name}
             </Link>
           </Typography>
-          {member.jobTitle && (
+          {jobTitle && (
             <Typography variant="subtitle1" component="p" color="text.secondary">
-              {member.jobTitle}
+              {jobTitle}
             </Typography>
           )}
         </Box>
@@ -96,7 +107,7 @@ export const MemberRow: React.FC<MemberRowProps> = ({ member, reverse, dimmed = 
             '& > :last-child': { mb: 0 },
           })}
         >
-          <ReactMarkdown>{biography}</ReactMarkdown>
+          <Markdown>{bioMarkdown}</Markdown>
         </Box>
       )}
     </Box>

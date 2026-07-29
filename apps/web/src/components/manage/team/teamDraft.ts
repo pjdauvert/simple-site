@@ -6,7 +6,17 @@ import {
 } from '@simple-site/interfaces';
 
 /** A blank member, opened straight in the edit dialog (slug derives from the name). */
-export const createMember = (): TeamMember => ({ slug: '', name: '', jobTitle: '', biography: {} });
+export const createMember = (): TeamMember => ({ slug: '', name: '', jobTitle: {}, biography: {} });
+
+/** Trims every locale's text and drops the empty ones (job title, biography). */
+export const normalizeLocalizedText = (record: Record<string, string>): Record<string, string> => {
+  const normalized: Record<string, string> = {};
+  for (const [locale, text] of Object.entries(record)) {
+    const value = text.trim();
+    if (value) normalized[locale] = value;
+  }
+  return normalized;
+};
 
 /** Trims every link and drops empty ones; returns undefined when nothing remains. */
 export const normalizeSocialLinks = (links: SocialLinks | undefined): SocialLinks | undefined => {

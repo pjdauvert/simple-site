@@ -1,14 +1,26 @@
-import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import { Box, Chip, Container, Paper, Stack, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Chip,
+  Container,
+  Paper,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
+  BASE_LOCALE,
   MEMBER_PAGE_DESIGN_DEFAULTS,
-  pickBiography,
+  memberLocales,
+  pickLocalizedText,
   resolveSectionDesign,
   type TeamMember,
   type TeamSectionDesign,
 } from '@simple-site/interfaces';
+import { Markdown } from '../../components';
+import { languageLabel } from '../../features/i18n/languageNames';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { MemberPortrait } from './MemberPortrait';
@@ -20,13 +32,22 @@ interface MemberProfileProps {
   design?: TeamSectionDesign;
 }
 
+/** The profile language to preselect: platform locale when available, else fallback. */
+const initialProfileLocale = (member: TeamMember, platformLocale: string): string => {
+  const available = memberLocales(member);
+  if (available.includes(platformLocale)) return platformLocale;
+  if (available.includes(BASE_LOCALE)) return BASE_LOCALE;
+  return available[0] ?? platformLocale;
+};
+
 /**
  * A member's public profile: circular photo first (an initial avatar without
  * one), name and job title underneath, the markdown biography in a card panel,
  * and — only when links are provided — a centered row of social icons below.
  * Rendered at /team/member/<slug>, and directly at /team when the team has
- * exactly one member. The biography follows the current locale, falling back
- * to the base locale ({@link pickBiography}).
+ * exactly one member. Job title and biography follow the profile's own language
+ * switch (shown only when the member's texts exist in several languages),
+ * preselected to the platform locale when the profile has it.
  */
 export const MemberProfile: React.FC<MemberProfileProps> = ({ member, design }) => {
   const intl = useIntl();
@@ -34,7 +55,15 @@ export const MemberProfile: React.FC<MemberProfileProps> = ({ member, design }) 
   const { siteThemeConfig } = useAppTheme();
   useDocumentTitle(`${member.name} – ${siteThemeConfig.siteName}`);
 
-  const biography = pickBiography(member.biography, locale);
+  const locales = memberLocales(member);
+  const [profileLocale, setProfileLocale] = useState(() => initialProfileLocale(member, locale));
+  // Re-sync when the platform language or the displayed member changes.
+  useEffect(() => {
+    setProfileLocale(initialProfileLocale(member, locale));
+  }, [member, locale]);
+
+  const jobTitle = pickLocalizedText(member.jobTitle, profileLocale);
+  const biography = pickLocalizedText(member.biography, profileLocale);
   const resolved = resolveSectionDesign(design, MEMBER_PAGE_DESIGN_DEFAULTS);
 
   return (
@@ -52,11 +81,11 @@ export const MemberProfile: React.FC<MemberProfileProps> = ({ member, design }) 
           <Typography variant="h3" component="h1" gutterBottom>
             {member.name}
           </Typography>
-          {(member.jobTitle || member.former) && (
+          {(jobTitle || member.former) && (
             <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-              {member.jobTitle && (
+              {jobTitle && (
                 <Typography variant="h6" component="p" color="text.secondary">
-                  {member.jobTitle}
+                  {jobTitle}
                 </Typography>
               )}
               {member.former && (
@@ -69,6 +98,24 @@ export const MemberProfile: React.FC<MemberProfileProps> = ({ member, design }) 
             </Stack>
           )}
         </Box>
+
+        {locales.length > 1 && (
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={profileLocale}
+            onChange={(_, next: string | null) => {
+              if (next) setProfileLocale(next);
+            }}
+            aria-label={intl.formatMessage({ id: 'page.team.profileLanguage' })}
+          >
+            {locales.map((code) => (
+              <ToggleButton key={code} value={code} aria-label={languageLabel(code)}>
+                {code.toUpperCase()}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        )}
 
         {biography && (
           <Paper
@@ -87,7 +134,7 @@ export const MemberProfile: React.FC<MemberProfileProps> = ({ member, design }) 
               '& > :last-child': { mb: 0 },
             })}
           >
-            <ReactMarkdown>{biography}</ReactMarkdown>
+            <Markdown>{biography}</Markdown>
           </Paper>
         )}
 

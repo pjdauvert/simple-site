@@ -18,7 +18,7 @@ vi.mock('../../../hooks/useFeatureFlags', () => ({
 }));
 
 const member = (slug: string, name: string): TeamMember =>
-  ({ slug, name, jobTitle: 'Engineer', biography: { en: 'Bio' } });
+  ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
 function renderEditor() {
   return render(
