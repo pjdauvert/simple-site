@@ -34,7 +34,14 @@ import { loadLanguages } from '../../../services/initService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { moveItem } from '../pages/pagesDraft';
-import { createMember, membersAreValid, normalizeLocalizedText, normalizeSocialLinks, validateMembers } from './teamDraft';
+import {
+  createMember,
+  membersAreValid,
+  normalizeLocalizedText,
+  normalizeSocialLinks,
+  validateMembers,
+  type MemberDraft,
+} from './teamDraft';
 import { MemberFormDialog } from './MemberFormDialog';
 
 /**
@@ -48,7 +55,7 @@ export const TeamMembersEditor: React.FC = () => {
   const notify = useNotifications();
   const flags = useFeatureFlags();
 
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [members, setMembers] = useState<MemberDraft[]>([]);
   const [languages, setLanguages] = useState<Locale[]>([BASE_LOCALE]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -67,7 +74,8 @@ export const TeamMembersEditor: React.FC = () => {
     ])
       .then(([team, langs]) => {
         if (!active) return;
-        setMembers(team.members);
+        // Stored members have a public URL already — their slug is locked.
+        setMembers(team.members.map((m) => ({ ...m, persisted: true })));
         setLanguages(langs.length > 0 ? langs : [BASE_LOCALE]);
       })
       .catch((err) => {
@@ -118,7 +126,9 @@ export const TeamMembersEditor: React.FC = () => {
         return;
       }
       await saveTeam(parsed.data);
-      setMembers(parsed.data.members);
+      // Everything just saved is now published: lock every slug (the schema
+      // parse already stripped the editor-only `persisted` marker from the payload).
+      setMembers(parsed.data.members.map((m) => ({ ...m, persisted: true })));
       notify.success(intl.formatMessage({ id: 'page.manage.team.saved' }));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.team.error.save' }));
@@ -252,6 +262,7 @@ export const TeamMembersEditor: React.FC = () => {
           showErrors={showErrors}
           languages={languages}
           enablePicker={Boolean(flags?.media)}
+          slugLocked={Boolean(members[editIndex].persisted)}
           onChange={(next) => updateMember(editIndex, next)}
           onClose={() => setEditIndex(null)}
         />

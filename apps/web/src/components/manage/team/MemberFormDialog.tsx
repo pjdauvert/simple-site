@@ -35,6 +35,8 @@ interface MemberFormDialogProps {
   languages: Locale[];
   /** Enables the media-library picker on the photo field. */
   enablePicker: boolean;
+  /** Saved members keep their public URL: the slug field is read-only for them. */
+  slugLocked: boolean;
   onChange: (next: TeamMember) => void;
   onClose: () => void;
 }
@@ -50,7 +52,9 @@ const SLUG_ERROR: Record<NonNullable<MemberFieldErrors['slug']>, string> = {
 
 /**
  * Edit form for one team member. The slug auto-derives from the name until it is
- * edited by hand (clearing it re-enables derivation). Job title and biography
+ * edited by hand (clearing it re-enables derivation) — and becomes read-only
+ * once the member has been saved: the public URL never changes after creation
+ * (`slugLocked`). Job title and biography
  * (markdown) are per-locale texts governed by one language switch, shown only
  * when the platform offers several languages (the base locale is the public
  * fallback).
@@ -62,6 +66,7 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
   showErrors,
   languages,
   enablePicker,
+  slugLocked,
   onChange,
   onClose,
 }) => {
@@ -79,7 +84,8 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
 
   const setName = (name: string) => {
     const next = { ...member, name };
-    if (!slugTouched) next.slug = slugify(name);
+    // The slug only follows the name while the member is new and the slug untouched.
+    if (!slugTouched && !slugLocked) next.slug = slugify(name);
     onChange(next);
   };
 
@@ -132,11 +138,14 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
             size="small"
             fullWidth
             required
+            disabled={slugLocked}
             error={Boolean(slugError)}
             helperText={
               slugError
                 ? intl.formatMessage({ id: SLUG_ERROR[slugError] })
-                : intl.formatMessage({ id: 'page.manage.team.field.slug.help' })
+                : intl.formatMessage({
+                    id: slugLocked ? 'page.manage.team.field.slug.locked' : 'page.manage.team.field.slug.help',
+                  })
             }
           />
           <MediaUrlField

@@ -5,8 +5,18 @@ import {
   type TeamMember,
 } from '@simple-site/interfaces';
 
+/**
+ * A member row in the editor. `persisted` marks members that exist in the
+ * stored team (loaded, or successfully saved this session): their slug — the
+ * public URL identity — is locked and can never change again. Editor-only,
+ * stripped by the schema parse before saving.
+ */
+export interface MemberDraft extends TeamMember {
+  persisted?: boolean;
+}
+
 /** A blank member, opened straight in the edit dialog (slug derives from the name). */
-export const createMember = (): TeamMember => ({ slug: '', name: '', jobTitle: {}, biography: {} });
+export const createMember = (): MemberDraft => ({ slug: '', name: '', jobTitle: {}, biography: {} });
 
 /** Trims every locale's text and drops the empty ones (job title, biography). */
 export const normalizeLocalizedText = (record: Record<string, string>): Record<string, string> => {

@@ -112,13 +112,15 @@ describe('TeamMembersEditor', () => {
     expect(screen.getByLabelText(/url slug/i)).toHaveValue('custom-slug');
   });
 
-  it('blocks save and flags the field on a duplicate slug', async () => {
-    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane'), member('jane-doe2', 'Jane 2')] });
+  it('blocks save and flags the field when a new member duplicates a saved slug', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
     renderEditor();
+    await screen.findByText('Jane');
 
-    const editButtons = await screen.findAllByRole('button', { name: /edit member/i });
-    fireEvent.click(editButtons[1]);
-    fireEvent.change(await screen.findByLabelText(/url slug/i), { target: { value: 'jane-doe' } });
+    // The new member's name auto-derives the already-taken slug.
+    fireEvent.click(screen.getByRole('button', { name: /add member/i }));
+    fireEvent.change(await screen.findByLabelText(/^name/i), { target: { value: 'Jane Doe' } });
+    expect(screen.getByLabelText(/url slug/i)).toHaveValue('jane-doe');
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
     await act(async () => {
@@ -128,6 +130,41 @@ describe('TeamMembersEditor', () => {
     expect(
       await screen.findByText('Some members have invalid fields. Please fix the highlighted errors.'),
     ).toBeInTheDocument();
+  });
+
+  it('locks the slug of an already-saved member — renaming no longer touches it', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({ members: [member('jane-doe', 'Jane')] });
+    renderEditor();
+    await screen.findByText('Jane');
+
+    fireEvent.click(screen.getByRole('button', { name: /edit member/i }));
+    const slug = await screen.findByLabelText(/url slug/i);
+    expect(slug).toBeDisabled();
+    expect(
+      screen.getByText('The URL slug is permanent once the member has been saved.'),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'Jane Renamed' } });
+    expect(slug).toHaveValue('jane-doe');
+  });
+
+  it('keeps a new member slug editable until the first save, then locks it', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: /add member/i }));
+    fireEvent.change(await screen.findByLabelText(/^name/i), { target: { value: 'Jane Doe' } });
+    expect(screen.getByLabelText(/url slug/i)).not.toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+    });
+    await waitFor(() => expect(saveTeam).toHaveBeenCalled());
+    // The editor-only `persisted` marker never reaches the API payload.
+    const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
+    expect(saved.members[0]).not.toHaveProperty('persisted');
+
+    fireEvent.click(screen.getByRole('button', { name: /edit member/i }));
+    expect(await screen.findByLabelText(/url slug/i)).toBeDisabled();
   });
 
   it('reorders members — the overview order — and saves it', async () => {
