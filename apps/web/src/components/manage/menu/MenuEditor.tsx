@@ -25,14 +25,13 @@ import {
   type MenuEntry,
   type PageConfiguration,
   menuEntryId,
-  reconcileMenu,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
-import { enabledFeaturePages } from '../../../router/publicMenu';
+import { enabledFeaturePages, reconcileMenu } from '../../../router/publicMenu';
 import { moveItem } from '../pages/pagesDraft';
 import { entryRows, normalizedMenuTitle } from './menuDraft';
 

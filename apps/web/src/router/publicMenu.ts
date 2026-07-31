@@ -2,7 +2,10 @@ import {
   ALL_FEATURE_PAGE_IDS,
   FEATURE_PAGE_ROUTES,
   featureEntryLabel,
+  menuEntryId,
   type FeaturePageId,
+  type MenuConfig,
+  type MenuEntry,
   type MenuItem,
   type SiteConfig,
 } from '@simple-site/interfaces';
@@ -66,4 +69,45 @@ export const resolveMenuItems = (config: SiteConfig, flags: FeatureFlags): MenuI
     }
   }
   return items;
+};
+
+/**
+ * Reconciles a stored menu against the current pages and enabled feature pages:
+ * - no menu yet → seed page entries from the pages order (visible);
+ * - prune page entries whose page no longer exists (a rename is a prune + re-append);
+ * - append entries for new pages (visible) in pages order;
+ * - append entries for newly-enabled features (hidden, until an admin opts them in);
+ * - KEEP entries of currently-disabled features so flag flips don't lose ordering.
+ * Client-side consistency only — the server enforces menu integrity via the schema.
+ */
+export const reconcileMenu = (
+  menu: MenuConfig | undefined,
+  pages: ReadonlyArray<{ pageName: string }>,
+  enabledFeatures: readonly FeaturePageId[],
+): MenuConfig => {
+  const pageNames = new Set(pages.map((page) => page.pageName));
+  const entries: MenuEntry[] = [];
+  const present = new Set<string>();
+
+  for (const entry of menu?.entries ?? []) {
+    const id = menuEntryId(entry);
+    if (present.has(id)) continue; // defensive dedupe — first occurrence wins
+    if (entry.type === 'page' && !pageNames.has(entry.pageName)) continue;
+    present.add(id);
+    entries.push(entry);
+  }
+
+  for (const page of pages) {
+    if (present.has(`page:${page.pageName}`)) continue;
+    present.add(`page:${page.pageName}`);
+    entries.push({ type: 'page', pageName: page.pageName, visible: true });
+  }
+
+  for (const feature of enabledFeatures) {
+    if (present.has(`feature:${feature}`)) continue;
+    present.add(`feature:${feature}`);
+    entries.push({ type: 'feature', feature, visible: false });
+  }
+
+  return { entries };
 };

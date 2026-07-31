@@ -29,6 +29,3 @@ export type PageConfiguration = z.infer<typeof PageConfigurationSchema>;
 
 /** The reserved landing page: it cannot be deleted, and its route/pageName cannot be changed. */
 export const HOME_ROUTE = '/home';
-
-/** True for the reserved home page (identified by its route). */
-export const isHomePage = (page: Pick<PageConfiguration, 'route'>): boolean => page.route === HOME_ROUTE;

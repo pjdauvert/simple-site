@@ -1,11 +1,11 @@
+import type { TeamConfig, TeamSectionDesign } from '@simple-site/interfaces';
 import {
   MEMBER_PAGE_DESIGN_DEFAULTS,
   TEAM_PAGE_DESIGN_DEFAULTS,
-  type TeamConfig,
-  type TeamSectionDesign,
-} from '@simple-site/interfaces';
+  type SectionDesignDefaults,
+} from '../../../pages/team/teamDisplay';
 
-export type SectionDefaults = typeof TEAM_PAGE_DESIGN_DEFAULTS | typeof MEMBER_PAGE_DESIGN_DEFAULTS;
+export type SectionDefaults = SectionDesignDefaults;
 
 /** Editable copy of one surface's design (colors as strings, defaults filled in). */
 export interface SectionDesignDraft {

@@ -1,7 +1,8 @@
 import React from 'react';
 import { IconButton, Stack, Tooltip } from '@mui/material';
 import { useIntl } from 'react-intl';
-import { memberSocialEntries, type TeamMember } from '@simple-site/interfaces';
+import type { TeamMember } from '@simple-site/interfaces';
+import { memberSocialEntries } from './teamDisplay';
 import { SOCIAL_NETWORK_ICONS } from './socialIcons';
 
 interface SocialLinksRowProps {

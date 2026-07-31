@@ -11,11 +11,8 @@ import {
   useTheme,
 } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import {
-  MEMBER_PAGE_DESIGN_DEFAULTS,
-  TEAM_PAGE_DESIGN_DEFAULTS,
-  TeamConfigSchema,
-} from '@simple-site/interfaces';
+import { TeamConfigSchema } from '@simple-site/interfaces';
+import { MEMBER_PAGE_DESIGN_DEFAULTS, TEAM_PAGE_DESIGN_DEFAULTS } from '../../../pages/team/teamDisplay';
 import { Loader } from '../../Loader';
 import { ColorField } from '../themes/ColorField';
 import { loadTeam, saveTeam } from '../../../services/teamService';

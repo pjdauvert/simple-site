@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MEMBER_PAGE_DESIGN_DEFAULTS, TEAM_PAGE_DESIGN_DEFAULTS } from '@simple-site/interfaces';
+import { MEMBER_PAGE_DESIGN_DEFAULTS, TEAM_PAGE_DESIGN_DEFAULTS } from '../../../pages/team/teamDisplay';
 import { buildDesign, fromSectionDraft, toSectionDraft } from './teamDesign';
 
 describe('toSectionDraft / fromSectionDraft', () => {

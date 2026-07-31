@@ -18,11 +18,11 @@ import {
   ALL_SOCIAL_NETWORKS,
   BASE_LOCALE,
   UrlOrPathSchema,
-  slugify,
   type Locale,
   type SocialNetworkId,
   type TeamMember,
 } from '@simple-site/interfaces';
+import { slugify } from './teamDraft';
 import { MediaUrlField } from '../../media';
 import type { MemberFieldErrors } from './teamDraft';
 

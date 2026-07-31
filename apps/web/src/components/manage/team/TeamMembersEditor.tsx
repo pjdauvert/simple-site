@@ -27,7 +27,8 @@ import {
   EditOutlined as EditIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { BASE_LOCALE, TeamConfigSchema, pickLocalizedText, type Locale, type TeamMember } from '@simple-site/interfaces';
+import { BASE_LOCALE, TeamConfigSchema, type Locale, type TeamMember } from '@simple-site/interfaces';
+import { pickLocalizedText } from '../../../pages/team/teamDisplay';
 import { Loader } from '../../Loader';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';

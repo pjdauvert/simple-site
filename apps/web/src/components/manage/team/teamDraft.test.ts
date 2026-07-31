@@ -2,16 +2,15 @@ import { describe, it, expect } from 'vitest';
 import {
   TeamMemberSchema,
   collectTeamI18nEntries,
-  memberLocales,
-  pickLocalizedText,
-  slugify,
   type TeamMember,
 } from '@simple-site/interfaces';
+import { memberLocales, pickLocalizedText } from '../../../pages/team/teamDisplay';
 import {
   createMember,
   membersAreValid,
   normalizeLocalizedText,
   normalizeSocialLinks,
+  slugify,
   validateMembers,
 } from './teamDraft';
 

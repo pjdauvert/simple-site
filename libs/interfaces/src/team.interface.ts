@@ -100,18 +100,11 @@ export const collectTeamI18nEntries = (team: TeamConfig): I18nEntry[] => {
   return entries;
 };
 
-/** The member's non-empty social links, in display order. */
-export const memberSocialEntries = (member: TeamMember): Array<[SocialNetworkId, string]> =>
-  ALL_SOCIAL_NETWORKS.flatMap((network) => {
-    const href = member.socialLinks?.[network]?.trim();
-    return href ? [[network, href] as [SocialNetworkId, string]] : [];
-  });
-
 /**
  * Design options of one team surface (the team page rows, or the member profile
  * page). Every field is optional — absent values fall back to that surface's
- * defaults ({@link TEAM_PAGE_DESIGN_DEFAULTS} / {@link MEMBER_PAGE_DESIGN_DEFAULTS})
- * via {@link resolveSectionDesign}, so stored teams keep their current look.
+ * defaults (resolved web-side, see `pages/team/teamDisplay.ts`), so stored teams
+ * keep their current look.
  */
 export const TeamSectionDesignSchema = z.object({
   /** Portrait corner radius in percent: 50 = circle (default), 0 = square. */
@@ -129,33 +122,6 @@ export const TeamSectionDesignSchema = z.object({
 });
 
 export type TeamSectionDesign = z.infer<typeof TeamSectionDesignSchema>;
-
-/** Team page rows are flat by default: circular portrait, no frame. */
-export const TEAM_PAGE_DESIGN_DEFAULTS = { pictureRadius: 50, pictureBorder: false, frameBorder: false } as const;
-/** The member profile keeps its bordered bio card by default. */
-export const MEMBER_PAGE_DESIGN_DEFAULTS = { pictureRadius: 50, pictureBorder: false, frameBorder: true } as const;
-
-export interface ResolvedSectionDesign {
-  pictureRadius: number;
-  pictureBorder: boolean;
-  pictureBorderColor?: string;
-  frameBackgroundColor?: string;
-  frameBorder: boolean;
-  frameBorderColor?: string;
-}
-
-/** Applies a surface's defaults to its (possibly absent) stored design. */
-export const resolveSectionDesign = (
-  design: TeamSectionDesign | undefined,
-  defaults: typeof TEAM_PAGE_DESIGN_DEFAULTS | typeof MEMBER_PAGE_DESIGN_DEFAULTS,
-): ResolvedSectionDesign => ({
-  pictureRadius: design?.pictureRadius ?? defaults.pictureRadius,
-  pictureBorder: design?.pictureBorder ?? defaults.pictureBorder,
-  pictureBorderColor: design?.pictureBorderColor,
-  frameBackgroundColor: design?.frameBackgroundColor,
-  frameBorder: design?.frameBorder ?? defaults.frameBorder,
-  frameBorderColor: design?.frameBorderColor,
-});
 
 // Array order = display order on the public team overview page.
 export const TeamConfigSchema = z
@@ -202,36 +168,3 @@ export const TeamConfigSchema = z
 
 export type TeamConfig = z.infer<typeof TeamConfigSchema>;
 
-/**
- * The member text (biography, job title) to render for a locale: exact locale →
- * base locale → first non-empty entry → empty string.
- */
-export const pickLocalizedText = (record: Record<string, string>, locale: string): string => {
-  if (record[locale]?.trim()) return record[locale];
-  if (record[BASE_LOCALE]?.trim()) return record[BASE_LOCALE];
-  return Object.values(record).find((text) => text?.trim()) ?? "";
-};
-
-/**
- * Languages the member's own texts exist in (non-empty biography or job title),
- * sorted for a stable order. Drives the profile page's language switch, which
- * only appears when the member has 2+ of them.
- */
-export const memberLocales = (member: TeamMember): string[] => {
-  const locales = new Set<string>();
-  for (const record of [member.jobTitle, member.biography]) {
-    for (const [locale, text] of Object.entries(record)) {
-      if (text?.trim()) locales.add(locale);
-    }
-  }
-  return [...locales].sort();
-};
-
-/** Default slug for a name: diacritics stripped, lowercased, kebab-cased. */
-export const slugify = (name: string): string =>
-  name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");

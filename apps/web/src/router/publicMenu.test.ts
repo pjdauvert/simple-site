@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { collectI18nEntries, reconcileMenu, type MenuConfig, type SiteConfig } from '@simple-site/interfaces';
-import { resolveMenuItems } from './publicMenu';
+import { collectI18nEntries, type MenuConfig, type SiteConfig } from '@simple-site/interfaces';
+import { reconcileMenu, resolveMenuItems } from './publicMenu';
 import type { FeatureFlags } from '../services/featuresService';
 
 const page = (pageName: string, route: string, menuTitle: string) =>

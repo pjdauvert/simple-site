@@ -31,10 +31,9 @@ import {
   type SiteThemeConfig,
   type ThemeConfig,
   SiteConfigSchema,
-  isHomePage,
-  reconcileMenu,
 } from '@simple-site/interfaces';
 import { loadDraftConfig, saveDraftConfig } from '../../../services/configVersionService';
+import { reconcileMenu } from '../../../router/publicMenu';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { ScopedAppTheme } from '../../../features/theme/ScopedAppTheme';
 import { PageSelector } from './PageSelector';
@@ -42,7 +41,7 @@ import { ThemeSelector } from './ThemeSelector';
 import { SectionPreview } from './SectionPreview';
 import { Loader } from '../../Loader';
 import { PageSettingsDialog } from './PageSettingsDialog';
-import { createPage, createSection, moveItem, pagesAreValid, validatePages } from './pagesDraft';
+import { createPage, createSection, isHomePage, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
 
 /**

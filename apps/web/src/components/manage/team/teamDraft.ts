@@ -66,3 +66,12 @@ export const validateMembers = (members: TeamMember[]): MemberFieldErrors[] => {
 /** True when no member has any field error. */
 export const membersAreValid = (errors: MemberFieldErrors[]): boolean =>
   errors.every((e) => !e.name && !e.slug);
+
+/** Default slug for a name: diacritics stripped, lowercased, kebab-cased. */
+export const slugify = (name: string): string =>
+  name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');

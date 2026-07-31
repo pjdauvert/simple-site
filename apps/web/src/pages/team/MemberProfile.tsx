@@ -10,15 +10,13 @@ import {
   Typography,
 } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { BASE_LOCALE, type TeamMember, type TeamSectionDesign } from '@simple-site/interfaces';
 import {
-  BASE_LOCALE,
   MEMBER_PAGE_DESIGN_DEFAULTS,
   memberLocales,
   pickLocalizedText,
   resolveSectionDesign,
-  type TeamMember,
-  type TeamSectionDesign,
-} from '@simple-site/interfaces';
+} from './teamDisplay';
 import { Markdown } from '../../components';
 import { languageLabel } from '../../features/i18n/languageNames';
 import { useAppTheme } from '../../hooks/useAppTheme';

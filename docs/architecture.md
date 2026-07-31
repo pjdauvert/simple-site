@@ -46,6 +46,8 @@ All contracts shared between the frontend and the serverless functions live in `
 
 Because the functions compile to native NodeNext ESM, the library re-exports every file with explicit `.js` extensions so the emitted JavaScript resolves correctly in Node without bundling.
 
+**The package is strictly cross-boundary.** Only code genuinely consumed by BOTH sides belongs here: schemas, their inferred types, contract constants (key patterns, reserved routes, limits), and shared derivation rules (e.g. the i18n key collectors both the renderers and the Translations editor rely on). Helpers used by a single side do not — display/selection logic (`pickLocalizedText`, `memberSocialEntries`, design resolution, `reconcileMenu`, `slugify`…) lives in `apps/web` (e.g. `pages/team/teamDisplay.ts`, `router/publicMenu.ts`, the `components/manage/*` draft modules), and server-only helpers live in `apps/functions`. Types inferred from shared schemas stay with their schema even when only one side names them — the schema itself is the shared contract.
+
 ## Runtime Configuration Flow
 
 Configuration and translations are fetched from the serverless API at startup — there is no static config file bundled with the frontend.

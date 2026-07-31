@@ -2,13 +2,8 @@ import React from 'react';
 import { Box, Link, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useIntl } from 'react-intl';
-import {
-  TEAM_PAGE_DESIGN_DEFAULTS,
-  pickLocalizedText,
-  resolveSectionDesign,
-  type TeamMember,
-  type TeamSectionDesign,
-} from '@simple-site/interfaces';
+import type { TeamMember, TeamSectionDesign } from '@simple-site/interfaces';
+import { TEAM_PAGE_DESIGN_DEFAULTS, pickLocalizedText, resolveSectionDesign } from './teamDisplay';
 import { Markdown } from '../../components';
 import { excerptMarkdown } from './bioExcerpt';
 import { MemberPortrait } from './MemberPortrait';
