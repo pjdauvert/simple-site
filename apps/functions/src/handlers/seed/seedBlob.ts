@@ -11,10 +11,12 @@ import { z } from "zod";
 // Import seed data directly - bundled at compile time
 import i18nSeedData from './i18n.json';
 import siteConfigSeedData from './siteConfig.json';
+import teamSeedData from './team.json';
 
 const seedFiles: Record<string, unknown> = {
     'i18n.json': i18nSeedData,
     'siteConfig.json': siteConfigSeedData,
+    'team.json': teamSeedData,
 };
 
 export const seedBlob = async (store: Store, fromFile: string, schema: z.ZodSchema, key: string) => {

@@ -1,4 +1,5 @@
 import type { SiteConfig } from './site.interface.js';
+import { featureEntryLabel } from './menu.interface.js';
 import { SectionTypesEnum, type I18nEntry } from './sections/section.interface.js';
 import { collectHeroI18n } from './sections/hero.section.interface.js';
 import { collectTextI18n } from './sections/text.section.interface.js';
@@ -23,9 +24,9 @@ export const sectionScope = (pageName: string, sectionName: string): string => `
 
 /**
  * Collects every translatable (key → original value) pair the site config references.
- * Page menu titles are handled here; each section contributes its own translatable
- * strings via its type's collector, keeping the field knowledge with the section
- * definition. Deduped by key — the first occurrence wins.
+ * Menu labels and page menu titles are handled here; each section contributes its own
+ * translatable strings via its type's collector, keeping the field knowledge with the
+ * section definition. Deduped by key — the first occurrence wins.
  */
 export const collectI18nEntries = (config: SiteConfig): I18nEntry[] => {
   const entries: I18nEntry[] = [];
@@ -35,6 +36,17 @@ export const collectI18nEntries = (config: SiteConfig): I18nEntry[] => {
     seen.add(entry.key);
     entries.push(entry);
   };
+
+  // Menu labels first, so a page entry's custom nav label wins the dedupe over the
+  // page's own title for the shared `${pageName}.menuTitle` key. Feature entries own
+  // their `${feature}.menuTitle` key outright.
+  for (const entry of config.menu?.entries ?? []) {
+    if (entry.type === 'feature') {
+      push({ key: menuTitleKey(entry.feature), defaultValue: featureEntryLabel(entry) });
+    } else if (entry.menuTitle) {
+      push({ key: menuTitleKey(entry.pageName), defaultValue: entry.menuTitle });
+    }
+  }
 
   for (const page of config.pages) {
     if (page.menuTitle) push({ key: menuTitleKey(page.pageName), defaultValue: page.menuTitle });

@@ -1,9 +1,10 @@
 # Configuration
 
-Site configuration and translations are stored in **Netlify Blobs** and fetched at runtime by the frontend — there is no static config file bundled with the built assets.
+Site configuration, translations and the team are stored in **Netlify Blobs** and fetched at runtime by the frontend — there is no static config file bundled with the built assets.
 
 - Configuration: the **published** config is fetched via `GET /api/config`, validated against `SiteConfigSchema`
 - Translations: fetched via `GET /api/translations/:locale`, validated against `I18nDictionarySchema`
+- Team (flag-gated): fetched via `GET /api/team`, validated against `TeamConfigSchema` — see [Team](#team)
 
 Both blobs are seeded automatically on the first dev request from the JSON files in `apps/functions/src/handlers/seed/`.
 
@@ -86,19 +87,20 @@ The optional `menu` decouples the public navigation from the raw pages list. It 
 ```json
 {
   "entries": [
-    { "type": "page", "pageName": "page.home", "visible": true },
-    { "type": "feature", "feature": "team", "visible": false }
+    { "type": "page", "pageName": "page.home", "visible": true, "menuTitle": "Welcome" },
+    { "type": "feature", "feature": "team", "visible": false, "menuTitle": "Our team" }
   ]
 }
 ```
 
 - **Order** = navigation order. **`visible: false`** keeps the target reachable at its URL while hiding it from the nav.
+- **`menuTitle`** (optional) renames the entry in the nav: for a page entry it overrides the page's own title (absent → the page's `menuTitle`); for a feature entry it is the label itself (absent → the feature's default, e.g. "Team"). Rename inline from the Menu tab; an emptied field reverts to the fallback. Like every config label it is a translation **default** — per-language values are managed on the **Translations** page under the `${pageName|feature}.menuTitle` key (menu labels are part of `collectI18nEntries`, so they appear there automatically).
 - **Feature entries** point at pages shipped by optional features (`team` today; contact, gallery, events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering.
 - **No `menu`** (older configs) → the nav derives from the pages array order, exactly as before the Menu tab existed.
 - **Integrity** is enforced by `SiteConfigSchema`: no duplicate entries and no references to unknown pages can be stored.
 - **Reconciliation** — the shared `reconcileMenu` helper keeps the menu in sync with the pages set: entries of deleted pages are pruned, new pages are appended (visible), and newly-enabled features are appended (hidden) until an admin opts them in. The Menu tab applies it on load; the Pages editor applies it on save. Note that renaming a `pageName` counts as delete + re-add, so that entry returns to the end of the menu with default visibility.
 
-The **Menu** tab of `/manage/site` edits this: reorder with the up/down controls, toggle visibility per entry, then save (`PUT /api/config/menu` — writes the draft; publish to go live).
+The **Menu** tab of `/manage/site` edits this: reorder with the up/down controls, rename with the pencil control, toggle visibility per entry, then save (`PUT /api/config/menu` — writes the draft; publish to go live).
 
 ### Sections
 
@@ -216,3 +218,45 @@ curl -X POST https://<your-site>/api/translations/fr \
     "page.home.hero.content.subtitle": "Application React moderne"
   }'
 ```
+
+---
+
+## Team
+
+The team lives in its **own blob** (key `team`, seeded in dev from `apps/functions/src/handlers/seed/team.json`) behind the **`FEATURE_TEAM`** flag — when the flag is off, `/manage/team`, the public `/team*` pages and the whole `/api/team` surface behave as if they don't exist (404).
+
+```json
+{
+  "title": "Our team (optional page heading)",
+  "presentation": "markdown… (optional, shown above the member list)",
+  "members": [
+    {
+      "slug": "jane-doe",
+      "name": "Jane Doe",
+      "jobTitle": { "en": "Founder & CEO", "fr": "Fondatrice & PDG" },
+      "photoUrl": "/images/team/jane-doe.jpg",
+      "biography": { "en": "markdown…", "fr": "markdown…" },
+      "socialLinks": { "linkedin": "https://…", "website": "https://…" },
+      "former": false
+    }
+  ],
+  "alternateLayout": false,
+  "showFormerMembers": false,
+  "formerMembersTitle": "Former members (optional section heading)",
+  "design": {
+    "teamPage": { "pictureRadius": 50, "pictureBorder": false, "frameBorder": false },
+    "memberPage": { "frameBackgroundColor": "#fafafa" }
+  }
+}
+```
+
+- **Direct save** — unlike the site configuration there is **no draft/publish step**: saving from `/manage/team` (`PUT /api/team`, whole-list replace) is live immediately. The editor says so explicitly.
+- **`slug`** is the member's public URL identifier (`/team/member/<slug>`): lowercase kebab-case, unique across members, auto-derived from the name in the editor until edited by hand. Once the member has been saved the slug is **permanent** — the field turns read-only and renaming the member never changes their URL.
+- **`biography`** (markdown) and **`jobTitle`** are per-locale records, stored **inside the member** — independent of the translations blob. The member dialog shows one language switch driving both fields, only when the platform offers more than one language; rendering uses the active locale, falling back to the base locale, then to the first non-empty entry (`pickLocalizedText`). A legacy plain-string `jobTitle` is coerced into the base-locale entry on parse. `name` and `photoUrl` are language-neutral. All markdown fields (biographies, presentation, section slots) render GitHub-flavored markdown — tables, strikethrough, task lists — through the shared `Markdown` component (`apps/web/src/components/Markdown.tsx`).
+- **`socialLinks`** (optional) — supported networks: `linkedin`, `x`, `github`, `instagram`, `facebook`, `youtube`, `website` (see `SocialNetworksEnum` in `libs/interfaces/src/team.interface.ts`).
+- **`title`** (optional) and **`presentation`** (optional, markdown) — the team page's heading and the introduction text above the member list, both edited from the **Page** tab of `/manage/team` (the **Members** tab manages the people; each tab saves independently by re-fetching and merging, so they can't clobber each other). Absent/empty → not rendered. Unlike biographies they are translation **defaults**: per-language values live on the Translations page under the `team.title` / `team.presentation` keys (each editor field has a shortcut deep-linking to its key, and the Translations editor lists them automatically while the feature is on — `collectTeamI18nEntries`).
+- **`former`** (optional, per member — toggled in the member dialog) moves a member out of the main list and into the team page's **former-members section**, which renders only while **`showFormerMembers`** (switch in the team editor) is on. The section sits under a horizontal separator with an optional heading (**`formerMembersTitle`** — a translation default under `team.formerMembersTitle`, like the page title); its rows render lighter with grayscale portraits — the personal page keeps full color and shows a "Former member" chip next to the job title instead. Hidden former members keep their `/team/member/<slug>` page reachable by URL, like hidden menu entries.
+- **`design`** (optional) — per-surface design options edited from the **Design** tab of `/manage/team`, split between `teamPage` (the member rows) and `memberPage` (the profile page). Each surface offers `pictureRadius` (portrait corner radius, 0–50 % — 50 = circle, with a live shape preview next to the slider), `pictureBorder` + `pictureBorderColor` (theme primary when empty), and the description frame: `frameBackgroundColor`, `frameBorder`, `frameBorderColor` (theme divider when empty). Only deviations from the surface defaults are stored — by default team rows stay flat/frameless and the profile keeps its bordered bio card. The team-page block also hosts the **`alternateLayout`** switch (moved from the Page tab).
+- **Array order** is the display order of the public team overview (within each section).
+- **Public rendering** — `/team` shows the 404 page with no members and the single member's profile with exactly one. With several members it renders flat full-width rows (no panels): the identification block — circular photo (or initial avatar), name linking to the member page, job title, social icons — on one side and the biography on the other. Long biographies are truncated at a word boundary (~300 characters, markdown-safe) and end with a clickable ellipsis linking to the member's page. **`alternateLayout`** (toggle in the team editor) flips sides every other row on desktop; mobile always stacks one column, identification above biography. Unknown slugs 404. The single-member profile shows the circular photo with name and job title underneath, the full biography in a card panel, and — only when links are provided — a centered row of social icons below it. When the member's texts exist in several languages, the profile shows its own **language switch** (job title + biography), preselected to the platform locale when the profile has it.
+- The **menu** links to `/team` through a `{ "type": "feature", "feature": "team" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.

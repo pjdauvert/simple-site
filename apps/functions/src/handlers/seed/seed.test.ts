@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { collectI18nEntries, SiteConfigSchema } from '@simple-site/interfaces';
+import { collectI18nEntries, SiteConfigSchema, TeamConfigSchema } from '@simple-site/interfaces';
 import i18nSeed from './i18n.json';
 import siteConfigSeed from './siteConfig.json';
+import teamSeed from './team.json';
 
 /**
  * The site config and the translations seed must stay in lockstep: the default language's
@@ -29,4 +30,13 @@ describe('seed siteConfig ↔ i18n parity', () => {
       expect(Object.entries(dict).filter(([, v]) => v.trim() === '').map(([k]) => k)).toEqual([]);
     });
   }
+});
+
+describe('seed team', () => {
+  it('parses against TeamConfigSchema with 5 current and 3 former members', () => {
+    const team = TeamConfigSchema.parse(teamSeed);
+    expect(team.members.filter((m) => !m.former)).toHaveLength(5);
+    expect(team.members.filter((m) => m.former)).toHaveLength(3);
+    expect(team.showFormerMembers).toBe(true);
+  });
 });

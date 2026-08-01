@@ -8,8 +8,8 @@ const stubEnv = (env: Record<string, string | undefined>) =>
 const makeRequest = () => new Request('https://site.test/api/features');
 const makeContext = () => ({} as unknown as Context);
 
-const readJson = async (res: Response): Promise<{ ok: boolean; data: { media: boolean } }> =>
-  res.json() as Promise<{ ok: boolean; data: { media: boolean } }>;
+const readJson = async (res: Response): Promise<{ ok: boolean; data: { media: boolean; team: boolean } }> =>
+  res.json() as Promise<{ ok: boolean; data: { media: boolean; team: boolean } }>;
 
 describe('FeaturesModule', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -18,7 +18,7 @@ describe('FeaturesModule', () => {
     stubEnv({ FEATURE_MEDIA: 'true' });
     const res = await new FeaturesModule().handle(makeRequest(), makeContext());
     expect(res.status).toBe(200);
-    expect(await readJson(res)).toMatchObject({ ok: true, data: { media: true } });
+    expect(await readJson(res)).toMatchObject({ ok: true, data: { media: true, team: false } });
   });
 
   it('reports media: false when FEATURE_MEDIA is absent or not "true"', async () => {
@@ -27,5 +27,15 @@ describe('FeaturesModule', () => {
 
     stubEnv({ FEATURE_MEDIA: 'yes' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.media).toBe(false);
+  });
+
+  it('reports team from FEATURE_TEAM, independently of media', async () => {
+    stubEnv({ FEATURE_TEAM: 'true' });
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
+      .toEqual({ media: false, team: true });
+
+    stubEnv({ FEATURE_MEDIA: 'true', FEATURE_TEAM: 'yes' });
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
+      .toEqual({ media: true, team: false });
   });
 });

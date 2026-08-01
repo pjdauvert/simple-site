@@ -28,6 +28,8 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | PUT | `/api/translations/:language` | Replace an override locale's whole dictionary (admin) |
 | PUT | `/api/translations` | Bulk-import an `i18n.json`-shaped file — upsert override languages (admin) |
 | DELETE | `/api/translations/:language` | Remove an override language (admin; default + last override protected) |
+| GET | `/api/team` | Retrieve the team members (public, flag-gated) |
+| PUT | `/api/team` | Replace the team members — live immediately (admin, flag-gated) |
 | POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
 | GET | `/api/db-query` | Fetch sample users from MongoDB |
 | GET | `/api/features` | Report enabled feature flags (public) |
@@ -267,7 +269,39 @@ Public. Reports which optional features the server currently has enabled, so the
 
 ```json
 // 200 OK
-{ "ok": true, "data": { "media": true } }
+{ "ok": true, "data": { "media": true, "team": false } }
+```
+
+---
+
+### Team
+
+Served by `apps/functions/src/team.mts` (`TeamModule`), storing members in their own blob (key `team`). The surface is gated by the **`FEATURE_TEAM`** flag: when it is not `"true"`, both routes return `404` (before auth). Unlike the site config there is **no draft/publish lifecycle** — a successful `PUT` is live immediately. See [configuration.md](configuration.md#team) for the member model.
+
+#### `GET /api/team`
+
+Public — the site renders `/team` and `/team/member/<slug>` from it. Returns `{ members: [] }` (not an error) when nothing has been stored yet.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "members": [
+  { "slug": "jane-doe", "name": "Jane Doe", "jobTitle": "Founder & CEO",
+    "photoUrl": "/images/team/jane-doe.jpg",
+    "biography": { "en": "Jane founded…", "fr": "Jane a fondé…" },
+    "socialLinks": { "linkedin": "https://www.linkedin.com/in/jane-doe" } }
+] } }
+```
+
+#### `PUT /api/team`
+
+Admin. Replaces the whole team (add / edit / delete / reorder are all expressed as "send the full list" — array order is the public overview order). The body is validated by Zod: kebab-case slugs, **unique** slugs, non-empty names, per-locale biography record.
+
+```json
+// Request body — a TeamConfig object
+{ "members": [ { "slug": "jane-doe", "name": "Jane Doe", "jobTitle": "CEO", "biography": { "en": "…" } } ] }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Team updated successfully" } }
 ```
 
 ---

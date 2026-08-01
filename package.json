@@ -39,6 +39,7 @@
     "react-intl": "^7.1.14",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.1.1",
+    "remark-gfm": "^4.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

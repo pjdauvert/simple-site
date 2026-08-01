@@ -10,37 +10,43 @@ import {
   ListItemText,
   Stack,
   Switch,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
 import {
   ArrowDownward as DownIcon,
   ArrowUpward as UpIcon,
+  EditOutlined as RenameIcon,
+  Translate as TranslateIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   type MenuEntry,
   type PageConfiguration,
   menuEntryId,
-  reconcileMenu,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
-import { enabledFeaturePages } from '../../../router/publicMenu';
+import { enabledFeaturePages, reconcileMenu } from '../../../router/publicMenu';
 import { moveItem } from '../pages/pagesDraft';
-import { entryRows } from './menuDraft';
+import { entryRows, normalizedMenuTitle } from './menuDraft';
 
 /**
- * Menu tab of /manage/site: orders the public navigation and toggles per-entry
- * visibility (a hidden page stays reachable at its URL). Entries reference config
- * pages and feature pages; on load the stored menu is reconciled against the
- * draft's pages and the enabled features (new pages appended visible, newly-enabled
- * features appended hidden, deleted pages pruned). Saves via `PUT /api/config/menu`,
- * which writes the draft — changes go live only when published from the Config
- * Versions panel.
+ * Menu tab of /manage/site: orders the public navigation, toggles per-entry
+ * visibility (a hidden page stays reachable at its URL) and renames nav labels
+ * in place — a page entry's custom label overrides the page's own title, a
+ * feature entry's label defaults to the feature's default; an emptied field
+ * reverts to the fallback. Labels are translation defaults: per-language values
+ * live on the Translations page (`<pageName|feature>.menuTitle`). Entries
+ * reference config pages and feature pages; on load the stored menu is
+ * reconciled against the draft's pages and the enabled features (new pages
+ * appended visible, newly-enabled features appended hidden, deleted pages
+ * pruned). Saves via `PUT /api/config/menu`, which writes the draft — changes
+ * go live only when published from the Config Versions panel.
  */
 export const MenuEditor: React.FC = () => {
   const intl = useIntl();
@@ -52,6 +58,8 @@ export const MenuEditor: React.FC = () => {
   const [entries, setEntries] = useState<MenuEntry[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -81,6 +89,19 @@ export const MenuEditor: React.FC = () => {
 
   const move = (from: number, to: number) => {
     setEntries((prev) => (prev ? moveItem(prev, from, to) : prev));
+    setRenamingIndex(null);
+  };
+
+  const startRename = (index: number, currentTitle: string | undefined) => {
+    setRenamingIndex(index);
+    setRenameValue(currentTitle ?? '');
+  };
+
+  /** Commits the rename: an empty field (or the fallback label itself) reverts to it. */
+  const commitRename = (index: number, baseLabel: string) => {
+    const menuTitle = normalizedMenuTitle(renameValue, baseLabel);
+    setEntries((prev) => prev?.map((entry, i) => (i === index ? { ...entry, menuTitle } : entry)) ?? prev);
+    setRenamingIndex(null);
   };
 
   const handleSave = async () => {
@@ -119,6 +140,29 @@ export const MenuEditor: React.FC = () => {
             sx={row.available ? undefined : { opacity: 0.5 }}
             secondaryAction={
               <Stack direction="row" spacing={0} alignItems="center">
+                <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.rename' })}>
+                  <span>
+                    <IconButton
+                      size="small"
+                      disabled={renamingIndex === index}
+                      onClick={() => startRename(index, row.entry.menuTitle)}
+                      aria-label={intl.formatMessage({ id: 'page.manage.menu.rename' })}
+                    >
+                      <RenameIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.translate' })}>
+                  <IconButton
+                    size="small"
+                    // Same-origin target, deliberately no `noopener` (see InlineTranslateButton):
+                    // severing the opener would stop sessionStorage cloning into the new tab.
+                    onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(row.i18nKey)}`, '_blank')}
+                    aria-label={intl.formatMessage({ id: 'page.manage.menu.translate' })}
+                  >
+                    <TranslateIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.moveUp' })}>
                   <span>
                     <IconButton
@@ -160,13 +204,25 @@ export const MenuEditor: React.FC = () => {
             <ListItemText
               disableTypography
               primary={
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ pr: 16 }}>
-                  <Typography variant="body2" noWrap>{row.label}</Typography>
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    label={<FormattedMessage id={`page.manage.menu.badge.${row.kind}`} />}
-                  />
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ pr: 24 }}>
+                  {renamingIndex === index ? (
+                    <TextField
+                      size="small"
+                      variant="standard"
+                      autoFocus
+                      value={renameValue}
+                      placeholder={row.baseLabel}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={() => commitRename(index, row.baseLabel)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitRename(index, row.baseLabel);
+                        if (e.key === 'Escape') setRenamingIndex(null);
+                      }}
+                      slotProps={{ htmlInput: { 'aria-label': intl.formatMessage({ id: 'page.manage.menu.rename' }) } }}
+                    />
+                  ) : (
+                    <Typography variant="body2" noWrap>{row.label}</Typography>
+                  )}
                   {!row.available && (
                     <Chip
                       size="small"
@@ -178,9 +234,17 @@ export const MenuEditor: React.FC = () => {
                 </Stack>
               }
               secondary={
-                <Typography variant="caption" color="text.secondary" noWrap component="div">
-                  {row.route}
-                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5, pr: 24 }}>
+                  <Typography variant="caption" color="text.secondary" noWrap component="div">
+                    {row.route}
+                  </Typography>
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={<FormattedMessage id={`page.manage.menu.badge.${row.kind}`} />}
+                    sx={{ height: 18, '& .MuiChip-label': { px: 0.75, fontSize: '0.65rem' } }}
+                  />
+                </Stack>
               }
             />
           </ListItem>

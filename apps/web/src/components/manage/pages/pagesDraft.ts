@@ -1,4 +1,4 @@
-import { type PageConfiguration, type SectionProps, type SectionType, isReservedRoute } from '@simple-site/interfaces';
+import { HOME_ROUTE, type PageConfiguration, type SectionProps, type SectionType, isReservedRoute } from '@simple-site/interfaces';
 import { SECTION_REGISTRY } from '../../sections/registry';
 
 /** i18n key segments must match this (see the i18n key convention). */
@@ -75,3 +75,6 @@ export const validatePages = (pages: PageConfiguration[]): PageFieldErrors[] => 
 /** True when no page has any field error. */
 export const pagesAreValid = (errors: PageFieldErrors[]): boolean =>
   errors.every((e) => !e.route && !e.pageName);
+
+/** True for the reserved home page (identified by its route). */
+export const isHomePage = (page: Pick<PageConfiguration, 'route'>): boolean => page.route === HOME_ROUTE;

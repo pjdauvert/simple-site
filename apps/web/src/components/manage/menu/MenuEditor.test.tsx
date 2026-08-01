@@ -8,12 +8,13 @@ import { NotificationsProvider } from '../../../features/notifications/Notificat
 import { MenuEditor } from './MenuEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
+import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 
 vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../../services/menuService', () => ({ updateMenu: vi.fn() }));
 vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(() => ({ media: false })),
-  ALL_DISABLED: { media: false },
+  useFeatureFlags: vi.fn(),
+  ALL_DISABLED: { media: false, team: false },
 }));
 
 const page = (pageName: string, route: string, menuTitle: string) =>
@@ -35,6 +36,7 @@ function renderEditor() {
 describe('MenuEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false });
     vi.mocked(updateMenu).mockResolvedValue(undefined);
   });
 
@@ -56,6 +58,72 @@ describe('MenuEditor', () => {
         { type: 'page', pageName: 'page.about', visible: true },
       ],
     });
+  });
+
+  it('renames an entry inline and saves the custom label', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith([page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')]),
+    );
+    renderEditor();
+    await screen.findByText('About');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^rename$/i })[1]);
+    const field = screen.getByRole('textbox', { name: /^rename$/i });
+    expect(field).toHaveAttribute('placeholder', 'About'); // fallback = the page's own title
+    fireEvent.change(field, { target: { value: 'Who we are' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(await screen.findByText('Who we are')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries[1]).toEqual({ type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' });
+  });
+
+  it('opens the Translations page deep-linked to the entry label key', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [
+          { type: 'page', pageName: 'page.home', visible: true },
+          { type: 'feature', feature: 'team', visible: true },
+        ] },
+      ),
+    );
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    renderEditor();
+    await screen.findByText('Home');
+
+    const translateButtons = screen.getAllByRole('button', { name: /translate/i });
+    fireEvent.click(translateButtons[0]);
+    expect(open).toHaveBeenCalledWith('/manage/translations?key=page.home.menuTitle', '_blank');
+    fireEvent.click(translateButtons[1]);
+    expect(open).toHaveBeenCalledWith('/manage/translations?key=team.menuTitle', '_blank');
+    open.mockRestore();
+  });
+
+  it('clears a custom label when the rename field is emptied', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [{ type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' }] },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('Welcome');
+
+    fireEvent.click(screen.getByRole('button', { name: /^rename$/i }));
+    const field = screen.getByRole('textbox', { name: /^rename$/i });
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(await screen.findByText('Home')).toBeInTheDocument(); // reverted to the page title
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries[0]).toEqual({ type: 'page', pageName: 'page.home', visible: true });
   });
 
   it('moves an entry up and saves the new order', async () => {

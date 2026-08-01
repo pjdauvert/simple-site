@@ -1,0 +1,127 @@
+{
+  "title": "Lorem ipsum",
+  "presentation": "Lorem ipsum dolor sit amet, **consectetur adipiscing elit**. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Cras justo odio, dapibus ac facilisis in, egestas eget quam.",
+  "showFormerMembers": true,
+  "formerMembersTitle": "Lorem emeriti",
+  "members": [
+    {
+      "slug": "elise-moreau",
+      "name": "Élise Moreau",
+      "jobTitle": {
+        "en": "Principal Investigator",
+        "fr": "Chercheuse principale"
+      },
+      "photoUrl": "https://picsum.photos/seed/elise-moreau/480/480",
+      "biography": {
+        "en": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. **Sed posuere consectetur** est at lobortis. Vestibulum id ligula porta felis euismod semper.\n\nDonec ullamcorper nulla non metus auctor fringilla, vivamus sagittis lacus vel augue laoreet rutrum faucibus.",
+        "fr": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. **Aenean lacinia bibendum** nulla sed consectetur. Cras mattis consectetur purus sit amet fermentum.\n\nMaecenas faucibus mollis interdum, praesent commodo cursus magna vel scelerisque nisl consectetur et."
+      },
+      "socialLinks": {
+        "linkedin": "https://www.linkedin.com/in/lorem-ipsum",
+        "website": "https://lorem-ipsum.example.com"
+      }
+    },
+    {
+      "slug": "rafael-ortiz",
+      "name": "Rafael Ortiz",
+      "jobTitle": {
+        "en": "Lab Manager",
+        "fr": "Responsable de laboratoire"
+      },
+      "photoUrl": "https://picsum.photos/seed/rafael-ortiz/480/480",
+      "biography": {
+        "en": "Curabitur blandit tempus porttitor. Nullam quis risus eget urna mollis ornare vel eu leo. Etiam porta sem malesuada magna mollis euismod.",
+        "fr": "Curabitur blandit tempus porttitor. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit."
+      },
+      "socialLinks": {
+        "x": "https://x.com/lorem_ipsum"
+      }
+    },
+    {
+      "slug": "amara-diallo",
+      "name": "Amara Diallo",
+      "jobTitle": {
+        "en": "Postdoctoral Researcher",
+        "fr": "Chercheur postdoctoral"
+      },
+      "biography": {
+        "en": "Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. **Morbi leo risus**, porta ac consectetur ac, vestibulum at eros.\n\nPraesent commodo cursus magna, vel scelerisque nisl consectetur et.",
+        "fr": "Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. **Nulla vitae elit libero**, a pharetra augue.\n\nDonec sed odio dui, sed posuere consectetur est at lobortis."
+      },
+      "socialLinks": {
+        "github": "https://github.com/lorem-ipsum"
+      }
+    },
+    {
+      "slug": "jonas-keller",
+      "name": "Jonas Keller",
+      "jobTitle": {
+        "en": "PhD Student",
+        "fr": "Doctorant"
+      },
+      "photoUrl": "https://picsum.photos/seed/jonas-keller/480/480",
+      "biography": {
+        "en": "Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Sed posuere consectetur est at lobortis.",
+        "fr": "Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Etiam porta sem malesuada magna mollis euismod."
+      }
+    },
+    {
+      "slug": "mei-tanaka",
+      "name": "Mei Tanaka",
+      "jobTitle": {
+        "en": "Research Technician",
+        "fr": "Technicienne de recherche"
+      },
+      "biography": {
+        "en": "Maecenas sed diam eget risus varius blandit sit amet non magna. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.",
+        "fr": "Maecenas sed diam eget risus varius blandit sit amet non magna. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh."
+      },
+      "socialLinks": {
+        "instagram": "https://www.instagram.com/lorem.ipsum"
+      }
+    },
+    {
+      "slug": "viktor-sorensen",
+      "name": "Viktor Sørensen",
+      "jobTitle": {
+        "en": "Bioinformatician",
+        "fr": "Bio-informaticien"
+      },
+      "former": true,
+      "biography": {
+        "en": "Donec id elit non mi porta gravida at eget metus. **Integer posuere erat** a ante venenatis dapibus posuere velit aliquet.",
+        "fr": "Donec id elit non mi porta gravida at eget metus. **Nullam id dolor** id nibh ultricies vehicula ut id elit."
+      },
+      "socialLinks": {
+        "github": "https://github.com/lorem-emeritus"
+      }
+    },
+    {
+      "slug": "lucia-bianchi",
+      "name": "Lucia Bianchi",
+      "jobTitle": {
+        "en": "Postdoctoral Researcher",
+        "fr": "Chercheuse postdoctorale"
+      },
+      "former": true,
+      "photoUrl": "https://picsum.photos/seed/lucia-bianchi/480/480",
+      "biography": {
+        "en": "Cras mattis consectetur purus sit amet fermentum. Sed posuere consectetur est at lobortis, nulla vitae elit libero a pharetra augue.",
+        "fr": "Cras mattis consectetur purus sit amet fermentum. Vestibulum id ligula porta felis euismod semper, aenean lacinia bibendum nulla sed consectetur."
+      }
+    },
+    {
+      "slug": "tom-becker",
+      "name": "Tom Becker",
+      "jobTitle": {
+        "en": "Research Intern",
+        "fr": "Stagiaire de recherche"
+      },
+      "former": true,
+      "biography": {
+        "en": "Etiam porta sem malesuada magna mollis euismod. Nullam quis risus eget urna mollis ornare vel eu leo.",
+        "fr": "Etiam porta sem malesuada magna mollis euismod. Curabitur blandit tempus porttitor, duis mollis est non commodo luctus."
+      }
+    }
+  ]
+}
