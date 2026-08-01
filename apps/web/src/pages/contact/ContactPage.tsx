@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Alert, Box, Button, Container, TextField, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { CONTACT_MESSAGE_MAX_LENGTH } from '@simple-site/interfaces';
+import { CONTACT_MESSAGE_MAX_LENGTH, CONTACT_PRESENTATION_KEY } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
-import { Loading } from '../../components';
+import { Loading, Markdown } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { useContactConfig } from '../../hooks/useContactConfig';
 import { isValidEmail } from '../../features/auth/auth.utils';
 import { sendContactMessage } from '../../services/contactService';
 
@@ -12,11 +13,14 @@ import { sendContactMessage } from '../../services/contactService';
  * Public /contact form. The route is always registered; the page gates itself
  * on the runtime `contact` flag (flag off → 404, matching the server's
  * behavior) so a direct navigation never flashes the catch-all while flags
- * load. The form posts the visitor's email + message to the public
- * `/api/contact` endpoint, which relays them to the site owner by email.
+ * load. An optional presentation message (set from /manage/contact, translated
+ * via its shared key) renders above the form; losing it never blocks the form.
+ * The form posts the visitor's email + message to the public `/api/contact`
+ * endpoint, which relays them to the site owner by email.
  */
 export const ContactPage: React.FC = () => {
   const flags = useFeatureFlags();
+  const { config, error: configError } = useContactConfig(Boolean(flags?.contact));
   const intl = useIntl();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -28,6 +32,10 @@ export const ContactPage: React.FC = () => {
 
   if (flags === null) return <Loading />;
   if (!flags.contact) return <NotFoundPage />;
+  // The presentation is decoration: wait for it to avoid a layout jump, but a
+  // load failure just renders the form without it.
+  if (config === null && !configError) return <Loading />;
+  const presentation = config?.presentation;
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -56,6 +64,15 @@ export const ContactPage: React.FC = () => {
       <Typography variant="h3" component="h1" gutterBottom sx={{ mb: { xs: 3, md: 5 } }}>
         <FormattedMessage id="page.contact.title" />
       </Typography>
+      {/* The stored presentation is a translation default — per-language values
+          from the Translations page take over via the shared key. */}
+      {presentation?.trim() && (
+        <Box sx={{ mb: { xs: 3, md: 4 }, '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 } }}>
+          <FormattedMessage id={CONTACT_PRESENTATION_KEY} defaultMessage={presentation}>
+            {(msg) => <Markdown>{String(msg)}</Markdown>}
+          </FormattedMessage>
+        </Box>
+      )}
       {sent && (
         <Alert severity="success" sx={{ mb: 2 }}>
           <FormattedMessage id="page.contact.success" />

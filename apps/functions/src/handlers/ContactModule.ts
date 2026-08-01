@@ -1,21 +1,34 @@
 import type { RequestHandler } from '../types/server-types';
 import { BaseHandler } from './BaseHandler';
+import { getStore, type Store } from '@netlify/blobs';
 import { ErrorResponses } from '../errors/error';
-import { ContactRequestSchema, type ContactResponse } from '@simple-site/interfaces';
+import {
+  ContactConfigSchema,
+  ContactRequestSchema,
+  type ContactConfig,
+  type ContactResponse,
+} from '@simple-site/interfaces';
 import { getResendEnv, sendContactEmail } from './resend/resendClient';
 
 /**
- * Public contact form intake. The visitor's email + message are validated
- * against the shared `ContactRequestSchema` and relayed to the site owner's
- * inbox via Resend. The whole surface is feature-gated by `FEATURE_CONTACT`
- * in `contact.mts` (404 when off); there is no auth — the endpoint serves
- * anonymous visitors by design, so validation errors are explicit (400) while
- * provider/configuration details never leak past the logs.
+ * Contact feature. The page settings (presentation message) live in their own
+ * blob (key `contact`) with a DIRECT-SAVE lifecycle — no draft/publish step.
+ * The whole surface is feature-gated by `FEATURE_CONTACT` in `contact.mts`
+ * (404 when off); reads and the message send are public (the form serves
+ * anonymous visitors), the settings mutation is admin-gated by the
+ * `AuthHandler` wired there.
  *
  * Routes:
- *  - `POST /api/contact` → send the message ({ email, message })
+ *  - `GET /api/contact` → the contact page settings (`{}` when nothing is stored yet)
+ *  - `POST /api/contact` → send a visitor message ({ email, message }); stores
+ *    nothing — validated against the shared `ContactRequestSchema` and relayed
+ *    to the site owner via Resend. Validation errors are explicit (400) while
+ *    provider/configuration details never leak past the logs.
+ *  - `PUT /api/contact` → replace the settings; goes live immediately
  */
 export class ContactModule extends BaseHandler {
+
+    private static readonly STORE_KEY = 'contact';
 
     private requireJson = (request: Request, path: string): void => {
         if (request.headers.get('Content-Type') !== 'application/json') {
@@ -31,19 +44,48 @@ export class ContactModule extends BaseHandler {
         }
     };
 
+    /** GET /api/contact — an absent blob is an empty settings object, not an error. */
+    private getConfig = async (store: Store): Promise<Response> => {
+        const stored = await store.get(ContactModule.STORE_KEY);
+        const config: ContactConfig = stored ? ContactConfigSchema.parse(JSON.parse(String(stored))) : {};
+        return this.createSuccessResponse<ContactConfig>(config);
+    };
+
+    /** PUT /api/contact — replace the settings; goes live immediately. */
+    private replaceConfig = async (store: Store, body: unknown): Promise<Response> => {
+        const config = ContactConfigSchema.parse(body);
+        await store.set(ContactModule.STORE_KEY, JSON.stringify(config));
+        return this.createSuccessResponse({ message: 'Contact settings updated successfully' });
+    };
+
+    /** POST /api/contact — validate the visitor payload and relay it via Resend. */
+    private sendMessage = async (request: Request, path: string): Promise<Response> => {
+        this.requireJson(request, path);
+        const parsed = ContactRequestSchema.safeParse(await this.parseBody(request, path));
+        if (!parsed.success) {
+            throw ErrorResponses.validationFailed(
+                parsed.error.issues.map((issue) => ({ field: issue.path.join('.') || 'body', message: issue.message })),
+                path,
+            );
+        }
+        await sendContactEmail(parsed.data, getResendEnv(path), path);
+        return this.createSuccessResponse<ContactResponse>({ message: 'Message sent' });
+    };
+
     override handle: RequestHandler = async (request) => {
         const path = request.url;
+        const method = request.method;
         try {
-            this.requireJson(request, path);
-            const parsed = ContactRequestSchema.safeParse(await this.parseBody(request, path));
-            if (!parsed.success) {
-                throw ErrorResponses.validationFailed(
-                    parsed.error.issues.map((issue) => ({ field: issue.path.join('.') || 'body', message: issue.message })),
-                    path,
-                );
+            if (method === 'POST') return await this.sendMessage(request, path);
+
+            const storeName = `${Netlify.env.get('APP_NAME')}-store`;
+            const store = getStore(storeName);
+            if (method === 'GET') return await this.getConfig(store);
+            if (method === 'PUT') {
+                this.requireJson(request, path);
+                return await this.replaceConfig(store, await this.parseBody(request, path));
             }
-            await sendContactEmail(parsed.data, getResendEnv(path), path);
-            return this.createSuccessResponse<ContactResponse>({ message: 'Message sent' });
+            throw ErrorResponses.methodNotAllowed(method, ['GET', 'POST', 'PUT'], path);
         } catch (error) {
             return this.handleError(error, path);
         }

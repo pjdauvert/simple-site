@@ -30,7 +30,9 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | DELETE | `/api/translations/:language` | Remove an override language (admin; default + last override protected) |
 | GET | `/api/team` | Retrieve the team members (public, flag-gated) |
 | PUT | `/api/team` | Replace the team members — live immediately (admin, flag-gated) |
+| GET | `/api/contact` | Retrieve the contact page settings (public, flag-gated) |
 | POST | `/api/contact` | Validate a contact form payload and relay it by email via Resend (public, flag-gated) |
+| PUT | `/api/contact` | Replace the contact page settings — live immediately (admin, flag-gated) |
 | GET | `/api/features` | Report enabled feature flags (public) |
 | POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin, flag-gated) |
 | GET | `/api/media` | List a folder's sub-folders + files (admin, flag-gated) |
@@ -306,7 +308,30 @@ Admin. Replaces the whole team (add / edit / delete / reorder are all expressed 
 
 ### Contact
 
-Served by `apps/functions/src/contact.mts` (`ContactModule`). The surface is gated by the **`FEATURE_CONTACT`** flag: when it is not `"true"`, the route returns `404`. The endpoint is **public** — the `/contact` page serves anonymous visitors — and stores nothing: the message is validated and relayed to the site owner's inbox through the [Resend API](https://resend.com/docs/api-reference/introduction). The visitor's address is set as `reply_to` (Resend only sends from verified domains), and the message is sent as plain text so its content is never interpreted as markup. Provider errors are logged server-side and surfaced to the caller as a generic `500`.
+Served by `apps/functions/src/contact.mts` (`ContactModule`). The surface is gated by the **`FEATURE_CONTACT`** flag: when it is not `"true"`, every route returns `404` (before auth). The page settings — the presentation message shown above the public form — live in their own blob (key `contact`) with **no draft/publish lifecycle**: a successful `PUT` is live immediately. Reads and the message send are public (the `/contact` page serves anonymous visitors); the settings mutation is admin-gated.
+
+The message send itself stores nothing: the payload is validated and relayed to the site owner's inbox through the [Resend API](https://resend.com/docs/api-reference/introduction). The visitor's address is set as `reply_to` (Resend only sends from verified domains), and the message is sent as plain text so its content is never interpreted as markup. Provider errors are logged server-side and surfaced to the caller as a generic `500`.
+
+#### `GET /api/contact`
+
+Public — the site renders `/contact` from it. Returns `{}` (not an error) when nothing has been stored yet. The `presentation` string (markdown) is a **translation default**: per-language values are managed on the Translations page under the `contact.presentation` key.
+
+```json
+// 200 OK
+{ "ok": true, "data": { "presentation": "We usually **reply within a day**." } }
+```
+
+#### `PUT /api/contact`
+
+Admin. Replaces the whole settings object; goes live immediately. The body is validated by `ContactConfigSchema`.
+
+```json
+// Request body — a ContactConfig object
+{ "presentation": "We usually **reply within a day**." }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Contact settings updated successfully" } }
+```
 
 #### `POST /api/contact`
 
@@ -465,6 +490,8 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | POST | `/api/config/versions/:key/draft` | ✓ |
 | DELETE | `/api/config/versions/:key` | ✓ |
 | POST | `/api/translations/:language` | ✓ |
+| PUT | `/api/team` | ✓ |
+| PUT | `/api/contact` | ✓ |
 | POST | `/api/media/upload-auth` | ✓ |
 | GET | `/api/media` | ✓ |
 | POST | `/api/media/folder` | ✓ |
@@ -511,7 +538,7 @@ Set these in Netlify (or a local `.env`) before deploying:
 APP_NAME                 # Namespaces the Netlify Blobs store
 FEATURE_MEDIA            # "true" enables the media library (admin page + /api/media*)
 FEATURE_TEAM             # "true" enables the team feature (admin page, /team pages, /api/team)
-FEATURE_CONTACT          # "true" enables the contact feature (/contact page, /api/contact)
+FEATURE_CONTACT          # "true" enables the contact feature (admin page, /contact page, /api/contact)
 IMAGEKIT_PRIVATE_KEY
 IMAGEKIT_PUBLIC_KEY
 IMAGEKIT_URL_ENDPOINT
