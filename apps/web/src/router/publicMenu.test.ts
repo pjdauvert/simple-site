@@ -9,7 +9,7 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-const FLAGS: FeatureFlags = { media: false, team: false };
+const FLAGS: FeatureFlags = { media: false, team: false, contact: false };
 
 describe('resolveMenuItems', () => {
   it('derives items from the pages order when the config has no menu (legacy behavior)', () => {
@@ -50,7 +50,7 @@ describe('resolveMenuItems', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(resolveMenuItems(config, { media: false, team: true })).toEqual([
+    expect(resolveMenuItems(config, { media: false, team: true, contact: false })).toEqual([
       { menuTitle: 'Team', pageName: 'team', route: '/team' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
@@ -64,7 +64,7 @@ describe('resolveMenuItems', () => {
         { type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' },
       ] },
     );
-    expect(resolveMenuItems(config, { media: false, team: true }).map((i) => i.menuTitle)).toEqual([
+    expect(resolveMenuItems(config, { media: false, team: true, contact: false }).map((i) => i.menuTitle)).toEqual([
       'Notre équipe',
       'Welcome',
     ]);

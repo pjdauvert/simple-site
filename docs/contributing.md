@@ -77,7 +77,7 @@ npm run dev
 
 - [ ] Assets management
 - [ ] Configuration caching with cache invalidation
-- [ ] Additional section types (gallery, contact form, calendar, team, member, event, bibliography, …)
+- [ ] Additional section types (gallery, calendar, event, bibliography, …)
 - [ ] Advanced responsive images with `srcset`
 - [ ] Configuration edition mechanism
 - [ ] Modules management (payment, authentication, external API access)

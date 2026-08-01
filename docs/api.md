@@ -30,8 +30,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | DELETE | `/api/translations/:language` | Remove an override language (admin; default + last override protected) |
 | GET | `/api/team` | Retrieve the team members (public, flag-gated) |
 | PUT | `/api/team` | Replace the team members — live immediately (admin, flag-gated) |
-| POST | `/api/send-email` | Validate contact form payload and send via Mailgun |
-| GET | `/api/db-query` | Fetch sample users from MongoDB |
+| POST | `/api/contact` | Validate a contact form payload and relay it by email via Resend (public, flag-gated) |
 | GET | `/api/features` | Report enabled feature flags (public) |
 | POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin, flag-gated) |
 | GET | `/api/media` | List a folder's sub-folders + files (admin, flag-gated) |
@@ -40,7 +39,6 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | DELETE | `/api/media/folder` | Delete a folder and its contents (admin, flag-gated) |
 | PUT | `/api/media` | Rename a media file (admin, flag-gated) |
 | DELETE | `/api/media/:fileId` | Delete a media file (admin, flag-gated) |
-| GET | `/api/google-proxy` | Proxy a Google API call with the server API key |
 
 ---
 
@@ -269,7 +267,7 @@ Public. Reports which optional features the server currently has enabled, so the
 
 ```json
 // 200 OK
-{ "ok": true, "data": { "media": true, "team": false } }
+{ "ok": true, "data": { "media": true, "team": false, "contact": false } }
 ```
 
 ---
@@ -302,6 +300,28 @@ Admin. Replaces the whole team (add / edit / delete / reorder are all expressed 
 
 // 200 OK
 { "ok": true, "data": { "message": "Team updated successfully" } }
+```
+
+---
+
+### Contact
+
+Served by `apps/functions/src/contact.mts` (`ContactModule`). The surface is gated by the **`FEATURE_CONTACT`** flag: when it is not `"true"`, the route returns `404`. The endpoint is **public** — the `/contact` page serves anonymous visitors — and stores nothing: the message is validated and relayed to the site owner's inbox through the [Resend API](https://resend.com/docs/api-reference/introduction). The visitor's address is set as `reply_to` (Resend only sends from verified domains), and the message is sent as plain text so its content is never interpreted as markup. Provider errors are logged server-side and surfaced to the caller as a generic `500`.
+
+#### `POST /api/contact`
+
+The body is validated by the shared `ContactRequestSchema` (`libs/interfaces/src/contact.interface.ts`): a valid email and a non-empty message of at most **1000** characters (trimmed).
+
+```json
+// Request body — a ContactRequest object
+{ "email": "jane@example.com", "message": "Hello! I'd like to know more about…" }
+
+// 200 OK
+{ "ok": true, "data": { "message": "Message sent" } }
+
+// 400 — invalid payload
+{ "ok": false, "code": "VALIDATION_FAILED", "message": "Validation failed",
+  "details": { "errors": [ { "field": "message", "message": "Too big: expected string to have <=1000 characters" } ] } }
 ```
 
 ---
@@ -489,15 +509,16 @@ Set these in Netlify (or a local `.env`) before deploying:
 
 ```
 APP_NAME                 # Namespaces the Netlify Blobs store
-MONGODB_URI
-MAILGUN_API_KEY
-MAILGUN_DOMAIN
-MAILGUN_TO_EMAIL
+FEATURE_MEDIA            # "true" enables the media library (admin page + /api/media*)
+FEATURE_TEAM             # "true" enables the team feature (admin page, /team pages, /api/team)
+FEATURE_CONTACT          # "true" enables the contact feature (/contact page, /api/contact)
 IMAGEKIT_PRIVATE_KEY
 IMAGEKIT_PUBLIC_KEY
 IMAGEKIT_URL_ENDPOINT
 IMAGEKIT_ROOT_DIR        # optional base folder for all media
-GOOGLE_API_KEY_SERVER
+RESEND_API_KEY           # Resend API key used by /api/contact
+CONTACT_FROM_EMAIL       # verified Resend sender the contact notification is sent as
+CONTACT_TO_EMAIL         # inbox the contact messages are delivered to
 ```
 
 Netlify reads the static site from `dist/apps/web` and functions from `dist/apps/functions` as defined in `netlify.toml`. Run `npm run build` locally to produce both artefacts.

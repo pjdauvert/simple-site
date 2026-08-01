@@ -9,6 +9,7 @@ import { ALL_DISABLED, useFeatureFlags } from '../hooks/useFeatureFlags';
 import { resolveMenuItems } from './publicMenu';
 import { TeamPage } from '../pages/team/TeamPage';
 import { TeamMemberPage } from '../pages/team/TeamMemberPage';
+import { ContactPage } from '../pages/contact/ContactPage';
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
@@ -33,6 +34,7 @@ export const AppRouter: React.FC = () => {
             runtime flags (off → 404) so deep links never flash the catch-all. */}
         <Route path="/team" element={<TeamPage />} />
         <Route path="/team/member/:slug" element={<TeamMemberPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="*" Component={NotFoundPage} />
       </Routes>
     </MainLayout>

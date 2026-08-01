@@ -14,7 +14,7 @@ import { loadTeam } from '../../services/teamService';
 vi.mock('../../services/teamService', () => ({ loadTeam: vi.fn() }));
 vi.mock('../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false },
+  ALL_DISABLED: { media: false, team: false, contact: false },
 }));
 
 const themeValue: ThemeContextValue = {
@@ -53,7 +53,7 @@ function renderAt(path: string, locale: 'en' | 'fr' = 'en') {
 describe('TeamMemberPage (public /team/member/:slug)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: true });
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: true, contact: false });
     vi.mocked(loadTeam).mockResolvedValue({ members: [jane] });
   });
 
@@ -183,7 +183,7 @@ describe('TeamMemberPage (public /team/member/:slug)', () => {
   });
 
   it('renders the 404 page when the feature is disabled', async () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false });
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
     renderAt('/team/member/jane-doe');
     expect(await screen.findByText('Oops — nothing here!')).toBeInTheDocument();
     expect(loadTeam).not.toHaveBeenCalled();

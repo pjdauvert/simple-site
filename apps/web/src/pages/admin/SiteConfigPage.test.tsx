@@ -19,7 +19,7 @@ vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn()
 vi.mock('../../services/siteConfigService', () => ({ updateSiteSettings: vi.fn() }));
 vi.mock('../../services/themesService', () => ({ updateThemes: vi.fn() }));
 vi.mock('../../services/menuService', () => ({ updateMenu: vi.fn() }));
-vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn(), ALL_DISABLED: { media: false, team: false } }));
+vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn(), ALL_DISABLED: { media: false, team: false, contact: false } }));
 
 const siteConfig = (site: Partial<SiteThemeConfig> = {}): SiteConfig =>
   ({
@@ -61,7 +61,7 @@ describe('SiteConfigPage', () => {
     vi.resetAllMocks();
     vi.mocked(loadDraftConfig).mockResolvedValue(siteConfig());
     vi.mocked(updateSiteSettings).mockResolvedValue(undefined);
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: true, team: false });
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: true, team: false, contact: false });
   });
 
   it('renders the General / Themes / Pages / Menu tabs', async () => {
@@ -145,7 +145,7 @@ describe('SiteConfigPage', () => {
   });
 
   it('hides the library picker button when the media feature is disabled', async () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false });
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
     renderSiteConfig();
     await screen.findByLabelText(/site name/i);
     expect(screen.queryByRole('button', { name: /view library/i })).not.toBeInTheDocument();

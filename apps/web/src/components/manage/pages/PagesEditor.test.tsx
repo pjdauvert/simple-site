@@ -18,7 +18,7 @@ vi.mock('../../../services/configVersionService', () => ({
 vi.mock('../../../services/mediaService', () => ({
   listMedia: vi.fn().mockResolvedValue({ folders: [], files: [] }),
 }));
-vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn(() => ({ media: false, team: false })) }));
+vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn(() => ({ media: false, team: false, contact: false })) }));
 
 const themeConfig: ThemeConfig = {
   themeName: 'default',
