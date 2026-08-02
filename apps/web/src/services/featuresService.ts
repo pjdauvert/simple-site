@@ -7,6 +7,8 @@ export interface FeatureFlags {
   media: boolean;
   /** Team feature (admin /manage/team, public /team pages, and `/api/team`). */
   team: boolean;
+  /** Contact feature (public /contact page and `/api/contact`). */
+  contact: boolean;
 }
 
 /** Fetches the feature flags the server currently has enabled. */

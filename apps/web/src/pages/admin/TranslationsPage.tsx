@@ -33,9 +33,10 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { I18n, I18nDictionary, Locale } from '@simple-site/interfaces';
-import { I18nSchema, collectI18nEntries, collectTeamI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
+import { I18nSchema, collectContactI18nEntries, collectI18nEntries, collectTeamI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { loadTeam } from '../../services/teamService';
+import { loadContactConfig } from '../../services/contactService';
 import { Loader } from '../../components/Loader';
 import {
   deleteLanguage,
@@ -99,16 +100,22 @@ export const TranslationsPage: React.FC = () => {
     Promise.all([
       loadAllTranslations(),
       loadDraftConfig(),
-      // The team lives in its own blob; its surface 404s when the feature flag
-      // is off, so a failure simply means "no team keys to translate".
+      // The team and contact settings live in their own blobs; their surfaces
+      // 404 when the feature flag is off, so a failure simply means "no keys
+      // of that feature to translate".
       loadTeam().catch(() => null),
+      loadContactConfig().catch(() => null),
     ])
-      .then(([payload, config, team]) => {
+      .then(([payload, config, team, contact]) => {
         if (!active) return;
         setDefaultLanguage(payload.defaultLanguage);
         setSaved(payload.translations);
         setWorking(payload.translations);
-        setExpected([...collectI18nEntries(config), ...(team ? collectTeamI18nEntries(team) : [])]);
+        setExpected([
+          ...collectI18nEntries(config),
+          ...(team ? collectTeamI18nEntries(team) : []),
+          ...(contact ? collectContactI18nEntries(contact) : []),
+        ]);
         const langs = (Object.keys(payload.translations) as Locale[]).sort();
         setLanguage(langs[0] ?? '');
       })

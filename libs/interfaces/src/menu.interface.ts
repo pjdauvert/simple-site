@@ -21,9 +21,10 @@ export type MenuItem = z.infer<typeof MenuItemSchema>;
 
 export const FeaturePagesEnum = {
   TEAM: 'team',
+  CONTACT: 'contact',
 } as const;
 
-export const FeaturePageIdSchema = z.enum([FeaturePagesEnum.TEAM]);
+export const FeaturePageIdSchema = z.enum([FeaturePagesEnum.TEAM, FeaturePagesEnum.CONTACT]);
 export type FeaturePageId = z.infer<typeof FeaturePageIdSchema>;
 
 /** Every known feature page id, whether or not its feature is enabled. */
@@ -32,6 +33,7 @@ export const ALL_FEATURE_PAGE_IDS: readonly FeaturePageId[] = Object.values(Feat
 /** Public routes owned by feature pages. Reserved: config pages may not use them. */
 export const FEATURE_PAGE_ROUTES: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: '/team',
+  [FeaturePagesEnum.CONTACT]: '/contact',
 };
 
 /**
@@ -41,6 +43,7 @@ export const FEATURE_PAGE_ROUTES: Record<FeaturePageId, string> = {
  */
 export const FEATURE_PAGE_DEFAULT_LABELS: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: 'Team',
+  [FeaturePagesEnum.CONTACT]: 'Contact',
 };
 
 /** True when `route` is a feature-owned route or nests under one (e.g. `/team/member/x`). */

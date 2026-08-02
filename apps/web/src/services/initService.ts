@@ -1,5 +1,5 @@
 import type { ApiResponseErrorPayload, ApiResponseSuccessPayload, I18nDictionary, Locale, SiteConfig, TranslationsPayload } from '@simple-site/interfaces';
-import { BASE_LOCALE, I18nDictionarySchema, SiteConfigSchema, TranslationsPayloadSchema, toCanonicalLocale } from '@simple-site/interfaces';
+import { BASE_LOCALE, I18nDictionarySchema, StoredSiteConfigSchema, TranslationsPayloadSchema, toCanonicalLocale } from '@simple-site/interfaces';
 import apiService from './apiService';
 
 export type SiteConfigLoaderType = () => Promise<SiteConfig>;
@@ -12,7 +12,7 @@ export const loadSiteConfig: SiteConfigLoaderType = async () => {
     const error = (response as ApiResponseErrorPayload).message;
     throw new Error(error);
   }
-  return SiteConfigSchema.parse((response as ApiResponseSuccessPayload<SiteConfig>).data);
+  return StoredSiteConfigSchema.parse((response as ApiResponseSuccessPayload<SiteConfig>).data);
 }
 
 export type TranslationLoaderType = (locale: Locale) => Promise<I18nDictionary>;

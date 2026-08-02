@@ -35,6 +35,11 @@ export const FEATURE_PAGE_REGISTRY: Partial<Record<FeaturePageId, FeaturePageDef
     pageName: 'team', // nav label i18n key: `team.menuTitle`
     flag: 'team',
   },
+  contact: {
+    route: FEATURE_PAGE_ROUTES.contact,
+    pageName: 'contact', // nav label i18n key: `contact.menuTitle`
+    flag: 'contact',
+  },
 };
 
 /** The feature pages this app version can render whose flag is currently on. */

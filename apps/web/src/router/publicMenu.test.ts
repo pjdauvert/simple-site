@@ -9,7 +9,7 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-const FLAGS: FeatureFlags = { media: false, team: false };
+const FLAGS: FeatureFlags = { media: false, team: false, contact: false };
 
 describe('resolveMenuItems', () => {
   it('derives items from the pages order when the config has no menu (legacy behavior)', () => {
@@ -50,10 +50,26 @@ describe('resolveMenuItems', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(resolveMenuItems(config, { media: false, team: true })).toEqual([
+    expect(resolveMenuItems(config, { media: false, team: true, contact: false })).toEqual([
       { menuTitle: 'Team', pageName: 'team', route: '/team' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
+  });
+
+  it('renders the contact feature entry when its flag is on', () => {
+    const config = configWith(
+      [page('page.home', '/home', 'Home')],
+      { entries: [
+        { type: 'feature', feature: 'contact', visible: true },
+        { type: 'page', pageName: 'page.home', visible: true },
+      ] },
+    );
+    expect(resolveMenuItems(config, { media: false, team: false, contact: true })).toEqual([
+      { menuTitle: 'Contact', pageName: 'contact', route: '/contact' },
+      { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
+    ]);
+    // Flag off → the entry is skipped like any disabled feature.
+    expect(resolveMenuItems(config, FLAGS).map((i) => i.pageName)).toEqual(['page.home']);
   });
 
   it('renders custom entry labels — a page override and a renamed feature', () => {
@@ -64,7 +80,7 @@ describe('resolveMenuItems', () => {
         { type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' },
       ] },
     );
-    expect(resolveMenuItems(config, { media: false, team: true }).map((i) => i.menuTitle)).toEqual([
+    expect(resolveMenuItems(config, { media: false, team: true, contact: false }).map((i) => i.menuTitle)).toEqual([
       'Notre équipe',
       'Welcome',
     ]);
@@ -105,8 +121,9 @@ describe('reconcileMenu', () => {
   });
 
   it('appends newly-enabled features hidden, and keeps disabled-feature entries in place', () => {
-    const withFeature = reconcileMenu(undefined, pages, ['team']);
+    const withFeature = reconcileMenu(undefined, pages, ['team', 'contact']);
     expect(withFeature.entries).toContainEqual({ type: 'feature', feature: 'team', visible: false });
+    expect(withFeature.entries).toContainEqual({ type: 'feature', feature: 'contact', visible: false });
 
     // Feature already stored (e.g. ordered first), flag now off: the entry survives untouched.
     const stored: MenuConfig = { entries: [

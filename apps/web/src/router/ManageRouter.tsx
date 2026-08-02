@@ -12,6 +12,7 @@ import { TeamPage } from "../pages/admin/TeamPage";
 import { TeamPageTab } from "../pages/admin/TeamPageTab";
 import { TeamMembersTab } from "../pages/admin/TeamMembersTab";
 import { TeamDesignTab } from "../pages/admin/TeamDesignTab";
+import { ContactPage } from "../pages/admin/ContactPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { ManageLayout } from "../layouts/ManageLayout";
 import { Loading } from "../components";
@@ -23,12 +24,13 @@ import { NotificationsProvider } from "../features/notifications/NotificationsPr
 const dashboardItem: MenuItem = { menuTitle: "Dashboard", pageName: "manage.dashboard", route: "/manage" };
 const siteItem: MenuItem = { menuTitle: "Site configuration", pageName: "manage.siteConfig", route: "/manage/site" };
 const teamItem: MenuItem = { menuTitle: "Team", pageName: "manage.team", route: "/manage/team" };
+const contactItem: MenuItem = { menuTitle: "Contact", pageName: "manage.contact", route: "/manage/contact" };
 const translationsItem: MenuItem = { menuTitle: "Translations", pageName: "manage.translations", route: "/manage/translations" };
 const mediaItem: MenuItem = { menuTitle: "Media", pageName: "manage.media", route: "/manage/media" };
 
 // The admin area, once authenticated: Dashboard + Site configuration + Translations
-// are always available; the Team and Media entries/routes are shown only when their
-// feature flags are enabled (fetched at runtime from /api/features).
+// are always available; the Team, Contact and Media entries/routes are shown only
+// when their feature flags are enabled (fetched at runtime from /api/features).
 const ManageArea: React.FC = () => {
   const flags = useFeatureFlags();
   if (!flags) return <Loading message="Loading…" />;
@@ -37,6 +39,7 @@ const ManageArea: React.FC = () => {
     dashboardItem,
     siteItem,
     ...(flags.team ? [teamItem] : []),
+    ...(flags.contact ? [contactItem] : []),
     translationsItem,
     ...(flags.media ? [mediaItem] : []),
   ];
@@ -60,6 +63,7 @@ const ManageArea: React.FC = () => {
             <Route path="design" element={<TeamDesignTab />} />
           </Route>
         )}
+        {flags.contact && <Route path="contact" element={<ContactPage />} />}
         <Route path="translations" element={<TranslationsPage />} />
         {flags.media && <Route path="media" element={<MediaPage />} />}
       </Routes>

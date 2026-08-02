@@ -1,0 +1,135 @@
+import React, { useState } from 'react';
+import { Alert, Box, Button, Container, TextField, Typography } from '@mui/material';
+import { FormattedMessage, useIntl } from 'react-intl';
+import { CONTACT_MESSAGE_MAX_LENGTH, CONTACT_PRESENTATION_KEY, ContactRequestSchema } from '@simple-site/interfaces';
+import { NotFoundPage } from '../error/NotFoundPage';
+import { Loading, Markdown } from '../../components';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { useContactConfig } from '../../hooks/useContactConfig';
+import { sendContactMessage } from '../../services/contactService';
+
+/** Field-level check for onBlur feedback — same rule the server applies. */
+const isValidEmail = (value: string): boolean => ContactRequestSchema.shape.email.safeParse(value).success;
+
+/**
+ * Public /contact form. The route is always registered; the page gates itself
+ * on the runtime `contact` flag (flag off → 404, matching the server's
+ * behavior) so a direct navigation never flashes the catch-all while flags
+ * load. An optional presentation message (set from /manage/contact, translated
+ * via its shared key) renders above the form; losing it never blocks the form.
+ * The form posts the visitor's email + message to the public `/api/contact`
+ * endpoint, which relays them to the site owner by email.
+ */
+export const ContactPage: React.FC = () => {
+  const flags = useFeatureFlags();
+  const { config, error: configError } = useContactConfig(Boolean(flags?.contact));
+  const intl = useIntl();
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [emailError, setEmailError] = useState(false);
+  const [messageError, setMessageError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  if (flags === null) return <Loading />;
+  if (!flags.contact) return <NotFoundPage />;
+  // The presentation is decoration: wait for it to avoid a layout jump, but a
+  // load failure just renders the form without it.
+  if (config === null && !configError) return <Loading />;
+  const presentation = config?.presentation;
+
+  const handleSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    // Validate with the shared schema — the exact contract the server enforces,
+    // so client and server acceptance can never drift.
+    const parsed = ContactRequestSchema.safeParse({ email, message });
+    if (!parsed.success) {
+      setEmailError(parsed.error.issues.some((issue) => issue.path[0] === 'email'));
+      setMessageError(parsed.error.issues.some((issue) => issue.path[0] === 'message'));
+      return;
+    }
+    setEmailError(false);
+    setMessageError(false);
+    setSending(true);
+    setError(null);
+    setSent(false);
+    try {
+      await sendContactMessage(parsed.data);
+      setSent(true);
+      setEmail('');
+      setMessage('');
+    } catch {
+      setError(intl.formatMessage({ id: 'page.contact.error.generic' }));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Container maxWidth="sm" sx={{ py: { xs: 4, md: 6 } }}>
+      <Typography variant="h3" component="h1" gutterBottom sx={{ mb: { xs: 3, md: 5 } }}>
+        <FormattedMessage id="page.contact.title" />
+      </Typography>
+      {/* The stored presentation is a translation default — per-language values
+          from the Translations page take over via the shared key. */}
+      {presentation?.trim() && (
+        <Box sx={{ mb: { xs: 3, md: 4 }, '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 } }}>
+          <FormattedMessage id={CONTACT_PRESENTATION_KEY} defaultMessage={presentation}>
+            {(msg) => <Markdown>{String(msg)}</Markdown>}
+          </FormattedMessage>
+        </Box>
+      )}
+      {sent && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          <FormattedMessage id="page.contact.success" />
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {/* noValidate: the form's own localized validation replaces the browser's
+          native email tooltip, which can't be translated. */}
+      <Box component="form" noValidate onSubmit={handleSubmit}>
+        <TextField
+          label={intl.formatMessage({ id: 'page.contact.email' })}
+          type="email"
+          fullWidth
+          size="medium"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={() => setEmailError(email !== '' && !isValidEmail(email))}
+          error={emailError}
+          helperText={emailError ? <FormattedMessage id="page.contact.email.invalid" /> : ' '}
+          sx={{ mb: 2, minHeight: 44 }}
+        />
+        <TextField
+          label={intl.formatMessage({ id: 'page.contact.message' })}
+          fullWidth
+          multiline
+          minRows={6}
+          value={message}
+          onChange={(e) => {
+            setMessage(e.target.value);
+            if (messageError) setMessageError(false);
+          }}
+          error={messageError}
+          helperText={
+            messageError ? (
+              <FormattedMessage id="page.contact.message.required" />
+            ) : (
+              `${message.length}/${CONTACT_MESSAGE_MAX_LENGTH}`
+            )
+          }
+          slotProps={{ htmlInput: { maxLength: CONTACT_MESSAGE_MAX_LENGTH } }}
+          sx={{ mb: 2 }}
+        />
+        <Button type="submit" variant="contained" fullWidth disabled={sending} sx={{ minHeight: 44 }}>
+          <FormattedMessage id="page.contact.submit" />
+        </Button>
+      </Box>
+    </Container>
+  );
+};

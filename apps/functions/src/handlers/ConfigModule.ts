@@ -14,6 +14,7 @@ import {
     type SiteConfig,
     SiteConfigSchema,
     SiteThemeConfigSchema,
+    StoredSiteConfigSchema,
 } from '@simple-site/interfaces';
 import { seedBlob } from './seed/seedBlob';
 
@@ -48,7 +49,10 @@ export class ConfigModule extends BaseHandler {
         if (!stored) {
             throw ErrorResponses.notFound(`Store key ${storeKey}`, path);
         }
-        return SiteConfigSchema.parse(JSON.parse(String(stored)));
+        // Stored blobs parse with the lenient variant: a route that became
+        // feature-reserved after this config was stored must not make it
+        // unreadable (writes still reject reserved routes).
+        return StoredSiteConfigSchema.parse(JSON.parse(String(stored)));
     };
 
     /** Maps an API-facing version id to its blob key. */
@@ -124,7 +128,7 @@ export class ConfigModule extends BaseHandler {
     private readDraft = async (store: Store, path: string): Promise<SiteConfig> => {
         const existing = await store.get(ConfigModule.DRAFT_KEY);
         if (existing) {
-            return SiteConfigSchema.parse(JSON.parse(String(existing)));
+            return StoredSiteConfigSchema.parse(JSON.parse(String(existing)));
         }
         return this.getStoredConfig(store, ConfigModule.PUBLISHED_KEY, path);
     };
@@ -283,7 +287,7 @@ export class ConfigModule extends BaseHandler {
         if (!draftRaw) {
             throw ErrorResponses.conflict('No draft to publish', path);
         }
-        const draft = SiteConfigSchema.parse(JSON.parse(String(draftRaw)));
+        const draft = StoredSiteConfigSchema.parse(JSON.parse(String(draftRaw)));
         const published = await this.getStoredConfig(store, ConfigModule.PUBLISHED_KEY, path);
         if (JSON.stringify(draft) === JSON.stringify(published)) {
             throw ErrorResponses.conflict('Draft matches the published config; nothing to publish', path);

@@ -1,10 +1,11 @@
 # Configuration
 
-Site configuration, translations and the team are stored in **Netlify Blobs** and fetched at runtime by the frontend — there is no static config file bundled with the built assets.
+Site configuration, translations, the team and the contact settings are stored in **Netlify Blobs** and fetched at runtime by the frontend — there is no static config file bundled with the built assets.
 
-- Configuration: the **published** config is fetched via `GET /api/config`, validated against `SiteConfigSchema`
+- Configuration: the **published** config is fetched via `GET /api/config`, validated against `StoredSiteConfigSchema` (the read-lenient variant of `SiteConfigSchema` — see the reserved-routes note under [Pages](#pages))
 - Translations: fetched via `GET /api/translations/:locale`, validated against `I18nDictionarySchema`
 - Team (flag-gated): fetched via `GET /api/team`, validated against `TeamConfigSchema` — see [Team](#team)
+- Contact (flag-gated): fetched via `GET /api/contact`, validated against `ContactConfigSchema` — see [Contact](#contact)
 
 Both blobs are seeded automatically on the first dev request from the JSON files in `apps/functions/src/handlers/seed/`.
 
@@ -77,7 +78,7 @@ Each page object:
 - `pageName` is used as the prefix for all i18n keys on that page (e.g. `page.home.hero.content.title`).
 - `route` must be unique. Routes are registered automatically — no router changes needed.
 - Both `route` and `pageName` must be **unique across all pages**. This is enforced by `SiteConfigSchema` itself, so it holds both in the admin **Pages** editor (form validation) and at the API — `POST /api/config` rejects a config with duplicates.
-- Routes may not use a **feature-reserved route** (`/team`, or anything nested under one — see `FEATURE_PAGE_ROUTES` in `libs/interfaces/src/menu.interface.ts`). Feature pages own those URLs; the Pages editor and the API both reject them.
+- Routes may not use a **feature-reserved route** (`/team`, `/contact`, or anything nested under one — see `FEATURE_PAGE_ROUTES` in `libs/interfaces/src/menu.interface.ts`). Feature pages own those URLs; the Pages editor and the API both reject them. This rule applies to **writes only** (`SiteConfigSchema`): stored configs are read with the lenient `StoredSiteConfigSchema`, so a config page that predates a route becoming reserved (e.g. a hand-made `/contact` page from before the contact feature) keeps loading — rename its route from the Pages editor to resolve the collision.
 - The home page (`route: "/home"`) is reserved: the Pages editor won't let you delete it or change its `route` / `pageName`.
 
 ### Menu
@@ -95,7 +96,7 @@ The optional `menu` decouples the public navigation from the raw pages list. It 
 
 - **Order** = navigation order. **`visible: false`** keeps the target reachable at its URL while hiding it from the nav.
 - **`menuTitle`** (optional) renames the entry in the nav: for a page entry it overrides the page's own title (absent → the page's `menuTitle`); for a feature entry it is the label itself (absent → the feature's default, e.g. "Team"). Rename inline from the Menu tab; an emptied field reverts to the fallback. Like every config label it is a translation **default** — per-language values are managed on the **Translations** page under the `${pageName|feature}.menuTitle` key (menu labels are part of `collectI18nEntries`, so they appear there automatically).
-- **Feature entries** point at pages shipped by optional features (`team` today; contact, gallery, events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering.
+- **Feature entries** point at pages shipped by optional features (`team` and `contact` today; gallery, events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering.
 - **No `menu`** (older configs) → the nav derives from the pages array order, exactly as before the Menu tab existed.
 - **Integrity** is enforced by `SiteConfigSchema`: no duplicate entries and no references to unknown pages can be stored.
 - **Reconciliation** — the shared `reconcileMenu` helper keeps the menu in sync with the pages set: entries of deleted pages are pruned, new pages are appended (visible), and newly-enabled features are appended (hidden) until an admin opts them in. The Menu tab applies it on load; the Pages editor applies it on save. Note that renaming a `pageName` counts as delete + re-add, so that entry returns to the end of the menu with default visibility.
@@ -260,3 +261,18 @@ The team lives in its **own blob** (key `team`, seeded in dev from `apps/functio
 - **Array order** is the display order of the public team overview (within each section).
 - **Public rendering** — `/team` shows the 404 page with no members and the single member's profile with exactly one. With several members it renders flat full-width rows (no panels): the identification block — circular photo (or initial avatar), name linking to the member page, job title, social icons — on one side and the biography on the other. Long biographies are truncated at a word boundary (~300 characters, markdown-safe) and end with a clickable ellipsis linking to the member's page. **`alternateLayout`** (toggle in the team editor) flips sides every other row on desktop; mobile always stacks one column, identification above biography. Unknown slugs 404. The single-member profile shows the circular photo with name and job title underneath, the full biography in a card panel, and — only when links are provided — a centered row of social icons below it. When the member's texts exist in several languages, the profile shows its own **language switch** (job title + biography), preselected to the platform locale when the profile has it.
 - The **menu** links to `/team` through a `{ "type": "feature", "feature": "team" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.
+
+## Contact
+
+The contact settings live in their **own blob** (key `contact`, no dev seed — absent means `{}`) behind the **`FEATURE_CONTACT`** flag — when the flag is off, `/manage/contact`, the public `/contact` page and the whole `/api/contact*` surface behave as if they don't exist (404).
+
+```json
+{
+  "presentation": "markdown… (optional, shown above the contact form)"
+}
+```
+
+- **Direct save** — like the team, there is **no draft/publish step**: saving from `/manage/contact` (`PUT /api/contact`, whole-object replace) is live immediately.
+- **`presentation`** (optional, markdown) — the introduction text above the public contact form. Absent/empty → not rendered. It is a translation **default**: per-language values live on the Translations page under the `contact.presentation` key (the editor field has a shortcut deep-linking to it, and the Translations editor lists the key automatically while the feature is on — `collectContactI18nEntries`).
+- The **form itself is not configured here**: the visitor email + message contract is the shared `ContactRequestSchema`, and the send is relayed by `POST /api/contact/message` — see [api.md](api.md#contact) for the endpoint contract, rate limiting and the required Resend environment variables.
+- The **menu** links to `/contact` through a `{ "type": "feature", "feature": "contact" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.

@@ -7,12 +7,22 @@ import { MenuConfigSchema, isReservedRoute, menuEntryId } from './menu.interface
 const allUnique = <T>(items: T[], key: (item: T) => string): boolean =>
   new Set(items.map(key)).size === items.length;
 
-// SiteConfig schema (main schema). Page `route` and `pageName` must each be unique
-// across all pages — enforced here so both the admin forms (client-side parse) and
-// the config write endpoints (server-side parse in ConfigModule) reject duplicates.
-// The optional `menu` (absent → nav falls back to pages order) may only reference
+// SiteConfig schemas. Page `route` and `pageName` must each be unique across all
+// pages — enforced here so both the admin forms (client-side parse) and the config
+// write endpoints (server-side parse in ConfigModule) reject duplicates. The
+// optional `menu` (absent → nav falls back to pages order) may only reference
 // pages that exist, so a stored config can never hold a dangling menu entry.
-export const SiteConfigSchema = z
+//
+// Two variants share those integrity rules:
+// - `StoredSiteConfigSchema` — for READING stored configs. It accepts pages on
+//   feature-reserved routes, because a route only becomes reserved when its
+//   feature ships: a config stored before that must stay readable, or enabling
+//   the release would 500 `GET /api/config` and lock the Pages editor out of
+//   the very draft that could fix it.
+// - `SiteConfigSchema` — for INCOMING configs (admin writes, imports, client
+//   forms). It additionally rejects feature-reserved routes, keeping new
+//   collisions out of the store.
+export const StoredSiteConfigSchema = z
   .object({
     site: SiteThemeConfigSchema,
     themes: z.array(ThemeConfigSchema),
@@ -25,10 +35,6 @@ export const SiteConfigSchema = z
   })
   .refine((config) => allUnique(config.pages, (p) => p.pageName), {
     message: 'Page names must be unique',
-    path: ['pages'],
-  })
-  .refine((config) => config.pages.every((p) => !isReservedRoute(p.route)), {
-    message: 'Page routes must not use feature-reserved routes',
     path: ['pages'],
   })
   .superRefine((config, ctx) => {
@@ -50,5 +56,13 @@ export const SiteConfigSchema = z
       }
     });
   });
+
+export const SiteConfigSchema = StoredSiteConfigSchema.refine(
+  (config) => config.pages.every((p) => !isReservedRoute(p.route)),
+  {
+    message: 'Page routes must not use feature-reserved routes',
+    path: ['pages'],
+  },
+);
 
 export type SiteConfig = z.infer<typeof SiteConfigSchema>;

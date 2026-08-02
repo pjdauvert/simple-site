@@ -16,6 +16,7 @@
 | Backend | Netlify Functions (TypeScript, NodeNext ESM) |
 | Auth | Netlify Identity (`@netlify/identity`) |
 | Storage | Netlify Blobs (published config + draft + archives, i18n), ImageKit (media) |
+| Email | Resend (contact form relay) |
 
 ## Monorepo Layout
 
@@ -107,13 +108,17 @@ Languages are **data-driven**, not compile-time: the available set is the config
 
 Both fetches are validated by Zod; schema errors surface as a graceful error screen rather than a blank page.
 
-The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, foldable to an icons-only mini variant via an edge toggle whose state persists in `localStorage`; temporary/toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages / Menu, addressed by URL sub-routes under `/manage/site`), the flag-gated Team editor, Translations, and the flag-gated Media library.
+The admin area (`/manage/*`) uses its own `ManageLayout` — a left navigation `Drawer` (permanent on desktop, foldable to an icons-only mini variant via an edge toggle whose state persists in `localStorage`; temporary/toggled on mobile) plus a top `AppBar` — so the public site keeps its standalone `MenuBar`. The drawer routes to the Dashboard (config versions), Site configuration (a tabbed page: General / Themes / Pages / Menu, addressed by URL sub-routes under `/manage/site`), the flag-gated Team and Contact editors, Translations, and the flag-gated Media library.
 
-The public navigation is resolved from the config's optional `menu` (ordered entries referencing config pages and feature pages, each with a visibility toggle — see [configuration.md](configuration.md#menu)); configs without a `menu` fall back to the pages array order. Feature pages (the flag-gated public pages shipped by optional features — `/team` today) register their route/label in `apps/web/src/router/publicMenu.ts` and their routes in `AppRouter` ahead of the catch-all; the pages gate themselves on the runtime flags.
+The public navigation is resolved from the config's optional `menu` (ordered entries referencing config pages and feature pages, each with a visibility toggle — see [configuration.md](configuration.md#menu)); configs without a `menu` fall back to the pages array order. Feature pages (the flag-gated public pages shipped by optional features — `/team` and `/contact` today) register their route/label in `apps/web/src/router/publicMenu.ts` and their routes in `AppRouter` ahead of the catch-all; the pages gate themselves on the runtime flags.
 
 ### Team
 
 The Team feature (`FEATURE_TEAM`) stores members — name, photo URL (typically an ImageKit URL picked from the media library), per-locale job title and markdown biography, and a unique URL slug — in its **own blob** (key `team`), served by its own function (`team.mts` / `TeamModule`). Saves from `/manage/team` are **live immediately**: the team deliberately sits outside the config draft → publish cycle. Publicly, `/team` renders a 404 with no members, the single member's profile with one, and flat member rows (identification block + word-safe truncated biography whose ellipsis links to the member page) with several; each member also has `/team/member/<slug>`. Job titles and biographies follow the active locale and fall back to the base locale (stored inside the member record, independent of the translations blob); the member page adds its own language switch when the profile's texts exist in several languages.
+
+### Contact
+
+The Contact feature (`FEATURE_CONTACT`) ships a public `/contact` page — an email + message form (1000 characters max) for anonymous visitors — backed by its own function (`contact.mts` / `ContactModule`). Message sends store nothing: the payload is validated against the shared `ContactRequestSchema` and relayed to the site owner's inbox through the [Resend](https://resend.com) API (the visitor's address becomes the reply-to; the message is sent as plain text). The page settings — an optional presentation message (markdown) shown above the form — live in their **own blob** (key `contact`), edited from `/manage/contact` with a direct-save lifecycle like the team. The stored text is a translation DEFAULT under the `contact.presentation` key: `collectContactI18nEntries` merges it into the Translations editor (the config walk can't see it), and the admin field carries a Translate shortcut deep-linking there. See [api.md](api.md#contact) for the endpoint contract and required environment variables.
 
 ### Pages editor — in-place editing
 

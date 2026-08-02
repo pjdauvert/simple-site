@@ -10,6 +10,7 @@ import { TranslationsPage } from './TranslationsPage';
 import { buildExportPayload, NATIVE_KEY } from './translationsExport';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { loadTeam } from '../../services/teamService';
+import { loadContactConfig } from '../../services/contactService';
 import {
   deleteLanguage,
   importTranslations,
@@ -19,6 +20,7 @@ import {
 
 vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../services/teamService', () => ({ loadTeam: vi.fn() }));
+vi.mock('../../services/contactService', () => ({ loadContactConfig: vi.fn() }));
 vi.mock('../../services/translationsService', () => ({
   loadAllTranslations: vi.fn(),
   replaceTranslations: vi.fn(),
@@ -73,8 +75,9 @@ describe('TranslationsPage', () => {
     vi.resetAllMocks();
     vi.mocked(loadAllTranslations).mockResolvedValue(payload());
     vi.mocked(loadDraftConfig).mockResolvedValue(draftConfig);
-    // Team feature off by default: the /api/team surface 404s, keys just absent.
+    // Team/contact features off by default: their surfaces 404, keys just absent.
     vi.mocked(loadTeam).mockRejectedValue(new Error('Team not found'));
+    vi.mocked(loadContactConfig).mockRejectedValue(new Error('Contact not found'));
     vi.mocked(replaceTranslations).mockResolvedValue(undefined);
     vi.mocked(importTranslations).mockResolvedValue(undefined);
     vi.mocked(deleteLanguage).mockResolvedValue(undefined);
@@ -87,6 +90,13 @@ describe('TranslationsPage', () => {
     expect(await screen.findByLabelText('team.presentation')).toHaveValue('');
     expect(screen.getByText('Our wonderful crew')).toBeInTheDocument();
     expect(screen.getByText('1 missing')).toBeInTheDocument();
+  });
+
+  it('merges the contact presentation into the expected keys when the settings load', async () => {
+    vi.mocked(loadContactConfig).mockResolvedValue({ presentation: 'Write to us!' });
+    renderPage();
+    expect(await screen.findByLabelText('contact.presentation')).toHaveValue('');
+    expect(screen.getByText('Write to us!')).toBeInTheDocument();
   });
 
   it('selects the first override, shows originals, flags extras and the default language', async () => {

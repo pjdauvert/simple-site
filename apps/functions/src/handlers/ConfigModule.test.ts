@@ -91,6 +91,27 @@ describe('ConfigModule', () => {
     expect((await readJson(res)).data.site.siteName).toBe('Old Name');
   });
 
+  // A route only becomes feature-reserved when its feature ships: configs stored
+  // before that must stay readable (lenient StoredSiteConfigSchema on reads),
+  // while writes keep rejecting reserved routes (strict SiteConfigSchema).
+  const legacyContactPage = { pageName: 'contact', route: '/contact', menuTitle: 'Contact', sections: [] };
+
+  it('GET /api/config still reads a stored config whose page uses a now-reserved route', async () => {
+    makeStore({ config: { ...storedConfig, pages: [legacyContactPage] } });
+    const res = await handle(jsonRequest('https://site.test/api/config', 'GET'));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.pages.map((p: { route: string }) => p.route)).toEqual(['/contact']);
+  });
+
+  it('POST /api/config still rejects an incoming config that claims a feature-reserved route', async () => {
+    const { data } = makeStore();
+    const res = await handle(
+      jsonRequest('https://site.test/api/config', 'POST', { ...storedConfig, pages: [legacyContactPage] }),
+    );
+    expect(res.status).toBe(500); // ZodError → CONFIGURATION_ERROR, like every schema rejection
+    expect(data.has('config:draft')).toBe(false);
+  });
+
   it('GET /api/config/draft returns the published config when no draft exists (no side effects)', async () => {
     const { data } = makeStore();
     const res = await handle(jsonRequest('https://site.test/api/config/draft', 'GET'));
