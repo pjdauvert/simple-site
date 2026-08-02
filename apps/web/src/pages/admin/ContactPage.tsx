@@ -1,28 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, IconButton, TextField, Tooltip, Typography } from '@mui/material';
-import { Translate as TranslateIcon } from '@mui/icons-material';
+import { Alert, Box, Button, TextField, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { CONTACT_PRESENTATION_KEY, ContactConfigSchema } from '@simple-site/interfaces';
 import { Loader } from '../../components/Loader';
+import { TranslateShortcut } from '../../components/manage/TranslateShortcut';
 import { loadContactConfig, saveContactConfig } from '../../services/contactService';
 import { loadAllTranslations } from '../../services/translationsService';
 import { languageLabel } from '../../features/i18n/languageNames';
 import { useNotifications } from '../../hooks/useNotifications';
-
-/** Field adornment opening the Translations page deep-linked to the contact key. */
-const TranslateShortcut: React.FC<{ i18nKey: string; label: string }> = ({ i18nKey, label }) => (
-  <Tooltip title={label}>
-    <IconButton
-      size="small"
-      sx={{ alignSelf: 'flex-start' }}
-      // Same-origin target, deliberately no `noopener` (see InlineTranslateButton).
-      onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(i18nKey)}`, '_blank')}
-      aria-label={label}
-    >
-      <TranslateIcon fontSize="small" />
-    </IconButton>
-  </Tooltip>
-);
 
 /**
  * Contact management (/manage/contact, flag-gated): the presentation message
@@ -117,6 +102,7 @@ export const ContactPage: React.FC = () => {
                   <TranslateShortcut
                     i18nKey={CONTACT_PRESENTATION_KEY}
                     label={intl.formatMessage({ id: 'page.manage.contact.translate' })}
+                    sx={{ alignSelf: 'flex-start' }}
                   />
                 ),
               },

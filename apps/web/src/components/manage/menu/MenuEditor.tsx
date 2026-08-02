@@ -18,7 +18,6 @@ import {
   ArrowDownward as DownIcon,
   ArrowUpward as UpIcon,
   EditOutlined as RenameIcon,
-  Translate as TranslateIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
@@ -27,6 +26,7 @@ import {
   menuEntryId,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
 import { useNotifications } from '../../../hooks/useNotifications';
@@ -152,17 +152,10 @@ export const MenuEditor: React.FC = () => {
                     </IconButton>
                   </span>
                 </Tooltip>
-                <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.translate' })}>
-                  <IconButton
-                    size="small"
-                    // Same-origin target, deliberately no `noopener` (see InlineTranslateButton):
-                    // severing the opener would stop sessionStorage cloning into the new tab.
-                    onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(row.i18nKey)}`, '_blank')}
-                    aria-label={intl.formatMessage({ id: 'page.manage.menu.translate' })}
-                  >
-                    <TranslateIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <TranslateShortcut
+                  i18nKey={row.i18nKey}
+                  label={intl.formatMessage({ id: 'page.manage.menu.translate' })}
+                />
                 <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.moveUp' })}>
                   <span>
                     <IconButton

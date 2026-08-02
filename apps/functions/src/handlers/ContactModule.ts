@@ -18,17 +18,24 @@ import { getResendEnv, sendContactEmail } from './resend/resendClient';
  * anonymous visitors), the settings mutation is admin-gated by the
  * `AuthHandler` wired there.
  *
- * Routes:
+ * Routes (method/path constraints enforced by `contact.mts`):
  *  - `GET /api/contact` → the contact page settings (`{}` when nothing is stored yet)
- *  - `POST /api/contact` → send a visitor message ({ email, message }); stores
- *    nothing — validated against the shared `ContactRequestSchema` and relayed
- *    to the site owner via Resend. Validation errors are explicit (400) while
- *    provider/configuration details never leak past the logs.
+ *  - `POST /api/contact/message` → send a visitor message ({ email, message });
+ *    stores nothing — validated against the shared `ContactRequestSchema` and
+ *    relayed to the site owner via Resend. Validation errors are explicit (400)
+ *    while provider/configuration details never leak past the logs.
  *  - `PUT /api/contact` → replace the settings; goes live immediately
  */
 export class ContactModule extends BaseHandler {
 
     private static readonly STORE_KEY = 'contact';
+
+    /**
+     * Upper bound on the raw send body. The schema caps the message at 1000
+     * chars, but only after trim — without this, a multi-megabyte body of
+     * padding would still be read and parsed.
+     */
+    private static readonly MAX_MESSAGE_BODY_BYTES = 10_000;
 
     private requireJson = (request: Request, path: string): void => {
         if (request.headers.get('Content-Type') !== 'application/json') {
@@ -58,9 +65,13 @@ export class ContactModule extends BaseHandler {
         return this.createSuccessResponse({ message: 'Contact settings updated successfully' });
     };
 
-    /** POST /api/contact — validate the visitor payload and relay it via Resend. */
+    /** POST /api/contact/message — validate the visitor payload and relay it via Resend. */
     private sendMessage = async (request: Request, path: string): Promise<Response> => {
         this.requireJson(request, path);
+        const contentLength = Number(request.headers.get('Content-Length') ?? 0);
+        if (!Number.isFinite(contentLength) || contentLength > ContactModule.MAX_MESSAGE_BODY_BYTES) {
+            throw ErrorResponses.invalidRequest('Request body too large', path);
+        }
         const parsed = ContactRequestSchema.safeParse(await this.parseBody(request, path));
         if (!parsed.success) {
             throw ErrorResponses.validationFailed(

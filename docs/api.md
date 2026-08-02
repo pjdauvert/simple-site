@@ -30,9 +30,9 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | DELETE | `/api/translations/:language` | Remove an override language (admin; default + last override protected) |
 | GET | `/api/team` | Retrieve the team members (public, flag-gated) |
 | PUT | `/api/team` | Replace the team members — live immediately (admin, flag-gated) |
-| GET | `/api/contact` | Retrieve the contact page settings (public, flag-gated) |
-| POST | `/api/contact` | Validate a contact form payload and relay it by email via Resend (public, flag-gated) |
-| PUT | `/api/contact` | Replace the contact page settings — live immediately (admin, flag-gated) |
+| GET | `/api/contact` | Retrieve the contact page settings (public, flag-gated, rate-limited) |
+| POST | `/api/contact/message` | Validate a contact form payload and relay it by email via Resend (public, flag-gated, rate-limited) |
+| PUT | `/api/contact` | Replace the contact page settings — live immediately (admin, flag-gated, rate-limited) |
 | GET | `/api/features` | Report enabled feature flags (public) |
 | POST | `/api/media/upload-auth` | Mint an ImageKit Upload V2 token (admin, flag-gated) |
 | GET | `/api/media` | List a folder's sub-folders + files (admin, flag-gated) |
@@ -310,7 +310,9 @@ Admin. Replaces the whole team (add / edit / delete / reorder are all expressed 
 
 Served by `apps/functions/src/contact.mts` (`ContactModule`). The surface is gated by the **`FEATURE_CONTACT`** flag: when it is not `"true"`, every route returns `404` (before auth). The page settings — the presentation message shown above the public form — live in their own blob (key `contact`) with **no draft/publish lifecycle**: a successful `PUT` is live immediately. Reads and the message send are public (the `/contact` page serves anonymous visitors); the settings mutation is admin-gated.
 
-The message send itself stores nothing: the payload is validated and relayed to the site owner's inbox through the [Resend API](https://resend.com/docs/api-reference/introduction). The visitor's address is set as `reply_to` (Resend only sends from verified domains), and the message is sent as plain text so its content is never interpreted as markup. Provider errors are logged server-side and surfaced to the caller as a generic `500`.
+The message send itself stores nothing: the payload is validated and relayed to the site owner's inbox through the [Resend API](https://resend.com/docs/api-reference/introduction). The visitor's address is set as `reply_to` (Resend only sends from verified domains), and the message is sent as plain text so its content is never interpreted as markup. Because the caller is anonymous, provider **and configuration** errors are logged server-side only and surfaced as a generic `500` — the response never names the provider or an environment variable. The Resend call is bounded to **5 s** so a provider stall still answers with the JSON error envelope instead of a platform 502.
+
+Abuse controls: the whole function is **rate-limited to 5 requests per minute per client IP** (Netlify's declarative `rateLimit`; a real visitor needs two — settings + send — per visit; excess requests receive `429`), and the send rejects request bodies over **10 KB** (`400`) before reading them — the schema's 1000-char cap applies after trim, so it does not bound the raw body.
 
 #### `GET /api/contact`
 
@@ -333,9 +335,9 @@ Admin. Replaces the whole settings object; goes live immediately. The body is va
 { "ok": true, "data": { "message": "Contact settings updated successfully" } }
 ```
 
-#### `POST /api/contact`
+#### `POST /api/contact/message`
 
-The body is validated by the shared `ContactRequestSchema` (`libs/interfaces/src/contact.interface.ts`): a valid email and a non-empty message of at most **1000** characters (trimmed).
+The public send lives on its own action path (not on the settings resource), so it can move to its own function — e.g. for a send-only rate limit — without a breaking rename. The body is validated by the shared `ContactRequestSchema` (`libs/interfaces/src/contact.interface.ts`): a valid email and a non-empty message of at most **1000** characters (trimmed).
 
 ```json
 // Request body — a ContactRequest object

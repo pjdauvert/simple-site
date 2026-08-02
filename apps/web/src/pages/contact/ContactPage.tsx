@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Alert, Box, Button, Container, TextField, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { CONTACT_MESSAGE_MAX_LENGTH, CONTACT_PRESENTATION_KEY } from '@simple-site/interfaces';
+import { CONTACT_MESSAGE_MAX_LENGTH, CONTACT_PRESENTATION_KEY, ContactRequestSchema } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
 import { Loading, Markdown } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useContactConfig } from '../../hooks/useContactConfig';
-import { isValidEmail } from '../../features/auth/auth.utils';
 import { sendContactMessage } from '../../services/contactService';
+
+/** Field-level check for onBlur feedback — same rule the server applies. */
+const isValidEmail = (value: string): boolean => ContactRequestSchema.shape.email.safeParse(value).success;
 
 /**
  * Public /contact form. The route is always registered; the page gates itself
@@ -39,16 +41,21 @@ export const ContactPage: React.FC = () => {
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    const emailInvalid = !isValidEmail(email);
-    const messageInvalid = message.trim() === '';
-    setEmailError(emailInvalid);
-    setMessageError(messageInvalid);
-    if (emailInvalid || messageInvalid) return;
+    // Validate with the shared schema — the exact contract the server enforces,
+    // so client and server acceptance can never drift.
+    const parsed = ContactRequestSchema.safeParse({ email, message });
+    if (!parsed.success) {
+      setEmailError(parsed.error.issues.some((issue) => issue.path[0] === 'email'));
+      setMessageError(parsed.error.issues.some((issue) => issue.path[0] === 'message'));
+      return;
+    }
+    setEmailError(false);
+    setMessageError(false);
     setSending(true);
     setError(null);
     setSent(false);
     try {
-      await sendContactMessage({ email, message: message.trim() });
+      await sendContactMessage(parsed.data);
       setSent(true);
       setEmail('');
       setMessage('');

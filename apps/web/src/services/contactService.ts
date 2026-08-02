@@ -15,9 +15,9 @@ import apiService from './apiService';
  * 404s when the `contact` feature flag is off.
  */
 
-/** Sends a contact message. Resolves on success, throws with the API message otherwise. */
+/** Sends a contact message (`POST /api/contact/message`). Resolves on success, throws with the API message otherwise. */
 export const sendContactMessage = async (contact: ContactRequest): Promise<void> => {
-  const response = await apiService.post<ContactRequest, ContactResponse>('contact', contact);
+  const response = await apiService.post<ContactRequest, ContactResponse>('contact/message', contact);
   if (!response.ok) throw new Error((response as ApiResponseErrorPayload).message);
 };
 

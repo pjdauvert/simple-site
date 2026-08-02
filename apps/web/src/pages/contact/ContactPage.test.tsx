@@ -83,6 +83,15 @@ describe('ContactPage (public /contact)', () => {
     expect(sendContactMessage).not.toHaveBeenCalled();
   });
 
+  it('rejects an email only the shared schema refuses — client validation cannot drift from the server', async () => {
+    renderPage();
+    // Passes naive regexes (has @ and a dot) but fails the shared z.email() the server enforces.
+    await fillForm('jane..doe@site.test', 'Hello there');
+    submit();
+    expect(await screen.findByText('Enter a valid email address')).toBeInTheDocument();
+    expect(sendContactMessage).not.toHaveBeenCalled();
+  });
+
   it('rejects an empty message without calling the API', async () => {
     renderPage();
     await fillForm('jane@site.test', '   ');

@@ -4,13 +4,10 @@ import {
   Box,
   Button,
   FormControlLabel,
-  IconButton,
   Switch,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material';
-import { Translate as TranslateIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   TEAM_FORMER_MEMBERS_TITLE_KEY,
@@ -19,25 +16,11 @@ import {
   TeamConfigSchema,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { TranslateShortcut } from '../TranslateShortcut';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadAllTranslations } from '../../../services/translationsService';
 import { languageLabel } from '../../../features/i18n/languageNames';
 import { useNotifications } from '../../../hooks/useNotifications';
-
-/** Field adornment opening the Translations page deep-linked to a team key. */
-const TranslateShortcut: React.FC<{ i18nKey: string; label: string }> = ({ i18nKey, label }) => (
-  <Tooltip title={label}>
-    <IconButton
-      size="small"
-      sx={{ alignSelf: 'flex-start' }}
-      // Same-origin target, deliberately no `noopener` (see InlineTranslateButton).
-      onClick={() => window.open(`/manage/translations?key=${encodeURIComponent(i18nKey)}`, '_blank')}
-      aria-label={label}
-    >
-      <TranslateIcon fontSize="small" />
-    </IconButton>
-  </Tooltip>
-);
 
 /**
  * Page tab of /manage/team — the team page's layout options: heading,
@@ -134,7 +117,7 @@ export const TeamPageSettings: React.FC = () => {
         fullWidth
         helperText={intl.formatMessage({ id: 'page.manage.team.field.title.help' })}
         sx={{ mb: 2 }}
-        slotProps={{ input: { endAdornment: <TranslateShortcut i18nKey={TEAM_TITLE_KEY} label={translateLabel} /> } }}
+        slotProps={{ input: { endAdornment: <TranslateShortcut i18nKey={TEAM_TITLE_KEY} label={translateLabel} sx={{ alignSelf: 'flex-start' }} /> } }}
       />
 
       <TextField
@@ -147,7 +130,7 @@ export const TeamPageSettings: React.FC = () => {
         minRows={3}
         helperText={intl.formatMessage({ id: 'page.manage.team.field.presentation.help' })}
         sx={{ mb: 2 }}
-        slotProps={{ input: { endAdornment: <TranslateShortcut i18nKey={TEAM_PRESENTATION_KEY} label={translateLabel} /> } }}
+        slotProps={{ input: { endAdornment: <TranslateShortcut i18nKey={TEAM_PRESENTATION_KEY} label={translateLabel} sx={{ alignSelf: 'flex-start' }} /> } }}
       />
 
       <FormControlLabel
@@ -165,7 +148,7 @@ export const TeamPageSettings: React.FC = () => {
           helperText={intl.formatMessage({ id: 'page.manage.team.field.formerMembersTitle.help' })}
           sx={{ mb: 2 }}
           slotProps={{
-            input: { endAdornment: <TranslateShortcut i18nKey={TEAM_FORMER_MEMBERS_TITLE_KEY} label={translateLabel} /> },
+            input: { endAdornment: <TranslateShortcut i18nKey={TEAM_FORMER_MEMBERS_TITLE_KEY} label={translateLabel} sx={{ alignSelf: 'flex-start' }} /> },
           }}
         />
       )}

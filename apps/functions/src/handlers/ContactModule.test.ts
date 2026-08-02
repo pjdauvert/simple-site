@@ -23,7 +23,7 @@ const stubFetch = (response: Response = new Response('{"id":"email_1"}', { statu
 };
 
 const makeRequest = (body: unknown, contentType = 'application/json') =>
-  new Request('https://site.test/api/contact', {
+  new Request('https://site.test/api/contact/message', {
     method: 'POST',
     headers: { 'Content-Type': contentType },
     body: typeof body === 'string' ? body : JSON.stringify(body),
@@ -94,15 +94,42 @@ describe('ContactModule', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('returns a configuration error when the Resend env is incomplete', async () => {
+  it('answers a generic 500 when the Resend env is incomplete — env-var names stay in the logs', async () => {
     stubEnv({ RESEND_API_KEY: 're_test_key' });
     const fetchMock = stubFetch();
     const res = await send(makeRequest({ email: 'jane@site.test', message: 'Hello' }));
     expect(res.status).toBe(500);
     const body = await readJson(res);
-    expect(body).toMatchObject({ ok: false, code: 'CONFIGURATION_ERROR' });
-    expect((body.details as { missing: string[] }).missing).toEqual(['CONTACT_FROM_EMAIL', 'CONTACT_TO_EMAIL']);
+    expect(body).toMatchObject({ ok: false, code: 'INTERNAL_ERROR', message: 'Failed to send the message' });
+    // The caller is anonymous: no internal variable name may reach the response.
+    for (const name of ['RESEND_API_KEY', 'CONTACT_FROM_EMAIL', 'CONTACT_TO_EMAIL', 'Resend']) {
+      expect(JSON.stringify(body)).not.toContain(name);
+    }
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an oversized body before reading it', async () => {
+    stubEnv(RESEND_ENV);
+    const fetchMock = stubFetch();
+    // Constructed Requests compute Content-Length at send time, so the test sets
+    // the header explicitly — real clients (browsers, curl) always send it.
+    const res = await send(new Request('https://site.test/api/contact/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': '12024' },
+      body: JSON.stringify({ email: 'jane@site.test', message: 'x'.repeat(12_000) }),
+    }));
+    expect(res.status).toBe(400);
+    expect(await readJson(res)).toMatchObject({ ok: false, code: 'INVALID_REQUEST', message: 'Request body too large' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a Resend timeout/network failure to the same generic 500', async () => {
+    stubEnv(RESEND_ENV);
+    const fetchMock = vi.fn().mockRejectedValue(new DOMException('The operation timed out.', 'TimeoutError'));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await send(makeRequest({ email: 'jane@site.test', message: 'Hello' }));
+    expect(res.status).toBe(500);
+    expect(await readJson(res)).toMatchObject({ ok: false, code: 'INTERNAL_ERROR', message: 'Failed to send the message' });
   });
 
   it('relays a valid message to Resend and confirms the send', async () => {

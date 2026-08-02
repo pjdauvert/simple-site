@@ -4,7 +4,7 @@ import type {
   ConfigVersionsManifest,
   SiteConfig,
 } from '@simple-site/interfaces';
-import { ConfigVersionsManifestSchema, SiteConfigSchema } from '@simple-site/interfaces';
+import { ConfigVersionsManifestSchema, StoredSiteConfigSchema } from '@simple-site/interfaces';
 import apiService from './apiService';
 
 /**
@@ -24,7 +24,7 @@ const unwrap = <T>(response: ApiResponseSuccessPayload<T> | ApiResponseErrorPayl
 /** Loads the working draft that the admin edit forms operate on. */
 export const loadDraftConfig = async (): Promise<SiteConfig> => {
   const response = await apiService.get<SiteConfig>('config/draft');
-  return SiteConfigSchema.parse(unwrap(response));
+  return StoredSiteConfigSchema.parse(unwrap(response));
 };
 
 /** Replaces the whole working draft (`POST /api/config`). Never writes live. */
@@ -42,7 +42,7 @@ export const listVersions = async (): Promise<ConfigVersionsManifest> => {
 /** Returns a version's full `SiteConfig` — used to build a download. */
 export const getVersionConfig = async (key: string): Promise<SiteConfig> => {
   const response = await apiService.get<SiteConfig>(`config/versions/${encodeURIComponent(key)}`);
-  return SiteConfigSchema.parse(unwrap(response));
+  return StoredSiteConfigSchema.parse(unwrap(response));
 };
 
 /** Promotes the draft to live; the outgoing published config is archived. */
