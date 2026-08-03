@@ -284,6 +284,88 @@ describe('ConfigModule', () => {
     expect(data.has('config:draft')).toBe(false);
   });
 
+  it('PUT /api/config/menu accepts a group with page and feature children and writes the DRAFT', async () => {
+    const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
+    const { data } = makeStore({ config });
+    const menu = { entries: [
+      { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, alwaysExpanded: true, children: [
+        { type: 'page', pageName: 'page.home', visible: true },
+        { type: 'feature', feature: 'team', visible: false },
+      ] },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).menu).toEqual(menu);
+    expect(JSON.parse(data.get('config')!).menu).toBeUndefined(); // published untouched
+  });
+
+  it('PUT /api/config/menu accepts an empty group', async () => {
+    const { data } = makeStore();
+    const menu = { entries: [{ type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] }] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).menu).toEqual(menu);
+  });
+
+  it('PUT /api/config/menu rejects a group child referencing an unknown page', async () => {
+    const { data } = makeStore();
+    const menu = { entries: [
+      { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+        { type: 'page', pageName: 'page.ghost', visible: true },
+      ] },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/menu rejects the same entry at the top level and inside a group', async () => {
+    const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
+    const { data } = makeStore({ config });
+    const menu = { entries: [
+      { type: 'page', pageName: 'page.home', visible: true },
+      { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+        { type: 'page', pageName: 'page.home', visible: false },
+      ] },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(500);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/menu rejects two groups sharing a groupId', async () => {
+    const { data } = makeStore();
+    const menu = { entries: [
+      { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] },
+      { type: 'group', groupId: 'more', menuTitle: 'Other', visible: true, children: [] },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(500);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/menu rejects a group nested inside a group (depth 1 only)', async () => {
+    const { data } = makeStore();
+    const menu = { entries: [
+      { type: 'group', groupId: 'outer', menuTitle: 'Outer', visible: true, children: [
+        { type: 'group', groupId: 'inner', menuTitle: 'Inner', visible: true, children: [] },
+      ] },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(500);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/menu rejects an invalid groupId and an empty group label', async () => {
+    const { data } = makeStore();
+    const badId = { entries: [{ type: 'group', groupId: 'my-group', menuTitle: 'More', visible: true, children: [] }] };
+    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', badId))).status).toBe(500);
+    const emptyLabel = { entries: [{ type: 'group', groupId: 'more', menuTitle: '', visible: true, children: [] }] };
+    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', emptyLabel))).status).toBe(500);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
   it('POST /api/config rejects a page using a feature-reserved route', async () => {
     const { data } = makeStore();
     const config = { ...storedConfig, pages: [{ menuTitle: 'Team', pageName: 'page.team', route: '/team', sections: [] }] };
