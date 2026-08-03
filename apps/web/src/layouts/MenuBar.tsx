@@ -14,18 +14,20 @@ import { Logout as LogoutIcon, Menu as MenuIcon } from '@mui/icons-material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useIntl, FormattedMessage } from 'react-intl';
-import type { MenuItem as MenuItemType } from '@simple-site/interfaces';
 import { menuTitleKey } from '@simple-site/interfaces';
+import type { NavNode } from '../router/publicMenu';
 import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '../features/i18n/LanguageSwitcher';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { useAuth } from '../hooks/useAuth';
 
 interface MenuBarProps {
-  menuItems: MenuItemType[];
+  navNodes: NavNode[];
 }
 
-export const MenuBar: React.FC<MenuBarProps> = ({ menuItems }) => {
+export const MenuBar: React.FC<MenuBarProps> = ({ navNodes }) => {
+  // TODO(menu-groups): group nodes render in the nav rework commit.
+  const menuItems = navNodes.flatMap((node) => (node.kind === 'item' ? [node.item] : []));
   const location = useLocation();
   const intl = useIntl();
   const { user, logout } = useAuth();

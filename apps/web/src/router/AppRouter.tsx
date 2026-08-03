@@ -3,10 +3,9 @@ import { Routes, Route } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { Page } from '../pages/dynamic/Page';
 import { NotFoundPage } from '../pages/error/NotFoundPage';
-import type { MenuItem } from '@simple-site/interfaces';
 import { useSiteConfig } from '../hooks/useSiteConfig';
 import { ALL_DISABLED, useFeatureFlags } from '../hooks/useFeatureFlags';
-import { resolveMenuItems } from './publicMenu';
+import { resolveNavTree, type NavNode } from './publicMenu';
 import { TeamPage } from '../pages/team/TeamPage';
 import { TeamMemberPage } from '../pages/team/TeamMemberPage';
 import { ContactPage } from '../pages/contact/ContactPage';
@@ -19,13 +18,13 @@ export const AppRouter: React.FC = () => {
 
   // While flags load, feature entries resolve as disabled — page links render
   // immediately and feature links pop in once the flags arrive.
-  const menuItems: MenuItem[] = useMemo(
-    () => resolveMenuItems(config, flags ?? ALL_DISABLED),
+  const navNodes: NavNode[] = useMemo(
+    () => resolveNavTree(config, flags ?? ALL_DISABLED),
     [config, flags]
   );
 
   return (
-    <MainLayout menuItems={menuItems}>
+    <MainLayout navNodes={navNodes}>
       <Routes>
         {config.pages.map(page => (
           <Route key={page.route} path={page.route} element={<Page {...page} />} />

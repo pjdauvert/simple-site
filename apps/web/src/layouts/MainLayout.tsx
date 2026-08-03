@@ -2,15 +2,15 @@ import React from 'react';
 import type { ReactNode } from 'react';
 import { Box } from '@mui/material';
 import { MenuBar } from './MenuBar';
-import type { MenuItem } from '@simple-site/interfaces';
+import type { NavNode } from '../router/publicMenu';
 import { Footer } from './Footer';
 
 interface MainLayoutProps {
   children: ReactNode;
-  menuItems: MenuItem[];
+  navNodes: NavNode[];
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ children, menuItems }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ children, navNodes }) => {
 
   return (
     <Box
@@ -20,7 +20,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, menuItems }) =
         minHeight: '100vh',
       }}
     >
-      <MenuBar menuItems={menuItems} />
+      <MenuBar navNodes={navNodes} />
       <Box
         component="main"
         sx={{
