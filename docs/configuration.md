@@ -89,7 +89,12 @@ The optional `menu` decouples the public navigation from the raw pages list. It 
 {
   "entries": [
     { "type": "page", "pageName": "page.home", "visible": true, "menuTitle": "Welcome" },
-    { "type": "feature", "feature": "team", "visible": false, "menuTitle": "Our team" }
+    { "type": "feature", "feature": "team", "visible": false, "menuTitle": "Our team" },
+    { "type": "group", "groupId": "moreLinks", "menuTitle": "More links", "visible": true,
+      "alwaysExpanded": false, "children": [
+        { "type": "page", "pageName": "page.about", "visible": true },
+        { "type": "feature", "feature": "contact", "visible": true }
+      ] }
   ]
 }
 ```
@@ -97,11 +102,14 @@ The optional `menu` decouples the public navigation from the raw pages list. It 
 - **Order** = navigation order. **`visible: false`** keeps the target reachable at its URL while hiding it from the nav.
 - **`menuTitle`** (optional) renames the entry in the nav: for a page entry it overrides the page's own title (absent → the page's `menuTitle`); for a feature entry it is the label itself (absent → the feature's default, e.g. "Team"). Rename inline from the Menu tab; an emptied field reverts to the fallback. Like every config label it is a translation **default** — per-language values are managed on the **Translations** page under the `${pageName|feature}.menuTitle` key (menu labels are part of `collectI18nEntries`, so they appear there automatically).
 - **Feature entries** point at pages shipped by optional features (`team` and `contact` today; gallery, events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering.
+- **Group entries** are one-level submenus: a non-navigable, translatable label whose `children` are page/feature entries. In the public nav, clicking a group opens a popover of its children on desktop, and an accordion inside the mobile menu (`alwaysExpanded: true` renders it as an always-open section header there instead; the flag has no effect on desktop). A **hidden group** hides its whole subtree; a group whose children all resolve away (hidden, pruned, or feature-off) is **omitted from the nav but kept in the config**. Depth is one level by construction — a group cannot contain a group.
+  - `groupId` is a single camelCase segment (`^[a-z][a-zA-Z0-9]*$`), derived from the label when the group is created on the Menu tab and **immutable afterwards** — renaming only changes `menuTitle`, so translations survive. The group label's translation key is `menu.<groupId>.menuTitle` (the `menu.` prefix keeps group keys from colliding with `${pageName|feature}.menuTitle` namespaces).
+  - `menuTitle` is **required** on groups (there is no target to fall back to).
 - **No `menu`** (older configs) → the nav derives from the pages array order, exactly as before the Menu tab existed.
-- **Integrity** is enforced by `SiteConfigSchema`: no duplicate entries and no references to unknown pages can be stored.
-- **Reconciliation** — the shared `reconcileMenu` helper keeps the menu in sync with the pages set: entries of deleted pages are pruned, new pages are appended (visible), and newly-enabled features are appended (hidden) until an admin opts them in. The Menu tab applies it on load; the Pages editor applies it on save. Note that renaming a `pageName` counts as delete + re-add, so that entry returns to the end of the menu with default visibility.
+- **Integrity** is enforced by `SiteConfigSchema`: no duplicate entries across the top level and all groups combined (one global id space), no references to unknown pages — inside groups too — and no invalid `groupId`.
+- **Reconciliation** — the shared `reconcileMenu` helper keeps the menu in sync with the pages set: entries of deleted pages are pruned (inside groups too), new pages are appended (visible) **at the top level**, and newly-enabled features are appended (hidden) until an admin opts them in. Groups are kept even when emptied — deleting one is an admin decision. The Menu tab applies it on load; the Pages editor applies it on save. Note that renaming a `pageName` counts as delete + re-add, so that entry returns to the end of the menu with default visibility (leaving any group it was in).
 
-The **Menu** tab of `/manage/site` edits this: reorder with the up/down controls, rename with the pencil control, toggle visibility per entry, then save (`PUT /api/config/menu` — writes the draft; publish to go live).
+The **Menu** tab of `/manage/site` edits this: reorder with the up/down controls (within a level — a group moves as a block), rename with the pencil control, toggle visibility per entry, create groups with **Add group**, and use each row's **⋮** menu to move an entry into or out of a group, toggle a group's *always expanded on mobile* mode, or delete a group (its children return to the top level, in place). Save with `PUT /api/config/menu` — writes the draft; publish to go live.
 
 ### Sections
 
