@@ -140,7 +140,7 @@ describe('MenuEditor', () => {
       fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
-    expect(saved.entries.map((e) => (e.type === 'page' ? e.pageName : e.feature))).toEqual([
+    expect(saved.entries.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.groupId))).toEqual([
       'page.about',
       'page.home',
     ]);

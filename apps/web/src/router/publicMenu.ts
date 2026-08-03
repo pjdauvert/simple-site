@@ -66,7 +66,7 @@ export const resolveMenuItems = (config: SiteConfig, flags: FeatureFlags): MenuI
     if (entry.type === 'page') {
       const page = pagesByName.get(entry.pageName);
       if (page) items.push({ menuTitle: entry.menuTitle ?? page.menuTitle, pageName: page.pageName, route: page.route });
-    } else {
+    } else if (entry.type === 'feature') {
       const definition = FEATURE_PAGE_REGISTRY[entry.feature];
       if (definition && flags[definition.flag]) {
         items.push({ menuTitle: featureEntryLabel(entry), pageName: definition.pageName, route: definition.route });

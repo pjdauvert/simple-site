@@ -37,7 +37,9 @@ export const entryRows = (
   flags: FeatureFlags | null,
 ): MenuEntryRow[] => {
   const pagesByName = new Map(pages.map((page) => [page.pageName, page]));
-  return entries.map((entry) => {
+  return entries.flatMap((entry) => {
+    // TODO(menu-groups): group rows land with the editor rework.
+    if (entry.type === 'group') return [];
     if (entry.type === 'page') {
       const page = pagesByName.get(entry.pageName);
       const baseLabel = page?.menuTitle ?? entry.pageName;

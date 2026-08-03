@@ -100,7 +100,8 @@ export const MenuEditor: React.FC = () => {
   /** Commits the rename: an empty field (or the fallback label itself) reverts to it. */
   const commitRename = (index: number, baseLabel: string) => {
     const menuTitle = normalizedMenuTitle(renameValue, baseLabel);
-    setEntries((prev) => prev?.map((entry, i) => (i === index ? { ...entry, menuTitle } : entry)) ?? prev);
+    // Group labels are required — group rename gets its own flow in the editor rework.
+    setEntries((prev) => prev?.map((entry, i) => (i === index && entry.type !== 'group' ? { ...entry, menuTitle } : entry)) ?? prev);
     setRenamingIndex(null);
   };
 

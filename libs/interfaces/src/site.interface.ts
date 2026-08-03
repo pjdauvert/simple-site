@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { ThemeConfigSchema, SiteThemeConfigSchema } from './theme.interface.js';
 import { PageConfigurationSchema } from './page.interface.js';
-import { MenuConfigSchema, isReservedRoute, menuEntryId } from './menu.interface.js';
+import {
+  MenuConfigSchema,
+  isReservedRoute,
+  menuEntryId,
+  type MenuEntry,
+  type MenuLeafEntry,
+} from './menu.interface.js';
 
 /** True when every value produced by `key` is distinct across the list. */
 const allUnique = <T>(items: T[], key: (item: T) => string): boolean =>
@@ -40,19 +46,37 @@ export const StoredSiteConfigSchema = z
   .superRefine((config, ctx) => {
     if (!config.menu) return;
     const pageNames = new Set(config.pages.map((p) => p.pageName));
+    // One global id space: a page/feature may appear once across the top level
+    // and every group's children combined (`group:` ids can never collide with
+    // leaf ids, so group-id uniqueness is subsumed).
     const seen = new Set<string>();
-    config.menu.entries.forEach((entry, index) => {
+    const checkId = (entry: MenuEntry, path: (string | number)[]): void => {
       const id = menuEntryId(entry);
       if (seen.has(id)) {
-        ctx.addIssue({ code: 'custom', message: `Duplicate menu entry "${id}"`, path: ['menu', 'entries', index] });
+        ctx.addIssue({ code: 'custom', message: `Duplicate menu entry "${id}"`, path });
       }
       seen.add(id);
+    };
+    const checkPageRef = (entry: MenuLeafEntry, path: (string | number)[]): void => {
       if (entry.type === 'page' && !pageNames.has(entry.pageName)) {
         ctx.addIssue({
           code: 'custom',
           message: `Menu entry references unknown page "${entry.pageName}"`,
-          path: ['menu', 'entries', index],
+          path,
         });
+      }
+    };
+    config.menu.entries.forEach((entry, index) => {
+      const path = ['menu', 'entries', index];
+      checkId(entry, path);
+      if (entry.type === 'group') {
+        entry.children.forEach((child, childIndex) => {
+          const childPath = [...path, 'children', childIndex];
+          checkId(child, childPath);
+          checkPageRef(child, childPath);
+        });
+      } else {
+        checkPageRef(entry, path);
       }
     });
   });
