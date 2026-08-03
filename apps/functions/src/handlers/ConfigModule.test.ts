@@ -357,6 +357,17 @@ describe('ConfigModule', () => {
     expect(data.has('config:draft')).toBe(false);
   });
 
+  it('PUT /api/config/menu stores the menu-wide groupDisplay and rejects unknown values', async () => {
+    const { data } = makeStore();
+    const menu = { entries: [], groupDisplay: 'bar' };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).menu).toEqual(menu);
+
+    const bad = { entries: [], groupDisplay: 'sidebar' };
+    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', bad))).status).toBe(500);
+  });
+
   it('PUT /api/config/menu rejects an invalid groupId and an empty group label', async () => {
     const { data } = makeStore();
     const badId = { entries: [{ type: 'group', groupId: 'my-group', menuTitle: 'More', visible: true, children: [] }] };

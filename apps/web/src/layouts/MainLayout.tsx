@@ -2,15 +2,17 @@ import React from 'react';
 import type { ReactNode } from 'react';
 import { Box } from '@mui/material';
 import { MenuBar } from './MenuBar';
+import type { MenuGroupDisplay } from '@simple-site/interfaces';
 import type { NavNode } from '../router/publicMenu';
 import { Footer } from './Footer';
 
 interface MainLayoutProps {
   children: ReactNode;
   navNodes: NavNode[];
+  groupDisplay?: MenuGroupDisplay;
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ children, navNodes }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ children, navNodes, groupDisplay }) => {
 
   return (
     <Box
@@ -20,7 +22,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, navNodes }) =>
         minHeight: '100vh',
       }}
     >
-      <MenuBar navNodes={navNodes} />
+      <MenuBar navNodes={navNodes} groupDisplay={groupDisplay} />
       <Box
         component="main"
         sx={{

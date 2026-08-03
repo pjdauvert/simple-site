@@ -15,6 +15,7 @@ import {
   Menu,
   MenuItem,
   Popover,
+  Slide,
 } from '@mui/material';
 import {
   ExpandLess as ExpandLessIcon,
@@ -26,7 +27,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useIntl, FormattedMessage } from 'react-intl';
-import type { MenuItem as MenuItemType } from '@simple-site/interfaces';
+import type { MenuGroupDisplay, MenuItem as MenuItemType } from '@simple-site/interfaces';
 import { menuTitleKey } from '@simple-site/interfaces';
 import type { NavGroup, NavNode } from '../router/publicMenu';
 import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
@@ -36,6 +37,8 @@ import { useAuth } from '../hooks/useAuth';
 
 interface MenuBarProps {
   navNodes: NavNode[];
+  /** Desktop rendering of group nodes: anchored popover (default) or secondary bar. */
+  groupDisplay?: MenuGroupDisplay;
 }
 
 const itemLabel = (item: MenuItemType) => (
@@ -89,7 +92,7 @@ const DesktopNavGroup: React.FC<{
   );
 };
 
-export const MenuBar: React.FC<MenuBarProps> = ({ navNodes }) => {
+export const MenuBar: React.FC<MenuBarProps> = ({ navNodes, groupDisplay = 'popover' }) => {
   const location = useLocation();
   const intl = useIntl();
   const { user, logout } = useAuth();
@@ -97,6 +100,23 @@ export const MenuBar: React.FC<MenuBarProps> = ({ navNodes }) => {
   const { themeConfig, siteThemeConfig } = useAppTheme();
   const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [expandedGroups, setExpandedGroups] = React.useState<ReadonlySet<string>>(new Set());
+  const [openBarGroupId, setOpenBarGroupId] = React.useState<string | null>(null);
+
+  // Bar mode: the open group resolves against the current nodes, so a group
+  // removed by a config change closes its bar. The last group is retained for
+  // the slide-out animation content.
+  const openBarGroup =
+    groupDisplay === 'bar'
+      ? navNodes.find((node): node is NavGroup => node.kind === 'group' && node.id === openBarGroupId) ?? null
+      : null;
+  const lastBarGroupRef = React.useRef<NavGroup | null>(null);
+  if (openBarGroup) lastBarGroupRef.current = openBarGroup;
+  const barGroup = openBarGroup ?? lastBarGroupRef.current;
+
+  // Any navigation closes the secondary bar (child click, back button, deep link).
+  React.useEffect(() => {
+    setOpenBarGroupId(null);
+  }, [location.pathname]);
 
   const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setMobileMenuAnchor(event.currentTarget);
@@ -201,25 +221,46 @@ export const MenuBar: React.FC<MenuBarProps> = ({ navNodes }) => {
 
           {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 1 }}>
-            {navNodes.map((node) =>
-              node.kind === 'item' ? (
-                <Button
-                  key={node.item.route}
-                  component={RouterLink}
-                  to={node.item.route}
-                  sx={navButtonSx(location.pathname === node.item.route)}
-                >
-                  {itemLabel(node.item)}
-                </Button>
-              ) : (
+            {navNodes.map((node) => {
+              if (node.kind === 'item') {
+                return (
+                  <Button
+                    key={node.item.route}
+                    component={RouterLink}
+                    to={node.item.route}
+                    sx={navButtonSx(location.pathname === node.item.route)}
+                  >
+                    {itemLabel(node.item)}
+                  </Button>
+                );
+              }
+              const groupActive = node.items.some((item) => item.route === location.pathname);
+              if (groupDisplay === 'bar') {
+                const open = openBarGroupId === node.id;
+                return (
+                  <Button
+                    key={node.id}
+                    onClick={() => setOpenBarGroupId(open ? null : node.id)}
+                    endIcon={
+                      <ExpandMoreIcon sx={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    }
+                    aria-expanded={open ? 'true' : 'false'}
+                    aria-controls={open ? 'desktop-subnav' : undefined}
+                    sx={navButtonSx(groupActive || open)}
+                  >
+                    {groupLabel(node)}
+                  </Button>
+                );
+              }
+              return (
                 <DesktopNavGroup
                   key={node.id}
                   group={node}
-                  buttonSx={navButtonSx(node.items.some((item) => item.route === location.pathname))}
+                  buttonSx={navButtonSx(groupActive)}
                   currentPath={location.pathname}
                 />
-              ),
-            )}
+              );
+            })}
           </Box>
 
           {/* Mobile Menu Icon */}
@@ -252,6 +293,54 @@ export const MenuBar: React.FC<MenuBarProps> = ({ navNodes }) => {
           </Box>
         </Toolbar>
       </Container>
+
+      {/* Desktop secondary bar (groupDisplay="bar") — an absolutely-positioned
+          overlay clipped below the sticky AppBar, so the page content never
+          moves: the bar slides down from under the main bar (Slide keeps it in
+          the DOM but visibility-hidden when closed) with an inset top shadow
+          that reads as the main bar casting onto it. */}
+      {groupDisplay === 'bar' && barGroup && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            overflow: 'hidden',
+            display: { xs: 'none', md: 'block' },
+            pointerEvents: openBarGroup ? 'auto' : 'none',
+          }}
+        >
+          <Slide in={Boolean(openBarGroup)} direction="down" timeout={250}>
+            <Box
+              id="desktop-subnav"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setOpenBarGroupId(null);
+              }}
+              sx={{
+                backgroundColor: themeConfig.menuBackgroundColor,
+                boxShadow: 'inset 0 10px 8px -8px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <Container maxWidth={siteThemeConfig.containerMaxWidth}>
+                <Toolbar disableGutters variant="dense" sx={{ minHeight: 44, gap: 1 }}>
+                  {barGroup.items.map((item) => (
+                    <Button
+                      key={item.route}
+                      component={RouterLink}
+                      to={item.route}
+                      onClick={() => setOpenBarGroupId(null)}
+                      sx={navButtonSx(location.pathname === item.route)}
+                    >
+                      {itemLabel(item)}
+                    </Button>
+                  ))}
+                </Toolbar>
+              </Container>
+            </Box>
+          </Slide>
+        </Box>
+      )}
 
       {/* Mobile Menu — a Popover + List (not a MUI Menu): groups render as
           accordions (or always-open sections), which MenuList's roving focus

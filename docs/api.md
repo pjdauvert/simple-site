@@ -112,7 +112,7 @@ Replaces the `menu` of the **draft** — the ordered list of navigation entries 
   { "type": "group", "groupId": "moreLinks", "menuTitle": "More links", "visible": true, "children": [
     { "type": "page", "pageName": "page.about", "visible": true }
   ] }
-] }
+], "groupDisplay": "bar" }  // optional menu-wide desktop group rendering: "popover" (default) | "bar"
 
 // 200 OK
 { "ok": true, "data": { "message": "Menu updated successfully" } }

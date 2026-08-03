@@ -13,6 +13,8 @@ import {
   Stack,
   Switch,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -26,6 +28,7 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   type MenuEntry,
+  type MenuGroupDisplay,
   type PageConfiguration,
   menuEntryId,
 } from '@simple-site/interfaces';
@@ -83,6 +86,7 @@ export const MenuEditor: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [groupDisplay, setGroupDisplay] = useState<MenuGroupDisplay>('popover');
   const [addingGroup, setAddingGroup] = useState(false);
   const [groupLabel, setGroupLabel] = useState('');
   const [rowMenuAnchor, setRowMenuAnchor] = useState<null | HTMLElement>(null);
@@ -95,6 +99,7 @@ export const MenuEditor: React.FC = () => {
         if (!active) return;
         setPages(config.pages);
         setStoredEntries(config.menu?.entries ?? []);
+        setGroupDisplay(config.menu?.groupDisplay ?? 'popover');
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.menu.error.load' }));
@@ -146,7 +151,8 @@ export const MenuEditor: React.FC = () => {
     if (!entries) return;
     setSubmitting(true);
     try {
-      await updateMenu({ entries });
+      // "popover" is the default — omitted to keep stored configs minimal.
+      await updateMenu({ entries, ...(groupDisplay === 'bar' ? { groupDisplay } : {}) });
       notify.success(intl.formatMessage({ id: 'page.manage.menu.saved' }));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.menu.error.save' }));
@@ -186,31 +192,54 @@ export const MenuEditor: React.FC = () => {
         <FormattedMessage id="page.manage.menu.publishNote" />
       </Typography>
 
-      {addingGroup ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-          <TextField
-            size="small"
-            autoFocus
-            value={groupLabel}
-            label={intl.formatMessage({ id: 'page.manage.menu.addGroup.label' })}
-            onChange={(e) => setGroupLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') confirmAddGroup();
-              if (e.key === 'Escape') { setAddingGroup(false); setGroupLabel(''); }
-            }}
-          />
-          <Button size="small" variant="contained" disabled={!groupLabel.trim()} onClick={confirmAddGroup}>
-            <FormattedMessage id="page.manage.menu.addGroup.confirm" />
+      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        {addingGroup ? (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <TextField
+              size="small"
+              autoFocus
+              value={groupLabel}
+              label={intl.formatMessage({ id: 'page.manage.menu.addGroup.label' })}
+              onChange={(e) => setGroupLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmAddGroup();
+                if (e.key === 'Escape') { setAddingGroup(false); setGroupLabel(''); }
+              }}
+            />
+            <Button size="small" variant="contained" disabled={!groupLabel.trim()} onClick={confirmAddGroup}>
+              <FormattedMessage id="page.manage.menu.addGroup.confirm" />
+            </Button>
+            <Button size="small" onClick={() => { setAddingGroup(false); setGroupLabel(''); }}>
+              <FormattedMessage id="page.manage.menu.addGroup.cancel" />
+            </Button>
+          </Stack>
+        ) : (
+          <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddingGroup(true)}>
+            <FormattedMessage id="page.manage.menu.addGroup" />
           </Button>
-          <Button size="small" onClick={() => { setAddingGroup(false); setGroupLabel(''); }}>
-            <FormattedMessage id="page.manage.menu.addGroup.cancel" />
-          </Button>
-        </Stack>
-      ) : (
-        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddingGroup(true)} sx={{ mb: 2 }}>
-          <FormattedMessage id="page.manage.menu.addGroup" />
-        </Button>
-      )}
+        )}
+        {groups.length > 0 && (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="caption" color="text.secondary" id="menu-group-display-label">
+              <FormattedMessage id="page.manage.menu.groupDisplay" />
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={groupDisplay}
+              onChange={(_, value: MenuGroupDisplay | null) => { if (value) setGroupDisplay(value); }}
+              aria-labelledby="menu-group-display-label"
+            >
+              <ToggleButton value="popover">
+                <FormattedMessage id="page.manage.menu.groupDisplay.popover" />
+              </ToggleButton>
+              <ToggleButton value="bar">
+                <FormattedMessage id="page.manage.menu.groupDisplay.bar" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
+        )}
+      </Stack>
 
       <List dense disablePadding>
         {rows.map((row, index) => {

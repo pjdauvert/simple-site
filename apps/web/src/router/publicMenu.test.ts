@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { collectI18nEntries, type MenuConfig, type SiteConfig } from '@simple-site/interfaces';
-import { reconcileMenu, resolveNavTree, type NavNode } from './publicMenu';
+import { reconcileMenu, resolveGroupDisplay, resolveNavTree, type NavNode } from './publicMenu';
 import type { FeatureFlags } from '../services/featuresService';
 
 const page = (pageName: string, route: string, menuTitle: string) =>
@@ -175,6 +175,16 @@ describe('resolveNavTree', () => {
   });
 });
 
+describe('resolveGroupDisplay', () => {
+  it('defaults to popover (no menu, or no explicit setting) and carries a stored bar mode', () => {
+    expect(resolveGroupDisplay(configWith([page('page.home', '/home', 'Home')]))).toBe('popover');
+    expect(resolveGroupDisplay(configWith([page('page.home', '/home', 'Home')], { entries: [] }))).toBe('popover');
+    expect(
+      resolveGroupDisplay(configWith([page('page.home', '/home', 'Home')], { entries: [], groupDisplay: 'bar' })),
+    ).toBe('bar');
+  });
+});
+
 describe('reconcileMenu', () => {
   const pages = [{ pageName: 'page.home' }, { pageName: 'page.about' }];
 
@@ -237,6 +247,13 @@ describe('reconcileMenu', () => {
       ] },
       { type: 'page', pageName: 'page.home', visible: true },
     ]);
+  });
+
+  it('carries menu-level settings (groupDisplay) through reconciliation', () => {
+    const menu: MenuConfig = { entries: [{ type: 'page', pageName: 'page.home', visible: true }], groupDisplay: 'bar' };
+    const reconciled = reconcileMenu(menu, pages, []);
+    expect(reconciled.groupDisplay).toBe('bar');
+    expect(reconcileMenu(undefined, pages, []).groupDisplay).toBeUndefined();
   });
 
   it('keeps a group that ends up empty after pruning', () => {

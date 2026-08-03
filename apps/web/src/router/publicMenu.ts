@@ -7,6 +7,7 @@ import {
   type FeaturePageId,
   type MenuConfig,
   type MenuEntry,
+  type MenuGroupDisplay,
   type MenuItem,
   type MenuLeafEntry,
   type PageConfiguration,
@@ -70,6 +71,10 @@ export interface NavGroup {
 }
 
 export type NavNode = { kind: 'item'; item: MenuItem } | NavGroup;
+
+/** The menu-wide desktop rendering mode for group nodes (absent → popover). */
+export const resolveGroupDisplay = (config: SiteConfig): MenuGroupDisplay =>
+  config.menu?.groupDisplay ?? 'popover';
 
 /**
  * Resolves one leaf entry into a nav item, or null when it must not render:
@@ -140,6 +145,7 @@ export const resolveNavTree = (config: SiteConfig, flags: FeatureFlags): NavNode
  * - KEEP entries of currently-disabled features so flag flips don't lose ordering.
  * Ids are deduped first-occurrence-wins across one global space (top level and
  * every group's children combined), matching the schema's integrity rule.
+ * Menu-level settings (e.g. `groupDisplay`) are carried through untouched.
  * Client-side consistency only — the server enforces menu integrity via the schema.
  */
 export const reconcileMenu = (
@@ -182,5 +188,5 @@ export const reconcileMenu = (
     entries.push({ type: 'feature', feature, visible: false });
   }
 
-  return { entries };
+  return { ...menu, entries };
 };

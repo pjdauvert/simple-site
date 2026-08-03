@@ -5,7 +5,7 @@ import { Page } from '../pages/dynamic/Page';
 import { NotFoundPage } from '../pages/error/NotFoundPage';
 import { useSiteConfig } from '../hooks/useSiteConfig';
 import { ALL_DISABLED, useFeatureFlags } from '../hooks/useFeatureFlags';
-import { resolveNavTree, type NavNode } from './publicMenu';
+import { resolveGroupDisplay, resolveNavTree, type NavNode } from './publicMenu';
 import { TeamPage } from '../pages/team/TeamPage';
 import { TeamMemberPage } from '../pages/team/TeamMemberPage';
 import { ContactPage } from '../pages/contact/ContactPage';
@@ -24,7 +24,7 @@ export const AppRouter: React.FC = () => {
   );
 
   return (
-    <MainLayout navNodes={navNodes}>
+    <MainLayout navNodes={navNodes} groupDisplay={resolveGroupDisplay(config)}>
       <Routes>
         {config.pages.map(page => (
           <Route key={page.route} path={page.route} element={<Page {...page} />} />

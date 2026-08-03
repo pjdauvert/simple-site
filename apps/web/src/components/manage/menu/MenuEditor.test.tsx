@@ -331,6 +331,47 @@ describe('MenuEditor', () => {
     });
   });
 
+  it('switches the desktop submenu display and omits the popover default from the payload', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [
+          { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] },
+          { type: 'page', pageName: 'page.home', visible: true },
+        ] },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('More');
+
+    fireEvent.click(screen.getByRole('button', { name: /secondary bar/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    expect(vi.mocked(updateMenu).mock.calls[0][0].groupDisplay).toBe('bar');
+
+    fireEvent.click(screen.getByRole('button', { name: /pop-over/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    expect(vi.mocked(updateMenu).mock.calls[1][0].groupDisplay).toBeUndefined();
+  });
+
+  it('preselects the stored desktop submenu display on load', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [
+          { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] },
+          { type: 'page', pageName: 'page.home', visible: true },
+        ], groupDisplay: 'bar' },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('More');
+    expect(screen.getByRole('button', { name: /secondary bar/i })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('renames a group label while keeping its id, and links its translation key', async () => {
     vi.mocked(loadDraftConfig).mockResolvedValue(
       configWith(

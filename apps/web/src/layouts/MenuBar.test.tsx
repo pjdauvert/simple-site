@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { MemoryRouter } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
+import type { MenuGroupDisplay } from '@simple-site/interfaces';
 import { AuthContext } from '../features/auth/AuthContext';
 import type { AuthContextValue } from '../features/auth/AuthContext';
 import messages from '../features/i18n/i18n.json';
@@ -42,13 +43,14 @@ function renderBar(
   path = '/home',
   extraMessages: Record<string, string> = {},
   context: Partial<AuthContextValue> = {},
+  groupDisplay?: MenuGroupDisplay,
 ) {
   const defaults: AuthContextValue = { user: null, isLoading: false, login: vi.fn(), logout: vi.fn() };
   return render(
     <MemoryRouter initialEntries={[path]}>
       <IntlProvider locale="en" messages={{ ...(messages.en as Record<string, string>), ...extraMessages }}>
         <AuthContext.Provider value={{ ...defaults, ...context }}>
-          <MenuBar navNodes={navNodes} />
+          <MenuBar navNodes={navNodes} groupDisplay={groupDisplay} />
         </AuthContext.Provider>
       </IntlProvider>
     </MemoryRouter>,
@@ -90,6 +92,43 @@ describe('MenuBar (desktop)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     expect(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'About' })).toHaveClass('Mui-selected');
+  });
+});
+
+describe('MenuBar (desktop, secondary-bar mode)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('toggles a secondary bar of child links below the app bar instead of a popover', async () => {
+    renderBar(nodes, '/home', {}, {}, 'bar');
+
+    const groupButton = screen.getByRole('button', { name: 'More' });
+    expect(groupButton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: 'About' })).not.toBeInTheDocument();
+
+    fireEvent.click(groupButton);
+    expect(groupButton).toHaveAttribute('aria-expanded', 'true');
+    expect(groupButton).toHaveAttribute('aria-controls', 'desktop-subnav');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument(); // no popover in bar mode
+    expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about');
+    expect(screen.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/team');
+
+    // Clicking the group again folds the bar back.
+    fireEvent.click(groupButton);
+    expect(groupButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes the bar when a child navigates and on Escape', async () => {
+    renderBar(nodes, '/home', {}, {}, 'bar');
+    const groupButton = screen.getByRole('button', { name: 'More' });
+
+    fireEvent.click(groupButton);
+    fireEvent.click(screen.getByRole('link', { name: 'About' }));
+    await waitFor(() => expect(groupButton).toHaveAttribute('aria-expanded', 'false'));
+
+    fireEvent.click(groupButton);
+    expect(groupButton).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.keyDown(screen.getByRole('link', { name: 'Team' }), { key: 'Escape' });
+    expect(groupButton).toHaveAttribute('aria-expanded', 'false');
   });
 });
 

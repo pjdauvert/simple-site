@@ -124,8 +124,20 @@ export type MenuEntry = z.infer<typeof MenuEntrySchema>;
 export const featureEntryLabel = (entry: Extract<MenuEntry, { type: "feature" }>): string =>
   entry.menuTitle ?? FEATURE_PAGE_DEFAULT_LABELS[entry.feature];
 
+/**
+ * How groups render their children on desktop: an anchored popover (default),
+ * or a secondary menu bar sliding out from under the main bar. One menu-wide
+ * setting so the navigation stays visually coherent. Mobile always renders
+ * the accordion (or the always-expanded section) regardless.
+ */
+export const MenuGroupDisplaySchema = z.enum(["popover", "bar"]);
+
+export type MenuGroupDisplay = z.infer<typeof MenuGroupDisplaySchema>;
+
 export const MenuConfigSchema = z.object({
   entries: z.array(MenuEntrySchema),
+  // Absent = "popover", keeping stored configs minimal and older ones valid.
+  groupDisplay: MenuGroupDisplaySchema.optional(),
 });
 
 export type MenuConfig = z.infer<typeof MenuConfigSchema>;
