@@ -188,4 +188,177 @@ describe('MenuEditor', () => {
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[0]).toEqual({ type: 'feature', feature: 'team', visible: false });
   });
+
+  it('creates a group, moves an entry into it and saves the nested payload', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith([page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')]),
+    );
+    renderEditor();
+    await screen.findByText('About');
+
+    fireEvent.click(screen.getByRole('button', { name: /add group/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: /group name/i }), { target: { value: 'More links' } });
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+    expect(await screen.findByText('More links')).toBeInTheDocument();
+
+    // Rows: Home, About, group — move About into the group via its overflow menu.
+    fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[1]);
+    fireEvent.click(await screen.findByRole('menuitem', { name: /move to "More links"/i }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    expect(updateMenu).toHaveBeenCalledWith({
+      entries: [
+        { type: 'page', pageName: 'page.home', visible: true },
+        { type: 'group', groupId: 'moreLinks', menuTitle: 'More links', visible: true, children: [
+          { type: 'page', pageName: 'page.about', visible: true },
+        ] },
+      ],
+    });
+  });
+
+  it('moves a group child back out, right after its group', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')],
+        { entries: [
+          { type: 'page', pageName: 'page.home', visible: true },
+          { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+            { type: 'page', pageName: 'page.about', visible: true },
+          ] },
+        ] },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('More');
+
+    // Rows: Home, group, About (child) — the child's overflow menu offers "move out".
+    fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[2]);
+    fireEvent.click(await screen.findByRole('menuitem', { name: /move out of group/i }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries).toEqual([
+      { type: 'page', pageName: 'page.home', visible: true },
+      { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] },
+      { type: 'page', pageName: 'page.about', visible: true },
+    ]);
+  });
+
+  it('reorders within a group without escaping it', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')],
+        { entries: [
+          { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+            { type: 'page', pageName: 'page.home', visible: true },
+            { type: 'page', pageName: 'page.about', visible: true },
+          ] },
+        ] },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('More');
+
+    // Rows: group, Home (child), About (child) — move the last child up.
+    fireEvent.click(screen.getAllByRole('button', { name: /move up/i })[2]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries).toEqual([
+      { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+        { type: 'page', pageName: 'page.about', visible: true },
+        { type: 'page', pageName: 'page.home', visible: true },
+      ] },
+    ]);
+  });
+
+  it('deletes a group and returns its children to the top level, in place', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')],
+        { entries: [
+          { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+            { type: 'page', pageName: 'page.about', visible: true },
+          ] },
+          { type: 'page', pageName: 'page.home', visible: true },
+        ] },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('More');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[0]);
+    fireEvent.click(await screen.findByRole('menuitem', { name: /delete group/i }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries).toEqual([
+      { type: 'page', pageName: 'page.about', visible: true },
+      { type: 'page', pageName: 'page.home', visible: true },
+    ]);
+  });
+
+  it('toggles a group "always expanded on mobile" and saves it', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [
+          { type: 'page', pageName: 'page.home', visible: true },
+          { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] },
+        ] },
+      ),
+    );
+    renderEditor();
+    await screen.findByText('More');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[1]);
+    fireEvent.click(await screen.findByRole('menuitem', { name: /always expanded on mobile/i }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries[1]).toEqual({
+      type: 'group', groupId: 'more', menuTitle: 'More', visible: true, alwaysExpanded: true, children: [],
+    });
+  });
+
+  it('renames a group label while keeping its id, and links its translation key', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(
+      configWith(
+        [page('page.home', '/home', 'Home')],
+        { entries: [
+          { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] },
+          { type: 'page', pageName: 'page.home', visible: true },
+        ] },
+      ),
+    );
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    renderEditor();
+    await screen.findByText('More');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /translate/i })[0]);
+    expect(open).toHaveBeenCalledWith('/manage/translations?key=menu.more.menuTitle', '_blank');
+    open.mockRestore();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^rename$/i })[0]);
+    const field = screen.getByRole('textbox', { name: /^rename$/i });
+    fireEvent.change(field, { target: { value: 'Extra' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(await screen.findByText('Extra')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+    });
+    const saved = vi.mocked(updateMenu).mock.calls[0][0];
+    expect(saved.entries[0]).toEqual({ type: 'group', groupId: 'more', menuTitle: 'Extra', visible: true, children: [] });
+  });
 });
