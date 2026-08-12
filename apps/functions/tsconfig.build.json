@@ -8,5 +8,10 @@
     "paths": {
       "@simple-site/interfaces": ["../../dist/interfaces/index.d.ts"]
     }
-  }
+  },
+  // Tests never reach dist: Netlify instantiates every TOP-LEVEL file of the
+  // functions directory as a function, so a compiled test would be loaded as
+  // a function module by `netlify dev`. Tests live in handlers/ and run via
+  // Vitest; typechecking still covers them through tsconfig.json.
+  "exclude": ["src/**/*.test.ts"]
 }

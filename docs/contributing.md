@@ -8,6 +8,13 @@
 4. Test on multiple screen sizes
 5. Keep documentation in sync — update the relevant file(s) under `docs/` whenever a PR changes a user-visible capability, API endpoint, configuration schema, or architectural decision
 
+## Tests — where they live
+
+- Unit tests run with Vitest (`npm test`) and are colocated with the code they cover.
+- **Serverless functions: never place a `*.test.ts` at the root of `apps/functions/src`.** Netlify treats every top-level file of the functions directory as a deployable function, so a root test file gets compiled into `dist/apps/functions/*.test.js` and loaded as a function module by `netlify dev` (it ends up bundled under `.netlify/functions-serve/…`). The functions build also excludes `**/*.test.ts` (`tsconfig.build.json`) as a second guard — typechecking still covers tests through `tsconfig.json`.
+- **Function tests live at the `handlers/` level** (`apps/functions/src/handlers/*.test.ts`) and cover project logic only: modules, validation, gates (e.g. `featureGate.ts`, `AuthHandler.ts`).
+- **Never test the framework.** The `*.mts` entrypoints are pure wiring — route → handler chain — and stay logic-free and untested by design; anything worth testing must be extracted into `handlers/` and tested there.
+
 ## Code Quality Commands
 
 ```bash
