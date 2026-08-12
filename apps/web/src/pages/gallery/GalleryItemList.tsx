@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { Box, ButtonBase, Stack, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { galleryItemKey, type GalleryCaptionPosition } from '@simple-site/interfaces';
+import { ikSrcSet, ikTransform } from '../../utils/imagekit';
 import type { DisplayableGalleryItem } from './galleryDisplay';
 import { GalleryLightbox } from './GalleryLightbox';
+
+/** Delivery buckets for the list shots — they can span the whole container. */
+const LIST_WIDTHS = [480, 768, 1080, 1440, 1920] as const;
+/** Approximates the centered column: full-bleed on mobile, the lg container above. */
+const LIST_SIZES = '(min-width: 1200px) 1152px, 100vw';
 
 interface GalleryItemListProps {
   /** Displayable entries (image present), with their config positions for i18n. */
@@ -63,7 +69,12 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({ entries, scope
             >
               <Box
                 component="img"
-                src={item.imageUrl}
+                src={ikTransform(item.imageUrl ?? '', 'w-1080,q-80,f-auto')}
+                srcSet={ikSrcSet(item.imageUrl ?? '', LIST_WIDTHS)}
+                sizes={LIST_SIZES}
+                // The first shot is the likely LCP — only the rest load lazily.
+                loading={visibleIndex === 0 ? undefined : 'lazy'}
+                decoding="async"
                 alt={intl.formatMessage({ id: galleryItemKey(scope, index, 'title'), defaultMessage: item.title })}
                 onError={() => markFailed(item.imageUrl)}
                 sx={{

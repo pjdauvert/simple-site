@@ -6,6 +6,10 @@ import {
 import { useIntl } from 'react-intl';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { useSectionEdit } from './sectionEdit';
+import { ikTransform } from '../../utils/imagekit';
+
+/** Section images render at most container-wide — cap the delivery accordingly. */
+const CONTENT_IMAGE_TR = 'w-1600,q-80,f-auto';
 
 interface EditableImageProps {
   /** Dotted path within the section's `design`, e.g. `artwork.imageUrl`. */
@@ -32,7 +36,7 @@ export const EditableImage: React.FC<EditableImageProps> = ({ designPath, src, a
   // image exactly as before, and nothing at all when there is none.
   if (!edit || !edit.canPickImage) {
     if (!src) return null;
-    return <Box component="img" src={src} alt={alt ?? ''} style={style} sx={sx} />;
+    return <Box component="img" src={ikTransform(src, CONTENT_IMAGE_TR)} alt={alt ?? ''} style={style} sx={sx} />;
   }
 
   if (!src) {
@@ -64,7 +68,7 @@ export const EditableImage: React.FC<EditableImageProps> = ({ designPath, src, a
 
   return (
     <Box sx={{ position: 'relative', display: 'inline-block', '&:hover .image-overlay': { opacity: 1 } }}>
-      <Box component="img" src={src} alt={alt ?? ''} style={style} sx={sx} />
+      <Box component="img" src={ikTransform(src, CONTENT_IMAGE_TR)} alt={alt ?? ''} style={style} sx={sx} />
       <ButtonBase
         className="image-overlay"
         onClick={() => edit.pickImageAt(designPath)}

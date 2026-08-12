@@ -14,8 +14,13 @@ import { Loading } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { ikSrcSet, ikTransform } from '../../utils/imagekit';
 import { displayableItems, displayableThemes, galleryPageTitle, galleryThemeRoute } from './galleryDisplay';
 import { GalleryItemList } from './GalleryItemList';
+
+/** Delivery buckets for the theme covers (grid cards, 1–3 per row). */
+const COVER_WIDTHS = [320, 480, 640, 960] as const;
+const COVER_SIZES = '(min-width: 900px) 33vw, (min-width: 600px) 50vw, 100vw';
 
 /**
  * Public /gallery root. The route is always registered; the page gates itself on
@@ -74,7 +79,11 @@ export const GalleryPage: React.FC = () => {
               >
                 <Box
                   component="img"
-                  src={cover}
+                  src={ikTransform(cover ?? '', 'w-640,q-80,f-auto')}
+                  srcSet={ikSrcSet(cover ?? '', COVER_WIDTHS)}
+                  sizes={COVER_SIZES}
+                  loading="lazy"
+                  decoding="async"
                   alt=""
                   sx={{ display: 'block', width: '100%', aspectRatio: '16 / 9', objectFit: 'cover' }}
                 />

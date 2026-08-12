@@ -41,6 +41,7 @@ import {
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { TranslateShortcut } from '../TranslateShortcut';
+import { ikTransform } from '../../../utils/imagekit';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useNotifications } from '../../../hooks/useNotifications';
@@ -228,7 +229,7 @@ export const GalleryEditor: React.FC = () => {
         }
       >
         <ListItemAvatar>
-          <Avatar variant="rounded" src={missing ? undefined : item.imageUrl}>
+          <Avatar variant="rounded" src={missing ? undefined : ikTransform(item.imageUrl ?? '', 'w-80,h-80,q-75,f-auto')}>
             {missing ? <MissingImageIcon fontSize="small" /> : null}
           </Avatar>
         </ListItemAvatar>

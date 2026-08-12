@@ -142,6 +142,35 @@ describe('GalleryPage (public /gallery)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('delivers ImageKit-served images right-sized: responsive list srcSet, viewport-bucketed zoom', () => {
+    const ikUrl = 'https://ik.imagekit.io/demo/shot.jpg';
+    setConfig({
+      items: [
+        { imageUrl: ikUrl, title: 'IK shot' },
+        { imageUrl: '/local/raw.jpg', title: 'Local shot' },
+      ],
+      themes: [],
+    });
+    renderPage();
+
+    const ikImage = screen.getByRole('img', { name: 'IK shot' });
+    expect(ikImage).toHaveAttribute('src', `${ikUrl}?tr=w-1080,q-80,f-auto`);
+    expect(ikImage.getAttribute('srcset')).toContain(`${ikUrl}?tr=w-480,q-80,f-auto 480w`);
+    expect(ikImage.getAttribute('srcset')).toContain('w-1920,q-80,f-auto 1920w');
+    // Non-ImageKit URLs stay untouched — no srcset, no tr.
+    const localImage = screen.getByRole('img', { name: 'Local shot' });
+    expect(localImage).toHaveAttribute('src', '/local/raw.jpg');
+    expect(localImage).not.toHaveAttribute('srcset');
+
+    // Zoom: jsdom viewport is 1024×768 at DPR 1 → the 1280 delivery bucket.
+    fireEvent.click(screen.getByRole('button', { name: 'IK shot' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('img', { name: 'IK shot' })).toHaveAttribute(
+      'src',
+      `${ikUrl}?tr=w-1280,q-80,f-auto`,
+    );
+  });
+
   it('shows no carousel arrows when a single item is displayable', () => {
     setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] });
     renderPage();

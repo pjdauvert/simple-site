@@ -35,6 +35,7 @@ import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '../features/i18n/LanguageSwitcher';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { useAuth } from '../hooks/useAuth';
+import { ikTransform } from '../utils/imagekit';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_WIDTH = 64;
@@ -142,7 +143,7 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
             {siteThemeConfig.logoUrl && (
               <Box
                 component="img"
-                src={`${siteThemeConfig.logoUrl}?tr=h-64,q-80,f-auto`}
+                src={ikTransform(siteThemeConfig.logoUrl, 'h-64,q-80,f-auto')}
                 alt={siteThemeConfig.siteName}
                 sx={{ height: { xs: 24, sm: 32 }, mr: 1 }}
               />

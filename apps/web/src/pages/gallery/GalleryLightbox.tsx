@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Dialog, IconButton, Typography } from '@mui/material';
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -7,7 +7,11 @@ import {
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { galleryItemKey } from '@simple-site/interfaces';
+import { ikTransform, ikZoomWidth } from '../../utils/imagekit';
 import type { DisplayableGalleryItem } from './galleryDisplay';
+
+/** The zoom rendition: sized to the visitor's viewport (bucketed for CDN caching). */
+const zoomTransformation = (): string => `w-${ikZoomWidth()},q-80,f-auto`;
 
 interface GalleryLightboxProps {
   /** The displayable entries being browsed (a theme's list or the root list). */
@@ -44,6 +48,17 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({ entries, scope
     onNavigate((index + offset + count) % count);
   };
 
+  // Warm the carousel neighbors at the same rendition, so the arrows feel
+  // instant — the browser caches the request the <img> will make next.
+  useEffect(() => {
+    if (index === null || count < 2) return;
+    const transformation = zoomTransformation();
+    for (const offset of [-1, 1]) {
+      const neighbor = entries[(index + offset + count) % count];
+      if (neighbor?.item.imageUrl) new Image().src = ikTransform(neighbor.item.imageUrl, transformation);
+    }
+  }, [index, entries, count]);
+
   return (
     <Dialog
       fullScreen
@@ -67,7 +82,7 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({ entries, scope
 
           <Box
             component="img"
-            src={entry.item.imageUrl}
+            src={ikTransform(entry.item.imageUrl ?? '', zoomTransformation())}
             alt={intl.formatMessage({
               id: galleryItemKey(scope, entry.index, 'title'),
               defaultMessage: entry.item.title,

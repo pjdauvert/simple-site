@@ -62,10 +62,19 @@ describe('TeamMemberPage (public /team/member/:slug)', () => {
     expect(await screen.findByRole('heading', { name: 'Jane Doe' })).toBeInTheDocument();
     expect(screen.getByText('Founder')).toBeInTheDocument();
     expect(screen.getByText('English bio')).toBeInTheDocument();
-    // Square face-focused crop for the circular portrait.
-    expect(screen.getByRole('img', { name: 'Jane Doe' })).toHaveAttribute(
+    // Transformations only apply to ImageKit-served URLs — this relative path
+    // stays untouched (see `ikTransform`; the IK case is covered in its tests).
+    expect(screen.getByRole('img', { name: 'Jane Doe' })).toHaveAttribute('src', '/img/jane.jpg');
+  });
+
+  it('requests a face-focused ImageKit crop when the photo is ImageKit-served', async () => {
+    vi.mocked(loadTeam).mockResolvedValue({
+      members: [{ ...jane, photoUrl: 'https://ik.imagekit.io/demo/jane.jpg' }],
+    });
+    renderAt('/team/member/jane-doe');
+    expect(await screen.findByRole('img', { name: 'Jane Doe' })).toHaveAttribute(
       'src',
-      '/img/jane.jpg?tr=w-480,h-480,fo-face,q-80,f-auto',
+      'https://ik.imagekit.io/demo/jane.jpg?tr=w-480,h-480,fo-face,q-80,f-auto',
     );
   });
 

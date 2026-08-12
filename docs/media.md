@@ -138,6 +138,18 @@ Folder **create** re-lists the current folder from the server once ImageKit ackn
 - **`path` must keep literal slashes.** ImageKit's list API does **not** URL-decode `%2F`, so the function builds the `path` query with literal `/` separators (segment names are still encoded). Passing a `URLSearchParams`-encoded path silently returns zero results.
 - **The list index is eventually consistent.** A file is not guaranteed to appear in `GET /v1/files` for ~1–2 s after upload. So after an upload the UI shows the new file directly from the **V2 upload response** (which already contains `fileId`/`url`) rather than re-listing — no refresh needed.
 
+## Delivery optimisation (URL transformations)
+
+Every image the web app renders goes through the `ikTransform` / `ikSrcSet` helpers (`apps/web/src/utils/imagekit.ts`), which append [ImageKit URL transformations](https://imagekit.io/docs/image-transformation) so the visitor downloads a right-sized, auto-format rendition (`f-auto` → WebP/AVIF per browser) instead of the stored original:
+
+- **Guarded, not blind** — transformations apply only to URLs served by ImageKit (`ik.imagekit.io`); relative paths and third-party hosts pass through untouched, a URL already carrying a `tr=` keeps its explicit transformation, and an existing query string is joined with `&` instead of a second `?`. (This replaced earlier blind `?tr=` appends.)
+- **Thumbnails** are capped near their display size (2× for retina): media-library cards `w-400`, picker grid `w-200,h-200`, `MediaUrlField` preview `h-200` (it previously downloaded the original for a 100 px preview), admin list avatars `w-80,h-80`, team portraits `w-480,h-480,fo-face` (face-focused crop), menu-bar logo `h-64`.
+- **Gallery lists** ship a responsive `srcSet` of width buckets with a `sizes` attribute (list shots 480→1920 w, theme covers 320→960 w), plus native `loading="lazy"` / `decoding="async"` below the fold — the first list shot stays eager as the likely LCP.
+- **Gallery zoom** requests the smallest delivery bucket (960/1280/1920/2560) covering the viewport's larger dimension at the device pixel ratio (capped at 2×), and **prefetches the carousel neighbors** at the same rendition so the arrows feel instant.
+- **Section images** are capped at `w-1600` (content images) and `w-1920,q-80` (full-bleed hero/text backgrounds).
+
+If media is served from a custom ImageKit domain (CNAME) rather than `ik.imagekit.io`, the guard won't recognise it and images fall back to the original rendition — extend the host check in `apps/web/src/utils/imagekit.ts` in that case.
+
 ## Code map
 
 | Concern | Location |
@@ -150,6 +162,7 @@ Folder **create** re-lists the current folder from the server once ImageKit ackn
 | Presentational components | `apps/web/src/components/media/` (`FileCard`, `FolderChip`, `MediaItemMenu`, `CopyButton`, `DropZone`, `UploadProgressPanel`, `MediaBreadcrumbs`, `MediaTypeFilter`, `MediaSortControl`, `DeleteConfirmDialog`, `RenameDialog`, `NewFolderDialog`, `ItemTransition`) |
 | Reusable pickers | `apps/web/src/components/media/` (`ImagePickerDialog` — browse-and-pick dialog with an "Upload media" shortcut that deep-links to `/manage/media?path=…`; `MediaUrlField` — URL/path field with an optional library picker as end adornment and a live preview thumbnail) |
 | Sort / filter / rename helpers | `apps/web/src/components/media/mediaUtils.ts` (`sortFiles`, `sortFolders`, `matchesFilter`, `renameFileLocally`, `renameFolderLocally`, `sanitizeFileName`, `sanitizeFolderName`) |
+| Delivery transformations | `apps/web/src/utils/imagekit.ts` (`ikTransform`, `ikSrcSet`, `ikZoomWidth` — see [Delivery optimisation](#delivery-optimisation-url-transformations)) |
 | Shared media helpers / types | `apps/web/src/components/media/mediaUtils.ts`, `apps/web/src/components/media/types.ts` |
 
 ## Local development
