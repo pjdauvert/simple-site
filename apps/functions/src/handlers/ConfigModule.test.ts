@@ -414,6 +414,18 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ displayMode: 'mosaic' });
   });
 
+  it('PUT /api/config/gallery accepts an in-range itemMaxWidth and rejects out-of-range ones', async () => {
+    const { data } = makeStore();
+    const capped = { items: [], themes: [], design: { itemMaxWidth: 720 } };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', capped))).status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ itemMaxWidth: 720 });
+
+    for (const itemMaxWidth of [50, 5000, 300.5]) {
+      const bad = { items: [], themes: [], design: { itemMaxWidth } };
+      expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
+    }
+  });
+
   it('PUT /api/config/gallery rejects two themes sharing a themeId', async () => {
     const { data } = makeStore();
     const gallery = { items: [], themes: [

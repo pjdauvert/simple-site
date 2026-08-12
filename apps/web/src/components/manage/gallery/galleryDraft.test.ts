@@ -13,6 +13,7 @@ import {
   renameTheme,
   setCaptionPosition,
   setDisplayMode,
+  setItemMaxWidth,
   updateItem,
 } from './galleryDraft';
 
@@ -115,5 +116,15 @@ describe('design settings', () => {
     expect(listAgain.design).toEqual({ captionPosition: 'left' });
     // …and once everything is default the design disappears entirely.
     expect('design' in setCaptionPosition(listAgain, 'below')).toBe(false);
+  });
+
+  it('stores the per-item width cap and clears it back to "no design" with undefined', () => {
+    const capped = setItemMaxWidth(seeded(), 720);
+    expect(capped.design).toEqual({ itemMaxWidth: 720 });
+    // The cap combines with the other fields and clears independently.
+    const both = setDisplayMode(capped, 'grid');
+    expect(both.design).toEqual({ displayMode: 'grid', itemMaxWidth: 720 });
+    expect(setItemMaxWidth(both, undefined).design).toEqual({ displayMode: 'grid' });
+    expect('design' in setItemMaxWidth(capped, undefined)).toBe(false);
   });
 });

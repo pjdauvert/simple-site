@@ -91,6 +91,34 @@ describe('GalleryDesignEditor', () => {
     });
   });
 
+  it('saves the per-item width cap typed in the width field', async () => {
+    renderEditor();
+    fireEvent.change(await screen.findByRole('spinbutton', { name: /maximum item width/i }), {
+      target: { value: '720' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+    });
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
+      items: seeded.items,
+      themes: [],
+      design: { itemMaxWidth: 720 },
+    });
+  });
+
+  it('flags an out-of-range width and blocks the save', async () => {
+    renderEditor();
+    fireEvent.change(await screen.findByRole('spinbutton', { name: /maximum item width/i }), {
+      target: { value: '50' },
+    });
+    expect(screen.getByText('Enter a value between 100 and 2400 px.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save gallery/i })).toBeDisabled();
+    // Emptying the field returns to "no cap" and unblocks the save.
+    fireEvent.change(screen.getByRole('spinbutton', { name: /maximum item width/i }), { target: { value: '' } });
+    expect(screen.getByRole('button', { name: /save gallery/i })).not.toBeDisabled();
+  });
+
   it('enables the caption position for the list mode only, with per-mode hints', async () => {
     renderEditor();
     expect(await screen.findByRole('button', { name: /above/i })).not.toBeDisabled();

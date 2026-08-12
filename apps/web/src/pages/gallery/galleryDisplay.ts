@@ -45,11 +45,14 @@ export const galleryThemeRoute = (themeId: string): string =>
 export interface GalleryDisplaySettings {
   captionPosition: GalleryCaptionPosition;
   displayMode: GalleryDisplayMode;
+  /** Per-item width cap in px; undefined = the mode's natural width. */
+  itemMaxWidth?: number;
 }
 
 export const galleryDisplaySettings = (gallery: GalleryConfig | undefined): GalleryDisplaySettings => ({
   captionPosition: gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION,
   displayMode: gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE,
+  itemMaxWidth: gallery?.design?.itemMaxWidth,
 });
 
 /**

@@ -29,6 +29,8 @@ interface GalleryItemListProps {
   scope: string;
   captionPosition: GalleryCaptionPosition;
   displayMode: GalleryDisplayMode;
+  /** Caps each clickable image at this width (px) in every mode; the zoom is unaffected. */
+  itemMaxWidth?: number;
 }
 
 /**
@@ -51,6 +53,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   scope,
   captionPosition,
   displayMode,
+  itemMaxWidth,
 }) => {
   const intl = useIntl();
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
@@ -91,7 +94,17 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
       key="image"
       onClick={() => setZoomIndex(visibleIndex)}
       focusRipple
-      sx={{ display: 'block', maxWidth: '100%', cursor: 'zoom-in', borderRadius: 1, overflow: 'hidden', ...buttonSx }}
+      sx={{
+        display: 'block',
+        // The design's per-item cap applies to the clickable image in every
+        // mode (mx centers a capped tile inside plain-block wrappers).
+        maxWidth: itemMaxWidth ? `min(100%, ${itemMaxWidth}px)` : '100%',
+        ...(itemMaxWidth ? { mx: 'auto' } : {}),
+        cursor: 'zoom-in',
+        borderRadius: 1,
+        overflow: 'hidden',
+        ...buttonSx,
+      }}
     >
       <Box
         component="img"

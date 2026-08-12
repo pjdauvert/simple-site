@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  InputAdornment,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   DEFAULT_GALLERY_CAPTION_POSITION,
   DEFAULT_GALLERY_DISPLAY_MODE,
   GALLERY_CAPTION_POSITIONS,
   GALLERY_DISPLAY_MODES,
+  GALLERY_ITEM_MAX_WIDTH_MAX,
+  GALLERY_ITEM_MAX_WIDTH_MIN,
   type GalleryCaptionPosition,
   type GalleryDisplayMode,
 } from '@simple-site/interfaces';
@@ -13,7 +25,7 @@ import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useNotifications } from '../../../hooks/useNotifications';
-import { emptyGallery, setCaptionPosition, setDisplayMode } from './galleryDraft';
+import { emptyGallery, setCaptionPosition, setDisplayMode, setItemMaxWidth } from './galleryDraft';
 import { GalleryDesignPreview } from './GalleryDesignPreview';
 
 /**
@@ -34,6 +46,8 @@ export const GalleryDesignEditor: React.FC = () => {
 
   const [captionPosition, setCaption] = useState<GalleryCaptionPosition | null>(null);
   const [displayMode, setMode] = useState<GalleryDisplayMode>(DEFAULT_GALLERY_DISPLAY_MODE);
+  // Empty field = no cap (the default) — kept as undefined, never 0.
+  const [itemMaxWidth, setWidth] = useState<number | undefined>(undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,6 +58,7 @@ export const GalleryDesignEditor: React.FC = () => {
         if (!active) return;
         setCaption(config.gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION);
         setMode(config.gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE);
+        setWidth(config.gallery?.design?.itemMaxWidth);
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.load' }));
@@ -51,13 +66,21 @@ export const GalleryDesignEditor: React.FC = () => {
     return () => { active = false; };
   }, [intl]);
 
+  const widthInvalid =
+    itemMaxWidth !== undefined &&
+    (!Number.isInteger(itemMaxWidth) ||
+      itemMaxWidth < GALLERY_ITEM_MAX_WIDTH_MIN ||
+      itemMaxWidth > GALLERY_ITEM_MAX_WIDTH_MAX);
+
   const handleSave = async (): Promise<void> => {
-    if (captionPosition === null) return;
+    if (captionPosition === null || widthInvalid) return;
     setSubmitting(true);
     try {
       // Merge over the freshest draft so the Themes tab's items survive.
       const fresh = (await loadDraftConfig()).gallery ?? emptyGallery();
-      await updateGallery(setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode));
+      await updateGallery(
+        setItemMaxWidth(setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode), itemMaxWidth),
+      );
       notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.save' }));
@@ -136,7 +159,43 @@ export const GalleryDesignEditor: React.FC = () => {
         </Box>
 
         <Box>
-          <Button variant="contained" onClick={handleSave} disabled={submitting}>
+          <Typography variant="subtitle2" gutterBottom>
+            <FormattedMessage id="page.manage.gallery.itemMaxWidth" />
+          </Typography>
+          <TextField
+            size="small"
+            type="number"
+            value={itemMaxWidth ?? ''}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setWidth(raw === '' ? undefined : Number(raw));
+            }}
+            error={widthInvalid}
+            helperText={
+              widthInvalid ? (
+                <FormattedMessage
+                  id="page.manage.gallery.itemMaxWidth.range"
+                  values={{ min: GALLERY_ITEM_MAX_WIDTH_MIN, max: GALLERY_ITEM_MAX_WIDTH_MAX }}
+                />
+              ) : (
+                <FormattedMessage id="page.manage.gallery.itemMaxWidth.hint" />
+              )
+            }
+            slotProps={{
+              input: { endAdornment: <InputAdornment position="end">px</InputAdornment> },
+              htmlInput: {
+                min: GALLERY_ITEM_MAX_WIDTH_MIN,
+                max: GALLERY_ITEM_MAX_WIDTH_MAX,
+                step: 10,
+                'aria-label': intl.formatMessage({ id: 'page.manage.gallery.itemMaxWidth' }),
+              },
+            }}
+            sx={{ maxWidth: 220 }}
+          />
+        </Box>
+
+        <Box>
+          <Button variant="contained" onClick={handleSave} disabled={submitting || widthInvalid}>
             {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.gallery.save" />}
           </Button>
         </Box>

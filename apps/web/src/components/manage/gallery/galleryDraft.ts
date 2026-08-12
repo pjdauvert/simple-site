@@ -117,6 +117,9 @@ const normalizeDesign = (design: GalleryDesign): GalleryDesign | undefined => {
   if (design.displayMode && design.displayMode !== DEFAULT_GALLERY_DISPLAY_MODE) {
     next.displayMode = design.displayMode;
   }
+  if (design.itemMaxWidth !== undefined) {
+    next.itemMaxWidth = design.itemMaxWidth;
+  }
   return Object.keys(next).length > 0 ? next : undefined;
 };
 
@@ -132,6 +135,10 @@ const withDesign = (gallery: GalleryConfig, patch: GalleryDesign): GalleryConfig
 export const setCaptionPosition = (gallery: GalleryConfig, position: GalleryCaptionPosition): GalleryConfig =>
   withDesign(gallery, { captionPosition: position });
 
-/** Sets the display mode (list / grid / alternate); defaults collapse like the caption. */
+/** Sets the display mode (list / grid / mosaic / alternate); defaults collapse like the caption. */
 export const setDisplayMode = (gallery: GalleryConfig, displayMode: GalleryDisplayMode): GalleryConfig =>
   withDesign(gallery, { displayMode });
+
+/** Sets the per-item width cap (px); undefined clears it (no cap — the default). */
+export const setItemMaxWidth = (gallery: GalleryConfig, itemMaxWidth: number | undefined): GalleryConfig =>
+  withDesign(gallery, { itemMaxWidth });

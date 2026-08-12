@@ -40,6 +40,10 @@ export type GalleryDisplayMode = z.infer<typeof GalleryDisplayModeSchema>;
 /** Display mode when the design does not set one. */
 export const DEFAULT_GALLERY_DISPLAY_MODE: GalleryDisplayMode = 'list';
 
+/** Bounds of the optional per-item width cap (px). */
+export const GALLERY_ITEM_MAX_WIDTH_MIN = 100;
+export const GALLERY_ITEM_MAX_WIDTH_MAX = 2400;
+
 export const GalleryItemSchema = z.object({
   /**
    * Public URL of the image, typically picked from the media library. Optional
@@ -74,6 +78,12 @@ export const GalleryDesignSchema = z.object({
   captionPosition: GalleryCaptionPositionSchema.optional(),
   /** Absent → {@link DEFAULT_GALLERY_DISPLAY_MODE}, keeping stored configs minimal. */
   displayMode: GalleryDisplayModeSchema.optional(),
+  /**
+   * Maximum rendered width of each item's image, in px — caps the clickable
+   * image in every display mode (the zoom view is unaffected). Absent → the
+   * mode's natural width (full column/cell).
+   */
+  itemMaxWidth: z.number().int().min(GALLERY_ITEM_MAX_WIDTH_MIN).max(GALLERY_ITEM_MAX_WIDTH_MAX).optional(),
 });
 
 export type GalleryDesign = z.infer<typeof GalleryDesignSchema>;
