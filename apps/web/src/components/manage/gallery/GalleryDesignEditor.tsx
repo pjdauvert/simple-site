@@ -14,12 +14,15 @@ import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { emptyGallery, setCaptionPosition, setDisplayMode } from './galleryDraft';
+import { GalleryDesignPreview } from './GalleryDesignPreview';
 
 /**
  * Design tab of /manage/gallery: how visitors browse the items — the display
- * mode (centered list, card grid, or team-style alternating rows) and the
- * caption position around each image. In alternate mode the alternation places
- * the caption, so the position toggle is disabled. Saves via
+ * mode (centered list, card grid, mosaic, or team-style alternating rows) and
+ * the caption position around each image. In alternate mode the alternation
+ * places the caption, so the position toggle is disabled; in mosaic mode side
+ * captions collapse to above/below. A symbolic skeleton preview (right half,
+ * desktop only) illustrates the picked design live. Saves via
  * `PUT /api/config/gallery`, re-reading the draft first so the Themes tab's
  * items are never clobbered; defaults are stored as "no design" to keep
  * configs minimal.
@@ -70,10 +73,11 @@ export const GalleryDesignEditor: React.FC = () => {
   }
 
   const alternate = displayMode === 'alternate';
+  const mosaicSideCaption = displayMode === 'mosaic' && (captionPosition === 'left' || captionPosition === 'right');
 
   return (
-    <Box sx={{ maxWidth: 640 }}>
-      <Stack spacing={4}>
+    <Box sx={{ display: 'flex', gap: { md: 4, lg: 6 }, alignItems: 'flex-start', maxWidth: 1100 }}>
+      <Stack spacing={4} sx={{ flex: 1, minWidth: 0 }}>
         <Box>
           <Typography variant="subtitle2" gutterBottom id="gallery-display-mode-label">
             <FormattedMessage id="page.manage.gallery.displayMode" />
@@ -119,6 +123,11 @@ export const GalleryDesignEditor: React.FC = () => {
               <FormattedMessage id="page.manage.gallery.captionPosition.alternateHint" />
             </Typography>
           )}
+          {mosaicSideCaption && (
+            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+              <FormattedMessage id="page.manage.gallery.captionPosition.mosaicHint" />
+            </Typography>
+          )}
         </Box>
 
         <Box>
@@ -127,6 +136,11 @@ export const GalleryDesignEditor: React.FC = () => {
           </Button>
         </Box>
       </Stack>
+
+      {/* Symbolic preview of the picked design — right half, desktop only. */}
+      <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', md: 'block' } }}>
+        <GalleryDesignPreview displayMode={displayMode} captionPosition={captionPosition} />
+      </Box>
     </Box>
   );
 };

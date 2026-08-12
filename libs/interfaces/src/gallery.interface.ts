@@ -26,11 +26,13 @@ export const DEFAULT_GALLERY_CAPTION_POSITION: GalleryCaptionPosition = 'below';
 
 /**
  * How a list of items is browsed: a centered vertical `list` (default), a
- * `grid` of cards, or `alternate` — full-width rows whose image/caption sides
- * flip on every row, like the team page's alternating layout. In `alternate`
- * mode the alternation places the caption, so `captionPosition` is ignored.
+ * `grid` of cards, a `mosaic` — masonry columns of natural-height tiles — or
+ * `alternate` — full-width rows whose image/caption sides flip on every row,
+ * like the team page's alternating layout. In `alternate` mode the alternation
+ * places the caption, so `captionPosition` is ignored; in `mosaic` mode the
+ * side positions collapse into above/below (tiles flow in narrow columns).
  */
-export const GALLERY_DISPLAY_MODES = ['list', 'grid', 'alternate'] as const;
+export const GALLERY_DISPLAY_MODES = ['list', 'grid', 'mosaic', 'alternate'] as const;
 export const GalleryDisplayModeSchema = z.enum(GALLERY_DISPLAY_MODES);
 export type GalleryDisplayMode = z.infer<typeof GalleryDisplayModeSchema>;
 

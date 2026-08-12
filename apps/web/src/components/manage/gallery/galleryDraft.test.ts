@@ -103,6 +103,7 @@ describe('design settings', () => {
   });
 
   it('stores the display mode alongside the caption, each collapsing independently', () => {
+    expect(setDisplayMode(seeded(), 'mosaic').design).toEqual({ displayMode: 'mosaic' });
     const withGrid = setDisplayMode(seeded(), 'grid');
     expect(withGrid.design).toEqual({ displayMode: 'grid' });
 

@@ -65,6 +65,35 @@ describe('GalleryDesignEditor', () => {
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({ items: seeded.items, themes: [] });
   });
 
+  it('shows the symbolic skeleton preview matching the picked mode', async () => {
+    renderEditor();
+    // Default design → list preview; picking a mode swaps the skeleton live.
+    expect(await screen.findByTestId('gallery-preview-list')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /mosaic/i }));
+    expect(screen.getByTestId('gallery-preview-mosaic')).toBeInTheDocument();
+    expect(screen.queryByTestId('gallery-preview-list')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /alternating/i }));
+    expect(screen.getByTestId('gallery-preview-alternate')).toBeInTheDocument();
+  });
+
+  it('saves the mosaic mode and hints that side captions collapse there', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(draft({ ...seeded, design: { captionPosition: 'left' } }));
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: /mosaic/i }));
+    expect(
+      screen.getByText(/side captions fall back above\/below the image/i),
+    ).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+    });
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
+      items: seeded.items,
+      themes: [],
+      design: { captionPosition: 'left', displayMode: 'mosaic' },
+    });
+  });
+
   it('disables the caption position while the alternating mode places it itself', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /alternating/i }));

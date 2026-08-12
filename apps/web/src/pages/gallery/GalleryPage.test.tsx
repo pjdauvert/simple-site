@@ -190,6 +190,25 @@ describe('GalleryPage (public /gallery)', () => {
     expect(within(screen.getByRole('dialog')).getByText('B')).toBeInTheDocument();
   });
 
+  it('renders the mosaic display mode — all items shown, missing images hidden, zoom on click', () => {
+    setConfig({
+      items: [
+        { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
+        { imageUrl: '/b.jpg', title: 'B' },
+        { title: 'Hidden — no image' },
+      ],
+      themes: [],
+      design: { displayMode: 'mosaic' },
+    });
+    renderPage();
+    expect(screen.getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'B' })).toBeInTheDocument();
+    expect(screen.queryByText('Hidden — no image')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    expect(within(screen.getByRole('dialog')).getByText('Sub A')).toBeInTheDocument();
+  });
+
   it('renders the alternating display mode — captions kept beside every shot', () => {
     setConfig({
       items: [

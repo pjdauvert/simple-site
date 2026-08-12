@@ -407,6 +407,13 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config:draft')!).gallery.items).toEqual([{ title: 'Work in progress' }]);
   });
 
+  it('PUT /api/config/gallery accepts the mosaic display mode', async () => {
+    const { data } = makeStore();
+    const gallery = { items: [], themes: [], design: { displayMode: 'mosaic' } };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery))).status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ displayMode: 'mosaic' });
+  });
+
   it('PUT /api/config/gallery rejects two themes sharing a themeId', async () => {
     const { data } = makeStore();
     const gallery = { items: [], themes: [
