@@ -8,8 +8,10 @@ const stubEnv = (env: Record<string, string | undefined>) =>
 const makeRequest = () => new Request('https://site.test/api/features');
 const makeContext = () => ({} as unknown as Context);
 
-const readJson = async (res: Response): Promise<{ ok: boolean; data: { media: boolean; team: boolean; contact: boolean } }> =>
-  res.json() as Promise<{ ok: boolean; data: { media: boolean; team: boolean; contact: boolean } }>;
+const readJson = async (
+  res: Response,
+): Promise<{ ok: boolean; data: { media: boolean; team: boolean; contact: boolean; gallery: boolean } }> =>
+  res.json() as Promise<{ ok: boolean; data: { media: boolean; team: boolean; contact: boolean; gallery: boolean } }>;
 
 describe('FeaturesModule', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -32,19 +34,28 @@ describe('FeaturesModule', () => {
   it('reports team from FEATURE_TEAM, independently of media', async () => {
     stubEnv({ FEATURE_TEAM: 'true' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
-      .toEqual({ media: false, team: true, contact: false });
+      .toEqual({ media: false, team: true, contact: false, gallery: false });
 
     stubEnv({ FEATURE_MEDIA: 'true', FEATURE_TEAM: 'yes' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
-      .toEqual({ media: true, team: false, contact: false });
+      .toEqual({ media: true, team: false, contact: false, gallery: false });
   });
 
   it('reports contact from FEATURE_CONTACT, independently of the other flags', async () => {
     stubEnv({ FEATURE_CONTACT: 'true' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
-      .toEqual({ media: false, team: false, contact: true });
+      .toEqual({ media: false, team: false, contact: true, gallery: false });
 
     stubEnv({ FEATURE_CONTACT: 'yes' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.contact).toBe(false);
+  });
+
+  it('reports gallery from FEATURE_GALLERY, independently of the other flags', async () => {
+    stubEnv({ FEATURE_GALLERY: 'true' });
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
+      .toEqual({ media: false, team: false, contact: false, gallery: true });
+
+    stubEnv({ FEATURE_GALLERY: 'yes' });
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.gallery).toBe(false);
   });
 });

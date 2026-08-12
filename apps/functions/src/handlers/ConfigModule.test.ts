@@ -377,6 +377,69 @@ describe('ConfigModule', () => {
     expect(data.has('config:draft')).toBe(false);
   });
 
+  it('PUT /api/config/gallery writes the DRAFT gallery and leaves pages/themes/site untouched', async () => {
+    const { data } = makeStore();
+    const gallery = {
+      items: [{ imageUrl: '/img/solo.jpg', title: 'Solo' }],
+      themes: [
+        { themeId: 'landscapes', title: 'Landscapes', items: [
+          { imageUrl: '/img/alps.jpg', title: 'Alps', subtitle: 'Winter light' },
+        ] },
+      ],
+      design: { captionPosition: 'left' },
+    };
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.message).toMatch(/updated/i);
+
+    const draft = JSON.parse(data.get('config:draft')!);
+    expect(draft.gallery).toEqual(gallery);
+    expect(draft.themes).toEqual(storedConfig.themes);
+    expect(draft.site).toMatchObject(storedConfig.site); // parse adds Zod defaults (defaultLanguage)
+    expect(JSON.parse(data.get('config')!).gallery).toBeUndefined(); // published untouched
+  });
+
+  it('PUT /api/config/gallery keeps an item without an image (hidden publicly, kept in config)', async () => {
+    const { data } = makeStore();
+    const gallery = { items: [{ title: 'Work in progress' }], themes: [] };
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).gallery.items).toEqual([{ title: 'Work in progress' }]);
+  });
+
+  it('PUT /api/config/gallery rejects two themes sharing a themeId', async () => {
+    const { data } = makeStore();
+    const gallery = { items: [], themes: [
+      { themeId: 'nature', title: 'Nature', items: [] },
+      { themeId: 'nature', title: 'Other nature', items: [] },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/gallery rejects an invalid themeId, an empty theme title and an empty item title', async () => {
+    const { data } = makeStore();
+    const badId = { items: [], themes: [{ themeId: 'my-theme', title: 'Kebab', items: [] }] };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badId))).status).toBe(500);
+    const emptyTheme = { items: [], themes: [{ themeId: 'ok', title: '', items: [] }] };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyTheme))).status).toBe(500);
+    const emptyItem = { items: [{ imageUrl: '/img/a.jpg', title: '' }], themes: [] };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyItem))).status).toBe(500);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/gallery rejects an unknown captionPosition and a non-json content type', async () => {
+    const { data } = makeStore();
+    const badDesign = { items: [], themes: [], design: { captionPosition: 'diagonal' } };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badDesign))).status).toBe(500);
+    const notJson = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', {}, 'text/plain'));
+    expect(notJson.status).toBe(400);
+    expect((await readJson(notJson)).code).toBe(ErrorCode.INVALID_REQUEST);
+    expect(data.has('config:draft')).toBe(false);
+  });
+
   it('POST /api/config rejects a page using a feature-reserved route', async () => {
     const { data } = makeStore();
     const config = { ...storedConfig, pages: [{ menuTitle: 'Team', pageName: 'page.team', route: '/team', sections: [] }] };
