@@ -10,7 +10,7 @@ import { MainLayout } from '../layouts/MainLayout';
 
 export const AuthRouter: React.FC = () => {
   return (
-    <MainLayout menuItems={[]}>
+    <MainLayout navNodes={[]}>
       <Routes>
         <Route index element={<LoginPage />} />
         <Route path={authConsts.FORGOT_PWD_PATH} element={<ForgotPasswordPage />} />

@@ -102,14 +102,17 @@ Replaces the entire `themes` array of the **draft** (add / edit / delete are all
 
 ### `PUT /api/config/menu`
 
-Replaces the `menu` of the **draft** — the ordered list of navigation entries with per-entry visibility (see [configuration.md](configuration.md#menu)). The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `menu`, re-validates the whole `SiteConfig` — rejecting duplicate entries, references to unknown pages, and page routes on feature-reserved paths — then persists the draft. Backs the **Menu** tab of the `/manage/site` configuration page.
+Replaces the `menu` of the **draft** — the ordered list of navigation entries with per-entry visibility, including one-level `group` submenus (see [configuration.md](configuration.md#menu)). The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `menu`, re-validates the whole `SiteConfig` — rejecting duplicate entries (one id space across the top level and all group children), references to unknown pages (inside groups too), nested groups, invalid or duplicate `groupId`s, empty group labels, and page routes on feature-reserved paths — then persists the draft. Backs the **Menu** tab of the `/manage/site` configuration page.
 
 ```json
 // Request body — a MenuConfig object
 { "entries": [
   { "type": "page", "pageName": "page.home", "visible": true },
-  { "type": "feature", "feature": "team", "visible": false }
-] }
+  { "type": "feature", "feature": "team", "visible": false },
+  { "type": "group", "groupId": "moreLinks", "menuTitle": "More links", "visible": true, "children": [
+    { "type": "page", "pageName": "page.about", "visible": true }
+  ] }
+], "groupDisplay": "bar" }  // optional menu-wide desktop group rendering: "popover" (default) | "bar"
 
 // 200 OK
 { "ok": true, "data": { "message": "Menu updated successfully" } }

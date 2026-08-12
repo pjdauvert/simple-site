@@ -64,11 +64,58 @@ export const isReservedRoute = (route: string): boolean =>
 // for a feature entry it is the label itself (absent → the feature's default).
 // Like every config label it is a translation DEFAULT — per-language values are
 // managed on the Translations page under the `${pageName|feature}.menuTitle` key.
+//
+// A `group` entry is a submenu: a non-navigable label whose `children` are
+// page/feature entries. Depth is one level by construction — children are
+// `MenuLeafEntrySchema`, so a group can never contain a group. Clicking a group
+// in the nav opens its children (desktop popover / mobile accordion) instead of
+// navigating; a hidden group hides its whole subtree, and a group whose children
+// all resolve away is omitted from the nav (but kept in the config). Its label
+// is translated under the `menu.${groupId}.menuTitle` key (see `groupTitleKey`).
 // ---------------------------------------------------------------------------
 
+const MenuPageEntrySchema = z.object({
+  type: z.literal("page"),
+  pageName: z.string(),
+  visible: z.boolean(),
+  menuTitle: z.string().optional(),
+});
+
+const MenuFeatureEntrySchema = z.object({
+  type: z.literal("feature"),
+  feature: FeaturePageIdSchema,
+  visible: z.boolean(),
+  menuTitle: z.string().optional(),
+});
+
+/** Leaf entries — the only things a group may contain (depth 1 is structural). */
+export const MenuLeafEntrySchema = z.discriminatedUnion("type", [MenuPageEntrySchema, MenuFeatureEntrySchema]);
+
+export type MenuLeafEntry = z.infer<typeof MenuLeafEntrySchema>;
+
+/**
+ * Group ids are a single camelCase i18n-key segment, immutable after creation
+ * (renames only change `menuTitle`) so stored translations survive renames.
+ */
+export const GROUP_ID_PATTERN = /^[a-z][a-zA-Z0-9]*$/;
+
+export const MenuGroupEntrySchema = z.object({
+  type: z.literal("group"),
+  groupId: z.string().regex(GROUP_ID_PATTERN),
+  // The group IS its label (no page/feature to fall back to) — required.
+  menuTitle: z.string().min(1),
+  visible: z.boolean(),
+  // Mobile only: render as an always-open section header instead of an accordion.
+  alwaysExpanded: z.boolean().optional(),
+  children: z.array(MenuLeafEntrySchema),
+});
+
+export type MenuGroupEntry = z.infer<typeof MenuGroupEntrySchema>;
+
 export const MenuEntrySchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("page"), pageName: z.string(), visible: z.boolean(), menuTitle: z.string().optional() }),
-  z.object({ type: z.literal("feature"), feature: FeaturePageIdSchema, visible: z.boolean(), menuTitle: z.string().optional() }),
+  MenuPageEntrySchema,
+  MenuFeatureEntrySchema,
+  MenuGroupEntrySchema,
 ]);
 
 export type MenuEntry = z.infer<typeof MenuEntrySchema>;
@@ -77,13 +124,33 @@ export type MenuEntry = z.infer<typeof MenuEntrySchema>;
 export const featureEntryLabel = (entry: Extract<MenuEntry, { type: "feature" }>): string =>
   entry.menuTitle ?? FEATURE_PAGE_DEFAULT_LABELS[entry.feature];
 
+/**
+ * How groups render their children on desktop: an anchored popover (default),
+ * or a secondary menu bar sliding out from under the main bar. One menu-wide
+ * setting so the navigation stays visually coherent. Mobile always renders
+ * the accordion (or the always-expanded section) regardless.
+ */
+export const MenuGroupDisplaySchema = z.enum(["popover", "bar"]);
+
+export type MenuGroupDisplay = z.infer<typeof MenuGroupDisplaySchema>;
+
 export const MenuConfigSchema = z.object({
   entries: z.array(MenuEntrySchema),
+  // Absent = "popover", keeping stored configs minimal and older ones valid.
+  groupDisplay: MenuGroupDisplaySchema.optional(),
 });
 
 export type MenuConfig = z.infer<typeof MenuConfigSchema>;
 
 /** Stable identity of a menu entry, used for dedupe and reconciliation. */
-export const menuEntryId = (entry: MenuEntry): string =>
-  entry.type === "page" ? `page:${entry.pageName}` : `feature:${entry.feature}`;
+export const menuEntryId = (entry: MenuEntry): string => {
+  switch (entry.type) {
+    case "page":
+      return `page:${entry.pageName}`;
+    case "feature":
+      return `feature:${entry.feature}`;
+    case "group":
+      return `group:${entry.groupId}`;
+  }
+};
 

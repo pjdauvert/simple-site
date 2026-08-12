@@ -1,5 +1,5 @@
 import type { SiteConfig } from './site.interface.js';
-import { featureEntryLabel } from './menu.interface.js';
+import { featureEntryLabel, type MenuLeafEntry } from './menu.interface.js';
 import { SectionTypesEnum, type I18nEntry } from './sections/section.interface.js';
 import { collectHeroI18n } from './sections/hero.section.interface.js';
 import { collectTextI18n } from './sections/text.section.interface.js';
@@ -14,6 +14,13 @@ import { collectTextI18n } from './sections/text.section.interface.js';
 
 /** i18n key for a page's menu title. */
 export const menuTitleKey = (pageName: string): string => `${pageName}.menuTitle`;
+
+/**
+ * i18n key for a menu group's label. The `menu.` prefix gives groups their own
+ * namespace: a group slugified to `team` must not collide with the feature key
+ * `team.menuTitle` (bare `${id}.menuTitle` keys are target-owned).
+ */
+export const groupTitleKey = (groupId: string): string => `menu.${groupId}.menuTitle`;
 
 /**
  * Page-qualified section name used to scope a section's i18n keys. Sections are named
@@ -39,12 +46,20 @@ export const collectI18nEntries = (config: SiteConfig): I18nEntry[] => {
 
   // Menu labels first, so a page entry's custom nav label wins the dedupe over the
   // page's own title for the shared `${pageName}.menuTitle` key. Feature entries own
-  // their `${feature}.menuTitle` key outright.
-  for (const entry of config.menu?.entries ?? []) {
+  // their `${feature}.menuTitle` key outright, and groups own `menu.${groupId}.menuTitle`.
+  const pushLeaf = (entry: MenuLeafEntry): void => {
     if (entry.type === 'feature') {
       push({ key: menuTitleKey(entry.feature), defaultValue: featureEntryLabel(entry) });
     } else if (entry.menuTitle) {
       push({ key: menuTitleKey(entry.pageName), defaultValue: entry.menuTitle });
+    }
+  };
+  for (const entry of config.menu?.entries ?? []) {
+    if (entry.type === 'group') {
+      push({ key: groupTitleKey(entry.groupId), defaultValue: entry.menuTitle });
+      entry.children.forEach(pushLeaf);
+    } else {
+      pushLeaf(entry);
     }
   }
 
