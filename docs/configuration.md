@@ -28,7 +28,8 @@ Configuration is versioned with a **draft → publish** model — admins edit a 
   },
   "themes": [ /* one or more ThemeConfig objects — see Themes below */ ],
   "pages":  [ /* one or more PageConfiguration objects — see Pages below */ ],
-  "menu":   { /* optional MenuConfig — see Menu below */ }
+  "menu":   { /* optional MenuConfig — see Menu below */ },
+  "gallery": { /* optional GalleryConfig, flag-gated — see Gallery below */ }
 }
 ```
 
@@ -102,7 +103,7 @@ The optional `menu` decouples the public navigation from the raw pages list. It 
 
 - **Order** = navigation order. **`visible: false`** keeps the target reachable at its URL while hiding it from the nav.
 - **`menuTitle`** (optional) renames the entry in the nav: for a page entry it overrides the page's own title (absent → the page's `menuTitle`); for a feature entry it is the label itself (absent → the feature's default, e.g. "Team"). Rename inline from the Menu tab; an emptied field reverts to the fallback. Like every config label it is a translation **default** — per-language values are managed on the **Translations** page under the `${pageName|feature}.menuTitle` key (menu labels are part of `collectI18nEntries`, so they appear there automatically).
-- **Feature entries** point at pages shipped by optional features (`team` and `contact` today; gallery, events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering.
+- **Feature entries** point at pages shipped by optional features (`team`, `contact` and `gallery` today; events… later). They only render when the feature's flag is on; entries of disabled features are **kept in the data** (greyed out on the Menu tab) so flipping a flag never loses your ordering. A **top-level `gallery` entry** expands in the public nav into a submenu of the gallery's themes — see [Gallery](#gallery).
 - **Group entries** are one-level submenus: a non-navigable, translatable label whose `children` are page/feature entries. In the public nav, clicking a group opens a popover of its children on desktop, and an accordion inside the mobile menu (`alwaysExpanded: true` renders it as an always-open section header there instead; the flag has no effect on desktop). A **hidden group** hides its whole subtree; a group whose children all resolve away (hidden, pruned, or feature-off) is **omitted from the nav but kept in the config**. Depth is one level by construction — a group cannot contain a group.
 - **`groupDisplay`** (optional, menu-wide) picks the desktop rendering of groups: `"popover"` (default — anchored dropdown) or `"bar"` — clicking a group slides a **secondary menu bar** out from under the main bar (overlaying the page, which never shifts) listing that group's children; clicking the group again, navigating, or Escape closes it. One setting for the whole menu keeps the navigation coherent; mobile always uses the accordion regardless.
   - `groupId` is a single camelCase segment (`^[a-z][a-zA-Z0-9]*$`), derived from the label when the group is created on the Menu tab and **immutable afterwards** — renaming only changes `menuTitle`, so translations survive. The group label's translation key is `menu.<groupId>.menuTitle` (the `menu.` prefix keeps group keys from colliding with `${pageName|feature}.menuTitle` namespaces).
@@ -286,3 +287,28 @@ The contact settings live in their **own blob** (key `contact`, no dev seed — 
 - **`presentation`** (optional, markdown) — the introduction text above the public contact form. Absent/empty → not rendered. It is a translation **default**: per-language values live on the Translations page under the `contact.presentation` key (the editor field has a shortcut deep-linking to it, and the Translations editor lists the key automatically while the feature is on — `collectContactI18nEntries`).
 - The **form itself is not configured here**: the visitor email + message contract is the shared `ContactRequestSchema`, and the send is relayed by `POST /api/contact/message` — see [api.md](api.md#contact) for the endpoint contract, rate limiting and the required Resend environment variables.
 - The **menu** links to `/contact` through a `{ "type": "feature", "feature": "contact" }` entry (see [Menu](#menu)); the entry only renders while the flag is on.
+
+## Gallery
+
+The gallery lives **inside the site configuration** under the optional `gallery` attribute — unlike the team/contact blobs it follows the **draft → publish** cycle — behind the **`FEATURE_GALLERY`** flag: when the flag is off, `/manage/gallery`, the public `/gallery*` pages, the gallery menu entries and `PUT /api/config/gallery` behave as if they don't exist (404). The attribute itself **stays in the stored config** either way — only its interpretation is gated, so flipping the flag never loses data.
+
+```json
+{
+  "gallery": {
+    "items": [
+      { "imageUrl": "https://ik.imagekit.io/…/sunrise.jpg", "title": "Sunrise", "subtitle": "Corsica, 2025" }
+    ],
+    "themes": [
+      { "themeId": "landscapes", "title": "Landscapes", "items": [ /* gallery items */ ] }
+    ],
+    "design": { "captionPosition": "left" }
+  }
+}
+```
+
+- **Items** — an image (typically picked from the media library), a required `title` and an optional `subtitle`. Both texts are translation **defaults**: per-language values live on the Translations page — `gallery.items.<i>.title|subtitle` for unthemed items, `gallery.theme.<themeId>.items.<i>.title|subtitle` inside a theme (item keys are **positional**, so reordering items re-maps translations by position; the editor lists the keys automatically while the flag is on — `collectGalleryI18nEntries`). **An item whose image is missing is not displayed at all** — not in the lists, not in the zoom carousel, not as a theme cover (a load failure hides it too); it is kept in the config and flagged in the editor.
+- **Themes** — one level deep **by construction** (a theme holds items, never another theme), on the menu-group model: `themeId` is a single camelCase segment (`^[a-z][a-zA-Z0-9]*$`), derived from the name when the theme is created and **immutable afterwards** — renaming only changes `title`, so translations stored under `gallery.theme.<themeId>.menuTitle` survive. It is also the theme's URL segment (`/gallery/<themeId>`) and must be unique (schema-enforced). A theme with no displayable item is **omitted from the nav and the theme index** but kept in the config.
+- **`design.captionPosition`** (optional) — where each item's caption (title + subtitle) sits relative to the centered image in the list views: `above`, `below` (default — omitted when stored), `left` or `right`. Side captions stack on mobile (left falls back to above, right to below).
+- **Public rendering** — `/gallery` is the theme index (cover cards using each theme's first displayable image) with the unthemed items explored below; with **no theme defined**, the whole gallery is browsed directly from the root. Each theme is explored at `/gallery/<themeId>` as a **centered list**. Clicking a shot opens the **zoom mode**: the image maximised to what the screen can offer with its title/subtitle kept visible, browsed as a **wrap-around carousel** (left/right arrows, keyboard arrows, Escape/close to return). Nothing displayable → 404.
+- **Menu** — link the gallery through a `{ "type": "feature", "feature": "gallery" }` entry (see [Menu](#menu)). A **top-level** entry expands in the public nav into a group of the displayable themes — exactly the menu-group submenu rendering, honouring the menu-wide `groupDisplay`. Without displayable themes it stays a plain `/gallery` link; **inside a config group it stays a plain link** too, since submenus cannot nest (depth 1 is structural).
+- **Editing** — `/manage/gallery` (shown while the flag is on): add / rename / reorder / delete themes (deleting a theme returns its items to the unthemed list), add / edit / reorder items and move them between lists (image picked from the media library when that feature is on), pick the caption position, with per-row Translate shortcuts. Saves via `PUT /api/config/gallery` — **writes the draft**; publish from the dashboard to go live.

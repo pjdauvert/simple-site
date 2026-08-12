@@ -14,6 +14,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | PUT | `/api/config/site` | Update the `site` section of the **draft** (admin) |
 | PUT | `/api/config/themes` | Replace the `themes` array of the **draft** (admin) |
 | PUT | `/api/config/menu` | Replace the `menu` of the **draft** (admin) |
+| PUT | `/api/config/gallery` | Replace the `gallery` of the **draft** (admin, flag-gated) |
 | POST | `/api/config/publish` | Publish the draft — promote it live, archive the previous (admin) |
 | POST | `/api/config/import` | Upload a configuration as the new named draft (admin) |
 | GET | `/api/config/versions` | List versions: published, draft, archives (admin) |
@@ -116,6 +117,20 @@ Replaces the `menu` of the **draft** — the ordered list of navigation entries 
 
 // 200 OK
 { "ok": true, "data": { "message": "Menu updated successfully" } }
+```
+
+### `PUT /api/config/gallery`
+
+Replaces the `gallery` of the **draft** — the themed image gallery (see [configuration.md](configuration.md#gallery)). Gated by the **`FEATURE_GALLERY`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `gallery` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `gallery` — rejecting duplicate or invalid `themeId`s and empty theme/item titles — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/gallery` editor.
+
+```json
+// Request body — a GalleryConfig object
+{ "items": [ { "imageUrl": "https://…/sunrise.jpg", "title": "Sunrise", "subtitle": "Corsica" } ],
+  "themes": [ { "themeId": "landscapes", "title": "Landscapes", "items": [] } ],
+  "design": { "captionPosition": "left" } }  // optional; captionPosition: "above" | "below" (default) | "left" | "right"
+
+// 200 OK
+{ "ok": true, "data": { "message": "Gallery updated successfully" } }
 ```
 
 ### `POST /api/config/publish`
@@ -272,7 +287,7 @@ Public. Reports which optional features the server currently has enabled, so the
 
 ```json
 // 200 OK
-{ "ok": true, "data": { "media": true, "team": false, "contact": false } }
+{ "ok": true, "data": { "media": true, "team": false, "contact": false, "gallery": false } }
 ```
 
 ---
@@ -486,6 +501,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | GET | `/api/config/draft` | ✓ |
 | POST | `/api/config` | ✓ |
 | PUT | `/api/config/site` | ✓ |
+| PUT | `/api/config/gallery` | ✓ (and flag-gated — 404 before auth) |
 | POST | `/api/config/publish` | ✓ |
 | POST | `/api/config/import` | ✓ |
 | GET | `/api/config/versions` | ✓ |
@@ -544,6 +560,7 @@ APP_NAME                 # Namespaces the Netlify Blobs store
 FEATURE_MEDIA            # "true" enables the media library (admin page + /api/media*)
 FEATURE_TEAM             # "true" enables the team feature (admin page, /team pages, /api/team)
 FEATURE_CONTACT          # "true" enables the contact feature (admin page, /contact page, /api/contact)
+FEATURE_GALLERY          # "true" enables the gallery (admin page, /gallery pages, menu entries, PUT /api/config/gallery)
 IMAGEKIT_PRIVATE_KEY
 IMAGEKIT_PUBLIC_KEY
 IMAGEKIT_URL_ENDPOINT
