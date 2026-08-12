@@ -171,6 +171,45 @@ describe('GalleryPage (public /gallery)', () => {
     );
   });
 
+  it('renders the grid display mode — all items shown, zoom still opens on click', () => {
+    setConfig({
+      items: [
+        { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
+        { imageUrl: '/b.jpg', title: 'B' },
+        { title: 'Hidden — no image' },
+      ],
+      themes: [],
+      design: { displayMode: 'grid' },
+    });
+    renderPage();
+    expect(screen.getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'B' })).toBeInTheDocument();
+    expect(screen.queryByText('Hidden — no image')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'B' }));
+    expect(within(screen.getByRole('dialog')).getByText('B')).toBeInTheDocument();
+  });
+
+  it('renders the alternating display mode — captions kept beside every shot', () => {
+    setConfig({
+      items: [
+        { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
+        { imageUrl: '/b.jpg', title: 'B', subtitle: 'Sub B' },
+      ],
+      themes: [],
+      // captionPosition is ignored in alternate mode — rows place it themselves.
+      design: { displayMode: 'alternate', captionPosition: 'above' },
+    });
+    renderPage();
+    expect(screen.getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
+    expect(screen.getByText('Sub A')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'B' })).toBeInTheDocument();
+    expect(screen.getByText('Sub B')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    expect(within(screen.getByRole('dialog')).getByText('Sub A')).toBeInTheDocument();
+  });
+
   it('shows no carousel arrows when a single item is displayable', () => {
     setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] });
     renderPage();

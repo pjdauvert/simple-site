@@ -12,6 +12,7 @@ import {
   removeTheme,
   renameTheme,
   setCaptionPosition,
+  setDisplayMode,
   updateItem,
 } from './galleryDraft';
 
@@ -92,12 +93,26 @@ describe('items', () => {
   });
 });
 
-describe('setCaptionPosition', () => {
-  it('stores a non-default position and drops the design entirely on the default', () => {
+describe('design settings', () => {
+  it('stores a non-default caption position and drops the design entirely on the default', () => {
     const withLeft = setCaptionPosition(seeded(), 'left');
     expect(withLeft.design).toEqual({ captionPosition: 'left' });
     // "below" is the default — stored as no design at all, keeping configs minimal.
     const backToDefault = setCaptionPosition(withLeft, 'below');
     expect('design' in backToDefault).toBe(false);
+  });
+
+  it('stores the display mode alongside the caption, each collapsing independently', () => {
+    const withGrid = setDisplayMode(seeded(), 'grid');
+    expect(withGrid.design).toEqual({ displayMode: 'grid' });
+
+    const both = setCaptionPosition(withGrid, 'left');
+    expect(both.design).toEqual({ captionPosition: 'left', displayMode: 'grid' });
+
+    // "list" is the default mode — only the caption deviation remains…
+    const listAgain = setDisplayMode(both, 'list');
+    expect(listAgain.design).toEqual({ captionPosition: 'left' });
+    // …and once everything is default the design disappears entirely.
+    expect('design' in setCaptionPosition(listAgain, 'below')).toBe(false);
   });
 });

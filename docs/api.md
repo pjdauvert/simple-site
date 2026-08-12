@@ -127,7 +127,9 @@ Replaces the `gallery` of the **draft** — the themed image gallery (see [confi
 // Request body — a GalleryConfig object
 { "items": [ { "imageUrl": "https://…/sunrise.jpg", "title": "Sunrise", "subtitle": "Corsica" } ],
   "themes": [ { "themeId": "landscapes", "title": "Landscapes", "items": [] } ],
-  "design": { "captionPosition": "left" } }  // optional; captionPosition: "above" | "below" (default) | "left" | "right"
+  "design": { "captionPosition": "left", "displayMode": "grid" } }
+// design is optional; captionPosition: "above" | "below" (default) | "left" | "right";
+// displayMode: "list" (default) | "grid" | "alternate"
 
 // 200 OK
 { "ok": true, "data": { "message": "Gallery updated successfully" } }

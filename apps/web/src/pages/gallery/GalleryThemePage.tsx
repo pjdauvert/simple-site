@@ -2,17 +2,13 @@ import React from 'react';
 import { Container, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
-import {
-  DEFAULT_GALLERY_CAPTION_POSITION,
-  galleryThemeScope,
-  galleryThemeTitleKey,
-} from '@simple-site/interfaces';
+import { galleryThemeScope, galleryThemeTitleKey } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
 import { Loading } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { displayableItems } from './galleryDisplay';
+import { displayableItems, galleryDisplaySettings } from './galleryDisplay';
 import { GalleryItemList } from './GalleryItemList';
 
 /**
@@ -44,7 +40,7 @@ export const GalleryThemePage: React.FC = () => {
       <GalleryItemList
         entries={entries}
         scope={galleryThemeScope(theme.themeId)}
-        captionPosition={config.gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION}
+        {...galleryDisplaySettings(config.gallery)}
       />
     </Container>
   );

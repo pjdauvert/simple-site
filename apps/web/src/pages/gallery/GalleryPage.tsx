@@ -2,20 +2,20 @@ import React from 'react';
 import { Box, ButtonBase, Typography, Container } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
-import {
-  DEFAULT_GALLERY_CAPTION_POSITION,
-  FeaturePagesEnum,
-  GALLERY_SCOPE,
-  galleryThemeTitleKey,
-  menuTitleKey,
-} from '@simple-site/interfaces';
+import { FeaturePagesEnum, GALLERY_SCOPE, galleryThemeTitleKey, menuTitleKey } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
 import { Loading } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { ikSrcSet, ikTransform } from '../../utils/imagekit';
-import { displayableItems, displayableThemes, galleryPageTitle, galleryThemeRoute } from './galleryDisplay';
+import {
+  displayableItems,
+  displayableThemes,
+  galleryDisplaySettings,
+  galleryPageTitle,
+  galleryThemeRoute,
+} from './galleryDisplay';
 import { GalleryItemList } from './GalleryItemList';
 
 /** Delivery buckets for the theme covers (grid cards, 1–3 per row). */
@@ -97,11 +97,7 @@ export const GalleryPage: React.FC = () => {
       )}
 
       {rootEntries.length > 0 && (
-        <GalleryItemList
-          entries={rootEntries}
-          scope={GALLERY_SCOPE}
-          captionPosition={gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION}
-        />
+        <GalleryItemList entries={rootEntries} scope={GALLERY_SCOPE} {...galleryDisplaySettings(gallery)} />
       )}
     </Container>
   );

@@ -1,9 +1,13 @@
 import {
+  DEFAULT_GALLERY_CAPTION_POSITION,
+  DEFAULT_GALLERY_DISPLAY_MODE,
   FEATURE_PAGE_ROUTES,
   FeaturePagesEnum,
   featureEntryLabel,
   FEATURE_PAGE_DEFAULT_LABELS,
+  type GalleryCaptionPosition,
   type GalleryConfig,
+  type GalleryDisplayMode,
   type GalleryItem,
   type GalleryTheme,
   type SiteConfig,
@@ -36,6 +40,17 @@ export const displayableThemes = (gallery: GalleryConfig | undefined): GalleryTh
 /** Public route of a theme page, nested under the gallery's reserved route. */
 export const galleryThemeRoute = (themeId: string): string =>
   `${FEATURE_PAGE_ROUTES[FeaturePagesEnum.GALLERY]}/${themeId}`;
+
+/** The design settings the browsing views render with, defaults resolved. */
+export interface GalleryDisplaySettings {
+  captionPosition: GalleryCaptionPosition;
+  displayMode: GalleryDisplayMode;
+}
+
+export const galleryDisplaySettings = (gallery: GalleryConfig | undefined): GalleryDisplaySettings => ({
+  captionPosition: gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION,
+  displayMode: gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE,
+});
 
 /**
  * Default value of the gallery page heading / nav label (`gallery.menuTitle`):

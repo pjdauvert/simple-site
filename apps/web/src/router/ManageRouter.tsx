@@ -14,6 +14,8 @@ import { TeamMembersTab } from "../pages/admin/TeamMembersTab";
 import { TeamDesignTab } from "../pages/admin/TeamDesignTab";
 import { ContactPage } from "../pages/admin/ContactPage";
 import { GalleryPage } from "../pages/admin/GalleryPage";
+import { GalleryThemesTab } from "../pages/admin/GalleryThemesTab";
+import { GalleryDesignTab } from "../pages/admin/GalleryDesignTab";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { ManageLayout } from "../layouts/ManageLayout";
 import { Loading } from "../components";
@@ -67,7 +69,13 @@ const ManageArea: React.FC = () => {
           </Route>
         )}
         {flags.contact && <Route path="contact" element={<ContactPage />} />}
-        {flags.gallery && <Route path="gallery" element={<GalleryPage />} />}
+        {flags.gallery && (
+          <Route path="gallery" element={<GalleryPage />}>
+            <Route index element={<Navigate to="themes" replace />} />
+            <Route path="themes" element={<GalleryThemesTab />} />
+            <Route path="design" element={<GalleryDesignTab />} />
+          </Route>
+        )}
         <Route path="translations" element={<TranslationsPage />} />
         {flags.media && <Route path="media" element={<MediaPage />} />}
       </Routes>

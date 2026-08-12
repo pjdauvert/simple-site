@@ -386,7 +386,7 @@ describe('ConfigModule', () => {
           { imageUrl: '/img/alps.jpg', title: 'Alps', subtitle: 'Winter light' },
         ] },
       ],
-      design: { captionPosition: 'left' },
+      design: { captionPosition: 'left', displayMode: 'grid' },
     };
     const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
     expect(res.status).toBe(200);
@@ -430,10 +430,12 @@ describe('ConfigModule', () => {
     expect(data.has('config:draft')).toBe(false);
   });
 
-  it('PUT /api/config/gallery rejects an unknown captionPosition and a non-json content type', async () => {
+  it('PUT /api/config/gallery rejects unknown design values and a non-json content type', async () => {
     const { data } = makeStore();
     const badDesign = { items: [], themes: [], design: { captionPosition: 'diagonal' } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badDesign))).status).toBe(500);
+    const badMode = { items: [], themes: [], design: { displayMode: 'carousel' } };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badMode))).status).toBe(500);
     const notJson = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', {}, 'text/plain'));
     expect(notJson.status).toBe(400);
     expect((await readJson(notJson)).code).toBe(ErrorCode.INVALID_REQUEST);

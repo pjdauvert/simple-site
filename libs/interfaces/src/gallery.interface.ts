@@ -24,6 +24,19 @@ export type GalleryCaptionPosition = z.infer<typeof GalleryCaptionPositionSchema
 /** Caption position when the design does not set one. */
 export const DEFAULT_GALLERY_CAPTION_POSITION: GalleryCaptionPosition = 'below';
 
+/**
+ * How a list of items is browsed: a centered vertical `list` (default), a
+ * `grid` of cards, or `alternate` — full-width rows whose image/caption sides
+ * flip on every row, like the team page's alternating layout. In `alternate`
+ * mode the alternation places the caption, so `captionPosition` is ignored.
+ */
+export const GALLERY_DISPLAY_MODES = ['list', 'grid', 'alternate'] as const;
+export const GalleryDisplayModeSchema = z.enum(GALLERY_DISPLAY_MODES);
+export type GalleryDisplayMode = z.infer<typeof GalleryDisplayModeSchema>;
+
+/** Display mode when the design does not set one. */
+export const DEFAULT_GALLERY_DISPLAY_MODE: GalleryDisplayMode = 'list';
+
 export const GalleryItemSchema = z.object({
   /**
    * Public URL of the image, typically picked from the media library. Optional
@@ -56,6 +69,8 @@ export type GalleryTheme = z.infer<typeof GalleryThemeSchema>;
 export const GalleryDesignSchema = z.object({
   /** Absent → {@link DEFAULT_GALLERY_CAPTION_POSITION}, keeping stored configs minimal. */
   captionPosition: GalleryCaptionPositionSchema.optional(),
+  /** Absent → {@link DEFAULT_GALLERY_DISPLAY_MODE}, keeping stored configs minimal. */
+  displayMode: GalleryDisplayModeSchema.optional(),
 });
 
 export type GalleryDesign = z.infer<typeof GalleryDesignSchema>;

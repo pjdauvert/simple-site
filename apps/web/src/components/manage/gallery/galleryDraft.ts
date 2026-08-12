@@ -1,7 +1,10 @@
 import {
   DEFAULT_GALLERY_CAPTION_POSITION,
+  DEFAULT_GALLERY_DISPLAY_MODE,
   type GalleryCaptionPosition,
   type GalleryConfig,
+  type GalleryDesign,
+  type GalleryDisplayMode,
   type GalleryItem,
 } from '@simple-site/interfaces';
 import { generateGroupId } from '../menu/menuDraft';
@@ -105,12 +108,30 @@ export const removeTheme = (gallery: GalleryConfig, themeIndex: number): Gallery
   };
 };
 
-/** Sets the caption position; the default is stored as "no design" to keep configs minimal. */
-export const setCaptionPosition = (gallery: GalleryConfig, position: GalleryCaptionPosition): GalleryConfig => {
-  if (position === DEFAULT_GALLERY_CAPTION_POSITION) {
-    const rest = { ...gallery };
-    delete rest.design;
-    return rest;
+/** Drops defaulted design fields; undefined when nothing deviates (configs stay minimal). */
+const normalizeDesign = (design: GalleryDesign): GalleryDesign | undefined => {
+  const next: GalleryDesign = {};
+  if (design.captionPosition && design.captionPosition !== DEFAULT_GALLERY_CAPTION_POSITION) {
+    next.captionPosition = design.captionPosition;
   }
-  return { ...gallery, design: { ...gallery.design, captionPosition: position } };
+  if (design.displayMode && design.displayMode !== DEFAULT_GALLERY_DISPLAY_MODE) {
+    next.displayMode = design.displayMode;
+  }
+  return Object.keys(next).length > 0 ? next : undefined;
 };
+
+const withDesign = (gallery: GalleryConfig, patch: GalleryDesign): GalleryConfig => {
+  const design = normalizeDesign({ ...gallery.design, ...patch });
+  const next = { ...gallery };
+  if (design) next.design = design;
+  else delete next.design;
+  return next;
+};
+
+/** Sets the caption position; defaults are stored as "no design" to keep configs minimal. */
+export const setCaptionPosition = (gallery: GalleryConfig, position: GalleryCaptionPosition): GalleryConfig =>
+  withDesign(gallery, { captionPosition: position });
+
+/** Sets the display mode (list / grid / alternate); defaults collapse like the caption. */
+export const setDisplayMode = (gallery: GalleryConfig, displayMode: GalleryDisplayMode): GalleryConfig =>
+  withDesign(gallery, { displayMode });
