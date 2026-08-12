@@ -32,15 +32,16 @@ interface GalleryItemListProps {
 }
 
 /**
- * The browsing view of a gallery list, in the design's display mode:
+ * The browsing view of a gallery list, in the design's display mode. The
+ * caption setting applies to `list` ONLY:
  * - `list` (default) — centered shots, caption above/below/left/right per the
  *   caption setting (side captions stack on mobile: left → above, right → below);
- * - `grid` — a responsive card grid, same caption placement within each cell;
- * - `mosaic` — masonry columns of natural-height tiles; side captions collapse
- *   into above/below, since tiles flow in narrow columns;
+ * - `grid` — a responsive card grid, caption always below the image;
+ * - `mosaic` — masonry columns of natural-height tiles, with NO caption at all
+ *   (the title/subtitle still show in the zoom view);
  * - `alternate` — full-width rows whose image/caption sides flip on every row
- *   (like the team page's alternating layout; mobile stacks). The alternation
- *   places the caption, so the caption setting is ignored.
+ *   (like the team page's alternating layout; mobile stacks); the alternation
+ *   places the caption itself.
  * Clicking a shot opens the zoom carousel over the same list, whatever the
  * mode. An image that fails to load drops its whole item, matching the
  * missing-image rule.
@@ -118,6 +119,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   );
 
   if (displayMode === 'grid') {
+    // The caption always sits below the image in a grid cell.
     return (
       <>
         <Box
@@ -127,30 +129,22 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
             gap: { xs: 2, md: 3 },
           }}
         >
-          {visible.map(({ item, index }, visibleIndex) => {
-            const cellCaption = caption(item, index, sideCaption ? { flexShrink: 0, maxWidth: { md: '40%' } } : undefined);
-            const cellImage = imageButton(
-              item,
-              index,
-              visibleIndex,
-              { transformation: 'w-640,q-80,f-auto', widths: GRID_WIDTHS, sizes: GRID_SIZES },
-              { display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover' },
-              { width: sideCaption ? { xs: '100%', md: 'auto' } : '100%', flex: sideCaption ? { md: 1 } : undefined },
-            );
-            return (
-              <Box
-                key={`${scope}-${index}`}
-                sx={{
-                  display: 'flex',
-                  flexDirection: sideCaption ? { xs: 'column', md: 'row' } : 'column',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                {captionFirst ? [cellCaption, cellImage] : [cellImage, cellCaption]}
-              </Box>
-            );
-          })}
+          {visible.map(({ item, index }, visibleIndex) => (
+            <Box
+              key={`${scope}-${index}`}
+              sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}
+            >
+              {imageButton(
+                item,
+                index,
+                visibleIndex,
+                { transformation: 'w-640,q-80,f-auto', widths: GRID_WIDTHS, sizes: GRID_SIZES },
+                { display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover' },
+                { width: '100%' },
+              )}
+              {caption(item, index)}
+            </Box>
+          ))}
         </Box>
         {lightbox}
       </>
@@ -158,39 +152,22 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   }
 
   if (displayMode === 'mosaic') {
+    // No caption in a mosaic — the tiles are pure images (their title/subtitle
+    // still show in the zoom view). CSS-columns masonry: natural aspect,
+    // packed top to bottom per column.
     return (
       <>
-        {/* CSS-columns masonry: tiles keep their natural aspect and pack top to
-            bottom per column; breakInside keeps a tile with its caption. */}
         <Box sx={{ columnCount: { xs: 1, sm: 2, md: 3 }, columnGap: { xs: 2, md: 3 } }}>
           {visible.map(({ item, index }, visibleIndex) => (
-            <Box
-              key={`${scope}-${index}`}
-              sx={{ breakInside: 'avoid', mb: { xs: 2, md: 3 }, display: 'flex', flexDirection: 'column', gap: 1 }}
-            >
-              {captionFirst
-                ? [
-                    caption(item, index),
-                    imageButton(
-                      item,
-                      index,
-                      visibleIndex,
-                      { transformation: 'w-640,q-80,f-auto', widths: GRID_WIDTHS, sizes: GRID_SIZES },
-                      { display: 'block', width: '100%', height: 'auto' },
-                      { width: '100%' },
-                    ),
-                  ]
-                : [
-                    imageButton(
-                      item,
-                      index,
-                      visibleIndex,
-                      { transformation: 'w-640,q-80,f-auto', widths: GRID_WIDTHS, sizes: GRID_SIZES },
-                      { display: 'block', width: '100%', height: 'auto' },
-                      { width: '100%' },
-                    ),
-                    caption(item, index),
-                  ]}
+            <Box key={`${scope}-${index}`} sx={{ breakInside: 'avoid', mb: { xs: 2, md: 3 } }}>
+              {imageButton(
+                item,
+                index,
+                visibleIndex,
+                { transformation: 'w-640,q-80,f-auto', widths: GRID_WIDTHS, sizes: GRID_SIZES },
+                { display: 'block', width: '100%', height: 'auto' },
+                { width: '100%' },
+              )}
             </Box>
           ))}
         </Box>

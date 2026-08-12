@@ -128,8 +128,9 @@ Replaces the `gallery` of the **draft** — the themed image gallery (see [confi
 { "items": [ { "imageUrl": "https://…/sunrise.jpg", "title": "Sunrise", "subtitle": "Corsica" } ],
   "themes": [ { "themeId": "landscapes", "title": "Landscapes", "items": [] } ],
   "design": { "captionPosition": "left", "displayMode": "grid" } }
-// design is optional; captionPosition: "above" | "below" (default) | "left" | "right";
-// displayMode: "list" (default) | "grid" | "mosaic" | "alternate"
+// design is optional; displayMode: "list" (default) | "grid" | "mosaic" | "alternate";
+// captionPosition ("above" | "below" (default) | "left" | "right") applies to the list mode only
+
 
 // 200 OK
 { "ok": true, "data": { "message": "Gallery updated successfully" } }

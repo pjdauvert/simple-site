@@ -171,7 +171,7 @@ describe('GalleryPage (public /gallery)', () => {
     );
   });
 
-  it('renders the grid display mode — all items shown, zoom still opens on click', () => {
+  it('renders the grid display mode — caption always below the image, whatever the setting', () => {
     setConfig({
       items: [
         { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
@@ -179,18 +179,23 @@ describe('GalleryPage (public /gallery)', () => {
         { title: 'Hidden — no image' },
       ],
       themes: [],
-      design: { displayMode: 'grid' },
+      // The caption position is a list-mode setting — ignored by the grid.
+      design: { displayMode: 'grid', captionPosition: 'above' },
     });
     renderPage();
     expect(screen.getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'B' })).toBeInTheDocument();
     expect(screen.queryByText('Hidden — no image')).not.toBeInTheDocument();
 
+    // Image first, caption after — despite captionPosition: 'above'.
+    const imageButton = screen.getByRole('button', { name: 'A' });
+    expect((imageButton.parentElement as HTMLElement).firstElementChild).toBe(imageButton);
+
     fireEvent.click(screen.getByRole('button', { name: 'B' }));
     expect(within(screen.getByRole('dialog')).getByText('B')).toBeInTheDocument();
   });
 
-  it('renders the mosaic display mode — all items shown, missing images hidden, zoom on click', () => {
+  it('renders the mosaic display mode — pure image tiles, captions only in the zoom view', () => {
     setConfig({
       items: [
         { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
@@ -201,12 +206,18 @@ describe('GalleryPage (public /gallery)', () => {
       design: { displayMode: 'mosaic' },
     });
     renderPage();
-    expect(screen.getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: 'B' })).toBeInTheDocument();
+    // The tiles carry no caption at all (images stay reachable by their alt)…
+    expect(screen.getByRole('button', { name: 'A' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'B' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 3, name: 'A' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Sub A')).not.toBeInTheDocument();
     expect(screen.queryByText('Hidden — no image')).not.toBeInTheDocument();
 
+    // …while the zoom view still shows the title and subtitle.
     fireEvent.click(screen.getByRole('button', { name: 'A' }));
-    expect(within(screen.getByRole('dialog')).getByText('Sub A')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('A')).toBeInTheDocument();
+    expect(within(dialog).getByText('Sub A')).toBeInTheDocument();
   });
 
   it('renders the alternating display mode — captions kept beside every shot', () => {

@@ -12,9 +12,10 @@ interface GalleryDesignPreviewProps {
  * Symbolic skeleton of the public gallery under the picked design — a preview
  * to help the admin choose: solid rectangles stand for the images, solid bars
  * for the title/subtitle text lines. It mirrors the real rendering rules:
- * caption placement in list/grid, side captions collapsing to above/below in
- * mosaic, and the alternation placing captions itself in alternate mode.
- * Purely decorative (aria-hidden); the parent hides it on mobile.
+ * caption placement applies in list mode only, grid always captions below,
+ * mosaic tiles carry no caption at all, and the alternation places captions
+ * itself in alternate mode. Purely decorative (aria-hidden); the parent hides
+ * it on mobile.
  */
 export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({ displayMode, captionPosition }) => {
   const captionFirst = captionPosition === 'above' || captionPosition === 'left';
@@ -33,16 +34,15 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({ disp
     </Box>
   );
 
-  /** One list/grid tile honouring the caption placement. */
-  const tile = (imageSx: SxProps<Theme>, barsWidth: number, forceColumn = false): React.ReactNode => {
-    const row = sideCaption && !forceColumn;
+  /** One list tile honouring the caption placement (list mode only). */
+  const tile = (imageSx: SxProps<Theme>, barsWidth: number): React.ReactNode => {
     const image = imageBlock(imageSx);
-    const bars = textBars(barsWidth, row ? { justifyContent: 'center' } : undefined);
+    const bars = textBars(barsWidth, sideCaption ? { justifyContent: 'center' } : undefined);
     return (
       <Box
         sx={{
           display: 'flex',
-          flexDirection: row ? 'row' : 'column',
+          flexDirection: sideCaption ? 'row' : 'column',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 1,
@@ -55,17 +55,21 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({ disp
 
   const skeleton = (): React.ReactNode => {
     if (displayMode === 'grid') {
+      // Grid cells always caption below the image.
       return (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
           {Array.from({ length: 6 }, (_, i) => (
-            <Box key={i}>{tile({ width: '100%', height: 44 }, 40)}</Box>
+            <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              {imageBlock({ width: '100%', height: 44 })}
+              {textBars(40)}
+            </Box>
           ))}
         </Box>
       );
     }
     if (displayMode === 'mosaic') {
-      // Masonry columns with natural (varied) tile heights; captions collapse
-      // to above/below, like the real rendering.
+      // Masonry columns of natural (varied) height tiles — images only, no
+      // caption bars, like the real rendering.
       const columns: number[][] = [
         [52, 84],
         [92, 44],
@@ -76,7 +80,7 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({ disp
           {columns.map((heights, col) => (
             <Box key={col} sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {heights.map((height, i) => (
-                <Box key={i}>{tile({ width: '100%', height }, 40, true)}</Box>
+                <Box key={i}>{imageBlock({ width: '100%', height })}</Box>
               ))}
             </Box>
           ))}

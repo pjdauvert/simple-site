@@ -16,7 +16,7 @@ import type { I18nEntry } from './sections/section.interface.js';
  * can expose the themes as the gallery entry's submenu.
  */
 
-/** Where an item's caption (title + subtitle) sits relative to the image. */
+/** Where an item's caption (title + subtitle) sits relative to the image — `list` mode only. */
 export const GALLERY_CAPTION_POSITIONS = ['above', 'below', 'left', 'right'] as const;
 export const GalleryCaptionPositionSchema = z.enum(GALLERY_CAPTION_POSITIONS);
 export type GalleryCaptionPosition = z.infer<typeof GalleryCaptionPositionSchema>;
@@ -28,9 +28,10 @@ export const DEFAULT_GALLERY_CAPTION_POSITION: GalleryCaptionPosition = 'below';
  * How a list of items is browsed: a centered vertical `list` (default), a
  * `grid` of cards, a `mosaic` — masonry columns of natural-height tiles — or
  * `alternate` — full-width rows whose image/caption sides flip on every row,
- * like the team page's alternating layout. In `alternate` mode the alternation
- * places the caption, so `captionPosition` is ignored; in `mosaic` mode the
- * side positions collapse into above/below (tiles flow in narrow columns).
+ * like the team page's alternating layout. `captionPosition` applies to `list`
+ * only: `grid` always captions below the image, `mosaic` shows no caption at
+ * all (the zoom view keeps title/subtitle), and `alternate`'s alternation
+ * places the caption itself.
  */
 export const GALLERY_DISPLAY_MODES = ['list', 'grid', 'mosaic', 'alternate'] as const;
 export const GalleryDisplayModeSchema = z.enum(GALLERY_DISPLAY_MODES);

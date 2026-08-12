@@ -76,13 +76,10 @@ describe('GalleryDesignEditor', () => {
     expect(screen.getByTestId('gallery-preview-alternate')).toBeInTheDocument();
   });
 
-  it('saves the mosaic mode and hints that side captions collapse there', async () => {
+  it('saves the mosaic mode, keeping the stored caption setting for a later return to list', async () => {
     vi.mocked(loadDraftConfig).mockResolvedValue(draft({ ...seeded, design: { captionPosition: 'left' } }));
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /mosaic/i }));
-    expect(
-      screen.getByText(/side captions fall back above\/below the image/i),
-    ).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
     });
@@ -94,12 +91,23 @@ describe('GalleryDesignEditor', () => {
     });
   });
 
-  it('disables the caption position while the alternating mode places it itself', async () => {
+  it('enables the caption position for the list mode only, with per-mode hints', async () => {
     renderEditor();
-    fireEvent.click(await screen.findByRole('button', { name: /alternating/i }));
+    expect(await screen.findByRole('button', { name: /above/i })).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /grid/i }));
+    expect(screen.getByRole('button', { name: /above/i })).toBeDisabled();
+    expect(screen.getByText('In grid mode the caption always sits below the image.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /mosaic/i }));
+    expect(screen.getByRole('button', { name: /above/i })).toBeDisabled();
+    expect(screen.getByText('Mosaic tiles show no caption — the title and subtitle appear in the zoom view.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /alternating/i }));
     expect(screen.getByRole('button', { name: /above/i })).toBeDisabled();
     expect(screen.getByText('The alternating display places the caption beside the image automatically.')).toBeInTheDocument();
-    // Back to a mode where the caption applies again.
+
+    // Back to the one mode where the caption applies.
     fireEvent.click(screen.getByRole('button', { name: /^list$/i }));
     expect(screen.getByRole('button', { name: /above/i })).not.toBeDisabled();
   });

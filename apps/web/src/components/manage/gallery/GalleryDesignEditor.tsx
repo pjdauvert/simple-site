@@ -19,10 +19,11 @@ import { GalleryDesignPreview } from './GalleryDesignPreview';
 /**
  * Design tab of /manage/gallery: how visitors browse the items — the display
  * mode (centered list, card grid, mosaic, or team-style alternating rows) and
- * the caption position around each image. In alternate mode the alternation
- * places the caption, so the position toggle is disabled; in mosaic mode side
- * captions collapse to above/below. A symbolic skeleton preview (right half,
- * desktop only) illustrates the picked design live. Saves via
+ * the caption position around each image. The caption position applies to the
+ * LIST mode only, so the toggle is disabled elsewhere with a per-mode hint:
+ * grid always captions below, mosaic shows no caption at all, and alternate's
+ * alternation places the caption itself. A symbolic skeleton preview (right
+ * half, desktop only) illustrates the picked design live. Saves via
  * `PUT /api/config/gallery`, re-reading the draft first so the Themes tab's
  * items are never clobbered; defaults are stored as "no design" to keep
  * configs minimal.
@@ -72,8 +73,17 @@ export const GalleryDesignEditor: React.FC = () => {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
 
-  const alternate = displayMode === 'alternate';
-  const mosaicSideCaption = displayMode === 'mosaic' && (captionPosition === 'left' || captionPosition === 'right');
+  // The caption position is a LIST-mode setting; other modes place (or drop)
+  // the caption themselves and explain it under the disabled toggle.
+  const captionApplies = displayMode === 'list';
+  const captionHintId: string | null =
+    displayMode === 'grid'
+      ? 'page.manage.gallery.captionPosition.gridHint'
+      : displayMode === 'mosaic'
+        ? 'page.manage.gallery.captionPosition.mosaicHint'
+        : displayMode === 'alternate'
+          ? 'page.manage.gallery.captionPosition.alternateHint'
+          : null;
 
   return (
     <Box sx={{ display: 'flex', gap: { md: 4, lg: 6 }, alignItems: 'flex-start', maxWidth: 1100 }}>
@@ -108,7 +118,7 @@ export const GalleryDesignEditor: React.FC = () => {
             size="small"
             exclusive
             value={captionPosition}
-            disabled={alternate}
+            disabled={!captionApplies}
             onChange={(_, value: GalleryCaptionPosition | null) => { if (value) setCaption(value); }}
             aria-labelledby="gallery-caption-position-label"
           >
@@ -118,14 +128,9 @@ export const GalleryDesignEditor: React.FC = () => {
               </ToggleButton>
             ))}
           </ToggleButtonGroup>
-          {alternate && (
+          {captionHintId && (
             <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-              <FormattedMessage id="page.manage.gallery.captionPosition.alternateHint" />
-            </Typography>
-          )}
-          {mosaicSideCaption && (
-            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-              <FormattedMessage id="page.manage.gallery.captionPosition.mosaicHint" />
+              <FormattedMessage id={captionHintId} />
             </Typography>
           )}
         </Box>
