@@ -1,0 +1,54 @@
+import {
+  FEATURE_PAGE_ROUTES,
+  FeaturePagesEnum,
+  featureEntryLabel,
+  FEATURE_PAGE_DEFAULT_LABELS,
+  type GalleryConfig,
+  type GalleryItem,
+  type GalleryTheme,
+  type SiteConfig,
+} from '@simple-site/interfaces';
+
+/**
+ * Display/selection helpers of the public gallery (web-only — the functions
+ * never filter gallery items). Central rule: an item whose image is missing is
+ * not displayed AT ALL — not in the lists, not in the zoom carousel, not as a
+ * theme cover, and a theme with no displayable item disappears from the nav
+ * and the theme index alike (it stays in the config).
+ */
+
+/** A displayable item plus its index in the CONFIG array — i18n keys are positional. */
+export interface DisplayableGalleryItem {
+  item: GalleryItem;
+  index: number;
+}
+
+/** The items that render publicly (image present), with their config positions. */
+export const displayableItems = (items: GalleryItem[] | undefined): DisplayableGalleryItem[] =>
+  (items ?? [])
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => Boolean(item.imageUrl?.trim()));
+
+/** The themes that render publicly: at least one displayable item. */
+export const displayableThemes = (gallery: GalleryConfig | undefined): GalleryTheme[] =>
+  (gallery?.themes ?? []).filter((theme) => displayableItems(theme.items).length > 0);
+
+/** Public route of a theme page, nested under the gallery's reserved route. */
+export const galleryThemeRoute = (themeId: string): string =>
+  `${FEATURE_PAGE_ROUTES[FeaturePagesEnum.GALLERY]}/${themeId}`;
+
+/**
+ * Default value of the gallery page heading / nav label (`gallery.menuTitle`):
+ * the menu entry's custom title when one is set, else the feature default —
+ * the same fallback chain the nav renders.
+ */
+export const galleryPageTitle = (config: SiteConfig): string => {
+  for (const entry of config.menu?.entries ?? []) {
+    if (entry.type === 'feature' && entry.feature === FeaturePagesEnum.GALLERY) return featureEntryLabel(entry);
+    if (entry.type === 'group') {
+      const child = entry.children.find((c) => c.type === 'feature' && c.feature === FeaturePagesEnum.GALLERY);
+      if (child?.type === 'feature') return featureEntryLabel(child);
+    }
+  }
+  return FEATURE_PAGE_DEFAULT_LABELS[FeaturePagesEnum.GALLERY];
+};

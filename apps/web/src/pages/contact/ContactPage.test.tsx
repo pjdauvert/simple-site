@@ -10,7 +10,7 @@ import { loadContactConfig, sendContactMessage } from '../../services/contactSer
 vi.mock('../../services/contactService', () => ({ sendContactMessage: vi.fn(), loadContactConfig: vi.fn() }));
 vi.mock('../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false },
+  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
 }));
 
 function renderPage() {
@@ -33,12 +33,12 @@ const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Send me
 describe('ContactPage (public /contact)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: true });
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: true, gallery: false });
     vi.mocked(loadContactConfig).mockResolvedValue({});
   });
 
   it('renders the 404 page when the contact feature is disabled', async () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false, gallery: false });
     renderPage();
     expect(await screen.findByText('Oops — nothing here!')).toBeInTheDocument();
     expect(loadContactConfig).not.toHaveBeenCalled();

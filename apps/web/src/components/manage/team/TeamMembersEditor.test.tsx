@@ -13,8 +13,8 @@ vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: v
 vi.mock('../../../services/initService', () => ({ loadLanguages: vi.fn() }));
 vi.mock('../../../services/mediaService', () => ({ listMedia: vi.fn().mockResolvedValue({ folders: [], files: [] }) }));
 vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(() => ({ media: false, team: true, contact: false })),
-  ALL_DISABLED: { media: false, team: false, contact: false },
+  useFeatureFlags: vi.fn(() => ({ media: false, team: true, contact: false, gallery: false })),
+  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
 }));
 
 const member = (slug: string, name: string): TeamMember =>

@@ -14,7 +14,7 @@ vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.f
 vi.mock('../../../services/menuService', () => ({ updateMenu: vi.fn() }));
 vi.mock('../../../hooks/useFeatureFlags', () => ({
   useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false },
+  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
 }));
 
 const page = (pageName: string, route: string, menuTitle: string) =>
@@ -36,7 +36,7 @@ function renderEditor() {
 describe('MenuEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
+    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false, gallery: false });
     vi.mocked(updateMenu).mockResolvedValue(undefined);
   });
 

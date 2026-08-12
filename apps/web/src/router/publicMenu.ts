@@ -1,9 +1,13 @@
 import {
   ALL_FEATURE_PAGE_IDS,
   FEATURE_PAGE_ROUTES,
+  FeaturePagesEnum,
   featureEntryLabel,
+  galleryThemeScope,
   groupTitleKey,
   menuEntryId,
+  menuTitleKey,
+  type GalleryConfig,
   type FeaturePageId,
   type MenuConfig,
   type MenuEntry,
@@ -14,6 +18,7 @@ import {
   type SiteConfig,
 } from '@simple-site/interfaces';
 import type { FeatureFlags } from '../services/featuresService';
+import { displayableThemes, galleryThemeRoute } from '../pages/gallery/galleryDisplay';
 
 /**
  * Feature pages the web app ships (public pages owned by optional features, as
@@ -43,6 +48,11 @@ export const FEATURE_PAGE_REGISTRY: Partial<Record<FeaturePageId, FeaturePageDef
     route: FEATURE_PAGE_ROUTES.contact,
     pageName: 'contact', // nav label i18n key: `contact.menuTitle`
     flag: 'contact',
+  },
+  gallery: {
+    route: FEATURE_PAGE_ROUTES.gallery,
+    pageName: 'gallery', // nav label i18n key: `gallery.menuTitle`
+    flag: 'gallery',
   },
 };
 
@@ -99,11 +109,39 @@ const resolveLeaf = (
 };
 
 /**
+ * The gallery's dynamically-populated submenu: when the gallery has displayable
+ * themes, its top-level feature entry resolves as a group node whose children
+ * are the theme pages (one level, exactly the menu-group model — `NavGroup` is
+ * origin-agnostic, so `MenuBar` renders it like any config group). With no
+ * displayable theme it returns null and the entry stays a plain /gallery link.
+ * The `feature:` id prefix keeps the node from colliding with a config group
+ * that a site may have named `gallery` (groupIds are colon-free camelCase).
+ */
+const galleryNavGroup = (item: MenuItem, gallery: GalleryConfig | undefined): NavGroup | null => {
+  const themes = displayableThemes(gallery);
+  if (themes.length === 0) return null;
+  return {
+    kind: 'group',
+    id: `feature:${FeaturePagesEnum.GALLERY}`,
+    menuTitle: item.menuTitle,
+    i18nKey: menuTitleKey(item.pageName),
+    alwaysExpanded: false,
+    items: themes.map((theme) => ({
+      menuTitle: theme.title,
+      pageName: galleryThemeScope(theme.themeId), // nav label i18n key: `gallery.theme.<themeId>.menuTitle`
+      route: galleryThemeRoute(theme.themeId),
+    })),
+  };
+};
+
+/**
  * Resolves the stored menu into the nav tree rendered by the menu bars. When the
  * config has no `menu` (older configs), the nav derives from the pages array
  * order. Leaf entries resolve via `resolveLeaf`; a hidden group drops its whole
  * subtree, and a group whose children all resolve away is omitted (it stays in
- * the config — deleting it is an admin decision).
+ * the config — deleting it is an admin decision). A top-level gallery feature
+ * entry expands into its themes' submenu (`galleryNavGroup`); inside a config
+ * group it stays a plain link, since submenus cannot nest (depth 1 is structural).
  */
 export const resolveNavTree = (config: SiteConfig, flags: FeatureFlags): NavNode[] => {
   if (!config.menu) {
@@ -128,7 +166,12 @@ export const resolveNavTree = (config: SiteConfig, flags: FeatureFlags): NavNode
       });
     } else {
       const item = resolveLeaf(entry, pagesByName, flags);
-      if (item) nodes.push({ kind: 'item', item });
+      if (!item) continue;
+      const group =
+        entry.type === 'feature' && entry.feature === FeaturePagesEnum.GALLERY
+          ? galleryNavGroup(item, config.gallery)
+          : null;
+      nodes.push(group ?? { kind: 'item', item });
     }
   }
   return nodes;

@@ -18,6 +18,7 @@ import {
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  Collections as CollectionsIcon,
   Dashboard as DashboardIcon,
   Groups as GroupsIcon,
   Logout as LogoutIcon,
@@ -44,6 +45,7 @@ const ICONS: Record<string, React.ReactNode> = {
   '/manage': <DashboardIcon />,
   '/manage/site': <SettingsIcon />,
   '/manage/team': <GroupsIcon />,
+  '/manage/gallery': <CollectionsIcon />,
   '/manage/translations': <TranslateIcon />,
   '/manage/media': <PermMediaIcon />,
 };

@@ -9,6 +9,8 @@ import { resolveGroupDisplay, resolveNavTree, type NavNode } from './publicMenu'
 import { TeamPage } from '../pages/team/TeamPage';
 import { TeamMemberPage } from '../pages/team/TeamMemberPage';
 import { ContactPage } from '../pages/contact/ContactPage';
+import { GalleryPage } from '../pages/gallery/GalleryPage';
+import { GalleryThemePage } from '../pages/gallery/GalleryThemePage';
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
@@ -34,6 +36,8 @@ export const AppRouter: React.FC = () => {
         <Route path="/team" element={<TeamPage />} />
         <Route path="/team/member/:slug" element={<TeamMemberPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/gallery/:themeId" element={<GalleryThemePage />} />
         <Route path="*" Component={NotFoundPage} />
       </Routes>
     </MainLayout>

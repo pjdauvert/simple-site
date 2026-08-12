@@ -206,11 +206,12 @@ export const setGroupAlwaysExpanded = (entries: MenuEntry[], top: number, value:
 
 /**
  * Derives a group id from its label: camelCase word runs, diacritics stripped,
- * `group` when nothing usable remains, `g`-prefixed when starting with a digit,
- * numeric suffix on collision. Ids are immutable after creation so translations
- * stored under `menu.<groupId>.menuTitle` survive renames.
+ * `fallback` when nothing usable remains, `g`-prefixed when starting with a
+ * digit, numeric suffix on collision. Ids are immutable after creation so
+ * translations stored under `menu.<groupId>.menuTitle` survive renames. The
+ * gallery editor reuses it for theme ids (same pattern, same immutability).
  */
-export const generateGroupId = (label: string, existing: readonly string[]): string => {
+export const generateGroupId = (label: string, existing: readonly string[], fallback = 'group'): string => {
   const words =
     label
       .normalize('NFD')
@@ -220,7 +221,7 @@ export const generateGroupId = (label: string, existing: readonly string[]): str
     .map((word, index) => (index === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.slice(1).toLowerCase()))
     .join('');
   if (/^[0-9]/.test(base)) base = `g${base}`;
-  if (!GROUP_ID_PATTERN.test(base)) base = 'group';
+  if (!GROUP_ID_PATTERN.test(base)) base = fallback;
   const taken = new Set(existing);
   let candidate = base;
   let suffix = 2;

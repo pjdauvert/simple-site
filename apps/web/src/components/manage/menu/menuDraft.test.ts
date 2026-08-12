@@ -18,7 +18,7 @@ const pages = [
   { pageName: 'page.about', route: '/about', menuTitle: 'About' },
 ];
 
-const FLAGS = { media: false, team: false, contact: false };
+const FLAGS = { media: false, team: false, contact: false, gallery: false };
 
 const group = (children: MenuEntry[] = [], overrides: Partial<MenuGroupEntry> = {}): MenuEntry => ({
   type: 'group',
@@ -50,7 +50,7 @@ describe('entryRows', () => {
   it('prefers a custom label and keeps the fallback as baseLabel', () => {
     const pageEntry: MenuEntry = { type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' };
     const featureEntry: MenuEntry = { type: 'feature', feature: 'team', visible: true, menuTitle: 'Notre équipe' };
-    const [pageRow, featureRow] = entryRows([pageEntry, featureEntry], pages, { media: false, team: true, contact: false });
+    const [pageRow, featureRow] = entryRows([pageEntry, featureEntry], pages, { media: false, team: true, contact: false, gallery: false });
     expect(pageRow.label).toBe('Who we are');
     expect(pageRow.baseLabel).toBe('About');
     expect(featureRow.label).toBe('Notre équipe');
@@ -59,7 +59,7 @@ describe('entryRows', () => {
 
   it('marks feature rows unavailable while their flag is off', () => {
     const entries: MenuEntry[] = [{ type: 'feature', feature: 'team', visible: false }];
-    const [row] = entryRows(entries, pages, { media: true, team: false, contact: false });
+    const [row] = entryRows(entries, pages, { media: true, team: false, contact: false, gallery: false });
     expect(row.kind).toBe('feature');
     expect(row.route).toBe('/team');
     expect(row.i18nKey).toBe('team.menuTitle');
@@ -68,7 +68,7 @@ describe('entryRows', () => {
 
   it('marks feature rows available when their flag is on', () => {
     const entries: MenuEntry[] = [{ type: 'feature', feature: 'team', visible: true }];
-    const [row] = entryRows(entries, pages, { media: false, team: true, contact: false });
+    const [row] = entryRows(entries, pages, { media: false, team: true, contact: false, gallery: false });
     expect(row.label).toBe('Team');
     expect(row.available).toBe(true);
   });

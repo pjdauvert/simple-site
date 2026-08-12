@@ -9,7 +9,7 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-const FLAGS: FeatureFlags = { media: false, team: false, contact: false };
+const FLAGS: FeatureFlags = { media: false, team: false, contact: false, gallery: false };
 
 /** Unwraps top-level item nodes — flat-menu tests read like before. */
 const items = (nodes: NavNode[]) => nodes.flatMap((n) => (n.kind === 'item' ? [n.item] : []));
@@ -53,7 +53,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: true, contact: false }))).toEqual([
+    expect(items(resolveNavTree(config, { media: false, team: true, contact: false, gallery: false }))).toEqual([
       { menuTitle: 'Team', pageName: 'team', route: '/team' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
@@ -67,7 +67,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: false, contact: true }))).toEqual([
+    expect(items(resolveNavTree(config, { media: false, team: false, contact: true, gallery: false }))).toEqual([
       { menuTitle: 'Contact', pageName: 'contact', route: '/contact' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
@@ -83,7 +83,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: true, contact: false })).map((i) => i.menuTitle)).toEqual([
+    expect(items(resolveNavTree(config, { media: false, team: true, contact: false, gallery: false })).map((i) => i.menuTitle)).toEqual([
       'Notre équipe',
       'Welcome',
     ]);
@@ -112,7 +112,7 @@ describe('resolveNavTree', () => {
         ] },
       ] },
     );
-    expect(resolveNavTree(config, { media: false, team: true, contact: false })).toEqual([
+    expect(resolveNavTree(config, { media: false, team: true, contact: false, gallery: false })).toEqual([
       { kind: 'item', item: { menuTitle: 'Home', pageName: 'page.home', route: '/home' } },
       {
         kind: 'group',
@@ -358,5 +358,107 @@ describe('collectI18nEntries (menu labels)', () => {
     ]);
     // …and the feature owns its key.
     expect(entries).toContainEqual({ key: 'team.menuTitle', defaultValue: 'Team' });
+  });
+});
+
+describe('resolveNavTree — gallery themes as a submenu', () => {
+  const GALLERY_ON: FeatureFlags = { media: false, team: false, contact: false, gallery: true };
+
+  const galleryConfig = (pages: ReturnType<typeof page>[], menu: MenuConfig, gallery: unknown): SiteConfig =>
+    ({ site: { siteName: 'Test' }, themes: [], pages, menu, gallery }) as unknown as SiteConfig;
+
+  const menuWithGallery: MenuConfig = {
+    entries: [
+      { type: 'page', pageName: 'page.home', visible: true },
+      { type: 'feature', feature: 'gallery', visible: true },
+    ],
+  };
+
+  it('expands a top-level gallery entry into a group of its displayable themes', () => {
+    const config = galleryConfig([page('page.home', '/home', 'Home')], menuWithGallery, {
+      items: [],
+      themes: [
+        { themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] },
+        { themeId: 'cities', title: 'Cities', items: [{ imageUrl: '/c.jpg', title: 'Paris' }] },
+      ],
+    });
+    expect(resolveNavTree(config, GALLERY_ON)).toEqual([
+      { kind: 'item', item: { menuTitle: 'Home', pageName: 'page.home', route: '/home' } },
+      {
+        kind: 'group',
+        id: 'feature:gallery',
+        menuTitle: 'Gallery',
+        i18nKey: 'gallery.menuTitle',
+        alwaysExpanded: false,
+        items: [
+          { menuTitle: 'Nature', pageName: 'gallery.theme.nature', route: '/gallery/nature' },
+          { menuTitle: 'Cities', pageName: 'gallery.theme.cities', route: '/gallery/cities' },
+        ],
+      },
+    ]);
+  });
+
+  it('keeps the entry a plain /gallery link when no theme is displayable', () => {
+    // No theme at all, and a theme whose only item is missing its image, resolve alike.
+    for (const gallery of [
+      { items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] },
+      { items: [], themes: [{ themeId: 'draft', title: 'Draft', items: [{ title: 'No image yet' }] }] },
+      undefined,
+    ]) {
+      const config = galleryConfig([page('page.home', '/home', 'Home')], menuWithGallery, gallery);
+      expect(resolveNavTree(config, GALLERY_ON)[1]).toEqual({
+        kind: 'item',
+        item: { menuTitle: 'Gallery', pageName: 'gallery', route: '/gallery' },
+      });
+    }
+  });
+
+  it('drops a non-displayable theme from the submenu and honours the custom entry label', () => {
+    const config = galleryConfig([page('page.home', '/home', 'Home')], {
+      entries: [{ type: 'feature', feature: 'gallery', visible: true, menuTitle: 'Portfolio' }],
+    }, {
+      items: [],
+      themes: [
+        { themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] },
+        { themeId: 'empty', title: 'Empty', items: [] },
+      ],
+    });
+    const [group] = resolveNavTree(config, GALLERY_ON);
+    expect(group).toMatchObject({
+      kind: 'group',
+      menuTitle: 'Portfolio',
+      items: [{ route: '/gallery/nature', menuTitle: 'Nature' }],
+    });
+  });
+
+  it('stays a plain link inside a config group — submenus cannot nest (depth 1)', () => {
+    const config = galleryConfig([page('page.home', '/home', 'Home')], {
+      entries: [
+        { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+          { type: 'feature', feature: 'gallery', visible: true },
+        ] },
+      ],
+    }, {
+      items: [],
+      themes: [{ themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] }],
+    });
+    expect(resolveNavTree(config, GALLERY_ON)).toEqual([
+      {
+        kind: 'group',
+        id: 'more',
+        menuTitle: 'More',
+        i18nKey: 'menu.more.menuTitle',
+        alwaysExpanded: false,
+        items: [{ menuTitle: 'Gallery', pageName: 'gallery', route: '/gallery' }],
+      },
+    ]);
+  });
+
+  it('drops the gallery entry entirely while the flag is off, themes or not', () => {
+    const config = galleryConfig([page('page.home', '/home', 'Home')], menuWithGallery, {
+      items: [],
+      themes: [{ themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] }],
+    });
+    expect(resolveNavTree(config, FLAGS).map((n) => n.kind)).toEqual(['item']);
   });
 });

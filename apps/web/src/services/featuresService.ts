@@ -9,6 +9,8 @@ export interface FeatureFlags {
   team: boolean;
   /** Contact feature (public /contact page and `/api/contact`). */
   contact: boolean;
+  /** Gallery feature (admin /manage/gallery, public /gallery pages, menu entries, `PUT /api/config/gallery`). */
+  gallery: boolean;
 }
 
 /** Fetches the feature flags the server currently has enabled. */
