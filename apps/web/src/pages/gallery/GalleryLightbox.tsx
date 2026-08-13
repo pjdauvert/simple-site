@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Box, ButtonBase, Dialog, IconButton, Typography } from '@mui/material';
+import { Box, Dialog, IconButton, Typography } from '@mui/material';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -34,9 +34,6 @@ const controlSx = {
 
 /** Below this horizontal travel a touch is a tap or a scroll, not a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
-/** Thumbnail height of the filmstrip, in px. */
-const FILMSTRIP_HEIGHT = 56;
-
 /** The zoom rendition: sized to the visitor's viewport (bucketed for CDN caching). */
 const zoomTransformation = (watermark: IkWatermark | undefined): string => {
   const width = ikZoomWidth();
@@ -49,7 +46,7 @@ const zoomTransformation = (watermark: IkWatermark | undefined): string => {
  * and left/right arrows to keep browsing the same list as a wrap-around
  * carousel. Escape or the close button returns to the list; the keyboard
  * arrows navigate, and so does a horizontal swipe on touch screens. A counter
- * and a filmstrip of the neighbouring shots situate the visitor in the list.
+ * situates the visitor in the list.
  */
 export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
   entries,
@@ -185,50 +182,6 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
             )}
           </Box>
 
-          {/* Filmstrip: jump straight to any shot of the list. */}
-          {count > 1 && (
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1,
-                px: 2,
-                pb: { xs: 1.5, md: 2 },
-                overflowX: 'auto',
-                justifyContent: { md: 'center' },
-              }}
-            >
-              {entries.map((candidate, candidateIndex) => (
-                <ButtonBase
-                  key={`${scope}-strip-${candidate.index}`}
-                  onClick={() => onNavigate(candidateIndex)}
-                  aria-label={intl.formatMessage(
-                    { id: 'page.gallery.lightbox.goTo' },
-                    { title: candidate.item.title },
-                  )}
-                  aria-current={candidateIndex === index ? 'true' : undefined}
-                  sx={{
-                    flexShrink: 0,
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    opacity: candidateIndex === index ? 1 : 0.45,
-                    outline: candidateIndex === index ? '2px solid' : 'none',
-                    outlineColor: 'common.white',
-                    transition: 'opacity 150ms',
-                    '&:hover': { opacity: 1 },
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={ikTransform(candidate.item.imageUrl ?? '', 'w-160,h-160,q-70,f-auto')}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    sx={{ display: 'block', height: FILMSTRIP_HEIGHT, width: FILMSTRIP_HEIGHT, objectFit: 'cover' }}
-                  />
-                </ButtonBase>
-              ))}
-            </Box>
-          )}
         </Box>
       )}
     </Dialog>

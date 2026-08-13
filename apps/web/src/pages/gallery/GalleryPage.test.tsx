@@ -306,7 +306,7 @@ describe('GalleryPage (public /gallery)', () => {
     expect(cover.getAttribute('src')).toContain('/picked.jpg');
   });
 
-  it('shows the zoom counter and a filmstrip that jumps straight to a shot', () => {
+  it('situates the visitor with a zoom counter that follows the carousel', () => {
     setConfig({
       items: [
         { imageUrl: '/a.jpg', title: 'A' },
@@ -320,8 +320,19 @@ describe('GalleryPage (public /gallery)', () => {
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('1 / 3');
 
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Show “C”' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next image' }));
+    expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('2 / 3');
+    // Wrapping backward from the first shot lands on the last.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Previous image' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Previous image' }));
     expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('3 / 3');
+  });
+
+  it('shows no counter when a single shot is displayable', () => {
+    setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    expect(within(screen.getByRole('dialog')).queryByTestId('gallery-zoom-counter')).not.toBeInTheDocument();
   });
 
   it('navigates the zoom with a horizontal swipe, ignoring taps and vertical drags', () => {
