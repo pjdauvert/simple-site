@@ -132,6 +132,10 @@ Replaces the `gallery` of the **draft** — the themed image gallery (see [confi
 // captionPosition ("above" | "below" (default) | "left" | "right") applies to the list mode only;
 // itemMaxWidthPercent (int, 10-100, % of the screen width) caps each item's image
 // in every mode — landscape screens only;
+// layout: itemColumns (2-5, tiled modes), itemAspectRatio (original|1:1|4:3|3:2|16:9, grid)
+// + itemFit (cover|contain), itemSpacing (tight|normal|airy);
+// watermark: watermarkText (<=40 chars) + watermarkPosition, watermarkColor (#RRGGBB),
+// watermarkOpacity (10-100) — burnt into the public renditions by the CDN;
 // item frame: itemElevation (0|1|2|4|8|16|24 — the platform's shadow steps),
 // itemBorder (bool) + itemBorderColor
 // (CSS color, empty = theme primary), itemCornerRadius (int 0-48 px)

@@ -19,14 +19,32 @@ import {
   DEFAULT_GALLERY_DISPLAY_MODE,
   GALLERY_CAPTION_POSITIONS,
   GALLERY_DISPLAY_MODES,
+  DEFAULT_GALLERY_ITEM_ASPECT_RATIO,
+  DEFAULT_GALLERY_ITEM_COLUMNS,
   DEFAULT_GALLERY_ITEM_CORNER_RADIUS,
+  DEFAULT_GALLERY_ITEM_FIT,
+  DEFAULT_GALLERY_ITEM_SPACING,
+  DEFAULT_GALLERY_WATERMARK_COLOR,
+  DEFAULT_GALLERY_WATERMARK_OPACITY,
+  DEFAULT_GALLERY_WATERMARK_POSITION,
+  GALLERY_ITEM_ASPECT_RATIOS,
+  GALLERY_ITEM_COLUMNS_MAX,
+  GALLERY_ITEM_COLUMNS_MIN,
   GALLERY_ITEM_CORNER_RADIUS_MAX,
+  GALLERY_ITEM_FITS,
+  GALLERY_ITEM_SPACINGS,
+  GALLERY_WATERMARK_POSITIONS,
+  GALLERY_WATERMARK_TEXT_MAX_LENGTH,
   GALLERY_ITEM_ELEVATION_MAX,
   GALLERY_ITEM_ELEVATION_STEPS,
   GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX,
   GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN,
   type GalleryCaptionPosition,
   type GalleryDisplayMode,
+  type GalleryItemAspectRatio,
+  type GalleryItemFit,
+  type GalleryItemSpacing,
+  type GalleryWatermarkPosition,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
@@ -37,13 +55,24 @@ import {
   emptyGallery,
   setCaptionPosition,
   setDisplayMode,
+  setItemAspectRatio,
   setItemBorder,
   setItemBorderColor,
+  setItemColumns,
   setItemCornerRadius,
   setItemElevation,
+  setItemFit,
   setItemMaxWidthPercent,
+  setItemSpacing,
+  setWatermark,
 } from './galleryDraft';
 import { GalleryDesignPreview } from './GalleryDesignPreview';
+
+/** The column counts the editor offers (the schema's bounds, enumerated). */
+const COLUMN_CHOICES = Array.from(
+  { length: GALLERY_ITEM_COLUMNS_MAX - GALLERY_ITEM_COLUMNS_MIN + 1 },
+  (_, offset) => GALLERY_ITEM_COLUMNS_MIN + offset,
+);
 
 /**
  * Design tab of /manage/gallery: how visitors browse the items — the display
@@ -69,6 +98,16 @@ export const GalleryDesignEditor: React.FC = () => {
   const [itemBorder, setBorderOn] = useState(false);
   const [itemBorderColor, setBorderColor] = useState('');
   const [itemCornerRadius, setCornerRadius] = useState(DEFAULT_GALLERY_ITEM_CORNER_RADIUS);
+  const [itemColumns, setColumns] = useState<number>(DEFAULT_GALLERY_ITEM_COLUMNS);
+  const [itemAspectRatio, setAspectRatio] = useState<GalleryItemAspectRatio>(DEFAULT_GALLERY_ITEM_ASPECT_RATIO);
+  const [itemFit, setFit] = useState<GalleryItemFit>(DEFAULT_GALLERY_ITEM_FIT);
+  const [itemSpacing, setSpacing] = useState<GalleryItemSpacing>(DEFAULT_GALLERY_ITEM_SPACING);
+  const [watermarkText, setWatermarkText] = useState('');
+  const [watermarkPosition, setWatermarkPosition] = useState<GalleryWatermarkPosition>(
+    DEFAULT_GALLERY_WATERMARK_POSITION,
+  );
+  const [watermarkColor, setWatermarkColor] = useState(DEFAULT_GALLERY_WATERMARK_COLOR);
+  const [watermarkOpacity, setWatermarkOpacity] = useState(DEFAULT_GALLERY_WATERMARK_OPACITY);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -84,6 +123,14 @@ export const GalleryDesignEditor: React.FC = () => {
         setBorderOn(config.gallery?.design?.itemBorder ?? false);
         setBorderColor(config.gallery?.design?.itemBorderColor ?? '');
         setCornerRadius(config.gallery?.design?.itemCornerRadius ?? DEFAULT_GALLERY_ITEM_CORNER_RADIUS);
+        setColumns(config.gallery?.design?.itemColumns ?? DEFAULT_GALLERY_ITEM_COLUMNS);
+        setAspectRatio(config.gallery?.design?.itemAspectRatio ?? DEFAULT_GALLERY_ITEM_ASPECT_RATIO);
+        setFit(config.gallery?.design?.itemFit ?? DEFAULT_GALLERY_ITEM_FIT);
+        setSpacing(config.gallery?.design?.itemSpacing ?? DEFAULT_GALLERY_ITEM_SPACING);
+        setWatermarkText(config.gallery?.design?.watermarkText ?? '');
+        setWatermarkPosition(config.gallery?.design?.watermarkPosition ?? DEFAULT_GALLERY_WATERMARK_POSITION);
+        setWatermarkColor(config.gallery?.design?.watermarkColor ?? DEFAULT_GALLERY_WATERMARK_COLOR);
+        setWatermarkOpacity(config.gallery?.design?.watermarkOpacity ?? DEFAULT_GALLERY_WATERMARK_OPACITY);
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.load' }));
@@ -111,6 +158,16 @@ export const GalleryDesignEditor: React.FC = () => {
         setItemBorderColor(setItemBorder(setItemElevation(merged, itemElevation), itemBorder), itemBorderColor),
         itemCornerRadius,
       );
+      merged = setItemSpacing(
+        setItemFit(setItemAspectRatio(setItemColumns(merged, itemColumns), itemAspectRatio), itemFit),
+        itemSpacing,
+      );
+      merged = setWatermark(merged, {
+        text: watermarkText,
+        position: watermarkPosition,
+        color: watermarkColor,
+        opacity: watermarkOpacity,
+      });
       await updateGallery(merged);
       notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
     } catch (err) {
@@ -130,6 +187,8 @@ export const GalleryDesignEditor: React.FC = () => {
   // The caption position is a LIST-mode setting; other modes place (or drop)
   // the caption themselves and explain it under the disabled toggle.
   const captionApplies = displayMode === 'list';
+  /** Columns only mean something where items are tiled. */
+  const tiledMode = displayMode === 'grid' || displayMode === 'mosaic';
   const captionHintId: string | null =
     displayMode === 'grid'
       ? 'page.manage.gallery.captionPosition.gridHint'
@@ -226,6 +285,92 @@ export const GalleryDesignEditor: React.FC = () => {
         </Box>
 
         <Box>
+          <Typography variant="subtitle2" gutterBottom id="gallery-columns-label">
+            <FormattedMessage id="page.manage.gallery.columns" />
+          </Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={itemColumns}
+            disabled={!tiledMode}
+            onChange={(_, value: number | null) => { if (value) setColumns(value); }}
+            aria-labelledby="gallery-columns-label"
+          >
+            {COLUMN_CHOICES.map((count) => (
+              <ToggleButton key={count} value={count}>
+                {count}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+            <FormattedMessage
+              id={tiledMode ? 'page.manage.gallery.columns.hint' : 'page.manage.gallery.columns.tiledOnlyHint'}
+            />
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2" gutterBottom id="gallery-aspect-ratio-label">
+            <FormattedMessage id="page.manage.gallery.aspectRatio" />
+          </Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={itemAspectRatio}
+            disabled={displayMode !== 'grid'}
+            onChange={(_, value: GalleryItemAspectRatio | null) => { if (value) setAspectRatio(value); }}
+            aria-labelledby="gallery-aspect-ratio-label"
+          >
+            {GALLERY_ITEM_ASPECT_RATIOS.map((ratio) => (
+              <ToggleButton key={ratio} value={ratio}>
+                {ratio === 'original' ? <FormattedMessage id="page.manage.gallery.aspectRatio.original" /> : ratio}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          {displayMode === 'grid' && itemAspectRatio !== 'original' && (
+            <Box sx={{ mt: 1 }}>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={itemFit}
+                onChange={(_, value: GalleryItemFit | null) => { if (value) setFit(value); }}
+                aria-label={intl.formatMessage({ id: 'page.manage.gallery.fit' })}
+              >
+                {GALLERY_ITEM_FITS.map((fit) => (
+                  <ToggleButton key={fit} value={fit}>
+                    <FormattedMessage id={`page.manage.gallery.fit.${fit}`} />
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
+          )}
+          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+            <FormattedMessage
+              id={displayMode === 'grid' ? 'page.manage.gallery.aspectRatio.hint' : 'page.manage.gallery.aspectRatio.gridOnlyHint'}
+            />
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2" gutterBottom id="gallery-spacing-label">
+            <FormattedMessage id="page.manage.gallery.spacing" />
+          </Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={itemSpacing}
+            onChange={(_, value: GalleryItemSpacing | null) => { if (value) setSpacing(value); }}
+            aria-labelledby="gallery-spacing-label"
+          >
+            {GALLERY_ITEM_SPACINGS.map((spacing) => (
+              <ToggleButton key={spacing} value={spacing}>
+                <FormattedMessage id={`page.manage.gallery.spacing.${spacing}`} />
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+
+        <Box>
           <Typography variant="subtitle2" gutterBottom>
             <FormattedMessage id="page.manage.gallery.frame" />
           </Typography>
@@ -278,6 +423,59 @@ export const GalleryDesignEditor: React.FC = () => {
         </Box>
 
         <Box>
+          <Typography variant="subtitle2" gutterBottom>
+            <FormattedMessage id="page.manage.gallery.watermark" />
+          </Typography>
+          <Stack spacing={2} sx={{ maxWidth: 360 }}>
+            <TextField
+              size="small"
+              value={watermarkText}
+              onChange={(e) => setWatermarkText(e.target.value)}
+              label={intl.formatMessage({ id: 'page.manage.gallery.watermark.text' })}
+              helperText={<FormattedMessage id="page.manage.gallery.watermark.hint" />}
+              slotProps={{ htmlInput: { maxLength: GALLERY_WATERMARK_TEXT_MAX_LENGTH } }}
+            />
+            {watermarkText.trim() && (
+              <>
+                <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  value={watermarkPosition}
+                  onChange={(_, value: GalleryWatermarkPosition | null) => { if (value) setWatermarkPosition(value); }}
+                  aria-label={intl.formatMessage({ id: 'page.manage.gallery.watermark.position' })}
+                >
+                  {GALLERY_WATERMARK_POSITIONS.map((position) => (
+                    <ToggleButton key={position} value={position}>
+                      <FormattedMessage id={`page.manage.gallery.watermark.position.${position}`} />
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+                <ColorField
+                  label={intl.formatMessage({ id: 'page.manage.gallery.watermark.color' })}
+                  value={watermarkColor}
+                  onChange={setWatermarkColor}
+                />
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    <FormattedMessage id="page.manage.gallery.watermark.opacity" />
+                  </Typography>
+                  <Slider
+                    size="small"
+                    value={watermarkOpacity}
+                    onChange={(_, value) => setWatermarkOpacity(value as number)}
+                    min={10}
+                    max={100}
+                    step={5}
+                    valueLabelDisplay="auto"
+                    aria-label={intl.formatMessage({ id: 'page.manage.gallery.watermark.opacity' })}
+                  />
+                </Box>
+              </>
+            )}
+          </Stack>
+        </Box>
+
+        <Box>
           <Button variant="contained" onClick={handleSave} disabled={submitting || widthInvalid}>
             {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.gallery.save" />}
           </Button>
@@ -293,6 +491,10 @@ export const GalleryDesignEditor: React.FC = () => {
           itemBorder={itemBorder}
           itemBorderColor={itemBorderColor}
           itemCornerRadius={itemCornerRadius}
+          itemColumns={itemColumns}
+          itemAspectRatio={itemAspectRatio}
+          itemFit={itemFit}
+          itemSpacing={itemSpacing}
         />
       </Box>
     </Box>

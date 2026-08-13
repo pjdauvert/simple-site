@@ -1,12 +1,28 @@
 import { Box, Typography } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
 import type { SxProps, Theme } from '@mui/material/styles';
-import type { GalleryCaptionPosition, GalleryDisplayMode } from '@simple-site/interfaces';
-import { itemFrameSx, type GalleryItemFrame } from '../../../pages/gallery/galleryDisplay';
+import type {
+  GalleryCaptionPosition,
+  GalleryDisplayMode,
+  GalleryItemAspectRatio,
+  GalleryItemFit,
+  GalleryItemSpacing,
+} from '@simple-site/interfaces';
+import {
+  GALLERY_SPACING_UNITS,
+  GALLERY_STACK_SPACING_UNITS,
+  galleryAspectRatioValue,
+  itemFrameSx,
+  type GalleryItemFrame,
+} from '../../../pages/gallery/galleryDisplay';
 
 interface GalleryDesignPreviewProps extends GalleryItemFrame {
   displayMode: GalleryDisplayMode;
   captionPosition: GalleryCaptionPosition;
+  itemColumns: number;
+  itemAspectRatio: GalleryItemAspectRatio;
+  itemFit: GalleryItemFit;
+  itemSpacing: GalleryItemSpacing;
 }
 
 /**
@@ -26,10 +42,19 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
   itemBorder,
   itemBorderColor,
   itemCornerRadius,
+  itemColumns,
+  itemAspectRatio,
+  itemFit,
+  itemSpacing,
 }) => {
   const captionFirst = captionPosition === 'above' || captionPosition === 'left';
   const sideCaption = captionPosition === 'left' || captionPosition === 'right';
   const frame = itemFrameSx({ itemElevation, itemBorder, itemBorderColor, itemCornerRadius });
+  // The skeleton is a scaled-down page: the same spacing steps read as
+  // proportionally tighter/airier gaps here.
+  const gap = GALLERY_SPACING_UNITS[itemSpacing].md / 2;
+  const stackGap = GALLERY_STACK_SPACING_UNITS[itemSpacing].md / 3;
+  const aspectRatio = galleryAspectRatioValue(itemAspectRatio);
 
   /** A solid rectangle standing for an image, framed like the real tiles. */
   const imageBlock = (sx: SxProps<Theme>): React.ReactNode => (
@@ -67,11 +92,19 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
     if (displayMode === 'grid') {
       // Grid cells always caption below the image.
       return (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
-          {Array.from({ length: 6 }, (_, i) => (
+        <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${itemColumns}, 1fr)`, gap }}>
+          {Array.from({ length: itemColumns * 2 }, (_, i) => (
             <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-              {imageBlock({ width: '100%', height: 44 })}
-              {textBars(40)}
+              {/* `contain` leaves the cell partly empty — shown as an inset
+                  rectangle, like the real letterboxing. */}
+              {aspectRatio
+                ? imageBlock({
+                    width: itemFit === 'contain' ? '78%' : '100%',
+                    aspectRatio,
+                    ...(itemFit === 'contain' ? { mx: 'auto' } : {}),
+                  })
+                : imageBlock({ width: '100%', height: 44 })}
+              {textBars(Math.max(24, Math.round(120 / itemColumns)))}
             </Box>
           ))}
         </Box>
@@ -80,15 +113,16 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
     if (displayMode === 'mosaic') {
       // Masonry columns of natural (varied) height tiles — images only, no
       // caption bars, like the real rendering.
-      const columns: number[][] = [
-        [52, 84],
-        [92, 44],
-        [64, 72],
-      ];
+      // Varied heights, cycled so any column count keeps a masonry look.
+      const heightCycle = [52, 84, 92, 44, 64, 72, 60, 88, 48, 76];
+      const columns = Array.from({ length: itemColumns }, (_, col) => [
+        heightCycle[(col * 2) % heightCycle.length],
+        heightCycle[(col * 2 + 1) % heightCycle.length],
+      ]);
       return (
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', gap, alignItems: 'flex-start' }}>
           {columns.map((heights, col) => (
-            <Box key={col} sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Box key={col} sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap }}>
               {heights.map((height, i) => (
                 <Box key={i}>{imageBlock({ width: '100%', height })}</Box>
               ))}
@@ -99,7 +133,7 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
     }
     if (displayMode === 'alternate') {
       return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: stackGap }}>
           {[false, true, false].map((reversed, i) => (
             <Box
               key={i}
@@ -115,7 +149,7 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
     // list (default): centered shots stacked vertically (landscape rectangles —
     // fixed sizes: percentages don't resolve in a content-sized flex parent).
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: stackGap, alignItems: 'center' }}>
         {[0, 1].map((i) => (
           <Box key={i} sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
             {tile({ width: 200, height: 96 }, 72)}

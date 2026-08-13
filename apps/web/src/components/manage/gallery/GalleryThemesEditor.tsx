@@ -4,7 +4,9 @@ import {
   Box,
   Button,
   ButtonBase,
+  Chip,
   IconButton,
+  InputAdornment,
   Stack,
   TextField,
   Tooltip,
@@ -19,10 +21,12 @@ import {
   DeleteOutline as DeleteIcon,
   EditOutlined as EditIcon,
   HideImageOutlined as MissingImageIcon,
+  StarRounded as CoverIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   GALLERY_SCOPE,
+  galleryThemePresentationKey,
   galleryThemeScope,
   galleryThemeTitleKey,
   type GalleryConfig,
@@ -45,6 +49,9 @@ import {
   removeItem,
   removeTheme,
   renameTheme,
+  setThemeCover,
+  setThemePresentation,
+  clearThemeCover,
   updateItem,
 } from './galleryDraft';
 import { GalleryItemDialog } from './GalleryItemDialog';
@@ -163,10 +170,24 @@ export const GalleryThemesEditor: React.FC = () => {
       : GALLERY_SCOPE;
 
   /** One thumbnail card: click → attributes dialog; arrows reorder within the list. */
-  const itemCard = (item: GalleryItem, path: GalleryItemPath, count: number): React.ReactNode => {
+  const itemCard = (
+    item: GalleryItem,
+    path: GalleryItemPath,
+    count: number,
+    isCover = false,
+  ): React.ReactNode => {
     const missing = !item.imageUrl?.trim();
     return (
-      <Box key={`${path.themeIndex ?? 'root'}-${path.itemIndex}`} sx={{ minWidth: 0 }}>
+      <Box key={`${path.themeIndex ?? 'root'}-${path.itemIndex}`} sx={{ minWidth: 0, position: 'relative' }}>
+        {isCover && (
+          <Chip
+            size="small"
+            color="primary"
+            icon={<CoverIcon />}
+            label={<FormattedMessage id="page.manage.gallery.item.cover" />}
+            sx={{ position: 'absolute', top: 4, left: 4, zIndex: 1, height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.65rem' } }}
+          />
+        )}
         <ButtonBase
           onClick={() => setDialog({ path, themeIndex: path.themeIndex })}
           focusRipple
@@ -242,7 +263,11 @@ export const GalleryThemesEditor: React.FC = () => {
   };
 
   /** A list's thumbnail grid plus its Add button. */
-  const itemsGrid = (items: GalleryItem[], themeIndex: number | null): React.ReactNode => (
+  const itemsGrid = (items: GalleryItem[], themeIndex: number | null): React.ReactNode => {
+    // The theme's cover badge marks the explicit pick only — the implicit
+    // fallback (first displayable) stays unlabelled, as it isn't a choice.
+    const coverIndex = themeIndex === null ? undefined : gallery.themes[themeIndex]?.coverIndex;
+    return (
     <>
       {items.length > 0 && (
         <Box
@@ -253,7 +278,9 @@ export const GalleryThemesEditor: React.FC = () => {
             mt: 1,
           }}
         >
-          {items.map((item, itemIndex) => itemCard(item, { themeIndex, itemIndex }, items.length))}
+          {items.map((item, itemIndex) =>
+            itemCard(item, { themeIndex, itemIndex }, items.length, itemIndex === coverIndex),
+          )}
         </Box>
       )}
       <Button
@@ -265,7 +292,8 @@ export const GalleryThemesEditor: React.FC = () => {
         <FormattedMessage id="page.manage.gallery.addItem" />
       </Button>
     </>
-  );
+    );
+  };
 
   return (
     <Box sx={{ maxWidth: 860 }}>
@@ -393,6 +421,31 @@ export const GalleryThemesEditor: React.FC = () => {
               <FormattedMessage id="page.manage.gallery.theme.empty" />
             </Typography>
           )}
+          {/* Introduction shown under the theme page's heading — a translation
+              DEFAULT, hence the Translate shortcut next to it. */}
+          <TextField
+            size="small"
+            fullWidth
+            multiline
+            minRows={2}
+            value={theme.presentation ?? ''}
+            onChange={(e) => apply((prev) => setThemePresentation(prev, themeIndex, e.target.value))}
+            label={intl.formatMessage({ id: 'page.manage.gallery.theme.presentation' })}
+            helperText={<FormattedMessage id="page.manage.gallery.theme.presentation.hint" />}
+            sx={{ mt: 1.5 }}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                    <TranslateShortcut
+                      i18nKey={galleryThemePresentationKey(theme.themeId)}
+                      label={intl.formatMessage({ id: 'page.manage.gallery.translate' })}
+                    />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
           {itemsGrid(theme.items, themeIndex)}
         </Box>
       ))}
@@ -403,6 +456,19 @@ export const GalleryThemesEditor: React.FC = () => {
         themes={gallery.themes}
         location={dialog?.path ? dialog.path.themeIndex : (dialog?.themeIndex ?? null)}
         i18n={dialog?.path ? { scope: dialogScope, index: dialog.path.itemIndex } : undefined}
+        cover={
+          dialog?.path && dialog.path.themeIndex !== null
+            ? {
+                isCover: gallery.themes[dialog.path.themeIndex]?.coverIndex === dialog.path.itemIndex,
+                onToggle: (isCover) => {
+                  const path = dialog.path as GalleryItemPath;
+                  apply((prev) =>
+                    isCover ? setThemeCover(prev, path) : clearThemeCover(prev, path.themeIndex as number),
+                  );
+                },
+              }
+            : undefined
+        }
         onCancel={() => setDialog(null)}
         onConfirm={confirmDialog}
         onDelete={dialog?.path ? deleteDialogItem : undefined}

@@ -1,12 +1,23 @@
 import {
   DEFAULT_GALLERY_CAPTION_POSITION,
   DEFAULT_GALLERY_DISPLAY_MODE,
+  DEFAULT_GALLERY_ITEM_ASPECT_RATIO,
+  DEFAULT_GALLERY_ITEM_COLUMNS,
   DEFAULT_GALLERY_ITEM_CORNER_RADIUS,
+  DEFAULT_GALLERY_ITEM_FIT,
+  DEFAULT_GALLERY_ITEM_SPACING,
+  DEFAULT_GALLERY_WATERMARK_COLOR,
+  DEFAULT_GALLERY_WATERMARK_OPACITY,
+  DEFAULT_GALLERY_WATERMARK_POSITION,
   type GalleryCaptionPosition,
   type GalleryConfig,
   type GalleryDesign,
   type GalleryDisplayMode,
   type GalleryItem,
+  type GalleryItemAspectRatio,
+  type GalleryItemFit,
+  type GalleryItemSpacing,
+  type GalleryWatermarkPosition,
 } from '@simple-site/interfaces';
 import { generateGroupId } from '../menu/menuDraft';
 import { moveItem } from '../pages/pagesDraft';
@@ -29,19 +40,31 @@ export const emptyGallery = (): GalleryConfig => ({ items: [], themes: [] });
 export const itemsAt = (gallery: GalleryConfig, themeIndex: number | null): GalleryItem[] =>
   themeIndex === null ? gallery.items : (gallery.themes[themeIndex]?.items ?? []);
 
-/** Applies `update` to the list at `themeIndex`, returning a new gallery. */
+/**
+ * Applies `update` to the list at `themeIndex`, returning a new gallery.
+ * `mapCover` rewrites the theme's `coverIndex` alongside, so a cover pick
+ * follows its image through reorders and never points at the wrong shot after
+ * a deletion (undefined = the pick is dropped, falling back to the first
+ * displayable item).
+ */
 const withItems = (
   gallery: GalleryConfig,
   themeIndex: number | null,
   update: (items: GalleryItem[]) => GalleryItem[],
+  mapCover: (coverIndex: number) => number | undefined = (coverIndex) => coverIndex,
 ): GalleryConfig => {
   if (themeIndex === null) return { ...gallery, items: update(gallery.items) };
   if (!gallery.themes[themeIndex]) return gallery;
   return {
     ...gallery,
-    themes: gallery.themes.map((theme, index) =>
-      index === themeIndex ? { ...theme, items: update(theme.items) } : theme,
-    ),
+    themes: gallery.themes.map((theme, index) => {
+      if (index !== themeIndex) return theme;
+      const next = { ...theme, items: update(theme.items) };
+      const cover = theme.coverIndex === undefined ? undefined : mapCover(theme.coverIndex);
+      if (cover === undefined) delete next.coverIndex;
+      else next.coverIndex = cover;
+      return next;
+    }),
   };
 };
 
@@ -54,11 +77,70 @@ export const updateItem = (gallery: GalleryConfig, path: GalleryItemPath, item: 
   );
 
 export const removeItem = (gallery: GalleryConfig, path: GalleryItemPath): GalleryConfig =>
-  withItems(gallery, path.themeIndex, (items) => items.filter((_, index) => index !== path.itemIndex));
+  withItems(
+    gallery,
+    path.themeIndex,
+    (items) => items.filter((_, index) => index !== path.itemIndex),
+    // The cover image itself is gone → drop the pick; later items shift down.
+    (cover) => (cover === path.itemIndex ? undefined : cover > path.itemIndex ? cover - 1 : cover),
+  );
 
 /** Moves an item by `offset` within its own list. */
-export const moveItemInList = (gallery: GalleryConfig, path: GalleryItemPath, offset: number): GalleryConfig =>
-  withItems(gallery, path.themeIndex, (items) => moveItem(items, path.itemIndex, path.itemIndex + offset));
+export const moveItemInList = (gallery: GalleryConfig, path: GalleryItemPath, offset: number): GalleryConfig => {
+  const from = path.itemIndex;
+  const to = from + offset;
+  return withItems(
+    gallery,
+    path.themeIndex,
+    (items) => moveItem(items, from, to),
+    (cover) => {
+      const items = itemsAt(gallery, path.themeIndex);
+      if (to < 0 || to >= items.length) return cover; // no-op move
+      if (cover === from) return to;
+      if (from < cover && cover <= to) return cover - 1;
+      if (to <= cover && cover < from) return cover + 1;
+      return cover;
+    },
+  );
+};
+
+/** Marks the item at `path` as its theme's cover (root items have no cover). */
+export const setThemeCover = (gallery: GalleryConfig, path: GalleryItemPath): GalleryConfig => {
+  if (path.themeIndex === null || !gallery.themes[path.themeIndex]) return gallery;
+  return {
+    ...gallery,
+    themes: gallery.themes.map((theme, index) =>
+      index === path.themeIndex ? { ...theme, coverIndex: path.itemIndex } : theme,
+    ),
+  };
+};
+
+/** Clears a theme's explicit cover pick (back to "the first displayable item"). */
+export const clearThemeCover = (gallery: GalleryConfig, themeIndex: number): GalleryConfig => ({
+  ...gallery,
+  themes: gallery.themes.map((theme, index) => {
+    if (index !== themeIndex) return theme;
+    const next = { ...theme };
+    delete next.coverIndex;
+    return next;
+  }),
+});
+
+/** Sets a theme's introduction text (markdown); empty clears it. */
+export const setThemePresentation = (
+  gallery: GalleryConfig,
+  themeIndex: number,
+  presentation: string,
+): GalleryConfig => ({
+  ...gallery,
+  themes: gallery.themes.map((theme, index) => {
+    if (index !== themeIndex) return theme;
+    const next = { ...theme };
+    if (presentation.trim()) next.presentation = presentation.trim();
+    else delete next.presentation;
+    return next;
+  }),
+});
 
 /** Moves an item to the end of another list (a theme or the root). */
 export const moveItemToList = (
@@ -121,6 +203,31 @@ const normalizeDesign = (design: GalleryDesign): GalleryDesign | undefined => {
   if (design.itemMaxWidthPercent !== undefined) {
     next.itemMaxWidthPercent = design.itemMaxWidthPercent;
   }
+  if (design.itemColumns !== undefined && design.itemColumns !== DEFAULT_GALLERY_ITEM_COLUMNS) {
+    next.itemColumns = design.itemColumns;
+  }
+  if (design.itemAspectRatio && design.itemAspectRatio !== DEFAULT_GALLERY_ITEM_ASPECT_RATIO) {
+    next.itemAspectRatio = design.itemAspectRatio;
+  }
+  if (design.itemFit && design.itemFit !== DEFAULT_GALLERY_ITEM_FIT) {
+    next.itemFit = design.itemFit;
+  }
+  if (design.itemSpacing && design.itemSpacing !== DEFAULT_GALLERY_ITEM_SPACING) {
+    next.itemSpacing = design.itemSpacing;
+  }
+  // The watermark's styling only exists while there is text to draw.
+  if (design.watermarkText?.trim()) {
+    next.watermarkText = design.watermarkText.trim();
+    if (design.watermarkPosition && design.watermarkPosition !== DEFAULT_GALLERY_WATERMARK_POSITION) {
+      next.watermarkPosition = design.watermarkPosition;
+    }
+    if (design.watermarkColor && design.watermarkColor.toUpperCase() !== DEFAULT_GALLERY_WATERMARK_COLOR) {
+      next.watermarkColor = design.watermarkColor;
+    }
+    if (design.watermarkOpacity !== undefined && design.watermarkOpacity !== DEFAULT_GALLERY_WATERMARK_OPACITY) {
+      next.watermarkOpacity = design.watermarkOpacity;
+    }
+  }
   // Frame options: flat (0), borderless and the default radius are the
   // defaults — only deviations are stored. The border color only exists
   // while the border itself is on.
@@ -176,3 +283,36 @@ export const setItemBorderColor = (gallery: GalleryConfig, itemBorderColor: stri
 /** Sets the tile corner radius (px); the default radius collapses to "not stored". */
 export const setItemCornerRadius = (gallery: GalleryConfig, itemCornerRadius: number): GalleryConfig =>
   withDesign(gallery, { itemCornerRadius });
+
+/** Sets the desktop column count of the tiled modes. */
+export const setItemColumns = (gallery: GalleryConfig, itemColumns: number): GalleryConfig =>
+  withDesign(gallery, { itemColumns });
+
+/** Sets the ratio imposed on the grid tiles. */
+export const setItemAspectRatio = (gallery: GalleryConfig, itemAspectRatio: GalleryItemAspectRatio): GalleryConfig =>
+  withDesign(gallery, { itemAspectRatio });
+
+/** Sets how an image fills an imposed ratio (cropped or fully visible). */
+export const setItemFit = (gallery: GalleryConfig, itemFit: GalleryItemFit): GalleryConfig =>
+  withDesign(gallery, { itemFit });
+
+/** Sets the gutter between items. */
+export const setItemSpacing = (gallery: GalleryConfig, itemSpacing: GalleryItemSpacing): GalleryConfig =>
+  withDesign(gallery, { itemSpacing });
+
+/** Sets the watermark; an empty text clears the whole watermark styling with it. */
+export const setWatermark = (
+  gallery: GalleryConfig,
+  watermark: {
+    text: string;
+    position: GalleryWatermarkPosition;
+    color: string;
+    opacity: number;
+  },
+): GalleryConfig =>
+  withDesign(gallery, {
+    watermarkText: watermark.text,
+    watermarkPosition: watermark.position,
+    watermarkColor: watermark.color,
+    watermarkOpacity: watermark.opacity,
+  });

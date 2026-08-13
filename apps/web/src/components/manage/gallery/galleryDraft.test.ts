@@ -11,13 +11,21 @@ import {
   removeItem,
   removeTheme,
   renameTheme,
+  clearThemeCover,
   setCaptionPosition,
   setDisplayMode,
+  setItemAspectRatio,
   setItemBorder,
   setItemBorderColor,
+  setItemColumns,
   setItemCornerRadius,
   setItemElevation,
+  setItemFit,
   setItemMaxWidthPercent,
+  setItemSpacing,
+  setThemeCover,
+  setThemePresentation,
+  setWatermark,
   updateItem,
 } from './galleryDraft';
 
@@ -98,6 +106,50 @@ describe('items', () => {
   });
 });
 
+describe('theme cover', () => {
+  const withCover = (coverIndex: number): GalleryConfig => {
+    const base = seeded();
+    return { ...base, themes: base.themes.map((theme, i) => (i === 0 ? { ...theme, coverIndex } : theme)) };
+  };
+
+  it('marks an item as its theme cover and clears the pick', () => {
+    const picked = setThemeCover(seeded(), { themeIndex: 0, itemIndex: 1 });
+    expect(picked.themes[0].coverIndex).toBe(1);
+    expect('coverIndex' in clearThemeCover(picked, 0).themes[0]).toBe(false);
+    // Root items can't be a cover — no theme owns them.
+    expect(setThemeCover(seeded(), { themeIndex: null, itemIndex: 0 })).toEqual(seeded());
+  });
+
+  it('follows its image through a reorder', () => {
+    // 'nature' holds [tree, lake]; the cover is `lake` (index 1).
+    const moved = moveItemInList(withCover(1), { themeIndex: 0, itemIndex: 1 }, -1);
+    expect(itemsAt(moved, 0).map((i) => i.title)).toEqual(['lake', 'tree']);
+    expect(moved.themes[0].coverIndex).toBe(0);
+    // A non-cover item moving past it shifts the pick too.
+    const shifted = moveItemInList(withCover(0), { themeIndex: 0, itemIndex: 1 }, -1);
+    expect(shifted.themes[0].coverIndex).toBe(1);
+  });
+
+  it('drops the pick when the cover image is deleted, and shifts it otherwise', () => {
+    expect('coverIndex' in removeItem(withCover(1), { themeIndex: 0, itemIndex: 1 }).themes[0]).toBe(false);
+    expect(removeItem(withCover(1), { themeIndex: 0, itemIndex: 0 }).themes[0].coverIndex).toBe(0);
+  });
+
+  it('drops the pick when the cover image is moved to another list', () => {
+    const moved = moveItemToList(withCover(1), { themeIndex: 0, itemIndex: 1 }, null);
+    expect('coverIndex' in moved.themes[0]).toBe(false);
+    expect(moved.items.map((i) => i.title)).toEqual(['rootA', 'rootB', 'lake']);
+  });
+});
+
+describe('theme presentation', () => {
+  it('stores a trimmed introduction and clears it when emptied', () => {
+    const withText = setThemePresentation(seeded(), 0, '  Shot in **Corsica**.  ');
+    expect(withText.themes[0].presentation).toBe('Shot in **Corsica**.');
+    expect('presentation' in setThemePresentation(withText, 0, '   ').themes[0]).toBe(false);
+  });
+});
+
 describe('design settings', () => {
   it('stores a non-default caption position and drops the design entirely on the default', () => {
     const withLeft = setCaptionPosition(seeded(), 'left');
@@ -131,6 +183,44 @@ describe('design settings', () => {
     expect(noBorder.design).toEqual({ itemElevation: 8, itemCornerRadius: 0 });
     // …and returning every field to its default drops the design entirely.
     expect('design' in setItemCornerRadius(setItemElevation(noBorder, 0), 4)).toBe(false);
+  });
+
+  it('stores only layout deviations — default columns, ratio, fit and spacing collapse', () => {
+    const laidOut = setItemSpacing(
+      setItemFit(setItemAspectRatio(setItemColumns(seeded(), 5), '16:9'), 'contain'),
+      'airy',
+    );
+    expect(laidOut.design).toEqual({
+      itemColumns: 5,
+      itemAspectRatio: '16:9',
+      itemFit: 'contain',
+      itemSpacing: 'airy',
+    });
+    const backToDefaults = setItemSpacing(
+      setItemFit(setItemAspectRatio(setItemColumns(laidOut, 3), '4:3'), 'cover'),
+      'normal',
+    );
+    expect('design' in backToDefaults).toBe(false);
+  });
+
+  it('stores the watermark styling only while there is text to draw', () => {
+    const marked = setWatermark(seeded(), {
+      text: '  © Studio  ',
+      position: 'center',
+      color: '#101010',
+      opacity: 40,
+    });
+    expect(marked.design).toEqual({
+      watermarkText: '© Studio',
+      watermarkPosition: 'center',
+      watermarkColor: '#101010',
+      watermarkOpacity: 40,
+    });
+    // Default styling collapses, and clearing the text drops the whole block.
+    expect(
+      setWatermark(seeded(), { text: 'Studio', position: 'bottomRight', color: '#FFFFFF', opacity: 60 }).design,
+    ).toEqual({ watermarkText: 'Studio' });
+    expect('design' in setWatermark(marked, { text: '', position: 'center', color: '#101010', opacity: 40 })).toBe(false);
   });
 
   it('stores the per-item width cap (%) and clears it back to "no design" with undefined', () => {

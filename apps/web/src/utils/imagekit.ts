@@ -9,6 +9,7 @@
  * blind `?tr=` string appends, which broke URLs that already had a query
  * string and polluted non-ImageKit ones.
  */
+import type { GalleryWatermarkPosition } from '@simple-site/interfaces';
 
 const IMAGEKIT_URL = /^https?:\/\/ik\.imagekit\.io\//;
 
@@ -24,17 +25,86 @@ const isTransformable = (url: string): boolean => isImageKitUrl(url) && !/[?&]tr
 export const ikTransform = (url: string, transformation: string): string =>
   isTransformable(url) ? `${url}${url.includes('?') ? '&' : '?'}tr=${transformation}` : url;
 
+// ---------------------------------------------------------------------------
+// Watermark (text overlay layer)
+//
+// ImageKit burns the text into the delivered rendition — the stored original is
+// never touched. Contract verified against the API:
+//  - the text travels base64-encoded (`ie-`), so any character is safe;
+//  - `fs` (font size) must be an ABSOLUTE number: arithmetic expressions like
+//    `fs-bw_mul_0.05` are rejected, so each rendition computes its own size
+//    from its width — which is exactly what keeps the mark proportional across
+//    a responsive `srcSet`;
+//  - the layer opacity parameter is rejected too, so the opacity rides in the
+//    color's alpha channel (`co-RRGGBBAA`);
+//  - positions map to `lfo-<focus>`.
+// ---------------------------------------------------------------------------
+
+/** The watermark a public rendition carries, resolved from the gallery design. */
+export interface IkWatermark {
+  text: string;
+  position: GalleryWatermarkPosition;
+  /** `#RRGGBB`. */
+  color: string;
+  /** Percent (10–100), applied as the color's alpha. */
+  opacity: number;
+}
+
+const IK_WATERMARK_FOCUS: Record<GalleryWatermarkPosition, string> = {
+  bottomRight: 'bottom_right',
+  bottomLeft: 'bottom_left',
+  topRight: 'top_right',
+  topLeft: 'top_left',
+  center: 'center',
+};
+
+/** Font size of the mark on a rendition: ~4.5 % of its width, never microscopic. */
+const watermarkFontSize = (renditionWidth: number): number => Math.max(12, Math.round(renditionWidth * 0.045));
+
+/** UTF-8 safe base64 (url-safe alphabet — ImageKit accepts both). */
+const base64Utf8 = (text: string): string => {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
+};
+
+/**
+ * The `,l-text,…,l-end` fragment to append to a transformation, or '' when
+ * there is no watermark to draw.
+ */
+export const ikWatermarkLayer = (watermark: IkWatermark | undefined, renditionWidth: number): string => {
+  const text = watermark?.text.trim();
+  if (!watermark || !text) return '';
+  const alpha = Math.round((Math.min(100, Math.max(10, watermark.opacity)) / 100) * 255)
+    .toString(16)
+    .padStart(2, '0')
+    .toUpperCase();
+  const color = `${watermark.color.replace('#', '').toUpperCase()}${alpha}`;
+  return (
+    `,l-text,ie-${base64Utf8(text)},fs-${watermarkFontSize(renditionWidth)}` +
+    `,co-${color},lfo-${IK_WATERMARK_FOCUS[watermark.position]},l-end`
+  );
+};
+
 /**
  * A `srcSet` of width buckets for responsive images (pair it with a `sizes`
- * attribute), or undefined when transformations don't apply to `url`.
+ * attribute), or undefined when transformations don't apply to `url`. Each
+ * bucket carries its own watermark layer, sized for that rendition.
  */
 export const ikSrcSet = (
   url: string,
   widths: readonly number[],
   extra = 'q-80,f-auto',
+  watermark?: IkWatermark,
 ): string | undefined =>
   isTransformable(url)
-    ? widths.map((width) => `${ikTransform(url, `w-${width},${extra}`)} ${width}w`).join(', ')
+    ? widths
+        .map(
+          (width) =>
+            `${ikTransform(url, `w-${width},${extra}${ikWatermarkLayer(watermark, width)}`)} ${width}w`,
+        )
+        .join(', ')
     : undefined;
 
 /** Delivery buckets for the fullscreen zoom — few enough to keep CDN caches warm. */

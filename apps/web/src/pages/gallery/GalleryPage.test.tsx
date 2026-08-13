@@ -250,6 +250,111 @@ describe('GalleryPage (public /gallery)', () => {
     expect(screen.getByRole('button', { name: 'A' })).toBeInTheDocument();
   });
 
+  it('lays the grid out on the design column count, with the imposed ratio and fit', () => {
+    setConfig({
+      items: [
+        { imageUrl: '/a.jpg', title: 'A' },
+        { imageUrl: '/b.jpg', title: 'B' },
+      ],
+      themes: [],
+      design: { displayMode: 'grid', itemColumns: 5, itemAspectRatio: '16:9', itemFit: 'contain' },
+    });
+    renderPage();
+    // jsdom resolves the mobile branch of the responsive track, so the desktop
+    // count itself is unit-tested (`galleryColumnsSx`); here we lock the ratio.
+    expect(screen.getByTestId('gallery-grid')).toBeInTheDocument();
+    // jsdom normalises `16 / 9` to `16/9`.
+    expect(screen.getByRole('img', { name: 'A' })).toHaveStyle({ aspectRatio: '16/9', objectFit: 'contain' });
+  });
+
+  it('burns the design watermark into every public rendition (list src and srcSet alike)', () => {
+    const ikUrl = 'https://ik.imagekit.io/demo/shot.jpg';
+    setConfig({
+      items: [{ imageUrl: ikUrl, title: 'A' }],
+      themes: [],
+      design: { watermarkText: '© Studio', watermarkPosition: 'center', watermarkOpacity: 100 },
+    });
+    renderPage();
+    const image = screen.getByRole('img', { name: 'A' });
+    expect(image.getAttribute('src')).toContain('l-text,ie-wqkgU3R1ZGlv,fs-49,co-FFFFFFFF,lfo-center,l-end');
+    expect(image.getAttribute('srcset')).toContain('l-text,ie-wqkgU3R1ZGlv');
+
+    // …and the zoom rendition carries it too.
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    expect(within(screen.getByRole('dialog')).getByRole('img', { name: 'A' }).getAttribute('src')).toContain(
+      'l-text,ie-wqkgU3R1ZGlv',
+    );
+  });
+
+  it('uses the theme cover the admin picked for the index card', () => {
+    setConfig({
+      items: [],
+      themes: [
+        {
+          themeId: 'nature',
+          title: 'Nature',
+          coverIndex: 1,
+          items: [
+            { imageUrl: '/first.jpg', title: 'Tree' },
+            { imageUrl: '/picked.jpg', title: 'Lake' },
+          ],
+        },
+      ],
+    });
+    renderPage();
+    const cover = screen.getByRole('link', { name: /Nature/ }).querySelector('img') as HTMLImageElement;
+    expect(cover.getAttribute('src')).toContain('/picked.jpg');
+  });
+
+  it('shows the zoom counter and a filmstrip that jumps straight to a shot', () => {
+    setConfig({
+      items: [
+        { imageUrl: '/a.jpg', title: 'A' },
+        { imageUrl: '/b.jpg', title: 'B' },
+        { imageUrl: '/c.jpg', title: 'C' },
+      ],
+      themes: [],
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('1 / 3');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Show “C”' }));
+    expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('3 / 3');
+  });
+
+  it('navigates the zoom with a horizontal swipe, ignoring taps and vertical drags', () => {
+    setConfig({
+      items: [
+        { imageUrl: '/a.jpg', title: 'A' },
+        { imageUrl: '/b.jpg', title: 'B' },
+      ],
+      themes: [],
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    const dialog = screen.getByRole('dialog');
+    const surface = within(dialog).getByTestId('gallery-zoom-counter').closest('[data-testid]')?.parentElement
+      ?.parentElement as HTMLElement;
+
+    const swipe = (fromX: number, toX: number, fromY = 200, toY = 200) => {
+      fireEvent.touchStart(surface, { touches: [{ clientX: fromX, clientY: fromY }] });
+      fireEvent.touchEnd(surface, { changedTouches: [{ clientX: toX, clientY: toY }] });
+    };
+
+    // Swiping left walks forward…
+    swipe(300, 100);
+    expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('2 / 2');
+    // …swiping right walks back…
+    swipe(100, 300);
+    expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('1 / 2');
+    // …a short tap and a vertical drag leave the carousel alone.
+    swipe(200, 190);
+    swipe(200, 150, 100, 400);
+    expect(within(dialog).getByTestId('gallery-zoom-counter')).toHaveTextContent('1 / 2');
+  });
+
   it('shows no carousel arrows when a single item is displayable', () => {
     setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] });
     renderPage();

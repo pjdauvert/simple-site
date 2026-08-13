@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Box, Dialog, IconButton, Typography } from '@mui/material';
+import React, { useEffect, useRef } from 'react';
+import { Box, ButtonBase, Dialog, IconButton, Typography } from '@mui/material';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -7,11 +7,8 @@ import {
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { galleryItemKey } from '@simple-site/interfaces';
-import { ikTransform, ikZoomWidth } from '../../utils/imagekit';
+import { ikTransform, ikWatermarkLayer, ikZoomWidth, type IkWatermark } from '../../utils/imagekit';
 import type { DisplayableGalleryItem } from './galleryDisplay';
-
-/** The zoom rendition: sized to the visitor's viewport (bucketed for CDN caching). */
-const zoomTransformation = (): string => `w-${ikZoomWidth()},q-80,f-auto`;
 
 interface GalleryLightboxProps {
   /** The displayable entries being browsed (a theme's list or the root list). */
@@ -20,6 +17,8 @@ interface GalleryLightboxProps {
   scope: string;
   /** Position in `entries` of the zoomed item, or null when closed. */
   index: number | null;
+  /** Watermark burnt into the zoomed rendition (same design as the lists). */
+  watermark?: IkWatermark;
   onClose: () => void;
   onNavigate: (index: number) => void;
 }
@@ -33,16 +32,37 @@ const controlSx = {
   minHeight: 44,
 } as const;
 
+/** Below this horizontal travel a touch is a tap or a scroll, not a swipe. */
+const SWIPE_THRESHOLD_PX = 50;
+/** Thumbnail height of the filmstrip, in px. */
+const FILMSTRIP_HEIGHT = 56;
+
+/** The zoom rendition: sized to the visitor's viewport (bucketed for CDN caching). */
+const zoomTransformation = (watermark: IkWatermark | undefined): string => {
+  const width = ikZoomWidth();
+  return `w-${width},q-80,f-auto${ikWatermarkLayer(watermark, width)}`;
+};
+
 /**
- * Zoom mode: the clicked image maximised to what the screen can offer (contained,
- * never cropped) with its title/subtitle kept visible underneath, and left/right
- * arrows to keep browsing the same list as a wrap-around carousel. Escape or the
- * close button returns to the list; the keyboard arrows navigate too.
+ * Zoom mode: the clicked image maximised to what the screen can offer
+ * (contained, never cropped) with its title/subtitle kept visible underneath,
+ * and left/right arrows to keep browsing the same list as a wrap-around
+ * carousel. Escape or the close button returns to the list; the keyboard
+ * arrows navigate, and so does a horizontal swipe on touch screens. A counter
+ * and a filmstrip of the neighbouring shots situate the visitor in the list.
  */
-export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({ entries, scope, index, onClose, onNavigate }) => {
+export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
+  entries,
+  scope,
+  index,
+  watermark,
+  onClose,
+  onNavigate,
+}) => {
   const intl = useIntl();
   const entry = index !== null ? entries[index] : undefined;
   const count = entries.length;
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const goTo = (offset: number): void => {
     if (index === null || count < 2) return;
     onNavigate((index + offset + count) % count);
@@ -52,12 +72,30 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({ entries, scope
   // instant — the browser caches the request the <img> will make next.
   useEffect(() => {
     if (index === null || count < 2) return;
-    const transformation = zoomTransformation();
+    const transformation = zoomTransformation(watermark);
     for (const offset of [-1, 1]) {
       const neighbor = entries[(index + offset + count) % count];
       if (neighbor?.item.imageUrl) new Image().src = ikTransform(neighbor.item.imageUrl, transformation);
     }
-  }, [index, entries, count]);
+  }, [index, entries, count, watermark]);
+
+  /** Horizontal swipes navigate; vertical travel is left to the browser. */
+  const handleTouchStart = (event: React.TouchEvent): void => {
+    const touch = event.touches[0];
+    touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent): void => {
+    const start = touchStartRef.current;
+    const touch = event.changedTouches[0];
+    touchStartRef.current = null;
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    // Swiping left walks forward, like every photo viewer.
+    goTo(deltaX < 0 ? 1 : -1);
+  };
 
   return (
     <Dialog
@@ -71,7 +109,11 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({ entries, scope
       slotProps={{ paper: { sx: { backgroundColor: 'common.black', color: 'common.white' } } }}
     >
       {entry && (
-        <Box sx={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Box
+          sx={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%' }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           <IconButton
             onClick={onClose}
             aria-label={intl.formatMessage({ id: 'page.gallery.lightbox.close' })}
@@ -82,7 +124,7 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({ entries, scope
 
           <Box
             component="img"
-            src={ikTransform(entry.item.imageUrl ?? '', zoomTransformation())}
+            src={ikTransform(entry.item.imageUrl ?? '', zoomTransformation(watermark))}
             alt={intl.formatMessage({
               id: galleryItemKey(scope, entry.index, 'title'),
               defaultMessage: entry.item.title,
@@ -133,7 +175,60 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({ entries, scope
                 />
               </Typography>
             )}
+            {count > 1 && (
+              <Typography variant="caption" sx={{ opacity: 0.7 }} data-testid="gallery-zoom-counter">
+                <FormattedMessage
+                  id="page.gallery.lightbox.counter"
+                  values={{ position: (index ?? 0) + 1, total: count }}
+                />
+              </Typography>
+            )}
           </Box>
+
+          {/* Filmstrip: jump straight to any shot of the list. */}
+          {count > 1 && (
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                px: 2,
+                pb: { xs: 1.5, md: 2 },
+                overflowX: 'auto',
+                justifyContent: { md: 'center' },
+              }}
+            >
+              {entries.map((candidate, candidateIndex) => (
+                <ButtonBase
+                  key={`${scope}-strip-${candidate.index}`}
+                  onClick={() => onNavigate(candidateIndex)}
+                  aria-label={intl.formatMessage(
+                    { id: 'page.gallery.lightbox.goTo' },
+                    { title: candidate.item.title },
+                  )}
+                  aria-current={candidateIndex === index ? 'true' : undefined}
+                  sx={{
+                    flexShrink: 0,
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    opacity: candidateIndex === index ? 1 : 0.45,
+                    outline: candidateIndex === index ? '2px solid' : 'none',
+                    outlineColor: 'common.white',
+                    transition: 'opacity 150ms',
+                    '&:hover': { opacity: 1 },
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={ikTransform(candidate.item.imageUrl ?? '', 'w-160,h-160,q-70,f-auto')}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    sx={{ display: 'block', height: FILMSTRIP_HEIGHT, width: FILMSTRIP_HEIGHT, objectFit: 'cover' }}
+                  />
+                </ButtonBase>
+              ))}
+            </Box>
+          )}
         </Box>
       )}
     </Dialog>

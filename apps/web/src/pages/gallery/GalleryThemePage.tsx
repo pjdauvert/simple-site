@@ -1,10 +1,14 @@
 import React from 'react';
-import { Container, Typography } from '@mui/material';
+import { Box, Container, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
-import { galleryThemeScope, galleryThemeTitleKey } from '@simple-site/interfaces';
+import {
+  galleryThemePresentationKey,
+  galleryThemeScope,
+  galleryThemeTitleKey,
+} from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
-import { Loading } from '../../components';
+import { Loading, Markdown } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -37,6 +41,15 @@ export const GalleryThemePage: React.FC = () => {
       <Typography variant="h3" component="h1" gutterBottom sx={{ mb: { xs: 3, md: 5 } }}>
         <FormattedMessage id={galleryThemeTitleKey(theme.themeId)} defaultMessage={theme.title} />
       </Typography>
+      {/* The stored presentation is a translation default — per-language values
+          from the Translations page take over via the shared key. */}
+      {theme.presentation?.trim() && (
+        <Box sx={{ mb: { xs: 4, md: 6 }, '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 } }}>
+          <FormattedMessage id={galleryThemePresentationKey(theme.themeId)} defaultMessage={theme.presentation}>
+            {(msg) => <Markdown>{String(msg)}</Markdown>}
+          </FormattedMessage>
+        </Box>
+      )}
       <GalleryItemList
         entries={entries}
         scope={galleryThemeScope(theme.themeId)}

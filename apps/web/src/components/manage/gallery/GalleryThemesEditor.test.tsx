@@ -103,6 +103,35 @@ describe('GalleryThemesEditor', () => {
     });
   });
 
+  it('marks a themed item as its theme cover from the dialog, badging the thumbnail', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: 'Tree' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: /use as the theme's cover/i }));
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByText('Cover')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+    });
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateGallery).mock.calls[0][0].themes[0]).toMatchObject({ coverIndex: 0 });
+  });
+
+  it('saves a theme introduction typed under its header', async () => {
+    renderEditor();
+    fireEvent.change(await screen.findByLabelText(/theme introduction/i), {
+      target: { value: 'Shot in **Corsica**.' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+    });
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateGallery).mock.calls[0][0].themes[0]).toMatchObject({
+      presentation: 'Shot in **Corsica**.',
+    });
+  });
+
   it('deletes an item from its dialog', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: 'Shot A' }));

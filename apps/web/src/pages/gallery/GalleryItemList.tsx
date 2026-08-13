@@ -1,39 +1,35 @@
 import React, { useState } from 'react';
 import { Box, ButtonBase, Stack, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import {
-  galleryItemKey,
-  type GalleryCaptionPosition,
-  type GalleryDisplayMode,
-  type GalleryItem,
-} from '@simple-site/interfaces';
+import { galleryItemKey, type GalleryItem } from '@simple-site/interfaces';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { ikSrcSet, ikTransform } from '../../utils/imagekit';
-import { itemFrameSx, itemWidthCapSx, type DisplayableGalleryItem, type GalleryItemFrame } from './galleryDisplay';
+import { ikSrcSet, ikTransform, ikWatermarkLayer } from '../../utils/imagekit';
+import {
+  GALLERY_SPACING_UNITS,
+  GALLERY_STACK_SPACING_UNITS,
+  galleryAspectRatioValue,
+  galleryColumnsSx,
+  itemFrameSx,
+  itemWidthCapSx,
+  type DisplayableGalleryItem,
+  type GalleryDisplaySettings,
+} from './galleryDisplay';
 import { GalleryLightbox } from './GalleryLightbox';
 
 /** Delivery buckets for the list/alternate shots — they can span the container. */
 const LIST_WIDTHS = [480, 768, 1080, 1440, 1920] as const;
 /** Approximates the centered column: full-bleed on mobile, the lg container above. */
 const LIST_SIZES = '(min-width: 1200px) 1152px, 100vw';
-/** Grid cells are 1–3 per row — smaller buckets, cell-sized hints. */
-const GRID_WIDTHS = [320, 480, 640, 960] as const;
-const GRID_SIZES = '(min-width: 900px) 33vw, (min-width: 600px) 50vw, 100vw';
+/** Tiled modes: buckets and hints scale with the picked column count. */
+const TILE_WIDTHS = [320, 480, 640, 960] as const;
 /** Alternate rows give the image roughly the wider side of the row. */
 const ALTERNATE_SIZES = '(min-width: 900px) 58vw, 100vw';
 
-interface GalleryItemListProps extends GalleryItemFrame {
+interface GalleryItemListProps extends GalleryDisplaySettings {
   /** Displayable entries (image present), with their config positions for i18n. */
   entries: DisplayableGalleryItem[];
   /** i18n scope of the list (`gallery` or `gallery.theme.<themeId>`). */
   scope: string;
-  captionPosition: GalleryCaptionPosition;
-  displayMode: GalleryDisplayMode;
-  /**
-   * Caps each clickable image at this % of the screen width, in every mode —
-   * landscape screens only (portrait keeps the natural width); zoom unaffected.
-   */
-  itemMaxWidthPercent?: number;
 }
 
 /**
@@ -41,7 +37,9 @@ interface GalleryItemListProps extends GalleryItemFrame {
  * caption setting applies to `list` ONLY:
  * - `list` (default) — centered shots, caption above/below/left/right per the
  *   caption setting (side captions stack on mobile: left → above, right → below);
- * - `grid` — a responsive card grid, caption always below the image;
+ * - `grid` — a responsive card grid (the design's column count on desktop,
+ *   collapsing on narrow screens), caption always below the image, tiles
+ *   sharing the design's imposed ratio;
  * - `mosaic` — masonry columns of natural-height tiles, with NO caption at all
  *   (the title/subtitle still show in the zoom view);
  * - `alternate` — full-width rows whose image/caption sides flip on every row
@@ -61,6 +59,11 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   itemBorder,
   itemBorderColor,
   itemCornerRadius,
+  itemColumns,
+  itemAspectRatio,
+  itemFit,
+  itemSpacing,
+  watermark,
 }) => {
   const intl = useIntl();
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
@@ -69,6 +72,11 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   const visible = entries.filter(({ item }) => !failedUrls.has(item.imageUrl ?? ''));
   const captionFirst = captionPosition === 'above' || captionPosition === 'left';
   const sideCaption = captionPosition === 'left' || captionPosition === 'right';
+  const gap = GALLERY_SPACING_UNITS[itemSpacing];
+  const stackGap = GALLERY_STACK_SPACING_UNITS[itemSpacing];
+  const columns = galleryColumnsSx(itemColumns);
+  /** A tile is roughly the container split into `itemColumns` on wide screens. */
+  const tileSizes = `(min-width: 900px) ${Math.round(100 / itemColumns)}vw, (min-width: 600px) 50vw, 100vw`;
 
   const markFailed = (url: string | undefined): void => {
     if (!url) return;
@@ -93,7 +101,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
     item: GalleryItem,
     index: number,
     visibleIndex: number,
-    delivery: { transformation: string; widths: readonly number[]; sizes: string },
+    delivery: { width: number; widths: readonly number[]; sizes: string },
     imgSx: SxProps<Theme>,
     buttonSx?: SxProps<Theme>,
   ): React.ReactNode => (
@@ -115,8 +123,11 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
     >
       <Box
         component="img"
-        src={ikTransform(item.imageUrl ?? '', delivery.transformation)}
-        srcSet={ikSrcSet(item.imageUrl ?? '', delivery.widths)}
+        src={ikTransform(
+          item.imageUrl ?? '',
+          `w-${delivery.width},q-80,f-auto${ikWatermarkLayer(watermark, delivery.width)}`,
+        )}
+        srcSet={ikSrcSet(item.imageUrl ?? '', delivery.widths, 'q-80,f-auto', watermark)}
         sizes={delivery.sizes}
         // The first shot is the likely LCP — only the rest load lazily.
         loading={visibleIndex === 0 ? undefined : 'lazy'}
@@ -133,22 +144,19 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
       entries={visible}
       scope={scope}
       index={zoomIndex}
+      watermark={watermark}
       onClose={() => setZoomIndex(null)}
       onNavigate={setZoomIndex}
     />
   );
 
   if (displayMode === 'grid') {
-    // The caption always sits below the image in a grid cell.
+    // The caption always sits below the image in a grid cell, and the tiles
+    // share the design's imposed ratio (`original` keeps each image's own).
+    const aspectRatio = galleryAspectRatioValue(itemAspectRatio);
     return (
       <>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: { xs: 2, md: 3 },
-          }}
-        >
+        <Box data-testid="gallery-grid" sx={{ display: 'grid', gridTemplateColumns: columns, gap }}>
           {visible.map(({ item, index }, visibleIndex) => (
             <Box
               key={`${scope}-${index}`}
@@ -158,8 +166,12 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
                 item,
                 index,
                 visibleIndex,
-                { transformation: 'w-640,q-80,f-auto', widths: GRID_WIDTHS, sizes: GRID_SIZES },
-                { display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover' },
+                { width: 640, widths: TILE_WIDTHS, sizes: tileSizes },
+                {
+                  display: 'block',
+                  width: '100%',
+                  ...(aspectRatio ? { aspectRatio, objectFit: itemFit } : { height: 'auto' }),
+                },
                 { width: '100%' },
               )}
               {caption(item, index)}
@@ -177,14 +189,14 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
     // packed top to bottom per column.
     return (
       <>
-        <Box sx={{ columnCount: { xs: 1, sm: 2, md: 3 }, columnGap: { xs: 2, md: 3 } }}>
+        <Box data-testid="gallery-mosaic" sx={{ columnCount: { xs: 1, sm: 2, md: itemColumns }, columnGap: gap }}>
           {visible.map(({ item, index }, visibleIndex) => (
-            <Box key={`${scope}-${index}`} sx={{ breakInside: 'avoid', mb: { xs: 2, md: 3 } }}>
+            <Box key={`${scope}-${index}`} sx={{ breakInside: 'avoid', mb: gap }}>
               {imageButton(
                 item,
                 index,
                 visibleIndex,
-                { transformation: 'w-640,q-80,f-auto', widths: GRID_WIDTHS, sizes: GRID_SIZES },
+                { width: 640, widths: TILE_WIDTHS, sizes: tileSizes },
                 { display: 'block', width: '100%', height: 'auto' },
                 { width: '100%' },
               )}
@@ -199,7 +211,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   if (displayMode === 'alternate') {
     return (
       <>
-        <Stack spacing={{ xs: 6, md: 8 }}>
+        <Stack spacing={stackGap}>
           {visible.map(({ item, index }, visibleIndex) => (
             <Box
               key={`${scope}-${index}`}
@@ -215,7 +227,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
                 item,
                 index,
                 visibleIndex,
-                { transformation: 'w-1080,q-80,f-auto', widths: LIST_WIDTHS, sizes: ALTERNATE_SIZES },
+                { width: 1080, widths: LIST_WIDTHS, sizes: ALTERNATE_SIZES },
                 { display: 'block', maxWidth: '100%', maxHeight: { xs: '60vh', md: '65vh' }, width: 'auto', height: 'auto' },
                 { width: { md: '58%' }, flexShrink: 0, display: 'flex', justifyContent: 'center' },
               )}
@@ -230,14 +242,14 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
 
   return (
     <>
-      <Stack spacing={{ xs: 6, md: 8 }}>
+      <Stack spacing={stackGap}>
         {visible.map(({ item, index }, visibleIndex) => {
           const rowCaption = caption(item, index, sideCaption ? { maxWidth: { md: 280 }, flexShrink: 0 } : undefined);
           const rowImage = imageButton(
             item,
             index,
             visibleIndex,
-            { transformation: 'w-1080,q-80,f-auto', widths: LIST_WIDTHS, sizes: LIST_SIZES },
+            { width: 1080, widths: LIST_WIDTHS, sizes: LIST_SIZES },
             { display: 'block', maxWidth: '100%', maxHeight: { xs: '60vh', md: '70vh' }, width: 'auto', height: 'auto' },
           );
           return (

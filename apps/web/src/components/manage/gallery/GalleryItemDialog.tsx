@@ -6,9 +6,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   InputAdornment,
   MenuItem,
   Stack,
+  Switch,
   TextField,
 } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -35,6 +37,11 @@ interface GalleryItemDialogProps {
   onConfirm: (item: GalleryItem, target: number | null) => void;
   /** Present only when editing — deletes the item. */
   onDelete?: () => void;
+  /**
+   * Cover controls, present only when editing an item that sits in a theme
+   * (the root list has no cover). `isCover` drives the toggle's state.
+   */
+  cover?: { isCover: boolean; onToggle: (isCover: boolean) => void };
 }
 
 /**
@@ -55,6 +62,7 @@ export const GalleryItemDialog: React.FC<GalleryItemDialogProps> = ({
   onCancel,
   onConfirm,
   onDelete,
+  cover,
 }) => {
   const intl = useIntl();
   const flags = useFeatureFlags();
@@ -143,6 +151,15 @@ export const GalleryItemDialog: React.FC<GalleryItemDialogProps> = ({
               </MenuItem>
             ))}
           </TextField>
+          {/* Only a themed item can represent its theme on the gallery index. */}
+          {cover && (
+            <FormControlLabel
+              control={
+                <Switch checked={cover.isCover} onChange={(_, checked) => cover.onToggle(checked)} />
+              }
+              label={<FormattedMessage id="page.manage.gallery.dialog.cover" />}
+            />
+          )}
         </Stack>
       </DialogContent>
       <DialogActions>

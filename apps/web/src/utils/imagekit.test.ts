@@ -1,5 +1,13 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { IK_ZOOM_WIDTHS, ikSrcSet, ikTransform, ikZoomWidth, isImageKitUrl } from './imagekit';
+import {
+  IK_ZOOM_WIDTHS,
+  ikSrcSet,
+  ikTransform,
+  ikWatermarkLayer,
+  ikZoomWidth,
+  isImageKitUrl,
+  type IkWatermark,
+} from './imagekit';
 
 const IK_URL = 'https://ik.imagekit.io/demo/photo.jpg';
 
@@ -41,6 +49,40 @@ describe('ikSrcSet', () => {
   it('is undefined when transformations do not apply', () => {
     expect(ikSrcSet('/images/pic.jpg', [480, 960])).toBeUndefined();
     expect(ikSrcSet(`${IK_URL}?tr=w-100`, [480, 960])).toBeUndefined();
+  });
+});
+
+describe('ikWatermarkLayer', () => {
+  const watermark: IkWatermark = { text: '© Studio', position: 'bottomRight', color: '#FFFFFF', opacity: 60 };
+
+  it('builds the CDN text layer — base64 text, absolute font size, alpha in the color', () => {
+    // 60 % of 255 = 153 = 0x99; the font size is ~4.5 % of the rendition width.
+    expect(ikWatermarkLayer(watermark, 1000)).toBe(
+      ',l-text,ie-wqkgU3R1ZGlv,fs-45,co-FFFFFF99,lfo-bottom_right,l-end',
+    );
+  });
+
+  it('scales the font size per rendition, never below a legible floor', () => {
+    expect(ikWatermarkLayer(watermark, 2000)).toContain('fs-90');
+    expect(ikWatermarkLayer(watermark, 100)).toContain('fs-12');
+  });
+
+  it('maps every position to its CDN focus value', () => {
+    expect(ikWatermarkLayer({ ...watermark, position: 'topLeft' }, 800)).toContain('lfo-top_left');
+    expect(ikWatermarkLayer({ ...watermark, position: 'center' }, 800)).toContain('lfo-center');
+  });
+
+  it('encodes non-ASCII text safely and is empty without a watermark', () => {
+    // Emoji/accents survive the UTF-8 → base64 round trip (url-safe alphabet).
+    expect(ikWatermarkLayer({ ...watermark, text: '🙂 Photo' }, 600)).toContain('ie-8J-ZgiBQaG90bw==');
+    expect(ikWatermarkLayer(undefined, 600)).toBe('');
+    expect(ikWatermarkLayer({ ...watermark, text: '   ' }, 600)).toBe('');
+  });
+
+  it('rides along each srcSet bucket, sized for that bucket', () => {
+    const srcSet = ikSrcSet(IK_URL, [480, 960], 'q-80,f-auto', watermark) ?? '';
+    expect(srcSet).toContain('w-480,q-80,f-auto,l-text,ie-wqkgU3R1ZGlv,fs-22,');
+    expect(srcSet).toContain('w-960,q-80,f-auto,l-text,ie-wqkgU3R1ZGlv,fs-43,');
   });
 });
 

@@ -3,10 +3,14 @@ import { collectGalleryI18nEntries, type GalleryConfig, type SiteConfig } from '
 import {
   displayableItems,
   displayableThemes,
+  galleryAspectRatioValue,
+  galleryColumnsSx,
+  galleryDisplaySettings,
   galleryPageTitle,
   galleryThemeRoute,
   itemFrameSx,
   itemWidthCapSx,
+  themeCoverUrl,
 } from './galleryDisplay';
 
 const gallery = (over: Partial<GalleryConfig> = {}): GalleryConfig => ({ items: [], themes: [], ...over });
@@ -59,6 +63,69 @@ describe('itemWidthCapSx', () => {
 
   it('is empty without a cap — the mode keeps its natural width everywhere', () => {
     expect(itemWidthCapSx(undefined)).toEqual({});
+  });
+});
+
+describe('themeCoverUrl', () => {
+  const theme = (over: Partial<GalleryConfig['themes'][number]> = {}) => ({
+    themeId: 'nature',
+    title: 'Nature',
+    items: [
+      { title: 'No image' },
+      { imageUrl: '/a.jpg', title: 'A' },
+      { imageUrl: '/b.jpg', title: 'B' },
+    ],
+    ...over,
+  });
+
+  it('uses the explicit pick when it points at a displayable item', () => {
+    expect(themeCoverUrl(theme({ coverIndex: 2 }))).toBe('/b.jpg');
+  });
+
+  it('falls back to the first displayable item without a pick, or on a stale one', () => {
+    expect(themeCoverUrl(theme())).toBe('/a.jpg');
+    // Index 0 has no image, and index 9 no longer exists.
+    expect(themeCoverUrl(theme({ coverIndex: 0 }))).toBe('/a.jpg');
+    expect(themeCoverUrl(theme({ coverIndex: 9 }))).toBe('/a.jpg');
+  });
+});
+
+describe('galleryAspectRatioValue', () => {
+  it('maps a ratio to its CSS value, and opts out on "original"', () => {
+    expect(galleryAspectRatioValue('16:9')).toBe('16 / 9');
+    expect(galleryAspectRatioValue('1:1')).toBe('1 / 1');
+    expect(galleryAspectRatioValue('original')).toBeUndefined();
+  });
+});
+
+describe('galleryColumnsSx', () => {
+  it('honours the design count on wide screens only — narrow ones always collapse', () => {
+    expect(galleryColumnsSx(5)).toEqual({ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' });
+    expect(galleryColumnsSx(2).md).toBe('repeat(2, 1fr)');
+  });
+});
+
+describe('galleryDisplaySettings', () => {
+  it('resolves the new design defaults and the watermark', () => {
+    expect(galleryDisplaySettings(undefined)).toMatchObject({
+      itemColumns: 3,
+      itemAspectRatio: '4:3',
+      itemFit: 'cover',
+      itemSpacing: 'normal',
+      watermark: undefined,
+    });
+
+    const settings = galleryDisplaySettings(
+      gallery({ design: { itemColumns: 5, itemSpacing: 'airy', watermarkText: '© Studio' } }),
+    );
+    expect(settings).toMatchObject({ itemColumns: 5, itemSpacing: 'airy' });
+    // The watermark styling defaults come along once there is text to draw.
+    expect(settings.watermark).toEqual({
+      text: '© Studio',
+      position: 'bottomRight',
+      color: '#FFFFFF',
+      opacity: 60,
+    });
   });
 });
 

@@ -442,6 +442,65 @@ describe('ConfigModule', () => {
     }
   });
 
+  it('PUT /api/config/gallery accepts the layout + watermark options and rejects invalid ones', async () => {
+    const { data } = makeStore();
+    const design = {
+      itemColumns: 5,
+      itemAspectRatio: '16:9',
+      itemFit: 'contain',
+      itemSpacing: 'airy',
+      watermarkText: '© Studio',
+      watermarkPosition: 'center',
+      watermarkColor: '#101010',
+      watermarkOpacity: 40,
+    };
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design }));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual(design);
+
+    const rejected = [
+      { itemColumns: 6 }, // outside 2–5
+      { itemAspectRatio: '21:9' }, // not an offered ratio
+      { itemSpacing: 'huge' },
+      { watermarkColor: 'white' }, // must be a six-digit hex
+      { watermarkOpacity: 5 },
+      { watermarkText: 'x'.repeat(41) },
+    ];
+    for (const bad of rejected) {
+      expect(
+        (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design: bad }))).status,
+      ).toBe(500);
+    }
+  });
+
+  it('PUT /api/config/gallery stores a theme cover pick and introduction', async () => {
+    const { data } = makeStore();
+    const gallery = {
+      items: [],
+      themes: [
+        {
+          themeId: 'nature',
+          title: 'Nature',
+          presentation: 'Shot in **Corsica**.',
+          coverIndex: 1,
+          items: [
+            { imageUrl: '/a.jpg', title: 'Tree' },
+            { imageUrl: '/b.jpg', title: 'Lake' },
+          ],
+        },
+      ],
+    };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery))).status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).gallery.themes[0]).toMatchObject({
+      coverIndex: 1,
+      presentation: 'Shot in **Corsica**.',
+    });
+
+    // A negative cover index is not a position.
+    const bad = { items: [], themes: [{ themeId: 'nature', title: 'Nature', coverIndex: -1, items: [] }] };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
+  });
+
   it('PUT /api/config/gallery rejects two themes sharing a themeId', async () => {
     const { data } = makeStore();
     const gallery = { items: [], themes: [

@@ -1,7 +1,14 @@
 import {
   DEFAULT_GALLERY_CAPTION_POSITION,
   DEFAULT_GALLERY_DISPLAY_MODE,
+  DEFAULT_GALLERY_ITEM_ASPECT_RATIO,
+  DEFAULT_GALLERY_ITEM_COLUMNS,
   DEFAULT_GALLERY_ITEM_CORNER_RADIUS,
+  DEFAULT_GALLERY_ITEM_FIT,
+  DEFAULT_GALLERY_ITEM_SPACING,
+  DEFAULT_GALLERY_WATERMARK_COLOR,
+  DEFAULT_GALLERY_WATERMARK_OPACITY,
+  DEFAULT_GALLERY_WATERMARK_POSITION,
   FEATURE_PAGE_ROUTES,
   FeaturePagesEnum,
   featureEntryLabel,
@@ -10,9 +17,13 @@ import {
   type GalleryConfig,
   type GalleryDisplayMode,
   type GalleryItem,
+  type GalleryItemAspectRatio,
+  type GalleryItemFit,
+  type GalleryItemSpacing,
   type GalleryTheme,
   type SiteConfig,
 } from '@simple-site/interfaces';
+import type { IkWatermark } from '../../utils/imagekit';
 
 /**
  * Display/selection helpers of the public gallery (web-only — the functions
@@ -38,6 +49,19 @@ export const displayableItems = (items: GalleryItem[] | undefined): DisplayableG
 export const displayableThemes = (gallery: GalleryConfig | undefined): GalleryTheme[] =>
   (gallery?.themes ?? []).filter((theme) => displayableItems(theme.items).length > 0);
 
+/**
+ * The image representing a theme on the gallery index: the admin's explicit
+ * `coverIndex` when it points at a displayable item, else the first displayable
+ * one (the original behavior, and the safety net when the pick was emptied).
+ */
+export const themeCoverUrl = (theme: GalleryTheme): string | undefined => {
+  const displayable = displayableItems(theme.items);
+  const picked = theme.coverIndex !== undefined
+    ? displayable.find((entry) => entry.index === theme.coverIndex)
+    : undefined;
+  return (picked ?? displayable[0])?.item.imageUrl;
+};
+
 /** Public route of a theme page, nested under the gallery's reserved route. */
 export const galleryThemeRoute = (themeId: string): string =>
   `${FEATURE_PAGE_ROUTES[FeaturePagesEnum.GALLERY]}/${themeId}`;
@@ -56,7 +80,58 @@ export interface GalleryDisplaySettings {
   itemBorderColor?: string;
   /** Tile corner radius in px; undefined = {@link DEFAULT_GALLERY_ITEM_CORNER_RADIUS}. */
   itemCornerRadius?: number;
+  /** Desktop column count of the tiled modes. */
+  itemColumns: number;
+  /** Ratio imposed on the grid tiles (`original` = the image's own). */
+  itemAspectRatio: GalleryItemAspectRatio;
+  /** How an image fills an imposed ratio. */
+  itemFit: GalleryItemFit;
+  /** Gutter between items. */
+  itemSpacing: GalleryItemSpacing;
+  /** Watermark burnt into the public renditions; undefined = none. */
+  watermark?: IkWatermark;
 }
+
+/** The gutter each spacing step renders, in MUI spacing units (mobile, desktop). */
+export const GALLERY_SPACING_UNITS: Record<GalleryItemSpacing, { xs: number; md: number }> = {
+  tight: { xs: 1, md: 1.5 },
+  normal: { xs: 2, md: 3 },
+  airy: { xs: 4, md: 6 },
+};
+
+/** The vertical rhythm of the stacked modes (list/alternate) per spacing step. */
+export const GALLERY_STACK_SPACING_UNITS: Record<GalleryItemSpacing, { xs: number; md: number }> = {
+  tight: { xs: 3, md: 4 },
+  normal: { xs: 6, md: 8 },
+  airy: { xs: 9, md: 12 },
+};
+
+/**
+ * Responsive column track for the tiled modes: narrow screens always collapse
+ * (one column on phones, two from `sm`) and only wide ones honour the design's
+ * count — so a 5-column gallery never squeezes 5 tiles onto a phone.
+ */
+export const galleryColumnsSx = (itemColumns: number): { xs: string; sm: string; md: string } => ({
+  xs: '1fr',
+  sm: 'repeat(2, 1fr)',
+  md: `repeat(${itemColumns}, 1fr)`,
+});
+
+/** CSS `aspect-ratio` value for an imposed ratio, or undefined for `original`. */
+export const galleryAspectRatioValue = (ratio: GalleryItemAspectRatio): string | undefined =>
+  ratio === 'original' ? undefined : ratio.replace(':', ' / ');
+
+/** The watermark to burn in, or undefined when the design defines no text. */
+const resolveWatermark = (gallery: GalleryConfig | undefined): IkWatermark | undefined => {
+  const text = gallery?.design?.watermarkText?.trim();
+  if (!text) return undefined;
+  return {
+    text,
+    position: gallery?.design?.watermarkPosition ?? DEFAULT_GALLERY_WATERMARK_POSITION,
+    color: gallery?.design?.watermarkColor ?? DEFAULT_GALLERY_WATERMARK_COLOR,
+    opacity: gallery?.design?.watermarkOpacity ?? DEFAULT_GALLERY_WATERMARK_OPACITY,
+  };
+};
 
 export const galleryDisplaySettings = (gallery: GalleryConfig | undefined): GalleryDisplaySettings => ({
   captionPosition: gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION,
@@ -66,6 +141,11 @@ export const galleryDisplaySettings = (gallery: GalleryConfig | undefined): Gall
   itemBorder: gallery?.design?.itemBorder,
   itemBorderColor: gallery?.design?.itemBorderColor,
   itemCornerRadius: gallery?.design?.itemCornerRadius,
+  itemColumns: gallery?.design?.itemColumns ?? DEFAULT_GALLERY_ITEM_COLUMNS,
+  itemAspectRatio: gallery?.design?.itemAspectRatio ?? DEFAULT_GALLERY_ITEM_ASPECT_RATIO,
+  itemFit: gallery?.design?.itemFit ?? DEFAULT_GALLERY_ITEM_FIT,
+  itemSpacing: gallery?.design?.itemSpacing ?? DEFAULT_GALLERY_ITEM_SPACING,
+  watermark: resolveWatermark(gallery),
 });
 
 /** The frame options `itemFrameSx` consumes — the design's tile "chrome". */

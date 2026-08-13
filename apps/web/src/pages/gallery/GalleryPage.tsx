@@ -15,6 +15,7 @@ import {
   galleryDisplaySettings,
   galleryPageTitle,
   galleryThemeRoute,
+  themeCoverUrl,
 } from './galleryDisplay';
 import { GalleryItemList } from './GalleryItemList';
 
@@ -61,7 +62,7 @@ export const GalleryPage: React.FC = () => {
           }}
         >
           {themes.map((theme) => {
-            const cover = displayableItems(theme.items)[0]?.item.imageUrl;
+            const cover = themeCoverUrl(theme);
             return (
               <ButtonBase
                 key={theme.themeId}
