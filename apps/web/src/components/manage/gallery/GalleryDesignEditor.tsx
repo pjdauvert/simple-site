@@ -259,9 +259,7 @@ export const GalleryDesignEditor: React.FC = () => {
                   id="page.manage.gallery.itemMaxWidth.range"
                   values={{ min: GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN, max: GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX }}
                 />
-              ) : (
-                <FormattedMessage id="page.manage.gallery.itemMaxWidth.hint" />
-              )
+              ) : undefined
             }
             slotProps={{
               input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
@@ -274,6 +272,11 @@ export const GalleryDesignEditor: React.FC = () => {
             }}
             sx={{ maxWidth: 220 }}
           />
+          {/* Hint outside the field: the narrow input must not squeeze it —
+              it spans the settings column like every other option hint. */}
+          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+            <FormattedMessage id="page.manage.gallery.itemMaxWidth.hint" />
+          </Typography>
         </Box>
 
         {tiledMode && (
