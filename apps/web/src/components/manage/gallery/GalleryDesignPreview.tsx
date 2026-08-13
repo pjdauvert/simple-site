@@ -1,5 +1,6 @@
-import { Box, Typography } from '@mui/material';
-import { FormattedMessage } from 'react-intl';
+import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { CropLandscape as LandscapeIcon, CropPortrait as PortraitIcon } from '@mui/icons-material';
+import { FormattedMessage, useIntl } from 'react-intl';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type {
   GalleryCaptionPosition,
@@ -16,6 +17,9 @@ import {
   type GalleryItemFrame,
 } from '../../../pages/gallery/galleryDisplay';
 
+/** The preview's simulated screen orientation — a viewing aid, never a design choice. */
+export type PreviewOrientation = 'landscape' | 'portrait';
+
 interface GalleryDesignPreviewProps extends GalleryItemFrame {
   displayMode: GalleryDisplayMode;
   captionPosition: GalleryCaptionPosition;
@@ -23,6 +27,8 @@ interface GalleryDesignPreviewProps extends GalleryItemFrame {
   itemAspectRatio: GalleryItemAspectRatio;
   itemFit: GalleryItemFit;
   itemSpacing: GalleryItemSpacing;
+  orientation: PreviewOrientation;
+  onOrientationChange: (orientation: PreviewOrientation) => void;
 }
 
 /**
@@ -33,7 +39,14 @@ interface GalleryDesignPreviewProps extends GalleryItemFrame {
  * mosaic tiles carry no caption at all, the alternation places captions itself
  * in alternate mode, and the frame options (elevation / border / corners) are
  * applied to the image rectangles through the exact `itemFrameSx` the public
- * views use. Purely decorative (aria-hidden); the parent hides it on mobile.
+ * views use.
+ *
+ * The landscape/portrait toggle simulates the visitor's screen: portrait
+ * collapses the tiled modes to one column, stacks the side captions and the
+ * alternating rows — exactly the public responsive rules. It changes NOTHING
+ * about the design options (they stay visible and editable): orientation is
+ * the visitor's context, not a design parameter. The skeleton box itself is
+ * decorative (aria-hidden); the parent hides the whole panel on mobile.
  */
 export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
   displayMode,
@@ -46,15 +59,22 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
   itemAspectRatio,
   itemFit,
   itemSpacing,
+  orientation,
+  onOrientationChange,
 }) => {
+  const intl = useIntl();
+  const portrait = orientation === 'portrait';
   const captionFirst = captionPosition === 'above' || captionPosition === 'left';
-  const sideCaption = captionPosition === 'left' || captionPosition === 'right';
+  // Side captions stack on narrow screens, like the real list rendering.
+  const sideCaption = (captionPosition === 'left' || captionPosition === 'right') && !portrait;
   const frame = itemFrameSx({ itemElevation, itemBorder, itemBorderColor, itemCornerRadius });
   // The skeleton is a scaled-down page: the same spacing steps read as
   // proportionally tighter/airier gaps here.
   const gap = GALLERY_SPACING_UNITS[itemSpacing].md / 2;
   const stackGap = GALLERY_STACK_SPACING_UNITS[itemSpacing].md / 3;
   const aspectRatio = galleryAspectRatioValue(itemAspectRatio);
+  // Phones always collapse the tiled modes to a single column.
+  const effectiveColumns = portrait ? 1 : itemColumns;
 
   /** A solid rectangle standing for an image, framed like the real tiles. */
   const imageBlock = (sx: SxProps<Theme>): React.ReactNode => (
@@ -92,8 +112,8 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
     if (displayMode === 'grid') {
       // Grid cells always caption below the image.
       return (
-        <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${itemColumns}, 1fr)`, gap }}>
-          {Array.from({ length: itemColumns * 2 }, (_, i) => (
+        <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${effectiveColumns}, 1fr)`, gap }}>
+          {Array.from({ length: portrait ? 2 : itemColumns * 2 }, (_, i) => (
             <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               {/* `contain` leaves the cell partly empty — shown as an inset
                   rectangle, like the real letterboxing. */}
@@ -104,7 +124,7 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
                     ...(itemFit === 'contain' ? { mx: 'auto' } : {}),
                   })
                 : imageBlock({ width: '100%', height: 44 })}
-              {textBars(Math.max(24, Math.round(120 / itemColumns)))}
+              {textBars(Math.max(24, Math.round(120 / effectiveColumns)))}
             </Box>
           ))}
         </Box>
@@ -115,10 +135,11 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
       // caption bars, like the real rendering.
       // Varied heights, cycled so any column count keeps a masonry look.
       const heightCycle = [52, 84, 92, 44, 64, 72, 60, 88, 48, 76];
-      const columns = Array.from({ length: itemColumns }, (_, col) => [
-        heightCycle[(col * 2) % heightCycle.length],
-        heightCycle[(col * 2 + 1) % heightCycle.length],
-      ]);
+      const columns = Array.from({ length: effectiveColumns }, (_, col) =>
+        portrait
+          ? [heightCycle[0], heightCycle[1], heightCycle[2]]
+          : [heightCycle[(col * 2) % heightCycle.length], heightCycle[(col * 2 + 1) % heightCycle.length]],
+      );
       return (
         <Box sx={{ display: 'flex', gap, alignItems: 'flex-start' }}>
           {columns.map((heights, col) => (
@@ -132,14 +153,20 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
       );
     }
     if (displayMode === 'alternate') {
+      // Portrait stacks each row (image above its caption), like the public page.
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: stackGap }}>
-          {[false, true, false].map((reversed, i) => (
+          {(portrait ? [false, false] : [false, true, false]).map((reversed, i) => (
             <Box
               key={i}
-              sx={{ display: 'flex', flexDirection: reversed ? 'row-reverse' : 'row', alignItems: 'center', gap: 2 }}
+              sx={{
+                display: 'flex',
+                flexDirection: portrait ? 'column' : reversed ? 'row-reverse' : 'row',
+                alignItems: 'center',
+                gap: portrait ? 1 : 2,
+              }}
             >
-              {imageBlock({ width: '58%', height: 56 })}
+              {imageBlock({ width: portrait ? '100%' : '58%', height: 56 })}
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>{textBars(64)}</Box>
             </Box>
           ))}
@@ -152,7 +179,7 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: stackGap, alignItems: 'center' }}>
         {[0, 1].map((i) => (
           <Box key={i} sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-            {tile({ width: 200, height: 96 }, 72)}
+            {tile({ width: portrait ? 170 : 200, height: portrait ? 110 : 96 }, 72)}
           </Box>
         ))}
       </Box>
@@ -161,13 +188,43 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
 
   return (
     <Box>
-      <Typography variant="subtitle2" gutterBottom>
-        <FormattedMessage id="page.manage.gallery.preview" />
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+        <Typography variant="subtitle2">
+          <FormattedMessage id="page.manage.gallery.preview" />
+        </Typography>
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={orientation}
+          onChange={(_, value: PreviewOrientation | null) => { if (value) onOrientationChange(value); }}
+          aria-label={intl.formatMessage({ id: 'page.manage.gallery.preview.orientation' })}
+        >
+          <ToggleButton
+            value="landscape"
+            aria-label={intl.formatMessage({ id: 'page.manage.gallery.preview.landscape' })}
+          >
+            <LandscapeIcon fontSize="small" />
+          </ToggleButton>
+          <ToggleButton
+            value="portrait"
+            aria-label={intl.formatMessage({ id: 'page.manage.gallery.preview.portrait' })}
+          >
+            <PortraitIcon fontSize="small" />
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
       <Box
         aria-hidden
         data-testid={`gallery-preview-${displayMode}`}
-        sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2.5, minHeight: 300 }}
+        data-orientation={orientation}
+        sx={{
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 2,
+          p: 2.5,
+          // Portrait simulates a phone: a narrow, taller, centered canvas.
+          ...(portrait ? { maxWidth: 260, mx: 'auto', minHeight: 400 } : { minHeight: 300 }),
+        }}
       >
         {skeleton()}
       </Box>

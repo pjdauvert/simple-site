@@ -66,7 +66,7 @@ import {
   setItemSpacing,
   setWatermark,
 } from './galleryDraft';
-import { GalleryDesignPreview } from './GalleryDesignPreview';
+import { GalleryDesignPreview, type PreviewOrientation } from './GalleryDesignPreview';
 
 /** The column counts the editor offers (the schema's bounds, enumerated). */
 const COLUMN_CHOICES = Array.from(
@@ -75,13 +75,15 @@ const COLUMN_CHOICES = Array.from(
 );
 
 /**
- * Design tab of /manage/gallery: how visitors browse the items — the display
- * mode (centered list, card grid, mosaic, or team-style alternating rows) and
- * the caption position around each image. The caption position applies to the
- * LIST mode only, so the toggle is disabled elsewhere with a per-mode hint:
- * grid always captions below, mosaic shows no caption at all, and alternate's
- * alternation places the caption itself. A symbolic skeleton preview (right
- * half, desktop only) illustrates the picked design live. Saves via
+ * Design tab of /manage/gallery: how visitors browse the items. Follows the
+ * platform's ergonomic principle (docs/contributing.md): only the options
+ * APPLICABLE to the selected display mode are shown — caption position in
+ * list, columns in the tiled modes, ratio/fit in grid; an inapplicable option
+ * is hidden, never disabled, and its stored value survives mode switches. A
+ * symbolic skeleton preview (right half, desktop only) illustrates the picked
+ * design live, with a landscape/portrait toggle simulating the visitor's
+ * screen — a viewing aid that hides no design option, since orientation is
+ * the visitor's context, not a design parameter. Saves via
  * `PUT /api/config/gallery`, re-reading the draft first so the Themes tab's
  * items are never clobbered; defaults are stored as "no design" to keep
  * configs minimal.
@@ -110,6 +112,8 @@ export const GalleryDesignEditor: React.FC = () => {
   const [watermarkOpacity, setWatermarkOpacity] = useState(DEFAULT_GALLERY_WATERMARK_OPACITY);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Preview-only: simulates the visitor's screen, never persisted.
+  const [previewOrientation, setPreviewOrientation] = useState<PreviewOrientation>('landscape');
 
   useEffect(() => {
     let active = true;
@@ -184,19 +188,8 @@ export const GalleryDesignEditor: React.FC = () => {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
 
-  // The caption position is a LIST-mode setting; other modes place (or drop)
-  // the caption themselves and explain it under the disabled toggle.
-  const captionApplies = displayMode === 'list';
   /** Columns only mean something where items are tiled. */
   const tiledMode = displayMode === 'grid' || displayMode === 'mosaic';
-  const captionHintId: string | null =
-    displayMode === 'grid'
-      ? 'page.manage.gallery.captionPosition.gridHint'
-      : displayMode === 'mosaic'
-        ? 'page.manage.gallery.captionPosition.mosaicHint'
-        : displayMode === 'alternate'
-          ? 'page.manage.gallery.captionPosition.alternateHint'
-          : null;
 
   return (
     <Box sx={{ display: 'flex', gap: { md: 4, lg: 6 }, alignItems: 'flex-start', maxWidth: 1100 }}>
@@ -223,30 +216,29 @@ export const GalleryDesignEditor: React.FC = () => {
           </Typography>
         </Box>
 
-        <Box>
-          <Typography variant="subtitle2" gutterBottom id="gallery-caption-position-label">
-            <FormattedMessage id="page.manage.gallery.captionPosition" />
-          </Typography>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={captionPosition}
-            disabled={!captionApplies}
-            onChange={(_, value: GalleryCaptionPosition | null) => { if (value) setCaption(value); }}
-            aria-labelledby="gallery-caption-position-label"
-          >
-            {GALLERY_CAPTION_POSITIONS.map((position) => (
-              <ToggleButton key={position} value={position}>
-                <FormattedMessage id={`page.manage.gallery.captionPosition.${position}`} />
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-          {captionHintId && (
-            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-              <FormattedMessage id={captionHintId} />
+        {/* Ergonomic principle (see docs/contributing.md): an option that does
+            not apply to the selected mode is HIDDEN, not disabled. The stored
+            values survive mode switches — hiding is presentation only. */}
+        {displayMode === 'list' && (
+          <Box>
+            <Typography variant="subtitle2" gutterBottom id="gallery-caption-position-label">
+              <FormattedMessage id="page.manage.gallery.captionPosition" />
             </Typography>
-          )}
-        </Box>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={captionPosition}
+              onChange={(_, value: GalleryCaptionPosition | null) => { if (value) setCaption(value); }}
+              aria-labelledby="gallery-caption-position-label"
+            >
+              {GALLERY_CAPTION_POSITIONS.map((position) => (
+                <ToggleButton key={position} value={position}>
+                  <FormattedMessage id={`page.manage.gallery.captionPosition.${position}`} />
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+        )}
 
         <Box>
           <Typography variant="subtitle2" gutterBottom>
@@ -284,72 +276,70 @@ export const GalleryDesignEditor: React.FC = () => {
           />
         </Box>
 
-        <Box>
-          <Typography variant="subtitle2" gutterBottom id="gallery-columns-label">
-            <FormattedMessage id="page.manage.gallery.columns" />
-          </Typography>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={itemColumns}
-            disabled={!tiledMode}
-            onChange={(_, value: number | null) => { if (value) setColumns(value); }}
-            aria-labelledby="gallery-columns-label"
-          >
-            {COLUMN_CHOICES.map((count) => (
-              <ToggleButton key={count} value={count}>
-                {count}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-            <FormattedMessage
-              id={tiledMode ? 'page.manage.gallery.columns.hint' : 'page.manage.gallery.columns.tiledOnlyHint'}
-            />
-          </Typography>
-        </Box>
+        {tiledMode && (
+          <Box>
+            <Typography variant="subtitle2" gutterBottom id="gallery-columns-label">
+              <FormattedMessage id="page.manage.gallery.columns" />
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={itemColumns}
+              onChange={(_, value: number | null) => { if (value) setColumns(value); }}
+              aria-labelledby="gallery-columns-label"
+            >
+              {COLUMN_CHOICES.map((count) => (
+                <ToggleButton key={count} value={count}>
+                  {count}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+              <FormattedMessage id="page.manage.gallery.columns.hint" />
+            </Typography>
+          </Box>
+        )}
 
-        <Box>
-          <Typography variant="subtitle2" gutterBottom id="gallery-aspect-ratio-label">
-            <FormattedMessage id="page.manage.gallery.aspectRatio" />
-          </Typography>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={itemAspectRatio}
-            disabled={displayMode !== 'grid'}
-            onChange={(_, value: GalleryItemAspectRatio | null) => { if (value) setAspectRatio(value); }}
-            aria-labelledby="gallery-aspect-ratio-label"
-          >
-            {GALLERY_ITEM_ASPECT_RATIOS.map((ratio) => (
-              <ToggleButton key={ratio} value={ratio}>
-                {ratio === 'original' ? <FormattedMessage id="page.manage.gallery.aspectRatio.original" /> : ratio}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-          {displayMode === 'grid' && itemAspectRatio !== 'original' && (
-            <Box sx={{ mt: 1 }}>
-              <ToggleButtonGroup
-                size="small"
-                exclusive
-                value={itemFit}
-                onChange={(_, value: GalleryItemFit | null) => { if (value) setFit(value); }}
-                aria-label={intl.formatMessage({ id: 'page.manage.gallery.fit' })}
-              >
-                {GALLERY_ITEM_FITS.map((fit) => (
-                  <ToggleButton key={fit} value={fit}>
-                    <FormattedMessage id={`page.manage.gallery.fit.${fit}`} />
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </Box>
-          )}
-          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-            <FormattedMessage
-              id={displayMode === 'grid' ? 'page.manage.gallery.aspectRatio.hint' : 'page.manage.gallery.aspectRatio.gridOnlyHint'}
-            />
-          </Typography>
-        </Box>
+        {displayMode === 'grid' && (
+          <Box>
+            <Typography variant="subtitle2" gutterBottom id="gallery-aspect-ratio-label">
+              <FormattedMessage id="page.manage.gallery.aspectRatio" />
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={itemAspectRatio}
+              onChange={(_, value: GalleryItemAspectRatio | null) => { if (value) setAspectRatio(value); }}
+              aria-labelledby="gallery-aspect-ratio-label"
+            >
+              {GALLERY_ITEM_ASPECT_RATIOS.map((ratio) => (
+                <ToggleButton key={ratio} value={ratio}>
+                  {ratio === 'original' ? <FormattedMessage id="page.manage.gallery.aspectRatio.original" /> : ratio}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            {itemAspectRatio !== 'original' && (
+              <Box sx={{ mt: 1 }}>
+                <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  value={itemFit}
+                  onChange={(_, value: GalleryItemFit | null) => { if (value) setFit(value); }}
+                  aria-label={intl.formatMessage({ id: 'page.manage.gallery.fit' })}
+                >
+                  {GALLERY_ITEM_FITS.map((fit) => (
+                    <ToggleButton key={fit} value={fit}>
+                      <FormattedMessage id={`page.manage.gallery.fit.${fit}`} />
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
+            )}
+            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+              <FormattedMessage id="page.manage.gallery.aspectRatio.hint" />
+            </Typography>
+          </Box>
+        )}
 
         <Box>
           <Typography variant="subtitle2" gutterBottom id="gallery-spacing-label">
@@ -509,6 +499,8 @@ export const GalleryDesignEditor: React.FC = () => {
           itemAspectRatio={itemAspectRatio}
           itemFit={itemFit}
           itemSpacing={itemSpacing}
+          orientation={previewOrientation}
+          onOrientationChange={setPreviewOrientation}
         />
       </Box>
     </Box>

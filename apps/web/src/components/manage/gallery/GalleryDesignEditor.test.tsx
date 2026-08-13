@@ -148,24 +148,48 @@ describe('GalleryDesignEditor', () => {
     });
   });
 
-  it('enables the caption position for the list mode only, with per-mode hints', async () => {
+  it('shows only the options applicable to the selected display mode (hidden, not disabled)', async () => {
     renderEditor();
-    expect(await screen.findByRole('button', { name: /above/i })).not.toBeDisabled();
+    // list: caption position, but no columns and no tile ratio.
+    expect(await screen.findByRole('button', { name: /above/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '5' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '16:9' })).not.toBeInTheDocument();
 
+    // grid: columns and ratio appear, the caption position disappears entirely.
     fireEvent.click(screen.getByRole('button', { name: /grid/i }));
-    expect(screen.getByRole('button', { name: /above/i })).toBeDisabled();
-    expect(screen.getByText('In grid mode the caption always sits below the image.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /above/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '16:9' })).toBeInTheDocument();
 
+    // mosaic: columns stay, the ratio (grid-only) goes.
     fireEvent.click(screen.getByRole('button', { name: /mosaic/i }));
-    expect(screen.getByRole('button', { name: /above/i })).toBeDisabled();
-    expect(screen.getByText('Mosaic tiles show no caption — the title and subtitle appear in the zoom view.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '16:9' })).not.toBeInTheDocument();
 
+    // alternate: neither captions nor columns nor ratio.
     fireEvent.click(screen.getByRole('button', { name: /alternating/i }));
-    expect(screen.getByRole('button', { name: /above/i })).toBeDisabled();
-    expect(screen.getByText('The alternating display places the caption beside the image automatically.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /above/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '5' })).not.toBeInTheDocument();
 
-    // Back to the one mode where the caption applies.
+    // Back to list — the hidden option resurfaces with its stored value intact.
     fireEvent.click(screen.getByRole('button', { name: /^list$/i }));
-    expect(screen.getByRole('button', { name: /above/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /above/i })).toBeInTheDocument();
+  });
+
+  it('toggles the preview orientation without hiding any design option', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: /grid/i }));
+    expect(screen.getByTestId('gallery-preview-grid')).toHaveAttribute('data-orientation', 'landscape');
+
+    fireEvent.click(screen.getByRole('button', { name: /portrait/i }));
+    expect(screen.getByTestId('gallery-preview-grid')).toHaveAttribute('data-orientation', 'portrait');
+    // Orientation is the visitor's context, not a design choice: the same
+    // parameters stay visible and editable (columns included, even though a
+    // portrait phone collapses to one column).
+    expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: /maximum item width/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /landscape/i }));
+    expect(screen.getByTestId('gallery-preview-grid')).toHaveAttribute('data-orientation', 'landscape');
   });
 });
