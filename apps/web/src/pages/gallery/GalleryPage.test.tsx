@@ -276,7 +276,9 @@ describe('GalleryPage (public /gallery)', () => {
     });
     renderPage();
     const image = screen.getByRole('img', { name: 'A' });
-    expect(image.getAttribute('src')).toContain('l-text,ie-wqkgU3R1ZGlv,fs-49,co-FFFFFFFF,lfo-center,l-end');
+    expect(image.getAttribute('src')).toContain(
+      'l-text,ie-wqkgU3R1ZGlv,fs-49,co-FFFFFFFF,w-972,ia-center,pa-29,lfo-center,l-end',
+    );
     expect(image.getAttribute('srcset')).toContain('l-text,ie-wqkgU3R1ZGlv');
 
     // …and the zoom rendition carries it too.

@@ -57,8 +57,11 @@ describe('ikWatermarkLayer', () => {
 
   it('builds the CDN text layer — base64 text, absolute font size, alpha in the color', () => {
     // 60 % of 255 = 153 = 0x99; the font size is ~4.5 % of the rendition width.
+    // The text box is bounded at 90 % of the rendition (wraps beyond), aligned
+    // toward the anchored side and inset by a font-proportional padding — an
+    // unbounded layer gets clipped at the image edge by the CDN.
     expect(ikWatermarkLayer(watermark, 1000)).toBe(
-      ',l-text,ie-wqkgU3R1ZGlv,fs-45,co-FFFFFF99,lfo-bottom_right,l-end',
+      ',l-text,ie-wqkgU3R1ZGlv,fs-45,co-FFFFFF99,w-900,ia-right,pa-27,lfo-bottom_right,l-end',
     );
   });
 
@@ -67,9 +70,15 @@ describe('ikWatermarkLayer', () => {
     expect(ikWatermarkLayer(watermark, 100)).toContain('fs-12');
   });
 
-  it('maps every position to its CDN focus value', () => {
-    expect(ikWatermarkLayer({ ...watermark, position: 'topLeft' }, 800)).toContain('lfo-top_left');
-    expect(ikWatermarkLayer({ ...watermark, position: 'center' }, 800)).toContain('lfo-center');
+  it('maps every position to its CDN focus, aligning the text toward that side', () => {
+    const topLeft = ikWatermarkLayer({ ...watermark, position: 'topLeft' }, 800);
+    expect(topLeft).toContain('lfo-top_left');
+    expect(topLeft).toContain(',ia-left,');
+    const center = ikWatermarkLayer({ ...watermark, position: 'center' }, 800);
+    expect(center).toContain('lfo-center');
+    expect(center).toContain(',ia-center,');
+    // The width bound scales with the rendition, like the font size.
+    expect(center).toContain(',w-720,');
   });
 
   it('encodes non-ASCII text safely and is empty without a watermark', () => {

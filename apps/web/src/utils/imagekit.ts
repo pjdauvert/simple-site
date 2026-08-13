@@ -37,7 +37,12 @@ export const ikTransform = (url: string, transformation: string): string =>
 //    a responsive `srcSet`;
 //  - the layer opacity parameter is rejected too, so the opacity rides in the
 //    color's alpha channel (`co-RRGGBBAA`);
-//  - positions map to `lfo-<focus>`.
+//  - positions map to `lfo-<focus>` — but an unbounded text layer wider than
+//    the image gets CLIPPED at the edge (most visibly with right anchors), so
+//    every layer bounds its text at 90 % of the rendition (`w`, wraps beyond),
+//    aligns it inside the box toward the anchored side (`ia`) and insets it
+//    from the edges with a font-proportional padding (`pa`) — that trio keeps
+//    the mark fully readable at every position.
 // ---------------------------------------------------------------------------
 
 /** The watermark a public rendition carries, resolved from the gallery design. */
@@ -50,12 +55,13 @@ export interface IkWatermark {
   opacity: number;
 }
 
-const IK_WATERMARK_FOCUS: Record<GalleryWatermarkPosition, string> = {
-  bottomRight: 'bottom_right',
-  bottomLeft: 'bottom_left',
-  topRight: 'top_right',
-  topLeft: 'top_left',
-  center: 'center',
+/** CDN anchor of each position, and the matching alignment inside the text box. */
+const IK_WATERMARK_FOCUS: Record<GalleryWatermarkPosition, { focus: string; align: 'left' | 'center' | 'right' }> = {
+  bottomRight: { focus: 'bottom_right', align: 'right' },
+  bottomLeft: { focus: 'bottom_left', align: 'left' },
+  topRight: { focus: 'top_right', align: 'right' },
+  topLeft: { focus: 'top_left', align: 'left' },
+  center: { focus: 'center', align: 'center' },
 };
 
 /** Font size of the mark on a rendition: ~4.5 % of its width, never microscopic. */
@@ -81,9 +87,12 @@ export const ikWatermarkLayer = (watermark: IkWatermark | undefined, renditionWi
     .padStart(2, '0')
     .toUpperCase();
   const color = `${watermark.color.replace('#', '').toUpperCase()}${alpha}`;
+  const fontSize = watermarkFontSize(renditionWidth);
+  const { focus, align } = IK_WATERMARK_FOCUS[watermark.position];
   return (
-    `,l-text,ie-${base64Utf8(text)},fs-${watermarkFontSize(renditionWidth)}` +
-    `,co-${color},lfo-${IK_WATERMARK_FOCUS[watermark.position]},l-end`
+    `,l-text,ie-${base64Utf8(text)},fs-${fontSize},co-${color}` +
+    `,w-${Math.round(renditionWidth * 0.9)},ia-${align},pa-${Math.max(6, Math.round(fontSize * 0.6))}` +
+    `,lfo-${focus},l-end`
   );
 };
 
