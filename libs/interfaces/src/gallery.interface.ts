@@ -44,7 +44,14 @@ export const DEFAULT_GALLERY_DISPLAY_MODE: GalleryDisplayMode = 'list';
 export const GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN = 10;
 export const GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX = 100;
 
-/** Bounds/defaults of the item frame options (elevation / border / corners). */
+/**
+ * Bounds/defaults of the item frame options (elevation / border / corners).
+ *
+ * The elevation steps are the ONLY ones the platform's visual identity
+ * defines (its shadow scale fills every other index with `none`), so the
+ * editor offers exactly these — any other value would silently render flat.
+ */
+export const GALLERY_ITEM_ELEVATION_STEPS = [0, 1, 2, 4, 8, 16, 24] as const;
 export const GALLERY_ITEM_ELEVATION_MAX = 24;
 export const GALLERY_ITEM_CORNER_RADIUS_MAX = 48;
 /** Corner radius rendered when the design does not set one (px). */
@@ -97,8 +104,19 @@ export const GalleryDesignSchema = z.object({
     .min(GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN)
     .max(GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX)
     .optional(),
-  /** Shadow elevation of each item's image tile (MUI scale, 0–24). Absent/0 → flat. */
-  itemElevation: z.number().int().min(0).max(GALLERY_ITEM_ELEVATION_MAX).optional(),
+  /**
+   * Shadow elevation of each item's image tile — one of
+   * {@link GALLERY_ITEM_ELEVATION_STEPS}. Absent/0 → flat.
+   */
+  itemElevation: z
+    .number()
+    .int()
+    .min(0)
+    .max(GALLERY_ITEM_ELEVATION_MAX)
+    .refine((value) => (GALLERY_ITEM_ELEVATION_STEPS as readonly number[]).includes(value), {
+      message: 'Unsupported elevation step',
+    })
+    .optional(),
   /** Solid border around each item's image tile. Absent/false → none. */
   itemBorder: z.boolean().optional(),
   /** Border color (any CSS color); empty/absent → the theme's primary color. */

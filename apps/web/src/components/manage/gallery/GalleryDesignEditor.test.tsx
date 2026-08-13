@@ -121,7 +121,16 @@ describe('GalleryDesignEditor', () => {
 
   it('saves the frame options — elevation and radius sliders, border switch and its color', async () => {
     renderEditor();
-    fireEvent.change(await screen.findByRole('slider', { name: /elevation/i }), { target: { value: 8 } });
+    // The elevation slider only offers the platform's shadow steps
+    // (0/1/2/4/8/16/24). A marks-only MUI slider moves ONE mark per change
+    // event (and jumps straight to the last mark for any value beyond it), so
+    // nudge just above the current value four times: 0 → 1 → 2 → 4 → 8.
+    const elevation = await screen.findByRole('slider', { name: /elevation/i });
+    for (let step = 0; step < 4; step += 1) {
+      fireEvent.change(elevation, { target: { value: Number((elevation as HTMLInputElement).value) + 1 } });
+    }
+    expect(elevation).toHaveValue('8');
+
     fireEvent.change(screen.getByRole('slider', { name: /corner radius/i }), { target: { value: 0 } });
     // The color field only appears once the border is on.
     expect(screen.queryByLabelText(/border color/i)).not.toBeInTheDocument();

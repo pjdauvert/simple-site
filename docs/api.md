@@ -132,7 +132,8 @@ Replaces the `gallery` of the **draft** — the themed image gallery (see [confi
 // captionPosition ("above" | "below" (default) | "left" | "right") applies to the list mode only;
 // itemMaxWidthPercent (int, 10-100, % of the screen width) caps each item's image
 // in every mode — landscape screens only;
-// item frame: itemElevation (int 0-24), itemBorder (bool) + itemBorderColor
+// item frame: itemElevation (0|1|2|4|8|16|24 — the platform's shadow steps),
+// itemBorder (bool) + itemBorderColor
 // (CSS color, empty = theme primary), itemCornerRadius (int 0-48 px)
 
 

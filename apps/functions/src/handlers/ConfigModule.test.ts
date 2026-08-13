@@ -421,7 +421,9 @@ describe('ConfigModule', () => {
     expect(res.status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual(design);
 
-    for (const bad of [{ itemElevation: 30 }, { itemCornerRadius: 60 }, { itemElevation: 2.5 }]) {
+    // 12 is off the platform's shadow scale (it would render flat) — rejected
+    // like an out-of-range or fractional value.
+    for (const bad of [{ itemElevation: 30 }, { itemCornerRadius: 60 }, { itemElevation: 2.5 }, { itemElevation: 12 }]) {
       expect(
         (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design: bad }))).status,
       ).toBe(500);

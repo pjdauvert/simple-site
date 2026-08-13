@@ -22,6 +22,7 @@ import {
   DEFAULT_GALLERY_ITEM_CORNER_RADIUS,
   GALLERY_ITEM_CORNER_RADIUS_MAX,
   GALLERY_ITEM_ELEVATION_MAX,
+  GALLERY_ITEM_ELEVATION_STEPS,
   GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX,
   GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN,
   type GalleryCaptionPosition,
@@ -233,12 +234,16 @@ export const GalleryDesignEditor: React.FC = () => {
               <Typography variant="caption" color="text.secondary" id="gallery-item-elevation-label">
                 <FormattedMessage id="page.manage.gallery.frame.elevation" />
               </Typography>
+              {/* Only the platform's real shadow steps are offered — every
+                  other index of its scale renders flat (see muiTheme). */}
               <Slider
                 size="small"
                 value={itemElevation}
                 onChange={(_, value) => setElevation(value as number)}
                 min={0}
                 max={GALLERY_ITEM_ELEVATION_MAX}
+                step={null}
+                marks={GALLERY_ITEM_ELEVATION_STEPS.map((value) => ({ value }))}
                 valueLabelDisplay="auto"
                 aria-label={intl.formatMessage({ id: 'page.manage.gallery.frame.elevation' })}
               />
