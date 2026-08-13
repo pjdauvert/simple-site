@@ -482,8 +482,22 @@ export const GalleryDesignEditor: React.FC = () => {
         </Box>
       </Stack>
 
-      {/* Symbolic preview of the picked design — right half, desktop only. */}
-      <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', md: 'block' } }}>
+      {/* Symbolic preview of the picked design — right half, desktop only.
+          The settings column is long, so the preview sticks under the fixed
+          admin AppBar (64 px) and stays in view while the form scrolls; a
+          taller skeleton scrolls inside its own box rather than overflowing. */}
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          display: { xs: 'none', md: 'block' },
+          position: 'sticky',
+          top: 88,
+          alignSelf: 'flex-start',
+          maxHeight: 'calc(100vh - 112px)',
+          overflowY: 'auto',
+        }}
+      >
         <GalleryDesignPreview
           displayMode={displayMode}
           captionPosition={captionPosition}
