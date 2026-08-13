@@ -2,8 +2,9 @@ import { Box, Typography } from '@mui/material';
 import { FormattedMessage } from 'react-intl';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { GalleryCaptionPosition, GalleryDisplayMode } from '@simple-site/interfaces';
+import { itemFrameSx, type GalleryItemFrame } from '../../../pages/gallery/galleryDisplay';
 
-interface GalleryDesignPreviewProps {
+interface GalleryDesignPreviewProps extends GalleryItemFrame {
   displayMode: GalleryDisplayMode;
   captionPosition: GalleryCaptionPosition;
 }
@@ -13,17 +14,26 @@ interface GalleryDesignPreviewProps {
  * to help the admin choose: solid rectangles stand for the images, solid bars
  * for the title/subtitle text lines. It mirrors the real rendering rules:
  * caption placement applies in list mode only, grid always captions below,
- * mosaic tiles carry no caption at all, and the alternation places captions
- * itself in alternate mode. Purely decorative (aria-hidden); the parent hides
- * it on mobile.
+ * mosaic tiles carry no caption at all, the alternation places captions itself
+ * in alternate mode, and the frame options (elevation / border / corners) are
+ * applied to the image rectangles through the exact `itemFrameSx` the public
+ * views use. Purely decorative (aria-hidden); the parent hides it on mobile.
  */
-export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({ displayMode, captionPosition }) => {
+export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
+  displayMode,
+  captionPosition,
+  itemElevation,
+  itemBorder,
+  itemBorderColor,
+  itemCornerRadius,
+}) => {
   const captionFirst = captionPosition === 'above' || captionPosition === 'left';
   const sideCaption = captionPosition === 'left' || captionPosition === 'right';
+  const frame = itemFrameSx({ itemElevation, itemBorder, itemBorderColor, itemCornerRadius });
 
-  /** A solid rectangle standing for an image. */
+  /** A solid rectangle standing for an image, framed like the real tiles. */
   const imageBlock = (sx: SxProps<Theme>): React.ReactNode => (
-    <Box key="image" sx={{ bgcolor: 'action.selected', borderRadius: 0.5, flexShrink: 0, ...sx }} />
+    <Box key="image" sx={{ bgcolor: 'action.selected', flexShrink: 0, ...frame, ...sx }} />
   );
 
   /** Two solid bars standing for the title and subtitle text lines. */

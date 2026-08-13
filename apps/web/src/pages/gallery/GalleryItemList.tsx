@@ -9,7 +9,7 @@ import {
 } from '@simple-site/interfaces';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { ikSrcSet, ikTransform } from '../../utils/imagekit';
-import { itemWidthCapSx, type DisplayableGalleryItem } from './galleryDisplay';
+import { itemFrameSx, itemWidthCapSx, type DisplayableGalleryItem, type GalleryItemFrame } from './galleryDisplay';
 import { GalleryLightbox } from './GalleryLightbox';
 
 /** Delivery buckets for the list/alternate shots — they can span the container. */
@@ -22,7 +22,7 @@ const GRID_SIZES = '(min-width: 900px) 33vw, (min-width: 600px) 50vw, 100vw';
 /** Alternate rows give the image roughly the wider side of the row. */
 const ALTERNATE_SIZES = '(min-width: 900px) 58vw, 100vw';
 
-interface GalleryItemListProps {
+interface GalleryItemListProps extends GalleryItemFrame {
   /** Displayable entries (image present), with their config positions for i18n. */
   entries: DisplayableGalleryItem[];
   /** i18n scope of the list (`gallery` or `gallery.theme.<themeId>`). */
@@ -57,6 +57,10 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   captionPosition,
   displayMode,
   itemMaxWidthPercent,
+  itemElevation,
+  itemBorder,
+  itemBorderColor,
+  itemCornerRadius,
 }) => {
   const intl = useIntl();
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
@@ -100,11 +104,11 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
       sx={{
         display: 'block',
         maxWidth: '100%',
-        // The design's per-item cap (% of the screen, landscape only) applies
-        // to the clickable image in every mode.
+        // The design's per-item cap (% of the screen, landscape only) and the
+        // frame options apply to the clickable image in every mode.
         ...itemWidthCapSx(itemMaxWidthPercent),
+        ...itemFrameSx({ itemElevation, itemBorder, itemBorderColor, itemCornerRadius }),
         cursor: 'zoom-in',
-        borderRadius: 1,
         overflow: 'hidden',
         ...buttonSx,
       }}

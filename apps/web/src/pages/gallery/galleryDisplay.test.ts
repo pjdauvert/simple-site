@@ -5,6 +5,7 @@ import {
   displayableThemes,
   galleryPageTitle,
   galleryThemeRoute,
+  itemFrameSx,
   itemWidthCapSx,
 } from './galleryDisplay';
 
@@ -58,6 +59,29 @@ describe('itemWidthCapSx', () => {
 
   it('is empty without a cap — the mode keeps its natural width everywhere', () => {
     expect(itemWidthCapSx(undefined)).toEqual({});
+  });
+});
+
+describe('itemFrameSx', () => {
+  it('frames the tile with the design elevation, border and corner radius', () => {
+    expect(itemFrameSx({ itemElevation: 6, itemBorder: true, itemBorderColor: '#123456', itemCornerRadius: 12 })).toEqual({
+      borderRadius: '12px',
+      boxShadow: 6, // numeric sx boxShadow = the MUI elevation scale
+      border: '2px solid',
+      borderColor: '#123456',
+    });
+  });
+
+  it('defaults to the base radius, flat and borderless — with the theme primary as border fallback', () => {
+    expect(itemFrameSx({})).toEqual({ borderRadius: '4px' });
+    // Radius 0 (sharp corners) is a real value, distinct from "unset".
+    expect(itemFrameSx({ itemCornerRadius: 0 })).toEqual({ borderRadius: '0px' });
+    // A border without a color falls back to the theme's primary.
+    expect(itemFrameSx({ itemBorder: true, itemBorderColor: '  ' })).toEqual({
+      borderRadius: '4px',
+      border: '2px solid',
+      borderColor: 'primary.main',
+    });
   });
 });
 

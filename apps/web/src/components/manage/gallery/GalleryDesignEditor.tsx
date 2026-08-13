@@ -3,8 +3,11 @@ import {
   Alert,
   Box,
   Button,
+  FormControlLabel,
   InputAdornment,
+  Slider,
   Stack,
+  Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -16,6 +19,9 @@ import {
   DEFAULT_GALLERY_DISPLAY_MODE,
   GALLERY_CAPTION_POSITIONS,
   GALLERY_DISPLAY_MODES,
+  DEFAULT_GALLERY_ITEM_CORNER_RADIUS,
+  GALLERY_ITEM_CORNER_RADIUS_MAX,
+  GALLERY_ITEM_ELEVATION_MAX,
   GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX,
   GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN,
   type GalleryCaptionPosition,
@@ -25,7 +31,17 @@ import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useNotifications } from '../../../hooks/useNotifications';
-import { emptyGallery, setCaptionPosition, setDisplayMode, setItemMaxWidthPercent } from './galleryDraft';
+import { ColorField } from '../themes/ColorField';
+import {
+  emptyGallery,
+  setCaptionPosition,
+  setDisplayMode,
+  setItemBorder,
+  setItemBorderColor,
+  setItemCornerRadius,
+  setItemElevation,
+  setItemMaxWidthPercent,
+} from './galleryDraft';
 import { GalleryDesignPreview } from './GalleryDesignPreview';
 
 /**
@@ -48,6 +64,10 @@ export const GalleryDesignEditor: React.FC = () => {
   const [displayMode, setMode] = useState<GalleryDisplayMode>(DEFAULT_GALLERY_DISPLAY_MODE);
   // Empty field = no cap (the default) — kept as undefined, never 0.
   const [itemMaxWidthPercent, setWidth] = useState<number | undefined>(undefined);
+  const [itemElevation, setElevation] = useState(0);
+  const [itemBorder, setBorderOn] = useState(false);
+  const [itemBorderColor, setBorderColor] = useState('');
+  const [itemCornerRadius, setCornerRadius] = useState(DEFAULT_GALLERY_ITEM_CORNER_RADIUS);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -59,6 +79,10 @@ export const GalleryDesignEditor: React.FC = () => {
         setCaption(config.gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION);
         setMode(config.gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE);
         setWidth(config.gallery?.design?.itemMaxWidthPercent);
+        setElevation(config.gallery?.design?.itemElevation ?? 0);
+        setBorderOn(config.gallery?.design?.itemBorder ?? false);
+        setBorderColor(config.gallery?.design?.itemBorderColor ?? '');
+        setCornerRadius(config.gallery?.design?.itemCornerRadius ?? DEFAULT_GALLERY_ITEM_CORNER_RADIUS);
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.load' }));
@@ -78,12 +102,15 @@ export const GalleryDesignEditor: React.FC = () => {
     try {
       // Merge over the freshest draft so the Themes tab's items survive.
       const fresh = (await loadDraftConfig()).gallery ?? emptyGallery();
-      await updateGallery(
-        setItemMaxWidthPercent(
-          setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode),
-          itemMaxWidthPercent,
-        ),
+      let merged = setItemMaxWidthPercent(
+        setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode),
+        itemMaxWidthPercent,
       );
+      merged = setItemCornerRadius(
+        setItemBorderColor(setItemBorder(setItemElevation(merged, itemElevation), itemBorder), itemBorderColor),
+        itemCornerRadius,
+      );
+      await updateGallery(merged);
       notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
     } catch (err) {
       notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.save' }));
@@ -198,6 +225,54 @@ export const GalleryDesignEditor: React.FC = () => {
         </Box>
 
         <Box>
+          <Typography variant="subtitle2" gutterBottom>
+            <FormattedMessage id="page.manage.gallery.frame" />
+          </Typography>
+          <Stack spacing={2} sx={{ maxWidth: 360 }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary" id="gallery-item-elevation-label">
+                <FormattedMessage id="page.manage.gallery.frame.elevation" />
+              </Typography>
+              <Slider
+                size="small"
+                value={itemElevation}
+                onChange={(_, value) => setElevation(value as number)}
+                min={0}
+                max={GALLERY_ITEM_ELEVATION_MAX}
+                valueLabelDisplay="auto"
+                aria-label={intl.formatMessage({ id: 'page.manage.gallery.frame.elevation' })}
+              />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary" id="gallery-item-radius-label">
+                <FormattedMessage id="page.manage.gallery.frame.cornerRadius" />
+              </Typography>
+              <Slider
+                size="small"
+                value={itemCornerRadius}
+                onChange={(_, value) => setCornerRadius(value as number)}
+                min={0}
+                max={GALLERY_ITEM_CORNER_RADIUS_MAX}
+                valueLabelDisplay="auto"
+                aria-label={intl.formatMessage({ id: 'page.manage.gallery.frame.cornerRadius' })}
+              />
+            </Box>
+            <FormControlLabel
+              control={<Switch checked={itemBorder} onChange={(_, checked) => setBorderOn(checked)} />}
+              label={<FormattedMessage id="page.manage.gallery.frame.border" />}
+            />
+            {itemBorder && (
+              <ColorField
+                label={intl.formatMessage({ id: 'page.manage.gallery.frame.borderColor' })}
+                value={itemBorderColor}
+                onChange={setBorderColor}
+                helperText={<FormattedMessage id="page.manage.gallery.frame.borderColor.hint" />}
+              />
+            )}
+          </Stack>
+        </Box>
+
+        <Box>
           <Button variant="contained" onClick={handleSave} disabled={submitting || widthInvalid}>
             {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.gallery.save" />}
           </Button>
@@ -206,7 +281,14 @@ export const GalleryDesignEditor: React.FC = () => {
 
       {/* Symbolic preview of the picked design — right half, desktop only. */}
       <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', md: 'block' } }}>
-        <GalleryDesignPreview displayMode={displayMode} captionPosition={captionPosition} />
+        <GalleryDesignPreview
+          displayMode={displayMode}
+          captionPosition={captionPosition}
+          itemElevation={itemElevation}
+          itemBorder={itemBorder}
+          itemBorderColor={itemBorderColor}
+          itemCornerRadius={itemCornerRadius}
+        />
       </Box>
     </Box>
   );

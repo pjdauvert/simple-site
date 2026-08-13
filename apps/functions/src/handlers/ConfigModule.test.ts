@@ -414,6 +414,20 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ displayMode: 'mosaic' });
   });
 
+  it('PUT /api/config/gallery accepts the frame options and rejects out-of-range ones', async () => {
+    const { data } = makeStore();
+    const design = { itemElevation: 8, itemBorder: true, itemBorderColor: '#123456', itemCornerRadius: 0 };
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design }));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual(design);
+
+    for (const bad of [{ itemElevation: 30 }, { itemCornerRadius: 60 }, { itemElevation: 2.5 }]) {
+      expect(
+        (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design: bad }))).status,
+      ).toBe(500);
+    }
+  });
+
   it('PUT /api/config/gallery accepts an in-range itemMaxWidthPercent and rejects out-of-range ones', async () => {
     const { data } = makeStore();
     const capped = { items: [], themes: [], design: { itemMaxWidthPercent: 60 } };

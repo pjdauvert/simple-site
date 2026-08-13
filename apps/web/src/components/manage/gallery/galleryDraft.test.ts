@@ -13,6 +13,10 @@ import {
   renameTheme,
   setCaptionPosition,
   setDisplayMode,
+  setItemBorder,
+  setItemBorderColor,
+  setItemCornerRadius,
+  setItemElevation,
   setItemMaxWidthPercent,
   updateItem,
 } from './galleryDraft';
@@ -116,6 +120,17 @@ describe('design settings', () => {
     expect(listAgain.design).toEqual({ captionPosition: 'left' });
     // …and once everything is default the design disappears entirely.
     expect('design' in setCaptionPosition(listAgain, 'below')).toBe(false);
+  });
+
+  it('stores only frame deviations — flat, borderless and the default radius all collapse', () => {
+    const framed = setItemCornerRadius(setItemBorderColor(setItemBorder(setItemElevation(seeded(), 8), true), '#123456'), 0);
+    expect(framed.design).toEqual({ itemElevation: 8, itemBorder: true, itemBorderColor: '#123456', itemCornerRadius: 0 });
+
+    // Turning the border off also drops its stored color…
+    const noBorder = setItemBorder(framed, false);
+    expect(noBorder.design).toEqual({ itemElevation: 8, itemCornerRadius: 0 });
+    // …and returning every field to its default drops the design entirely.
+    expect('design' in setItemCornerRadius(setItemElevation(noBorder, 0), 4)).toBe(false);
   });
 
   it('stores the per-item width cap (%) and clears it back to "no design" with undefined', () => {

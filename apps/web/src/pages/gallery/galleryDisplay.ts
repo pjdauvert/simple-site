@@ -1,6 +1,7 @@
 import {
   DEFAULT_GALLERY_CAPTION_POSITION,
   DEFAULT_GALLERY_DISPLAY_MODE,
+  DEFAULT_GALLERY_ITEM_CORNER_RADIUS,
   FEATURE_PAGE_ROUTES,
   FeaturePagesEnum,
   featureEntryLabel,
@@ -47,12 +48,44 @@ export interface GalleryDisplaySettings {
   displayMode: GalleryDisplayMode;
   /** Per-item width cap in % of the screen width; undefined = the mode's natural width. */
   itemMaxWidthPercent?: number;
+  /** Shadow elevation of the image tiles (MUI scale); undefined/0 = flat. */
+  itemElevation?: number;
+  /** Solid border around the image tiles; undefined/false = none. */
+  itemBorder?: boolean;
+  /** Border color; empty/undefined = the theme's primary color. */
+  itemBorderColor?: string;
+  /** Tile corner radius in px; undefined = {@link DEFAULT_GALLERY_ITEM_CORNER_RADIUS}. */
+  itemCornerRadius?: number;
 }
 
 export const galleryDisplaySettings = (gallery: GalleryConfig | undefined): GalleryDisplaySettings => ({
   captionPosition: gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION,
   displayMode: gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE,
   itemMaxWidthPercent: gallery?.design?.itemMaxWidthPercent,
+  itemElevation: gallery?.design?.itemElevation,
+  itemBorder: gallery?.design?.itemBorder,
+  itemBorderColor: gallery?.design?.itemBorderColor,
+  itemCornerRadius: gallery?.design?.itemCornerRadius,
+});
+
+/** The frame options `itemFrameSx` consumes — the design's tile "chrome". */
+export type GalleryItemFrame = Pick<
+  GalleryDisplaySettings,
+  'itemElevation' | 'itemBorder' | 'itemBorderColor' | 'itemCornerRadius'
+>;
+
+/**
+ * The sx fragment framing each item's image tile per the design, identical in
+ * every display mode (numeric `boxShadow` maps to the MUI elevation scale, and
+ * an empty border color falls back to the theme's primary). The admin preview
+ * reuses it so the skeleton mirrors the real chrome.
+ */
+export const itemFrameSx = (frame: GalleryItemFrame): Record<string, unknown> => ({
+  borderRadius: `${frame.itemCornerRadius ?? DEFAULT_GALLERY_ITEM_CORNER_RADIUS}px`,
+  ...(frame.itemElevation ? { boxShadow: frame.itemElevation } : {}),
+  ...(frame.itemBorder
+    ? { border: '2px solid', borderColor: frame.itemBorderColor?.trim() || 'primary.main' }
+    : {}),
 });
 
 /**

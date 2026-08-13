@@ -119,6 +119,26 @@ describe('GalleryDesignEditor', () => {
     expect(screen.getByRole('button', { name: /save gallery/i })).not.toBeDisabled();
   });
 
+  it('saves the frame options — elevation and radius sliders, border switch and its color', async () => {
+    renderEditor();
+    fireEvent.change(await screen.findByRole('slider', { name: /elevation/i }), { target: { value: 8 } });
+    fireEvent.change(screen.getByRole('slider', { name: /corner radius/i }), { target: { value: 0 } });
+    // The color field only appears once the border is on.
+    expect(screen.queryByLabelText(/border color/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /^border$/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: /border color/i }), { target: { value: '#123456' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+    });
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
+      items: seeded.items,
+      themes: [],
+      design: { itemElevation: 8, itemBorder: true, itemBorderColor: '#123456', itemCornerRadius: 0 },
+    });
+  });
+
   it('enables the caption position for the list mode only, with per-mode hints', async () => {
     renderEditor();
     expect(await screen.findByRole('button', { name: /above/i })).not.toBeDisabled();

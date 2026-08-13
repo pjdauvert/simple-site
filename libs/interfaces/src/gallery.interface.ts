@@ -44,6 +44,12 @@ export const DEFAULT_GALLERY_DISPLAY_MODE: GalleryDisplayMode = 'list';
 export const GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN = 10;
 export const GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX = 100;
 
+/** Bounds/defaults of the item frame options (elevation / border / corners). */
+export const GALLERY_ITEM_ELEVATION_MAX = 24;
+export const GALLERY_ITEM_CORNER_RADIUS_MAX = 48;
+/** Corner radius rendered when the design does not set one (px). */
+export const DEFAULT_GALLERY_ITEM_CORNER_RADIUS = 4;
+
 export const GalleryItemSchema = z.object({
   /**
    * Public URL of the image, typically picked from the media library. Optional
@@ -91,6 +97,17 @@ export const GalleryDesignSchema = z.object({
     .min(GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN)
     .max(GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX)
     .optional(),
+  /** Shadow elevation of each item's image tile (MUI scale, 0–24). Absent/0 → flat. */
+  itemElevation: z.number().int().min(0).max(GALLERY_ITEM_ELEVATION_MAX).optional(),
+  /** Solid border around each item's image tile. Absent/false → none. */
+  itemBorder: z.boolean().optional(),
+  /** Border color (any CSS color); empty/absent → the theme's primary color. */
+  itemBorderColor: z.string().max(64).optional(),
+  /**
+   * Corner radius of the image tiles, px (0–48; 0 = sharp corners). Absent →
+   * {@link DEFAULT_GALLERY_ITEM_CORNER_RADIUS}.
+   */
+  itemCornerRadius: z.number().int().min(0).max(GALLERY_ITEM_CORNER_RADIUS_MAX).optional(),
 });
 
 export type GalleryDesign = z.infer<typeof GalleryDesignSchema>;

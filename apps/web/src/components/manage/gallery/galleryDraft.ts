@@ -1,6 +1,7 @@
 import {
   DEFAULT_GALLERY_CAPTION_POSITION,
   DEFAULT_GALLERY_DISPLAY_MODE,
+  DEFAULT_GALLERY_ITEM_CORNER_RADIUS,
   type GalleryCaptionPosition,
   type GalleryConfig,
   type GalleryDesign,
@@ -120,6 +121,21 @@ const normalizeDesign = (design: GalleryDesign): GalleryDesign | undefined => {
   if (design.itemMaxWidthPercent !== undefined) {
     next.itemMaxWidthPercent = design.itemMaxWidthPercent;
   }
+  // Frame options: flat (0), borderless and the default radius are the
+  // defaults — only deviations are stored. The border color only exists
+  // while the border itself is on.
+  if (design.itemElevation) {
+    next.itemElevation = design.itemElevation;
+  }
+  if (design.itemBorder) {
+    next.itemBorder = true;
+    if (design.itemBorderColor?.trim()) {
+      next.itemBorderColor = design.itemBorderColor.trim();
+    }
+  }
+  if (design.itemCornerRadius !== undefined && design.itemCornerRadius !== DEFAULT_GALLERY_ITEM_CORNER_RADIUS) {
+    next.itemCornerRadius = design.itemCornerRadius;
+  }
   return Object.keys(next).length > 0 ? next : undefined;
 };
 
@@ -144,3 +160,19 @@ export const setItemMaxWidthPercent = (
   gallery: GalleryConfig,
   itemMaxWidthPercent: number | undefined,
 ): GalleryConfig => withDesign(gallery, { itemMaxWidthPercent });
+
+/** Sets the tile shadow elevation (MUI scale); 0 collapses back to flat (the default). */
+export const setItemElevation = (gallery: GalleryConfig, itemElevation: number): GalleryConfig =>
+  withDesign(gallery, { itemElevation });
+
+/** Toggles the tile border; turning it off also drops the stored border color. */
+export const setItemBorder = (gallery: GalleryConfig, itemBorder: boolean): GalleryConfig =>
+  withDesign(gallery, { itemBorder });
+
+/** Sets the tile border color (empty → theme primary; only stored while the border is on). */
+export const setItemBorderColor = (gallery: GalleryConfig, itemBorderColor: string): GalleryConfig =>
+  withDesign(gallery, { itemBorderColor });
+
+/** Sets the tile corner radius (px); the default radius collapses to "not stored". */
+export const setItemCornerRadius = (gallery: GalleryConfig, itemCornerRadius: number): GalleryConfig =>
+  withDesign(gallery, { itemCornerRadius });
