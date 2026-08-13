@@ -40,9 +40,9 @@ export type GalleryDisplayMode = z.infer<typeof GalleryDisplayModeSchema>;
 /** Display mode when the design does not set one. */
 export const DEFAULT_GALLERY_DISPLAY_MODE: GalleryDisplayMode = 'list';
 
-/** Bounds of the optional per-item width cap (px). */
-export const GALLERY_ITEM_MAX_WIDTH_MIN = 100;
-export const GALLERY_ITEM_MAX_WIDTH_MAX = 2400;
+/** Bounds of the optional per-item width cap (% of the screen width). */
+export const GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN = 10;
+export const GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX = 100;
 
 export const GalleryItemSchema = z.object({
   /**
@@ -79,11 +79,18 @@ export const GalleryDesignSchema = z.object({
   /** Absent → {@link DEFAULT_GALLERY_DISPLAY_MODE}, keeping stored configs minimal. */
   displayMode: GalleryDisplayModeSchema.optional(),
   /**
-   * Maximum rendered width of each item's image, in px — caps the clickable
-   * image in every display mode (the zoom view is unaffected). Absent → the
-   * mode's natural width (full column/cell).
+   * Maximum rendered width of each item's image, as a PERCENTAGE of the screen
+   * width (the exact resolution is never known in advance) — caps the
+   * clickable image in every display mode, on LANDSCAPE screens only (height
+   * smaller than width; portrait keeps the mode's natural width). The zoom
+   * view is unaffected. Absent → no cap.
    */
-  itemMaxWidth: z.number().int().min(GALLERY_ITEM_MAX_WIDTH_MIN).max(GALLERY_ITEM_MAX_WIDTH_MAX).optional(),
+  itemMaxWidthPercent: z
+    .number()
+    .int()
+    .min(GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN)
+    .max(GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX)
+    .optional(),
 });
 
 export type GalleryDesign = z.infer<typeof GalleryDesignSchema>;

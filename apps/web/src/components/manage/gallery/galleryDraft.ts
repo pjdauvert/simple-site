@@ -117,8 +117,8 @@ const normalizeDesign = (design: GalleryDesign): GalleryDesign | undefined => {
   if (design.displayMode && design.displayMode !== DEFAULT_GALLERY_DISPLAY_MODE) {
     next.displayMode = design.displayMode;
   }
-  if (design.itemMaxWidth !== undefined) {
-    next.itemMaxWidth = design.itemMaxWidth;
+  if (design.itemMaxWidthPercent !== undefined) {
+    next.itemMaxWidthPercent = design.itemMaxWidthPercent;
   }
   return Object.keys(next).length > 0 ? next : undefined;
 };
@@ -139,6 +139,8 @@ export const setCaptionPosition = (gallery: GalleryConfig, position: GalleryCapt
 export const setDisplayMode = (gallery: GalleryConfig, displayMode: GalleryDisplayMode): GalleryConfig =>
   withDesign(gallery, { displayMode });
 
-/** Sets the per-item width cap (px); undefined clears it (no cap — the default). */
-export const setItemMaxWidth = (gallery: GalleryConfig, itemMaxWidth: number | undefined): GalleryConfig =>
-  withDesign(gallery, { itemMaxWidth });
+/** Sets the per-item width cap (% of the screen); undefined clears it (no cap — the default). */
+export const setItemMaxWidthPercent = (
+  gallery: GalleryConfig,
+  itemMaxWidthPercent: number | undefined,
+): GalleryConfig => withDesign(gallery, { itemMaxWidthPercent });

@@ -9,7 +9,7 @@ import {
 } from '@simple-site/interfaces';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { ikSrcSet, ikTransform } from '../../utils/imagekit';
-import type { DisplayableGalleryItem } from './galleryDisplay';
+import { itemWidthCapSx, type DisplayableGalleryItem } from './galleryDisplay';
 import { GalleryLightbox } from './GalleryLightbox';
 
 /** Delivery buckets for the list/alternate shots — they can span the container. */
@@ -29,8 +29,11 @@ interface GalleryItemListProps {
   scope: string;
   captionPosition: GalleryCaptionPosition;
   displayMode: GalleryDisplayMode;
-  /** Caps each clickable image at this width (px) in every mode; the zoom is unaffected. */
-  itemMaxWidth?: number;
+  /**
+   * Caps each clickable image at this % of the screen width, in every mode —
+   * landscape screens only (portrait keeps the natural width); zoom unaffected.
+   */
+  itemMaxWidthPercent?: number;
 }
 
 /**
@@ -53,7 +56,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   scope,
   captionPosition,
   displayMode,
-  itemMaxWidth,
+  itemMaxWidthPercent,
 }) => {
   const intl = useIntl();
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
@@ -96,10 +99,10 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
       focusRipple
       sx={{
         display: 'block',
-        // The design's per-item cap applies to the clickable image in every
-        // mode (mx centers a capped tile inside plain-block wrappers).
-        maxWidth: itemMaxWidth ? `min(100%, ${itemMaxWidth}px)` : '100%',
-        ...(itemMaxWidth ? { mx: 'auto' } : {}),
+        maxWidth: '100%',
+        // The design's per-item cap (% of the screen, landscape only) applies
+        // to the clickable image in every mode.
+        ...itemWidthCapSx(itemMaxWidthPercent),
         cursor: 'zoom-in',
         borderRadius: 1,
         overflow: 'hidden',

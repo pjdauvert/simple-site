@@ -414,14 +414,14 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ displayMode: 'mosaic' });
   });
 
-  it('PUT /api/config/gallery accepts an in-range itemMaxWidth and rejects out-of-range ones', async () => {
+  it('PUT /api/config/gallery accepts an in-range itemMaxWidthPercent and rejects out-of-range ones', async () => {
     const { data } = makeStore();
-    const capped = { items: [], themes: [], design: { itemMaxWidth: 720 } };
+    const capped = { items: [], themes: [], design: { itemMaxWidthPercent: 60 } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', capped))).status).toBe(200);
-    expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ itemMaxWidth: 720 });
+    expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ itemMaxWidthPercent: 60 });
 
-    for (const itemMaxWidth of [50, 5000, 300.5]) {
-      const bad = { items: [], themes: [], design: { itemMaxWidth } };
+    for (const itemMaxWidthPercent of [5, 150, 60.5]) {
+      const bad = { items: [], themes: [], design: { itemMaxWidthPercent } };
       expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
     }
   });

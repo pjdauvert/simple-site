@@ -16,8 +16,8 @@ import {
   DEFAULT_GALLERY_DISPLAY_MODE,
   GALLERY_CAPTION_POSITIONS,
   GALLERY_DISPLAY_MODES,
-  GALLERY_ITEM_MAX_WIDTH_MAX,
-  GALLERY_ITEM_MAX_WIDTH_MIN,
+  GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX,
+  GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN,
   type GalleryCaptionPosition,
   type GalleryDisplayMode,
 } from '@simple-site/interfaces';
@@ -25,7 +25,7 @@ import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useNotifications } from '../../../hooks/useNotifications';
-import { emptyGallery, setCaptionPosition, setDisplayMode, setItemMaxWidth } from './galleryDraft';
+import { emptyGallery, setCaptionPosition, setDisplayMode, setItemMaxWidthPercent } from './galleryDraft';
 import { GalleryDesignPreview } from './GalleryDesignPreview';
 
 /**
@@ -47,7 +47,7 @@ export const GalleryDesignEditor: React.FC = () => {
   const [captionPosition, setCaption] = useState<GalleryCaptionPosition | null>(null);
   const [displayMode, setMode] = useState<GalleryDisplayMode>(DEFAULT_GALLERY_DISPLAY_MODE);
   // Empty field = no cap (the default) — kept as undefined, never 0.
-  const [itemMaxWidth, setWidth] = useState<number | undefined>(undefined);
+  const [itemMaxWidthPercent, setWidth] = useState<number | undefined>(undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -58,7 +58,7 @@ export const GalleryDesignEditor: React.FC = () => {
         if (!active) return;
         setCaption(config.gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION);
         setMode(config.gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE);
-        setWidth(config.gallery?.design?.itemMaxWidth);
+        setWidth(config.gallery?.design?.itemMaxWidthPercent);
       })
       .catch((err) => {
         if (active) setLoadError(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.load' }));
@@ -67,10 +67,10 @@ export const GalleryDesignEditor: React.FC = () => {
   }, [intl]);
 
   const widthInvalid =
-    itemMaxWidth !== undefined &&
-    (!Number.isInteger(itemMaxWidth) ||
-      itemMaxWidth < GALLERY_ITEM_MAX_WIDTH_MIN ||
-      itemMaxWidth > GALLERY_ITEM_MAX_WIDTH_MAX);
+    itemMaxWidthPercent !== undefined &&
+    (!Number.isInteger(itemMaxWidthPercent) ||
+      itemMaxWidthPercent < GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN ||
+      itemMaxWidthPercent > GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX);
 
   const handleSave = async (): Promise<void> => {
     if (captionPosition === null || widthInvalid) return;
@@ -79,7 +79,10 @@ export const GalleryDesignEditor: React.FC = () => {
       // Merge over the freshest draft so the Themes tab's items survive.
       const fresh = (await loadDraftConfig()).gallery ?? emptyGallery();
       await updateGallery(
-        setItemMaxWidth(setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode), itemMaxWidth),
+        setItemMaxWidthPercent(
+          setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode),
+          itemMaxWidthPercent,
+        ),
       );
       notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
     } catch (err) {
@@ -165,7 +168,7 @@ export const GalleryDesignEditor: React.FC = () => {
           <TextField
             size="small"
             type="number"
-            value={itemMaxWidth ?? ''}
+            value={itemMaxWidthPercent ?? ''}
             onChange={(e) => {
               const raw = e.target.value;
               setWidth(raw === '' ? undefined : Number(raw));
@@ -175,18 +178,18 @@ export const GalleryDesignEditor: React.FC = () => {
               widthInvalid ? (
                 <FormattedMessage
                   id="page.manage.gallery.itemMaxWidth.range"
-                  values={{ min: GALLERY_ITEM_MAX_WIDTH_MIN, max: GALLERY_ITEM_MAX_WIDTH_MAX }}
+                  values={{ min: GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN, max: GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX }}
                 />
               ) : (
                 <FormattedMessage id="page.manage.gallery.itemMaxWidth.hint" />
               )
             }
             slotProps={{
-              input: { endAdornment: <InputAdornment position="end">px</InputAdornment> },
+              input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
               htmlInput: {
-                min: GALLERY_ITEM_MAX_WIDTH_MIN,
-                max: GALLERY_ITEM_MAX_WIDTH_MAX,
-                step: 10,
+                min: GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN,
+                max: GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX,
+                step: 5,
                 'aria-label': intl.formatMessage({ id: 'page.manage.gallery.itemMaxWidth' }),
               },
             }}

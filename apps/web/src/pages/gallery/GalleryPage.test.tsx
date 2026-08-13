@@ -240,14 +240,14 @@ describe('GalleryPage (public /gallery)', () => {
     expect(within(screen.getByRole('dialog')).getByText('Sub A')).toBeInTheDocument();
   });
 
-  it('caps the clickable image at the design itemMaxWidth (zoom view unaffected)', () => {
+  it('renders capped items without breaking (the media-gated cap itself is unit-tested)', () => {
     setConfig({
       items: [{ imageUrl: '/a.jpg', title: 'A' }],
       themes: [],
-      design: { itemMaxWidth: 480 },
+      design: { itemMaxWidthPercent: 60 },
     });
     renderPage();
-    expect(screen.getByRole('button', { name: 'A' })).toHaveStyle({ maxWidth: 'min(100%, 480px)' });
+    expect(screen.getByRole('button', { name: 'A' })).toBeInTheDocument();
   });
 
   it('shows no carousel arrows when a single item is displayable', () => {

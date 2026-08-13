@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { collectGalleryI18nEntries, type GalleryConfig, type SiteConfig } from '@simple-site/interfaces';
-import { displayableItems, displayableThemes, galleryPageTitle, galleryThemeRoute } from './galleryDisplay';
+import {
+  displayableItems,
+  displayableThemes,
+  galleryPageTitle,
+  galleryThemeRoute,
+  itemWidthCapSx,
+} from './galleryDisplay';
 
 const gallery = (over: Partial<GalleryConfig> = {}): GalleryConfig => ({ items: [], themes: [], ...over });
 
@@ -38,6 +44,20 @@ describe('displayableThemes', () => {
 describe('galleryThemeRoute', () => {
   it('nests theme pages under the gallery reserved route', () => {
     expect(galleryThemeRoute('nature')).toBe('/gallery/nature');
+  });
+});
+
+describe('itemWidthCapSx', () => {
+  it('caps at the screen-width percentage behind a LANDSCAPE media query only', () => {
+    expect(itemWidthCapSx(60)).toEqual({
+      mx: 'auto',
+      // vw = % of the viewport width; portrait screens keep the natural width.
+      '@media (orientation: landscape)': { maxWidth: 'min(100%, 60vw)' },
+    });
+  });
+
+  it('is empty without a cap — the mode keeps its natural width everywhere', () => {
+    expect(itemWidthCapSx(undefined)).toEqual({});
   });
 });
 

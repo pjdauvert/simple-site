@@ -45,15 +45,29 @@ export const galleryThemeRoute = (themeId: string): string =>
 export interface GalleryDisplaySettings {
   captionPosition: GalleryCaptionPosition;
   displayMode: GalleryDisplayMode;
-  /** Per-item width cap in px; undefined = the mode's natural width. */
-  itemMaxWidth?: number;
+  /** Per-item width cap in % of the screen width; undefined = the mode's natural width. */
+  itemMaxWidthPercent?: number;
 }
 
 export const galleryDisplaySettings = (gallery: GalleryConfig | undefined): GalleryDisplaySettings => ({
   captionPosition: gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION,
   displayMode: gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE,
-  itemMaxWidth: gallery?.design?.itemMaxWidth,
+  itemMaxWidthPercent: gallery?.design?.itemMaxWidthPercent,
 });
+
+/**
+ * The sx fragment applying the design's per-item width cap: `<percent>vw` of
+ * the viewport, on LANDSCAPE screens only (height smaller than width — the
+ * design rule; portrait keeps the mode's natural width). Empty without a cap.
+ * `mx: auto` keeps a capped tile centered inside plain-block wrappers.
+ */
+export const itemWidthCapSx = (itemMaxWidthPercent: number | undefined): Record<string, unknown> =>
+  itemMaxWidthPercent
+    ? {
+        mx: 'auto',
+        '@media (orientation: landscape)': { maxWidth: `min(100%, ${itemMaxWidthPercent}vw)` },
+      }
+    : {};
 
 /**
  * Default value of the gallery page heading / nav label (`gallery.menuTitle`):
