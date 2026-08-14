@@ -52,8 +52,8 @@ describe('GalleryThemesEditor', () => {
     fireEvent.click(thumb);
     expect(await screen.findByLabelText(/^title/i)).toHaveValue('Shot A');
     expect(screen.getByLabelText(/subtitle/i)).toHaveValue('Sub A');
-    // Editing an existing item offers deletion.
-    expect(screen.getByRole('button', { name: /delete item/i })).toBeInTheDocument();
+    // Editing an existing item offers removal (from the gallery, not the library).
+    expect(screen.getByRole('button', { name: /remove item/i })).toBeInTheDocument();
   });
 
   it('adds an item through the dialog — it appears as a thumbnail, flagged while its image is missing', async () => {
@@ -132,10 +132,10 @@ describe('GalleryThemesEditor', () => {
     });
   });
 
-  it('deletes an item from its dialog', async () => {
+  it('removes an item from its dialog', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: 'Shot A' }));
-    fireEvent.click(await screen.findByRole('button', { name: /delete item/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /remove item/i }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Shot A' })).not.toBeInTheDocument());
   });
 
