@@ -32,9 +32,9 @@ interface GalleryItemListProps extends GalleryDisplaySettings {
   entries: DisplayableGalleryItem[];
   /**
    * The declared tags, provided by the GENERAL page only: each item then shows
-   * its tags as discreet clickable chips navigating to the tag's collection
-   * (overlaid on the tile in mosaic, whose tiles carry no caption). Collection
-   * pages omit the prop — no chips there.
+   * its tags as discreet clickable chips overlaid on the image's bottom edge —
+   * the same treatment in every display mode — navigating to the tag's
+   * collection. Collection pages omit the prop — no chips there.
    */
   tags?: readonly GalleryTag[];
 }
@@ -91,14 +91,29 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
     setZoomIndex(null);
   };
 
-  /** The item's tags as discreet chips linking to their collection pages. */
-  const tagChips = (item: GalleryItem, sx?: SxProps<Theme>): React.ReactNode => {
+  /**
+   * The item's tags as discreet chips overlaying the image's bottom edge —
+   * the SAME treatment in every display mode (the tile is the tag's home, the
+   * caption stays text-only). Semi-transparent so the shot keeps reading.
+   */
+  const tagChips = (item: GalleryItem): React.ReactNode => {
     const itemTags = item.tags ?? []; // tolerant — stored configs may predate `tags`
     if (!tags || itemTags.length === 0) return null;
     const declared = tags.filter((tag) => itemTags.includes(tag.tag));
     if (declared.length === 0) return null;
     return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0.5, ...sx }}>
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 6,
+          left: 6,
+          right: 6,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'flex-start',
+          gap: 0.5,
+        }}
+      >
         {declared.map((tag) => (
           <Chip
             key={tag.tag}
@@ -107,7 +122,13 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
             component={RouterLink}
             to={galleryTagRoute(tag.tag)}
             label={<FormattedMessage id={galleryTagNameKey(tag.tag)} defaultMessage={tag.displayName} />}
-            sx={{ height: 20, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }}
+            sx={{
+              height: 20,
+              bgcolor: 'rgba(0, 0, 0, 0.55)',
+              color: 'common.white',
+              '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.75)' },
+              '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' },
+            }}
           />
         ))}
       </Box>
@@ -124,10 +145,17 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
           <FormattedMessage id={galleryItemKey(index, 'subtitle')} defaultMessage={item.subtitle} />
         </Typography>
       )}
-      {tagChips(item, { mt: 0.5 })}
     </Box>
   );
 
+  /**
+   * The clickable image wrapped with its chip overlay. The wrapper hugs the
+   * button (which hugs the image in the content-sized modes), so the chips
+   * always anchor to the IMAGE's bottom edge; `wrapperSx` carries the mode's
+   * sizing (e.g. `width: '100%'` in the tiled modes). The design's per-item
+   * width cap rides on the wrapper so the overlay can never outgrow a capped
+   * image. Chips are links — siblings of the button, never nested in it.
+   */
   const imageButton = (
     item: GalleryItem,
     index: number,
@@ -135,39 +163,49 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
     delivery: { width: number; widths: readonly number[]; sizes: string },
     imgSx: SxProps<Theme>,
     buttonSx?: SxProps<Theme>,
+    wrapperSx?: SxProps<Theme>,
   ): React.ReactNode => (
-    <ButtonBase
+    <Box
       key="image"
-      onClick={() => setZoomIndex(visibleIndex)}
-      focusRipple
       sx={{
-        display: 'block',
+        position: 'relative',
         maxWidth: '100%',
-        // The design's per-item cap (% of the screen, landscape only) and the
-        // frame options apply to the clickable image in every mode.
+        // The design's per-item cap (% of the screen, landscape only).
         ...itemWidthCapSx(itemMaxWidthPercent),
-        ...itemFrameSx({ itemElevation, itemBorder, itemBorderColor, itemCornerRadius }),
-        cursor: 'zoom-in',
-        overflow: 'hidden',
-        ...buttonSx,
+        ...wrapperSx,
       }}
     >
-      <Box
-        component="img"
-        src={ikTransform(
-          item.imageUrl ?? '',
-          `w-${delivery.width},q-80,f-auto${ikWatermarkLayer(watermark, delivery.width)}`,
-        )}
-        srcSet={ikSrcSet(item.imageUrl ?? '', delivery.widths, 'q-80,f-auto', watermark)}
-        sizes={delivery.sizes}
-        // The first shot is the likely LCP — only the rest load lazily.
-        loading={visibleIndex === 0 ? undefined : 'lazy'}
-        decoding="async"
-        alt={intl.formatMessage({ id: galleryItemKey(index, 'title'), defaultMessage: item.title })}
-        onError={() => markFailed(item.imageUrl)}
-        sx={imgSx}
-      />
-    </ButtonBase>
+      <ButtonBase
+        onClick={() => setZoomIndex(visibleIndex)}
+        focusRipple
+        sx={{
+          display: 'block',
+          maxWidth: '100%',
+          // The frame options apply to the clickable image in every mode.
+          ...itemFrameSx({ itemElevation, itemBorder, itemBorderColor, itemCornerRadius }),
+          cursor: 'zoom-in',
+          overflow: 'hidden',
+          ...buttonSx,
+        }}
+      >
+        <Box
+          component="img"
+          src={ikTransform(
+            item.imageUrl ?? '',
+            `w-${delivery.width},q-80,f-auto${ikWatermarkLayer(watermark, delivery.width)}`,
+          )}
+          srcSet={ikSrcSet(item.imageUrl ?? '', delivery.widths, 'q-80,f-auto', watermark)}
+          sizes={delivery.sizes}
+          // The first shot is the likely LCP — only the rest load lazily.
+          loading={visibleIndex === 0 ? undefined : 'lazy'}
+          decoding="async"
+          alt={intl.formatMessage({ id: galleryItemKey(index, 'title'), defaultMessage: item.title })}
+          onError={() => markFailed(item.imageUrl)}
+          sx={imgSx}
+        />
+      </ButtonBase>
+      {tagChips(item)}
+    </Box>
   );
 
   const lightbox = (
@@ -203,6 +241,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
                   ...(aspectRatio ? { aspectRatio, objectFit: itemFit } : { height: 'auto' }),
                 },
                 { width: '100%' },
+                { width: '100%' },
               )}
               {caption(item, index)}
             </Box>
@@ -221,7 +260,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
       <>
         <Box data-testid="gallery-mosaic" sx={{ columnCount: { xs: 1, sm: 2, md: itemColumns }, columnGap: gap }}>
           {visible.map(({ item, index }, visibleIndex) => (
-            <Box key={index} sx={{ breakInside: 'avoid', mb: gap, position: 'relative' }}>
+            <Box key={index} sx={{ breakInside: 'avoid', mb: gap }}>
               {imageButton(
                 item,
                 index,
@@ -229,17 +268,8 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
                 { width: 640, widths: TILE_WIDTHS, sizes: tileSizes },
                 { display: 'block', width: '100%', height: 'auto' },
                 { width: '100%' },
+                { width: '100%' },
               )}
-              {/* Mosaic tiles carry no caption — the chips overlay the image's
-                  bottom edge instead (semi-transparent, over the frame). */}
-              {tagChips(item, {
-                position: 'absolute',
-                bottom: 6,
-                left: 6,
-                right: 6,
-                justifyContent: 'flex-start',
-                '& .MuiChip-root': { bgcolor: 'rgba(0, 0, 0, 0.55)', color: 'common.white' },
-              })}
             </Box>
           ))}
         </Box>
@@ -263,14 +293,17 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
                 gap: { xs: 1.5, md: 5 },
               }}
             >
-              {imageButton(
-                item,
-                index,
-                visibleIndex,
-                { width: 1080, widths: LIST_WIDTHS, sizes: ALTERNATE_SIZES },
-                { display: 'block', maxWidth: '100%', maxHeight: { xs: '60vh', md: '65vh' }, width: 'auto', height: 'auto' },
-                { width: { md: '58%' }, flexShrink: 0, display: 'flex', justifyContent: 'center' },
-              )}
+              {/* The row cell stays outside so the chip overlay hugs the image
+                  itself, not the 58% column around it. */}
+              <Box sx={{ width: { md: '58%' }, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                {imageButton(
+                  item,
+                  index,
+                  visibleIndex,
+                  { width: 1080, widths: LIST_WIDTHS, sizes: ALTERNATE_SIZES },
+                  { display: 'block', maxWidth: '100%', maxHeight: { xs: '60vh', md: '65vh' }, width: 'auto', height: 'auto' },
+                )}
+              </Box>
               {caption(item, index, { flex: 1 })}
             </Box>
           ))}

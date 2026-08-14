@@ -96,7 +96,8 @@ describe('GalleryPage (public /gallery)', () => {
       design: { captionPosition: 'above' },
     });
     renderPage();
-    const row = screen.getByRole('button', { name: 'A' }).parentElement as HTMLElement;
+    // The button sits inside its chip-overlay wrapper — the row is one level up.
+    const row = screen.getByRole('button', { name: 'A' }).parentElement?.parentElement as HTMLElement;
     expect(within(row.firstElementChild as HTMLElement).getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
   });
 
@@ -199,9 +200,11 @@ describe('GalleryPage (public /gallery)', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'B' })).toBeInTheDocument();
     expect(screen.queryByText('Hidden — no image')).not.toBeInTheDocument();
 
-    // Image first, caption after — despite captionPosition: 'above'.
+    // Image first, caption after — despite captionPosition: 'above'. The grid
+    // cell's first child is the image's chip-overlay wrapper.
     const imageButton = screen.getByRole('button', { name: 'A' });
-    expect((imageButton.parentElement as HTMLElement).firstElementChild).toBe(imageButton);
+    const wrapper = imageButton.parentElement as HTMLElement;
+    expect((wrapper.parentElement as HTMLElement).firstElementChild).toBe(wrapper);
 
     fireEvent.click(screen.getByRole('button', { name: 'B' }));
     expect(within(screen.getByRole('dialog')).getByText('B')).toBeInTheDocument();
