@@ -19,6 +19,7 @@ import { updateThemes } from '../../../services/themesService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { ThemeEditor } from './ThemeEditor';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { draftToTheme, isDraftValid, newThemeDraft, themeToDraft, type ThemeDraft } from './themeFields';
 
 /**
@@ -125,11 +126,9 @@ export const ThemesEditor: React.FC = () => {
         </Button>
       </Box>
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.themes.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
+        <FormattedMessage id="page.manage.themes.save" />
+      </StickySaveButton>
     </Box>
   );
 };

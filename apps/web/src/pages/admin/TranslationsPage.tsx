@@ -39,6 +39,7 @@ import { loadTeam } from '../../services/teamService';
 import { loadContactConfig } from '../../services/contactService';
 import { getFeatureFlags } from '../../services/featuresService';
 import { Loader } from '../../components/Loader';
+import { StickySaveButton } from '../../components/manage/StickySaveButton';
 import {
   deleteLanguage,
   importTranslations,
@@ -461,13 +462,9 @@ export const TranslationsPage: React.FC = () => {
             </Box>
           )}
 
-          <Box sx={{ mt: 3 }}>
-            <Button variant="contained" onClick={handleSave} disabled={submitting || !dirty}>
-              {submitting ? <Loader variant="triskelion" size={20} /> : (
-                <FormattedMessage id="page.manage.translations.save" values={{ language: languageLabel(language) }} />
-              )}
-            </Button>
-          </Box>
+          <StickySaveButton onClick={handleSave} disabled={submitting || !dirty} submitting={submitting}>
+            <FormattedMessage id="page.manage.translations.save" values={{ language: languageLabel(language) }} />
+          </StickySaveButton>
         </>
       )}
 

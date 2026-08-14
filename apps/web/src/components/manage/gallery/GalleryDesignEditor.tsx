@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   FormControlLabel,
   InputAdornment,
   Slider,
@@ -47,6 +46,7 @@ import {
   type GalleryWatermarkPosition,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useNotifications } from '../../../hooks/useNotifications';
@@ -496,11 +496,9 @@ export const GalleryDesignEditor: React.FC = () => {
           </Stack>
         </Box>
 
-        <Box>
-          <Button variant="contained" onClick={handleSave} disabled={submitting || widthInvalid}>
-            {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.gallery.save" />}
-          </Button>
-        </Box>
+        <StickySaveButton onClick={handleSave} disabled={submitting || widthInvalid} submitting={submitting}>
+          <FormattedMessage id="page.manage.gallery.save" />
+        </StickySaveButton>
       </Stack>
 
       {/* Symbolic preview of the picked design — right half, desktop only.

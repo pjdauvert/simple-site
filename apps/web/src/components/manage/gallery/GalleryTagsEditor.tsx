@@ -19,6 +19,7 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import { galleryTagDescriptionKey, galleryTagNameKey, type GalleryConfig } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
@@ -264,11 +265,9 @@ export const GalleryTagsEditor: React.FC = () => {
         </Button>
       )}
 
-      <Box sx={{ mt: 4 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.gallery.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
+        <FormattedMessage id="page.manage.gallery.save" />
+      </StickySaveButton>
     </Box>
   );
 };

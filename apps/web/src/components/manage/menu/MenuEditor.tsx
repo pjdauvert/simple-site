@@ -33,6 +33,7 @@ import {
   type PageConfiguration,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
@@ -444,11 +445,9 @@ export const MenuEditor: React.FC = () => {
           ))}
       </Menu>
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.menu.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
+        <FormattedMessage id="page.manage.menu.save" />
+      </StickySaveButton>
     </Box>
   );
 };

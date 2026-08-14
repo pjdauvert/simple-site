@@ -30,6 +30,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { BASE_LOCALE, TeamConfigSchema, type Locale, type TeamMember } from '@simple-site/interfaces';
 import { pickLocalizedText } from '../../../pages/team/teamDisplay';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { ikTransform } from '../../../utils/imagekit';
 import { loadLanguages } from '../../../services/initService';
@@ -250,11 +251,9 @@ export const TeamMembersEditor: React.FC = () => {
         </Button>
       </Box>
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.team.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
+        <FormattedMessage id="page.manage.team.save" />
+      </StickySaveButton>
 
       {editIndex !== null && members[editIndex] && (
         <MemberFormDialog

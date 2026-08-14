@@ -19,6 +19,7 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import { type GalleryConfig, type GalleryItem } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { ikTransform } from '../../../utils/imagekit';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
@@ -228,11 +229,9 @@ export const GalleryItemsEditor: React.FC = () => {
         onDelete={dialog?.itemIndex != null ? deleteDialogItem : undefined}
       />
 
-      <Box sx={{ mt: 4 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.gallery.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
+        <FormattedMessage id="page.manage.gallery.save" />
+      </StickySaveButton>
     </Box>
   );
 };

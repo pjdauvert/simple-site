@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   MenuItem,
   Stack,
   TextField,
@@ -17,6 +16,7 @@ import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { MediaUrlField } from '../../media';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 
 const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 /** Select value: '' = inherit/default, 'false' = full width, otherwise a breakpoint. */
@@ -198,11 +198,9 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           <MenuItem value="false"><FormattedMessage id="page.manage.site.containerMaxWidth.full" /></MenuItem>
         </TextField>
 
-        <Box>
-          <Button type="submit" variant="contained" disabled={submitting || !isDirty}>
-            {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.site.save" />}
-          </Button>
-        </Box>
+        <StickySaveButton type="submit" disabled={submitting || !isDirty} submitting={submitting}>
+          <FormattedMessage id="page.manage.site.save" />
+        </StickySaveButton>
       </Stack>
     </Box>
   );

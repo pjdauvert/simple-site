@@ -8,6 +8,7 @@
 4. Test on multiple screen sizes
 5. Keep documentation in sync — update the relevant file(s) under `docs/` whenever a PR changes a user-visible capability, API endpoint, configuration schema, or architectural decision
 6. **Show only applicable options** — in admin forms, an option that does not apply to the current context (e.g. a setting irrelevant to the selected display mode) is **hidden, not disabled**; its stored value survives the context switch and resurfaces with it. Disabled states are reserved for *temporary* conditions (invalid input, in-flight save). Preview aids — such as an orientation toggle — never hide design options: they simulate a different **user experience of the same parameters**, not a different design (first applied by the gallery Design tab)
+7. **The draft-save action is always visible** — every admin page/tab renders its save button through the shared `StickySaveButton` (`apps/web/src/components/manage/StickySaveButton.tsx`): pinned to the bottom-right of the editor column while the form scrolls, settling into the flow at the end of the content. New admin editors use it — never a plain in-flow save button
 
 ## Tests — where they live
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, TextField, Typography } from '@mui/material';
+import { Alert, Box, TextField, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { CONTACT_PRESENTATION_KEY, ContactConfigSchema } from '@simple-site/interfaces';
 import { Loader } from '../../components/Loader';
+import { StickySaveButton } from '../../components/manage/StickySaveButton';
 import { TranslateShortcut } from '../../components/manage/TranslateShortcut';
 import { loadContactConfig, saveContactConfig } from '../../services/contactService';
 import { loadAllTranslations } from '../../services/translationsService';
@@ -108,11 +109,9 @@ export const ContactPage: React.FC = () => {
               },
             }}
           />
-          <Box sx={{ mt: 3 }}>
-            <Button variant="contained" onClick={handleSave} disabled={submitting}>
-              {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.contact.save" />}
-            </Button>
-          </Box>
+          <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
+            <FormattedMessage id="page.manage.contact.save" />
+          </StickySaveButton>
         </Box>
       )}
     </Box>

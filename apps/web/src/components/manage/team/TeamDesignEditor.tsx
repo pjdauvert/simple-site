@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   FormControlLabel,
   Slider,
   Stack,
@@ -14,6 +13,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { TeamConfigSchema } from '@simple-site/interfaces';
 import { MEMBER_PAGE_DESIGN_DEFAULTS, TEAM_PAGE_DESIGN_DEFAULTS } from '../../../pages/team/teamDisplay';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { ColorField } from '../themes/ColorField';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { useNotifications } from '../../../hooks/useNotifications';
@@ -195,11 +195,9 @@ export const TeamDesignEditor: React.FC = () => {
       </Typography>
       <SectionDesignFields value={memberPage} onChange={setMemberPage} />
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.team.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
+        <FormattedMessage id="page.manage.team.save" />
+      </StickySaveButton>
     </Box>
   );
 };
