@@ -275,6 +275,16 @@ export type GalleryConfig = z.infer<typeof GalleryConfigSchema>;
 /** i18n scope of the gallery's own items. */
 export const GALLERY_SCOPE = 'gallery';
 
+/**
+ * Scope of the submenu's "all items" link (`pageName` of the nav item, label
+ * key `gallery.all.menuTitle`) — the same label serves the collection pages'
+ * back-to-everything link. A translation DEFAULT like every nav label,
+ * collected while the flag is on.
+ */
+export const GALLERY_ALL_SCOPE = `${GALLERY_SCOPE}.all`;
+export const GALLERY_ALL_NAME_KEY = `${GALLERY_ALL_SCOPE}.menuTitle`;
+export const DEFAULT_GALLERY_ALL_LABEL = 'All items';
+
 /** i18n scope of a tag (`gallery.tag.<tag>`) — also the nav item's `pageName`. */
 export const galleryTagScope = (tag: string): string => `${GALLERY_SCOPE}.tag.${tag}`;
 
@@ -307,5 +317,7 @@ export const collectGalleryI18nEntries = (gallery: GalleryConfig): I18nEntry[] =
     add(galleryTagNameKey(tag.tag), tag.displayName);
     add(galleryTagDescriptionKey(tag.tag), tag.description);
   }
+  // The "all items" label only matters once a tag exists to contrast with.
+  if (gallery.tags.length > 0) add(GALLERY_ALL_NAME_KEY, DEFAULT_GALLERY_ALL_LABEL);
   return entries;
 };

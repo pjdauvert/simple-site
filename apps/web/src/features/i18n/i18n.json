@@ -602,9 +602,7 @@
         "page.manage.gallery.items": "Items",
         "page.manage.gallery.items.hint": "Every item is browsed from the gallery root page; tag an item (from its dialog) to add it to that tag's collection.",
         "page.manage.gallery.dialog.tags": "Tags",
-        "page.manage.menu.badge.galleryTag": "Collection",
-        "page.manage.menu.addGalleryTag": "Add collection",
-        "page.manage.menu.removeGalleryTag": "Remove from menu"
+        "page.manage.menu.badge.galleryTag": "Collection"
     },
     "fr": {
         "language.switch": "Changer de Langue",
@@ -1209,8 +1207,6 @@
         "page.manage.gallery.items": "Éléments",
         "page.manage.gallery.items.hint": "Tous les éléments s'explorent depuis la racine de la galerie ; taguez un élément (depuis sa fenêtre d'édition) pour l'ajouter à la collection de ce tag.",
         "page.manage.gallery.dialog.tags": "Tags",
-        "page.manage.menu.badge.galleryTag": "Collection",
-        "page.manage.menu.addGalleryTag": "Ajouter une collection",
-        "page.manage.menu.removeGalleryTag": "Retirer du menu"
+        "page.manage.menu.badge.galleryTag": "Collection"
     }
 }

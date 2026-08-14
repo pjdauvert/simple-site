@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Box, ButtonBase, Stack, Typography } from '@mui/material';
+import { Box, ButtonBase, Chip, Stack, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { galleryItemKey, type GalleryItem } from '@simple-site/interfaces';
+import { galleryItemKey, galleryTagNameKey, type GalleryItem, type GalleryTag } from '@simple-site/interfaces';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { ikSrcSet, ikTransform, ikWatermarkLayer } from '../../utils/imagekit';
 import {
@@ -9,6 +10,7 @@ import {
   GALLERY_STACK_SPACING_UNITS,
   galleryAspectRatioValue,
   galleryColumnsSx,
+  galleryTagRoute,
   itemFrameSx,
   itemWidthCapSx,
   type DisplayableGalleryItem,
@@ -28,6 +30,13 @@ const ALTERNATE_SIZES = '(min-width: 900px) 58vw, 100vw';
 interface GalleryItemListProps extends GalleryDisplaySettings {
   /** Displayable entries (image present), with their config positions for i18n. */
   entries: DisplayableGalleryItem[];
+  /**
+   * The declared tags, provided by the GENERAL page only: each item then shows
+   * its tags as discreet clickable chips navigating to the tag's collection
+   * (overlaid on the tile in mosaic, whose tiles carry no caption). Collection
+   * pages omit the prop — no chips there.
+   */
+  tags?: readonly GalleryTag[];
 }
 
 /**
@@ -49,6 +58,7 @@ interface GalleryItemListProps extends GalleryDisplaySettings {
  */
 export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   entries,
+  tags,
   captionPosition,
   displayMode,
   itemMaxWidthPercent,
@@ -81,6 +91,29 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
     setZoomIndex(null);
   };
 
+  /** The item's tags as discreet chips linking to their collection pages. */
+  const tagChips = (item: GalleryItem, sx?: SxProps<Theme>): React.ReactNode => {
+    const itemTags = item.tags ?? []; // tolerant — stored configs may predate `tags`
+    if (!tags || itemTags.length === 0) return null;
+    const declared = tags.filter((tag) => itemTags.includes(tag.tag));
+    if (declared.length === 0) return null;
+    return (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0.5, ...sx }}>
+        {declared.map((tag) => (
+          <Chip
+            key={tag.tag}
+            size="small"
+            clickable
+            component={RouterLink}
+            to={galleryTagRoute(tag.tag)}
+            label={<FormattedMessage id={galleryTagNameKey(tag.tag)} defaultMessage={tag.displayName} />}
+            sx={{ height: 20, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }}
+          />
+        ))}
+      </Box>
+    );
+  };
+
   const caption = (item: GalleryItem, index: number, sx?: SxProps<Theme>): React.ReactNode => (
     <Box key="caption" sx={{ textAlign: 'center', ...sx }}>
       <Typography variant="h6" component="h3">
@@ -91,6 +124,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
           <FormattedMessage id={galleryItemKey(index, 'subtitle')} defaultMessage={item.subtitle} />
         </Typography>
       )}
+      {tagChips(item, { mt: 0.5 })}
     </Box>
   );
 
@@ -187,7 +221,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
       <>
         <Box data-testid="gallery-mosaic" sx={{ columnCount: { xs: 1, sm: 2, md: itemColumns }, columnGap: gap }}>
           {visible.map(({ item, index }, visibleIndex) => (
-            <Box key={index} sx={{ breakInside: 'avoid', mb: gap }}>
+            <Box key={index} sx={{ breakInside: 'avoid', mb: gap, position: 'relative' }}>
               {imageButton(
                 item,
                 index,
@@ -196,6 +230,16 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
                 { display: 'block', width: '100%', height: 'auto' },
                 { width: '100%' },
               )}
+              {/* Mosaic tiles carry no caption — the chips overlay the image's
+                  bottom edge instead (semi-transparent, over the frame). */}
+              {tagChips(item, {
+                position: 'absolute',
+                bottom: 6,
+                left: 6,
+                right: 6,
+                justifyContent: 'flex-start',
+                '& .MuiChip-root': { bgcolor: 'rgba(0, 0, 0, 0.55)', color: 'common.white' },
+              })}
             </Box>
           ))}
         </Box>

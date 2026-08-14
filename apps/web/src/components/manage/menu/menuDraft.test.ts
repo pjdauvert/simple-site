@@ -36,6 +36,8 @@ describe('entryRows', () => {
       {
         entry: entries[0],
         path: { top: 0 },
+        rowKey: 'page:page.about',
+        visible: true,
         depth: 0,
         label: 'About',
         baseLabel: 'About',
@@ -107,6 +109,53 @@ describe('entryRows', () => {
     expect(groupRow.available).toBe(true);
     expect(rows[2].path).toEqual({ top: 1, child: 0 });
     expect(rows[3].path).toEqual({ top: 1, child: 1 });
+  });
+});
+
+describe('entryRows — gallery tag submenu', () => {
+  const GALLERY_ON = { media: false, team: false, contact: false, gallery: true };
+  const declared = [
+    { tag: 'nature', displayName: 'Nature' },
+    { tag: 'summer-2026', displayName: 'Été 2026' },
+  ];
+
+  it('indents one row per submenu tag under the gallery entry, in the menu order', () => {
+    const entries: MenuEntry[] = [
+      {
+        type: 'feature',
+        feature: 'gallery',
+        visible: true,
+        galleryTags: [
+          { tag: 'summer-2026', visible: true },
+          { tag: 'nature', visible: false },
+        ],
+      },
+    ];
+    const rows = entryRows(entries, pages, GALLERY_ON, declared);
+    expect(rows.map((r) => [r.kind, r.depth, r.visible])).toEqual([
+      ['feature', 0, true],
+      ['galleryTag', 1, true],
+      ['galleryTag', 1, false],
+    ]);
+    // Labelled by the tag's displayName (named on the gallery page, not here),
+    // addressed by a tag path into the parent's submenu list.
+    expect(rows[1]).toMatchObject({
+      label: 'Été 2026',
+      route: '/gallery/tag/summer-2026',
+      i18nKey: 'gallery.tag.summer-2026.menuTitle',
+      path: { top: 0, tag: 0 },
+      rowKey: 'galleryTag:summer-2026',
+      available: true,
+    });
+    expect(rows[2].path).toEqual({ top: 0, tag: 1 });
+  });
+
+  it('greys the tag rows while the gallery flag is off', () => {
+    const entries: MenuEntry[] = [
+      { type: 'feature', feature: 'gallery', visible: true, galleryTags: [{ tag: 'nature', visible: true }] },
+    ];
+    const [, row] = entryRows(entries, pages, FLAGS, declared);
+    expect(row.available).toBe(false);
   });
 });
 

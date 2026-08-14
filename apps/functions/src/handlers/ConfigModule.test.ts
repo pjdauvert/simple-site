@@ -272,6 +272,29 @@ describe('ConfigModule', () => {
     expect(data.has('config:draft')).toBe(false);
   });
 
+  it('PUT /api/config/menu stores the gallery tag submenu and keeps the gallery entry out of groups', async () => {
+    const { data } = makeStore();
+    // The gallery entry carries its ordered tag submenu (per-tag activation).
+    const withSubmenu = { entries: [
+      { type: 'feature', feature: 'gallery', visible: true, galleryTags: [
+        { tag: 'summer-2026', visible: true },
+        { tag: 'nature', visible: false },
+      ] },
+    ] };
+    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', withSubmenu))).status).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).menu.entries[0].galleryTags).toHaveLength(2);
+
+    // It can never join a group — its submenu cannot nest (depth 1 is structural).
+    const grouped = { entries: [
+      { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
+        { type: 'feature', feature: 'gallery', visible: true },
+      ] },
+    ] };
+    const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', grouped));
+    expect(res.status).toBe(500);
+    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+  });
+
   it('PUT /api/config/menu rejects duplicate entries', async () => {
     const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
     const { data } = makeStore({ config });

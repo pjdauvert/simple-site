@@ -1,6 +1,5 @@
 import type { SiteConfig } from './site.interface.js';
 import { featureEntryLabel, type MenuLeafEntry } from './menu.interface.js';
-import { galleryTagNameKey } from './gallery.interface.js';
 import { SectionTypesEnum, type I18nEntry } from './sections/section.interface.js';
 import { collectHeroI18n } from './sections/hero.section.interface.js';
 import { collectTextI18n } from './sections/text.section.interface.js';
@@ -52,9 +51,8 @@ export const collectI18nEntries = (config: SiteConfig): I18nEntry[] => {
     if (entry.type === 'feature') {
       push({ key: menuTitleKey(entry.feature), defaultValue: featureEntryLabel(entry) });
     } else if (entry.type === 'galleryTag') {
-      // A custom label overrides the tag's displayName for the SAME key — the
-      // tag's own default is collected by the flag-gated gallery collector.
-      if (entry.menuTitle) push({ key: galleryTagNameKey(entry.tag), defaultValue: entry.menuTitle });
+      // Deprecated entry type — never rendered, contributes nothing. Tag labels
+      // are collected by the flag-gated gallery collector.
     } else if (entry.menuTitle) {
       push({ key: menuTitleKey(entry.pageName), defaultValue: entry.menuTitle });
     }

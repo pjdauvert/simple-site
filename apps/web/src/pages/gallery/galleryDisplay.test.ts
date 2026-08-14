@@ -178,6 +178,8 @@ describe('collectGalleryI18nEntries', () => {
       { key: 'gallery.tag.summer-2026.menuTitle', defaultValue: 'Été 2026' },
       { key: 'gallery.tag.summer-2026.description', defaultValue: 'Shot in **Corsica**.' },
       { key: 'gallery.tag.cities.menuTitle', defaultValue: 'Cities' },
+      // The submenu/back-link "all items" label exists once a tag does.
+      { key: 'gallery.all.menuTitle', defaultValue: 'All items' },
     ]);
   });
 

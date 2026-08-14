@@ -108,7 +108,9 @@ export const removeTag = (gallery: GalleryConfig, tagIndex: number): GalleryConf
     ...gallery,
     tags: gallery.tags.filter((_, index) => index !== tagIndex),
     items: gallery.items.map((item) =>
-      item.tags.includes(removed.tag) ? { ...item, tags: item.tags.filter((tag) => tag !== removed.tag) } : item,
+      (item.tags ?? []).includes(removed.tag)
+        ? { ...item, tags: (item.tags ?? []).filter((tag) => tag !== removed.tag) }
+        : item,
     ),
   };
 };
@@ -122,10 +124,11 @@ export const setItemTagged = (
 ): GalleryConfig => {
   const item = gallery.items[itemIndex];
   if (!item || !gallery.tags.some((declared) => declared.tag === tag)) return gallery;
-  if (tagged === item.tags.includes(tag)) return gallery;
+  const itemTags = item.tags ?? []; // tolerant — stored configs may predate `tags`
+  if (tagged === itemTags.includes(tag)) return gallery;
   const tags = tagged
-    ? gallery.tags.map((declared) => declared.tag).filter((declared) => declared === tag || item.tags.includes(declared))
-    : item.tags.filter((existing) => existing !== tag);
+    ? gallery.tags.map((declared) => declared.tag).filter((declared) => declared === tag || itemTags.includes(declared))
+    : itemTags.filter((existing) => existing !== tag);
   return updateItem(gallery, itemIndex, { ...item, tags });
 };
 

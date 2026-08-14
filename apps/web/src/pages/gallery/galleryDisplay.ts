@@ -20,6 +20,7 @@ import {
   type GalleryItemAspectRatio,
   type GalleryItemFit,
   type GalleryItemSpacing,
+  type GalleryTag,
   type SiteConfig,
 } from '@simple-site/interfaces';
 import type { IkWatermark } from '../../utils/imagekit';
@@ -49,7 +50,12 @@ export const displayableItemsForTag = (
   gallery: GalleryConfig | undefined,
   tag: string,
 ): DisplayableGalleryItem[] =>
-  displayableItems(gallery?.items).filter(({ item }) => item.tags.includes(tag));
+  // Tolerant read — a stored config may predate the `tags` field.
+  displayableItems(gallery?.items).filter(({ item }) => (item.tags ?? []).includes(tag));
+
+/** The declared tags whose collections have something to show (else their page 404s). */
+export const displayableTags = (gallery: GalleryConfig | undefined): GalleryTag[] =>
+  (gallery?.tags ?? []).filter((tag) => displayableItemsForTag(gallery, tag.tag).length > 0);
 
 /** Public route of a tag's collection page, nested under the gallery's reserved route. */
 export const galleryTagRoute = (tag: string): string =>

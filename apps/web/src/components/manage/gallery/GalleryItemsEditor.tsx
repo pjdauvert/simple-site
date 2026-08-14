@@ -227,9 +227,9 @@ export const GalleryItemsEditor: React.FC = () => {
             </span>
           </Tooltip>
         </Stack>
-        {item.tags.length > 0 && (
+        {(item.tags ?? []).length > 0 && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.25 }}>
-            {item.tags.map((tag) => (
+            {(item.tags ?? []).map((tag) => (
               <Chip key={tag} size="small" label={tag} sx={{ height: 18, '& .MuiChip-label': { px: 0.75, fontSize: '0.65rem' } }} />
             ))}
           </Box>
@@ -255,7 +255,7 @@ export const GalleryItemsEditor: React.FC = () => {
       </Typography>
 
       {gallery.tags.map((tag, tagIndex) => {
-        const itemCount = gallery.items.filter((item) => item.tags.includes(tag.tag)).length;
+        const itemCount = gallery.items.filter((item) => (item.tags ?? []).includes(tag.tag)).length;
         return (
           <Box key={tag.tag} sx={{ mb: 2 }}>
             <Stack direction="row" spacing={1} alignItems="center">

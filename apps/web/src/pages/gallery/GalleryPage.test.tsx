@@ -100,20 +100,30 @@ describe('GalleryPage (public /gallery)', () => {
     expect(within(row.firstElementChild as HTMLElement).getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
   });
 
-  it('browses every item from the root — tags never partition the root page', () => {
+  it('browses every item from the root, surfacing the tags as a bar and per-item chips', () => {
     setConfig({
       items: [
         { imageUrl: '/solo.jpg', title: 'Solo shot' },
         { imageUrl: '/tree.jpg', title: 'Tree', tags: ['nature'] },
+        { title: 'Hidden', tags: ['empty'] },
       ],
-      tags: [{ tag: 'nature', displayName: 'Nature' }],
+      tags: [
+        { tag: 'nature', displayName: 'Nature' },
+        // Nothing displayable carries it → its collection would 404: kept off the bar.
+        { tag: 'empty', displayName: 'Empty' },
+      ],
     });
     renderPage();
-    // Tagged and untagged items sit in the same root list; a tag's collection
-    // is its own page, reached through the menu — no index cards here.
+    // Tagged and untagged items sit in the same root list — tags never partition it.
     expect(screen.getByRole('heading', { level: 3, name: 'Solo shot' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Tree' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Nature/ })).not.toBeInTheDocument();
+    // The GENERAL page surfaces the tags: a bar under the heading and a chip
+    // on the tagged item, all linking to the collection.
+    const links = screen.getAllByRole('link', { name: 'Nature' });
+    expect(links).toHaveLength(2); // the bar chip + the item chip
+    links.forEach((link) => expect(link).toHaveAttribute('href', '/gallery/tag/nature'));
+    expect(screen.getByTestId('gallery-tag-bar')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Empty' })).not.toBeInTheDocument();
   });
 
   it('opens the zoom mode on click and browses the list as a wrap-around carousel', async () => {

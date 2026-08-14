@@ -1,8 +1,15 @@
 import React from 'react';
-import { Box, Container, Typography } from '@mui/material';
-import { useParams } from 'react-router-dom';
+import { Box, Container, Link, Typography } from '@mui/material';
+import { ArrowBack as BackIcon } from '@mui/icons-material';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
-import { galleryTagDescriptionKey, galleryTagNameKey } from '@simple-site/interfaces';
+import {
+  DEFAULT_GALLERY_ALL_LABEL,
+  FEATURE_PAGE_ROUTES,
+  GALLERY_ALL_NAME_KEY,
+  galleryTagDescriptionKey,
+  galleryTagNameKey,
+} from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
 import { Loading, Markdown } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
@@ -36,6 +43,19 @@ export const GalleryTagPage: React.FC = () => {
 
   return (
     <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'lg'} sx={{ py: { xs: 4, md: 6 } }}>
+      {/* Back to the general gallery — same translatable label as the
+          submenu's "all items" link. */}
+      <Link
+        component={RouterLink}
+        to={FEATURE_PAGE_ROUTES.gallery}
+        variant="body2"
+        color="text.secondary"
+        underline="hover"
+        sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mb: 1 }}
+      >
+        <BackIcon fontSize="inherit" />
+        <FormattedMessage id={GALLERY_ALL_NAME_KEY} defaultMessage={DEFAULT_GALLERY_ALL_LABEL} />
+      </Link>
       <Typography variant="h3" component="h1" gutterBottom sx={{ mb: { xs: 3, md: 5 } }}>
         <FormattedMessage id={galleryTagNameKey(tag.tag)} defaultMessage={tag.displayName} />
       </Typography>
