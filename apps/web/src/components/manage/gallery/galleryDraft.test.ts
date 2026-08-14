@@ -3,6 +3,8 @@ import type { GalleryConfig } from '@simple-site/interfaces';
 import {
   addItem,
   addTag,
+  setItemShowSubtitle,
+  setItemShowTitle,
   emptyGallery,
   isValidNewTag,
   moveItemInList,
@@ -108,6 +110,15 @@ describe('items', () => {
 });
 
 describe('design settings', () => {
+  it('stores only the HIDDEN caption toggles — shown (the default) collapses away', () => {
+    const hidden = setItemShowSubtitle(setItemShowTitle(seeded(), false), false);
+    expect(hidden.design).toEqual({ itemShowTitle: false, itemShowSubtitle: false });
+    // Each toggle clears independently…
+    expect(setItemShowTitle(hidden, true).design).toEqual({ itemShowSubtitle: false });
+    // …and back to both shown the design disappears entirely.
+    expect('design' in setItemShowSubtitle(setItemShowTitle(hidden, true), true)).toBe(false);
+  });
+
   it('stores a non-default caption position and drops the design entirely on the default', () => {
     const withLeft = setCaptionPosition(seeded(), 'left');
     expect(withLeft.design).toEqual({ captionPosition: 'left' });

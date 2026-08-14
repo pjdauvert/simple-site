@@ -159,6 +159,14 @@ export const GalleryDesignSchema = z.object({
   /** Absent → {@link DEFAULT_GALLERY_DISPLAY_MODE}, keeping stored configs minimal. */
   displayMode: GalleryDisplayModeSchema.optional(),
   /**
+   * Whether the browsing lists show each item's title / subtitle —
+   * INDEPENDENT toggles, applying to the captioned modes (`list`, `grid`,
+   * `alternate`; `mosaic` never captions). Absent → shown (only `false` is
+   * stored). The zoom view always keeps title and subtitle.
+   */
+  itemShowTitle: z.boolean().optional(),
+  itemShowSubtitle: z.boolean().optional(),
+  /**
    * Maximum rendered width of each item's image, as a PERCENTAGE of the screen
    * width (the exact resolution is never known in advance) — caps the
    * clickable image in every display mode, on LANDSCAPE screens only (height

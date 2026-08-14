@@ -158,6 +158,13 @@ const normalizeDesign = (design: GalleryDesign): GalleryDesign | undefined => {
   if (design.displayMode && design.displayMode !== DEFAULT_GALLERY_DISPLAY_MODE) {
     next.displayMode = design.displayMode;
   }
+  // Titles/subtitles are shown by default — only the hidden state is stored.
+  if (design.itemShowTitle === false) {
+    next.itemShowTitle = false;
+  }
+  if (design.itemShowSubtitle === false) {
+    next.itemShowSubtitle = false;
+  }
   if (design.itemMaxWidthPercent !== undefined) {
     next.itemMaxWidthPercent = design.itemMaxWidthPercent;
   }
@@ -219,6 +226,14 @@ export const setCaptionPosition = (gallery: GalleryConfig, position: GalleryCapt
 /** Sets the display mode (list / grid / mosaic / alternate); defaults collapse like the caption. */
 export const setDisplayMode = (gallery: GalleryConfig, displayMode: GalleryDisplayMode): GalleryConfig =>
   withDesign(gallery, { displayMode });
+
+/** Shows/hides the items' titles in the browsing lists (shown — the default — is not stored). */
+export const setItemShowTitle = (gallery: GalleryConfig, itemShowTitle: boolean): GalleryConfig =>
+  withDesign(gallery, { itemShowTitle });
+
+/** Shows/hides the items' subtitles in the browsing lists, independently of the titles. */
+export const setItemShowSubtitle = (gallery: GalleryConfig, itemShowSubtitle: boolean): GalleryConfig =>
+  withDesign(gallery, { itemShowSubtitle });
 
 /** Sets the per-item width cap (% of the screen); undefined clears it (no cap — the default). */
 export const setItemMaxWidthPercent = (

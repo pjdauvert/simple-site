@@ -23,6 +23,9 @@ export type PreviewOrientation = 'landscape' | 'portrait';
 interface GalleryDesignPreviewProps extends GalleryItemFrame {
   displayMode: GalleryDisplayMode;
   captionPosition: GalleryCaptionPosition;
+  /** The design's independent title/subtitle visibility — the bars follow. */
+  itemShowTitle: boolean;
+  itemShowSubtitle: boolean;
   itemColumns: number;
   itemAspectRatio: GalleryItemAspectRatio;
   itemFit: GalleryItemFit;
@@ -51,6 +54,8 @@ interface GalleryDesignPreviewProps extends GalleryItemFrame {
 export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
   displayMode,
   captionPosition,
+  itemShowTitle,
+  itemShowSubtitle,
   itemElevation,
   itemBorder,
   itemBorderColor,
@@ -81,13 +86,21 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
     <Box key="image" sx={{ bgcolor: 'action.selected', flexShrink: 0, ...frame, ...sx }} />
   );
 
-  /** Two solid bars standing for the title and subtitle text lines. */
-  const textBars = (width: number, sx?: SxProps<Theme>): React.ReactNode => (
-    <Box key="caption" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, ...sx }}>
-      <Box sx={{ height: 7, width, borderRadius: 4, bgcolor: 'text.secondary' }} />
-      <Box sx={{ height: 5, width: Math.round(width * 0.6), borderRadius: 4, bgcolor: 'text.disabled' }} />
-    </Box>
-  );
+  /**
+   * Solid bars standing for the title and subtitle text lines — each follows
+   * its own visibility toggle; both off → no caption block at all.
+   */
+  const textBars = (width: number, sx?: SxProps<Theme>): React.ReactNode => {
+    if (!itemShowTitle && !itemShowSubtitle) return null;
+    return (
+      <Box key="caption" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, ...sx }}>
+        {itemShowTitle && <Box sx={{ height: 7, width, borderRadius: 4, bgcolor: 'text.secondary' }} />}
+        {itemShowSubtitle && (
+          <Box sx={{ height: 5, width: Math.round(width * 0.6), borderRadius: 4, bgcolor: 'text.disabled' }} />
+        )}
+      </Box>
+    );
+  };
 
   /** One list tile honouring the caption placement (list mode only). */
   const tile = (imageSx: SxProps<Theme>, barsWidth: number): React.ReactNode => {

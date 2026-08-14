@@ -65,6 +65,9 @@ export const galleryTagRoute = (tag: string): string =>
 export interface GalleryDisplaySettings {
   captionPosition: GalleryCaptionPosition;
   displayMode: GalleryDisplayMode;
+  /** Whether the browsing lists show titles / subtitles (independent; zoom always does). */
+  itemShowTitle: boolean;
+  itemShowSubtitle: boolean;
   /** Per-item width cap in % of the screen width; undefined = the mode's natural width. */
   itemMaxWidthPercent?: number;
   /** Shadow elevation of the image tiles (MUI scale); undefined/0 = flat. */
@@ -131,6 +134,8 @@ const resolveWatermark = (gallery: GalleryConfig | undefined): IkWatermark | und
 export const galleryDisplaySettings = (gallery: GalleryConfig | undefined): GalleryDisplaySettings => ({
   captionPosition: gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION,
   displayMode: gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE,
+  itemShowTitle: gallery?.design?.itemShowTitle ?? true,
+  itemShowSubtitle: gallery?.design?.itemShowSubtitle ?? true,
   itemMaxWidthPercent: gallery?.design?.itemMaxWidthPercent,
   itemElevation: gallery?.design?.itemElevation,
   itemBorder: gallery?.design?.itemBorder,

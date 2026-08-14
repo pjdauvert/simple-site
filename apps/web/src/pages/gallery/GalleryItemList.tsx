@@ -61,6 +61,8 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   tags,
   captionPosition,
   displayMode,
+  itemShowTitle,
+  itemShowSubtitle,
   itemMaxWidthPercent,
   itemElevation,
   itemBorder,
@@ -135,18 +137,25 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
     );
   };
 
-  const caption = (item: GalleryItem, index: number, sx?: SxProps<Theme>): React.ReactNode => (
-    <Box key="caption" sx={{ textAlign: 'center', ...sx }}>
-      <Typography variant="h6" component="h3">
-        <FormattedMessage id={galleryItemKey(index, 'title')} defaultMessage={item.title} />
-      </Typography>
-      {item.subtitle?.trim() && (
-        <Typography variant="body2" color="text.secondary">
-          <FormattedMessage id={galleryItemKey(index, 'subtitle')} defaultMessage={item.subtitle} />
-        </Typography>
-      )}
-    </Box>
-  );
+  const caption = (item: GalleryItem, index: number, sx?: SxProps<Theme>): React.ReactNode => {
+    const showSubtitle = itemShowSubtitle && Boolean(item.subtitle?.trim());
+    // Both toggled off → no caption block at all (the zoom view keeps them).
+    if (!itemShowTitle && !showSubtitle) return null;
+    return (
+      <Box key="caption" sx={{ textAlign: 'center', ...sx }}>
+        {itemShowTitle && (
+          <Typography variant="h6" component="h3">
+            <FormattedMessage id={galleryItemKey(index, 'title')} defaultMessage={item.title} />
+          </Typography>
+        )}
+        {showSubtitle && (
+          <Typography variant="body2" color="text.secondary">
+            <FormattedMessage id={galleryItemKey(index, 'subtitle')} defaultMessage={item.subtitle} />
+          </Typography>
+        )}
+      </Box>
+    );
+  };
 
   /**
    * The clickable image wrapped with its chip overlay. The wrapper hugs the

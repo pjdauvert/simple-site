@@ -130,6 +130,8 @@ Replaces the `gallery` of the **draft** — the tagged image gallery (see [confi
   "design": { "captionPosition": "left", "displayMode": "grid" } }
 // design is optional; displayMode: "list" (default) | "grid" | "mosaic" | "alternate";
 // captionPosition ("above" | "below" (default) | "left" | "right") applies to the list mode only;
+// itemShowTitle / itemShowSubtitle (booleans; absent = shown) hide the captions
+// in the browsing lists independently — the zoom view always keeps both;
 // itemMaxWidthPercent (int, 10-100, % of the screen width) caps each item's image
 // in every mode — landscape screens only;
 // layout: itemColumns (2-5, tiled modes), itemAspectRatio (original|1:1|4:3|3:2|16:9, grid)

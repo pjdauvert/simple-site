@@ -150,30 +150,57 @@ describe('GalleryDesignEditor', () => {
 
   it('shows only the options applicable to the selected display mode (hidden, not disabled)', async () => {
     renderEditor();
-    // list: caption position, but no columns and no tile ratio.
+    // list: caption toggles + position, but no columns and no tile ratio.
     expect(await screen.findByRole('button', { name: /above/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /show titles/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '5' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '16:9' })).not.toBeInTheDocument();
 
-    // grid: columns and ratio appear, the caption position disappears entirely.
+    // grid: columns and ratio appear, the caption position disappears entirely
+    // (grid always captions below) — the show/hide toggles stay.
     fireEvent.click(screen.getByRole('button', { name: /grid/i }));
     expect(screen.queryByRole('button', { name: /above/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /show titles/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '16:9' })).toBeInTheDocument();
 
-    // mosaic: columns stay, the ratio (grid-only) goes.
+    // mosaic: columns stay, the ratio (grid-only) goes — and the caption
+    // toggles vanish too: a mosaic never captions.
     fireEvent.click(screen.getByRole('button', { name: /mosaic/i }));
     expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '16:9' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /show titles/i })).not.toBeInTheDocument();
 
-    // alternate: neither captions nor columns nor ratio.
+    // alternate: caption toggles but no position, columns or ratio.
     fireEvent.click(screen.getByRole('button', { name: /alternating/i }));
     expect(screen.queryByRole('button', { name: /above/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '5' })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /show titles/i })).toBeInTheDocument();
 
     // Back to list — the hidden option resurfaces with its stored value intact.
     fireEvent.click(screen.getByRole('button', { name: /^list$/i }));
     expect(screen.getByRole('button', { name: /above/i })).toBeInTheDocument();
+  });
+
+  it('hides titles and subtitles independently, hiding the position once nothing shows', async () => {
+    renderEditor();
+    fireEvent.click(await screen.findByRole('checkbox', { name: /show subtitles/i }));
+    // One caption still shows → the position keeps applying.
+    expect(screen.getByRole('button', { name: /above/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /show titles/i }));
+    // Nothing left to position — the option hides (never disabled).
+    expect(screen.queryByRole('button', { name: /above/i })).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+    });
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    // Only the hidden states are stored — shown is the default.
+    expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
+      items: seeded.items,
+      tags: [],
+      design: { itemShowTitle: false, itemShowSubtitle: false },
+    });
   });
 
   it('toggles the preview orientation without hiding any design option', async () => {

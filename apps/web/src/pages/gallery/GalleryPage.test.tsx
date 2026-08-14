@@ -127,6 +127,30 @@ describe('GalleryPage (public /gallery)', () => {
     expect(screen.queryByRole('link', { name: 'Empty' })).not.toBeInTheDocument();
   });
 
+  it('hides the titles and subtitles independently in the list — the zoom keeps both', () => {
+    setConfig({
+      items: [{ imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' }],
+      design: { itemShowSubtitle: false },
+    });
+    const first = renderPage();
+    expect(screen.getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
+    expect(screen.queryByText('Sub A')).not.toBeInTheDocument();
+    first.unmount();
+
+    // Hiding the title too drops the caption block entirely…
+    setConfig({
+      items: [{ imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' }],
+      design: { itemShowTitle: false, itemShowSubtitle: false },
+    });
+    renderPage();
+    expect(screen.queryByRole('heading', { level: 3, name: 'A' })).not.toBeInTheDocument();
+    // …while the zoom view always shows title and subtitle.
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('A')).toBeInTheDocument();
+    expect(within(dialog).getByText('Sub A')).toBeInTheDocument();
+  });
+
   it('opens the zoom mode on click and browses the list as a wrap-around carousel', async () => {
     setConfig({
       items: [

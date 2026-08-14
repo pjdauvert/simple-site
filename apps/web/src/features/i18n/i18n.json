@@ -601,7 +601,11 @@
         "page.manage.gallery.items.hint": "Every item is browsed from the gallery root page; tag an item (from its dialog) to add it to that tag's collection.",
         "page.manage.gallery.dialog.tags": "Tags",
         "page.manage.menu.badge.galleryTag": "Collection",
-        "page.manage.gallery.tab.tags": "Tags"
+        "page.manage.gallery.tab.tags": "Tags",
+        "page.manage.gallery.captions": "Captions",
+        "page.manage.gallery.captions.title": "Show titles",
+        "page.manage.gallery.captions.subtitle": "Show subtitles",
+        "page.manage.gallery.captions.hint": "Applies to the browsing lists — the zoom view always shows the title and subtitle."
     },
     "fr": {
         "language.switch": "Changer de Langue",
@@ -1205,6 +1209,10 @@
         "page.manage.gallery.items.hint": "Tous les éléments s'explorent depuis la racine de la galerie ; taguez un élément (depuis sa fenêtre d'édition) pour l'ajouter à la collection de ce tag.",
         "page.manage.gallery.dialog.tags": "Tags",
         "page.manage.menu.badge.galleryTag": "Collection",
-        "page.manage.gallery.tab.tags": "Tags"
+        "page.manage.gallery.tab.tags": "Tags",
+        "page.manage.gallery.captions": "Légendes",
+        "page.manage.gallery.captions.title": "Afficher les titres",
+        "page.manage.gallery.captions.subtitle": "Afficher les sous-titres",
+        "page.manage.gallery.captions.hint": "S'applique aux listes de navigation — le mode zoom affiche toujours le titre et le sous-titre."
     }
 }

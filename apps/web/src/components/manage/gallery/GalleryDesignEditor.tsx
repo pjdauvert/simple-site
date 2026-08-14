@@ -55,6 +55,8 @@ import {
   emptyGallery,
   setCaptionPosition,
   setDisplayMode,
+  setItemShowSubtitle,
+  setItemShowTitle,
   setItemAspectRatio,
   setItemBorder,
   setItemBorderColor,
@@ -94,6 +96,8 @@ export const GalleryDesignEditor: React.FC = () => {
 
   const [captionPosition, setCaption] = useState<GalleryCaptionPosition | null>(null);
   const [displayMode, setMode] = useState<GalleryDisplayMode>(DEFAULT_GALLERY_DISPLAY_MODE);
+  const [showTitle, setShowTitle] = useState(true);
+  const [showSubtitle, setShowSubtitle] = useState(true);
   // Empty field = no cap (the default) — kept as undefined, never 0.
   const [itemMaxWidthPercent, setWidth] = useState<number | undefined>(undefined);
   const [itemElevation, setElevation] = useState(0);
@@ -122,6 +126,8 @@ export const GalleryDesignEditor: React.FC = () => {
         if (!active) return;
         setCaption(config.gallery?.design?.captionPosition ?? DEFAULT_GALLERY_CAPTION_POSITION);
         setMode(config.gallery?.design?.displayMode ?? DEFAULT_GALLERY_DISPLAY_MODE);
+        setShowTitle(config.gallery?.design?.itemShowTitle ?? true);
+        setShowSubtitle(config.gallery?.design?.itemShowSubtitle ?? true);
         setWidth(config.gallery?.design?.itemMaxWidthPercent);
         setElevation(config.gallery?.design?.itemElevation ?? 0);
         setBorderOn(config.gallery?.design?.itemBorder ?? false);
@@ -158,6 +164,7 @@ export const GalleryDesignEditor: React.FC = () => {
         setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode),
         itemMaxWidthPercent,
       );
+      merged = setItemShowSubtitle(setItemShowTitle(merged, showTitle), showSubtitle);
       merged = setItemCornerRadius(
         setItemBorderColor(setItemBorder(setItemElevation(merged, itemElevation), itemBorder), itemBorderColor),
         itemCornerRadius,
@@ -219,7 +226,28 @@ export const GalleryDesignEditor: React.FC = () => {
         {/* Ergonomic principle (see docs/contributing.md): an option that does
             not apply to the selected mode is HIDDEN, not disabled. The stored
             values survive mode switches — hiding is presentation only. */}
-        {displayMode === 'list' && (
+        {displayMode !== 'mosaic' && (
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              <FormattedMessage id="page.manage.gallery.captions" />
+            </Typography>
+            <Stack direction="row" spacing={3}>
+              <FormControlLabel
+                control={<Switch checked={showTitle} onChange={(_, checked) => setShowTitle(checked)} />}
+                label={<FormattedMessage id="page.manage.gallery.captions.title" />}
+              />
+              <FormControlLabel
+                control={<Switch checked={showSubtitle} onChange={(_, checked) => setShowSubtitle(checked)} />}
+                label={<FormattedMessage id="page.manage.gallery.captions.subtitle" />}
+              />
+            </Stack>
+            <Typography variant="caption" color="text.secondary" component="div">
+              <FormattedMessage id="page.manage.gallery.captions.hint" />
+            </Typography>
+          </Box>
+        )}
+
+        {displayMode === 'list' && (showTitle || showSubtitle) && (
           <Box>
             <Typography variant="subtitle2" gutterBottom id="gallery-caption-position-label">
               <FormattedMessage id="page.manage.gallery.captionPosition" />
@@ -494,6 +522,8 @@ export const GalleryDesignEditor: React.FC = () => {
         <GalleryDesignPreview
           displayMode={displayMode}
           captionPosition={captionPosition}
+          itemShowTitle={showTitle}
+          itemShowSubtitle={showSubtitle}
           itemElevation={itemElevation}
           itemBorder={itemBorder}
           itemBorderColor={itemBorderColor}

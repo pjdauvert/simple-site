@@ -429,6 +429,18 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config:draft')!).gallery.items).toEqual([{ title: 'Work in progress', tags: [] }]);
   });
 
+  it('PUT /api/config/gallery accepts the independent caption toggles and rejects non-booleans', async () => {
+    const { data } = makeStore();
+    const design = { itemShowTitle: false, itemShowSubtitle: false };
+    expect(
+      (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design }))).status,
+    ).toBe(200);
+    expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual(design);
+
+    const bad = { items: [], tags: [], design: { itemShowTitle: 'no' } };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
+  });
+
   it('PUT /api/config/gallery accepts the mosaic display mode', async () => {
     const { data } = makeStore();
     const gallery = { items: [], tags: [], design: { displayMode: 'mosaic' } };
