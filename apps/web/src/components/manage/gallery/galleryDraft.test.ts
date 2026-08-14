@@ -2,16 +2,12 @@ import { describe, it, expect } from 'vitest';
 import type { GalleryConfig } from '@simple-site/interfaces';
 import {
   addItem,
-  addTheme,
+  addTag,
   emptyGallery,
-  itemsAt,
+  isValidNewTag,
   moveItemInList,
-  moveItemToList,
-  moveTheme,
   removeItem,
-  removeTheme,
-  renameTheme,
-  clearThemeCover,
+  removeTag,
   setCaptionPosition,
   setDisplayMode,
   setItemAspectRatio,
@@ -23,130 +19,91 @@ import {
   setItemFit,
   setItemMaxWidthPercent,
   setItemSpacing,
-  setThemeCover,
-  setThemePresentation,
+  setItemTagged,
+  setTagDescription,
+  setTagDisplayName,
   setWatermark,
   updateItem,
 } from './galleryDraft';
 
-const item = (title: string) => ({ imageUrl: `/${title}.jpg`, title });
+const item = (title: string, tags: string[] = []) => ({ imageUrl: `/${title}.jpg`, title, tags });
 
 const seeded = (): GalleryConfig => ({
-  items: [item('rootA'), item('rootB')],
-  themes: [
-    { themeId: 'nature', title: 'Nature', items: [item('tree'), item('lake')] },
-    { themeId: 'cities', title: 'Cities', items: [item('paris')] },
+  items: [item('tree', ['nature']), item('lake', ['nature', 'water']), item('paris')],
+  tags: [
+    { tag: 'nature', displayName: 'Nature' },
+    { tag: 'water', displayName: 'Water' },
   ],
 });
 
-describe('themes', () => {
-  it('adds a theme with an immutable camelCase id derived from the name', () => {
-    const next = addTheme(emptyGallery(), '  Paysages d’été  ');
-    expect(next.themes).toEqual([{ themeId: 'paysagesDEte', title: 'Paysages d’été', items: [] }]);
+describe('tags', () => {
+  it('declares a tag with an immutable id; the displayName defaults to it', () => {
+    const next = addTag(emptyGallery(), ' summer-2026 ', '  Été 2026  ');
+    expect(next.tags).toEqual([{ tag: 'summer-2026', displayName: 'Été 2026' }]);
+    expect(addTag(emptyGallery(), 'city_walks').tags).toEqual([{ tag: 'city_walks', displayName: 'city_walks' }]);
   });
 
-  it('suffixes the id on collision and falls back to "theme" when nothing usable remains', () => {
-    const twice = addTheme(addTheme(emptyGallery(), 'Nature'), 'Nature');
-    expect(twice.themes.map((t) => t.themeId)).toEqual(['nature', 'nature2']);
-    expect(addTheme(emptyGallery(), '***').themes[0].themeId).toBe('theme');
+  it('refuses an invalid or already-taken id (the editor validates with isValidNewTag)', () => {
+    const base = seeded();
+    for (const bad of ['mon thème', 'été', 'a b', '', 'x'.repeat(65), 'nature']) {
+      expect(isValidNewTag(base, bad)).toBe(false);
+      expect(addTag(base, bad)).toEqual(base);
+    }
+    expect(isValidNewTag(base, 'summer-2026_v2')).toBe(true);
   });
 
-  it('renames a theme without touching its id (translations survive)', () => {
-    const next = renameTheme(seeded(), 0, ' Wilderness ');
-    expect(next.themes[0]).toMatchObject({ themeId: 'nature', title: 'Wilderness' });
-    // An emptied rename keeps the current title — a theme IS its label.
-    expect(renameTheme(seeded(), 0, '   ')).toEqual(seeded());
+  it('renames a displayName without touching the id (translations survive)', () => {
+    const next = setTagDisplayName(seeded(), 0, ' Wilderness ');
+    expect(next.tags[0]).toEqual({ tag: 'nature', displayName: 'Wilderness' });
+    // An emptied rename keeps the current name — a tag is presented BY its name.
+    expect(setTagDisplayName(seeded(), 0, '   ')).toEqual(seeded());
   });
 
-  it('reorders themes and ignores out-of-bounds moves', () => {
-    expect(moveTheme(seeded(), 0, 1).themes.map((t) => t.themeId)).toEqual(['cities', 'nature']);
-    expect(moveTheme(seeded(), 0, -1)).toEqual(seeded());
+  it('stores a trimmed description and clears it when emptied', () => {
+    const withText = setTagDescription(seeded(), 0, '  Shot in **Corsica**.  ');
+    expect(withText.tags[0].description).toBe('Shot in **Corsica**.');
+    expect('description' in setTagDescription(withText, 0, '   ').tags[0]).toBe(false);
   });
 
-  it('deletes a theme by returning its items to the root list', () => {
-    const next = removeTheme(seeded(), 0);
-    expect(next.themes.map((t) => t.themeId)).toEqual(['cities']);
-    expect(next.items.map((i) => i.title)).toEqual(['rootA', 'rootB', 'tree', 'lake']);
+  it('deleting a tag cascades to its references — the items stay, untagged from it', () => {
+    const next = removeTag(seeded(), 0); // 'nature'
+    expect(next.tags.map((tag) => tag.tag)).toEqual(['water']);
+    expect(next.items.map((entry) => entry.tags)).toEqual([[], ['water'], []]);
+    expect(next.items.map((entry) => entry.title)).toEqual(['tree', 'lake', 'paris']);
+    expect(removeTag(seeded(), 9)).toEqual(seeded()); // unknown index → no-op
   });
 });
 
 describe('items', () => {
-  it('adds, updates and removes items in the root list and inside a theme', () => {
-    let gallery = addItem(seeded(), null, item('rootC'));
-    expect(gallery.items.map((i) => i.title)).toEqual(['rootA', 'rootB', 'rootC']);
+  it('adds, updates, removes and reorders items in the single flat list', () => {
+    const added = addItem(seeded(), item('newYork', ['water']));
+    expect(added.items.map((entry) => entry.title)).toEqual(['tree', 'lake', 'paris', 'newYork']);
 
-    gallery = addItem(gallery, 1, item('berlin'));
-    expect(itemsAt(gallery, 1).map((i) => i.title)).toEqual(['paris', 'berlin']);
+    const updated = updateItem(added, 3, item('tokyo'));
+    expect(updated.items[3]).toEqual(item('tokyo'));
 
-    gallery = updateItem(gallery, { themeIndex: 1, itemIndex: 0 }, { title: 'Paris by night' });
-    expect(itemsAt(gallery, 1)[0]).toEqual({ title: 'Paris by night' });
+    const moved = moveItemInList(updated, 3, -1);
+    expect(moved.items.map((entry) => entry.title)).toEqual(['tree', 'lake', 'tokyo', 'paris']);
+    // Out of bounds → no move.
+    expect(moveItemInList(moved, 0, -1).items.map((entry) => entry.title)).toEqual(['tree', 'lake', 'tokyo', 'paris']);
 
-    gallery = removeItem(gallery, { themeIndex: null, itemIndex: 0 });
-    expect(gallery.items.map((i) => i.title)).toEqual(['rootB', 'rootC']);
+    const removed = removeItem(moved, 0);
+    expect(removed.items.map((entry) => entry.title)).toEqual(['lake', 'tokyo', 'paris']);
   });
 
-  it('moves an item within its own list only', () => {
-    const next = moveItemInList(seeded(), { themeIndex: 0, itemIndex: 0 }, 1);
-    expect(itemsAt(next, 0).map((i) => i.title)).toEqual(['lake', 'tree']);
-    expect(moveItemInList(seeded(), { themeIndex: 0, itemIndex: 1 }, 1)).toEqual(seeded());
-  });
+  it('tags and untags an item, keeping the declared-tag order stable', () => {
+    // 'paris' gains water then nature — stored in DECLARED order, not click order.
+    const watered = setItemTagged(seeded(), 2, 'water', true);
+    expect(watered.items[2].tags).toEqual(['water']);
+    const both = setItemTagged(watered, 2, 'nature', true);
+    expect(both.items[2].tags).toEqual(['nature', 'water']);
 
-  it('moves an item to another theme or out to the root, appended at the end', () => {
-    const toTheme = moveItemToList(seeded(), { themeIndex: null, itemIndex: 0 }, 1);
-    expect(toTheme.items.map((i) => i.title)).toEqual(['rootB']);
-    expect(itemsAt(toTheme, 1).map((i) => i.title)).toEqual(['paris', 'rootA']);
+    const untagged = setItemTagged(both, 2, 'nature', false);
+    expect(untagged.items[2].tags).toEqual(['water']);
 
-    const toRoot = moveItemToList(seeded(), { themeIndex: 0, itemIndex: 1 }, null);
-    expect(itemsAt(toRoot, 0).map((i) => i.title)).toEqual(['tree']);
-    expect(toRoot.items.map((i) => i.title)).toEqual(['rootA', 'rootB', 'lake']);
-
-    // Same list or unknown target → no-op.
-    expect(moveItemToList(seeded(), { themeIndex: 0, itemIndex: 0 }, 0)).toEqual(seeded());
-    expect(moveItemToList(seeded(), { themeIndex: 0, itemIndex: 0 }, 9)).toEqual(seeded());
-  });
-});
-
-describe('theme cover', () => {
-  const withCover = (coverIndex: number): GalleryConfig => {
-    const base = seeded();
-    return { ...base, themes: base.themes.map((theme, i) => (i === 0 ? { ...theme, coverIndex } : theme)) };
-  };
-
-  it('marks an item as its theme cover and clears the pick', () => {
-    const picked = setThemeCover(seeded(), { themeIndex: 0, itemIndex: 1 });
-    expect(picked.themes[0].coverIndex).toBe(1);
-    expect('coverIndex' in clearThemeCover(picked, 0).themes[0]).toBe(false);
-    // Root items can't be a cover — no theme owns them.
-    expect(setThemeCover(seeded(), { themeIndex: null, itemIndex: 0 })).toEqual(seeded());
-  });
-
-  it('follows its image through a reorder', () => {
-    // 'nature' holds [tree, lake]; the cover is `lake` (index 1).
-    const moved = moveItemInList(withCover(1), { themeIndex: 0, itemIndex: 1 }, -1);
-    expect(itemsAt(moved, 0).map((i) => i.title)).toEqual(['lake', 'tree']);
-    expect(moved.themes[0].coverIndex).toBe(0);
-    // A non-cover item moving past it shifts the pick too.
-    const shifted = moveItemInList(withCover(0), { themeIndex: 0, itemIndex: 1 }, -1);
-    expect(shifted.themes[0].coverIndex).toBe(1);
-  });
-
-  it('drops the pick when the cover image is deleted, and shifts it otherwise', () => {
-    expect('coverIndex' in removeItem(withCover(1), { themeIndex: 0, itemIndex: 1 }).themes[0]).toBe(false);
-    expect(removeItem(withCover(1), { themeIndex: 0, itemIndex: 0 }).themes[0].coverIndex).toBe(0);
-  });
-
-  it('drops the pick when the cover image is moved to another list', () => {
-    const moved = moveItemToList(withCover(1), { themeIndex: 0, itemIndex: 1 }, null);
-    expect('coverIndex' in moved.themes[0]).toBe(false);
-    expect(moved.items.map((i) => i.title)).toEqual(['rootA', 'rootB', 'lake']);
-  });
-});
-
-describe('theme presentation', () => {
-  it('stores a trimmed introduction and clears it when emptied', () => {
-    const withText = setThemePresentation(seeded(), 0, '  Shot in **Corsica**.  ');
-    expect(withText.themes[0].presentation).toBe('Shot in **Corsica**.');
-    expect('presentation' in setThemePresentation(withText, 0, '   ').themes[0]).toBe(false);
+    // Undeclared tag or no-op toggle → unchanged.
+    expect(setItemTagged(seeded(), 2, 'ghost', true)).toEqual(seeded());
+    expect(setItemTagged(seeded(), 0, 'nature', true)).toEqual(seeded());
   });
 });
 

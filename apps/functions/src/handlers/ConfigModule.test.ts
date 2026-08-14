@@ -380,12 +380,11 @@ describe('ConfigModule', () => {
   it('PUT /api/config/gallery writes the DRAFT gallery and leaves pages/themes/site untouched', async () => {
     const { data } = makeStore();
     const gallery = {
-      items: [{ imageUrl: '/img/solo.jpg', title: 'Solo' }],
-      themes: [
-        { themeId: 'landscapes', title: 'Landscapes', items: [
-          { imageUrl: '/img/alps.jpg', title: 'Alps', subtitle: 'Winter light' },
-        ] },
+      items: [
+        { imageUrl: '/img/solo.jpg', title: 'Solo', tags: [] },
+        { imageUrl: '/img/alps.jpg', title: 'Alps', subtitle: 'Winter light', tags: ['landscapes'] },
       ],
+      tags: [{ tag: 'landscapes', displayName: 'Landscapes' }],
       design: { captionPosition: 'left', displayMode: 'grid' },
     };
     const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
@@ -401,15 +400,15 @@ describe('ConfigModule', () => {
 
   it('PUT /api/config/gallery keeps an item without an image (hidden publicly, kept in config)', async () => {
     const { data } = makeStore();
-    const gallery = { items: [{ title: 'Work in progress' }], themes: [] };
+    const gallery = { items: [{ title: 'Work in progress' }], tags: [] };
     const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
     expect(res.status).toBe(200);
-    expect(JSON.parse(data.get('config:draft')!).gallery.items).toEqual([{ title: 'Work in progress' }]);
+    expect(JSON.parse(data.get('config:draft')!).gallery.items).toEqual([{ title: 'Work in progress', tags: [] }]);
   });
 
   it('PUT /api/config/gallery accepts the mosaic display mode', async () => {
     const { data } = makeStore();
-    const gallery = { items: [], themes: [], design: { displayMode: 'mosaic' } };
+    const gallery = { items: [], tags: [], design: { displayMode: 'mosaic' } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery))).status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ displayMode: 'mosaic' });
   });
@@ -417,7 +416,7 @@ describe('ConfigModule', () => {
   it('PUT /api/config/gallery accepts the frame options and rejects out-of-range ones', async () => {
     const { data } = makeStore();
     const design = { itemElevation: 8, itemBorder: true, itemBorderColor: '#123456', itemCornerRadius: 0 };
-    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design }));
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design }));
     expect(res.status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual(design);
 
@@ -425,19 +424,19 @@ describe('ConfigModule', () => {
     // like an out-of-range or fractional value.
     for (const bad of [{ itemElevation: 30 }, { itemCornerRadius: 60 }, { itemElevation: 2.5 }, { itemElevation: 12 }]) {
       expect(
-        (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design: bad }))).status,
+        (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design: bad }))).status,
       ).toBe(500);
     }
   });
 
   it('PUT /api/config/gallery accepts an in-range itemMaxWidthPercent and rejects out-of-range ones', async () => {
     const { data } = makeStore();
-    const capped = { items: [], themes: [], design: { itemMaxWidthPercent: 60 } };
+    const capped = { items: [], tags: [], design: { itemMaxWidthPercent: 60 } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', capped))).status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ itemMaxWidthPercent: 60 });
 
     for (const itemMaxWidthPercent of [5, 150, 60.5]) {
-      const bad = { items: [], themes: [], design: { itemMaxWidthPercent } };
+      const bad = { items: [], tags: [], design: { itemMaxWidthPercent } };
       expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
     }
   });
@@ -454,7 +453,7 @@ describe('ConfigModule', () => {
       watermarkColor: '#101010',
       watermarkOpacity: 40,
     };
-    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design }));
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design }));
     expect(res.status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual(design);
 
@@ -468,67 +467,67 @@ describe('ConfigModule', () => {
     ];
     for (const bad of rejected) {
       expect(
-        (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], themes: [], design: bad }))).status,
+        (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design: bad }))).status,
       ).toBe(500);
     }
   });
 
-  it('PUT /api/config/gallery stores a theme cover pick and introduction', async () => {
+  it('PUT /api/config/gallery stores a tag with its displayName and description', async () => {
     const { data } = makeStore();
     const gallery = {
-      items: [],
-      themes: [
-        {
-          themeId: 'nature',
-          title: 'Nature',
-          presentation: 'Shot in **Corsica**.',
-          coverIndex: 1,
-          items: [
-            { imageUrl: '/a.jpg', title: 'Tree' },
-            { imageUrl: '/b.jpg', title: 'Lake' },
-          ],
-        },
-      ],
+      items: [{ imageUrl: '/a.jpg', title: 'Tree', tags: ['nature-2026'] }],
+      tags: [{ tag: 'nature-2026', displayName: 'Nature', description: 'Shot in **Corsica**.' }],
     };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery))).status).toBe(200);
-    expect(JSON.parse(data.get('config:draft')!).gallery.themes[0]).toMatchObject({
-      coverIndex: 1,
-      presentation: 'Shot in **Corsica**.',
+    expect(JSON.parse(data.get('config:draft')!).gallery.tags[0]).toEqual({
+      tag: 'nature-2026',
+      displayName: 'Nature',
+      description: 'Shot in **Corsica**.',
     });
-
-    // A negative cover index is not a position.
-    const bad = { items: [], themes: [{ themeId: 'nature', title: 'Nature', coverIndex: -1, items: [] }] };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
   });
 
-  it('PUT /api/config/gallery rejects two themes sharing a themeId', async () => {
+  it('PUT /api/config/gallery rejects two tags sharing an id and an item referencing an unknown tag', async () => {
     const { data } = makeStore();
-    const gallery = { items: [], themes: [
-      { themeId: 'nature', title: 'Nature', items: [] },
-      { themeId: 'nature', title: 'Other nature', items: [] },
+    const duplicated = { items: [], tags: [
+      { tag: 'nature', displayName: 'Nature' },
+      { tag: 'nature', displayName: 'Other nature' },
     ] };
-    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
+    const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', duplicated));
     expect(res.status).toBe(500);
     expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+
+    // Tag deletion cascades to the items' references — a dangling one is a client bug.
+    const dangling = { items: [{ title: 'Tree', tags: ['gone'] }], tags: [] };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', dangling))).status).toBe(500);
     expect(data.has('config:draft')).toBe(false);
   });
 
-  it('PUT /api/config/gallery rejects an invalid themeId, an empty theme title and an empty item title', async () => {
+  it('PUT /api/config/gallery enforces the tag charset (plain alphanumerics, - and _)', async () => {
+    makeStore();
+    // '-' and '_' are part of the contract.
+    const kebab = { items: [], tags: [{ tag: 'my-theme_2', displayName: 'Kebab' }] };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', kebab))).status).toBe(200);
+
+    for (const tag of ['mon th\u00e8me', '\u00e9t\u00e9', 'a b', 'x'.repeat(65), '']) {
+      const bad = { items: [], tags: [{ tag, displayName: 'Bad' }] };
+      expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
+    }
+  });
+
+  it('PUT /api/config/gallery rejects an empty tag displayName and an empty item title', async () => {
     const { data } = makeStore();
-    const badId = { items: [], themes: [{ themeId: 'my-theme', title: 'Kebab', items: [] }] };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badId))).status).toBe(500);
-    const emptyTheme = { items: [], themes: [{ themeId: 'ok', title: '', items: [] }] };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyTheme))).status).toBe(500);
-    const emptyItem = { items: [{ imageUrl: '/img/a.jpg', title: '' }], themes: [] };
+    const emptyName = { items: [], tags: [{ tag: 'ok', displayName: '' }] };
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyName))).status).toBe(500);
+    const emptyItem = { items: [{ imageUrl: '/img/a.jpg', title: '' }], tags: [] };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyItem))).status).toBe(500);
     expect(data.has('config:draft')).toBe(false);
   });
 
   it('PUT /api/config/gallery rejects unknown design values and a non-json content type', async () => {
     const { data } = makeStore();
-    const badDesign = { items: [], themes: [], design: { captionPosition: 'diagonal' } };
+    const badDesign = { items: [], tags: [], design: { captionPosition: 'diagonal' } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badDesign))).status).toBe(500);
-    const badMode = { items: [], themes: [], design: { displayMode: 'carousel' } };
+    const badMode = { items: [], tags: [], design: { displayMode: 'carousel' } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badMode))).status).toBe(500);
     const notJson = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', {}, 'text/plain'));
     expect(notJson.status).toBe(400);

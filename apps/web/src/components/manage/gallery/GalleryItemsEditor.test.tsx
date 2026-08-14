@@ -5,7 +5,7 @@ import { IntlProvider } from 'react-intl';
 import type { SiteConfig, GalleryConfig } from '@simple-site/interfaces';
 import messages from '../../../features/i18n/i18n.json';
 import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
-import { GalleryThemesEditor } from './GalleryThemesEditor';
+import { GalleryItemsEditor } from './GalleryItemsEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 
@@ -21,33 +21,36 @@ const draft = (gallery?: GalleryConfig): SiteConfig =>
   ({ site: { siteName: 'S' }, themes: [], pages: [], gallery }) as unknown as SiteConfig;
 
 const seeded: GalleryConfig = {
-  items: [{ imageUrl: '/a.jpg', title: 'Shot A', subtitle: 'Sub A' }],
-  themes: [{ themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] }],
+  items: [
+    { imageUrl: '/a.jpg', title: 'Shot A', subtitle: 'Sub A', tags: [] },
+    { imageUrl: '/n.jpg', title: 'Tree', tags: ['nature'] },
+  ],
+  tags: [{ tag: 'nature', displayName: 'Nature' }],
 };
 
 function renderEditor() {
   return render(
     <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
       <NotificationsProvider>
-        <GalleryThemesEditor />
+        <GalleryItemsEditor />
       </NotificationsProvider>
     </IntlProvider>,
   );
 }
 
-describe('GalleryThemesEditor', () => {
+describe('GalleryItemsEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(loadDraftConfig).mockResolvedValue(draft(seeded));
     vi.mocked(updateGallery).mockResolvedValue(undefined);
   });
 
-  it('shows the draft as thumbnails and opens the attributes dialog from a thumbnail', async () => {
+  it('shows the draft as thumbnails and opens the attributes dialog from one', async () => {
     renderEditor();
-    // Thumbnails are buttons named by their title; the theme header shows its route.
+    // Thumbnails are buttons named by their title; a tag row shows its route.
     const thumb = await screen.findByRole('button', { name: 'Shot A' });
     expect(screen.getByRole('button', { name: 'Tree' })).toBeInTheDocument();
-    expect(screen.getByText('/gallery/nature')).toBeInTheDocument();
+    expect(screen.getByText('/gallery/tag/nature')).toBeInTheDocument();
 
     fireEvent.click(thumb);
     expect(await screen.findByLabelText(/^title/i)).toHaveValue('Shot A');
@@ -69,7 +72,7 @@ describe('GalleryThemesEditor', () => {
     expect(screen.getByText('Not displayed — image missing')).toBeInTheDocument();
   });
 
-  it('moves an item to a theme from the dialog and saves over the fresh draft design', async () => {
+  it('tags an item from the dialog and saves over the fresh draft design', async () => {
     // The save-time re-read returns a draft whose Design tab set a grid mode.
     vi.mocked(loadDraftConfig)
       .mockResolvedValueOnce(draft(seeded))
@@ -77,8 +80,10 @@ describe('GalleryThemesEditor', () => {
     renderEditor();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Shot A' }));
-    fireEvent.mouseDown(await screen.findByRole('combobox', { name: /theme/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Nature' }));
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: /tags/i }));
+    fireEvent.click(await screen.findByRole('option', { name: /Nature/ }));
+    // A multi-select keeps its menu open — close it before reaching the actions.
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: /apply/i }));
     // The background stays aria-hidden until the dialog fully exits.
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -88,47 +93,55 @@ describe('GalleryThemesEditor', () => {
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
-      items: [],
-      themes: [
-        {
-          themeId: 'nature',
-          title: 'Nature',
-          items: [
-            { imageUrl: '/n.jpg', title: 'Tree' },
-            { imageUrl: '/a.jpg', title: 'Shot A', subtitle: 'Sub A' },
-          ],
-        },
+      items: [
+        { imageUrl: '/a.jpg', title: 'Shot A', subtitle: 'Sub A', tags: ['nature'] },
+        { imageUrl: '/n.jpg', title: 'Tree', tags: ['nature'] },
       ],
+      tags: [{ tag: 'nature', displayName: 'Nature' }],
       design: { displayMode: 'grid' }, // merged from the fresh draft, never clobbered
     });
   });
 
-  it('marks a themed item as its theme cover from the dialog, badging the thumbnail', async () => {
+  it('declares a tag with a valid id, rejecting the invalid ones live', async () => {
     renderEditor();
-    fireEvent.click(await screen.findByRole('button', { name: 'Tree' }));
-    fireEvent.click(await screen.findByRole('checkbox', { name: /use as the theme's cover/i }));
-    fireEvent.click(screen.getByRole('button', { name: /apply/i }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByText('Cover')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /add tag/i }));
+    const idField = await screen.findByRole('textbox', { name: /identifier/i });
+
+    // An accented id is off the charset — flagged, confirm disabled.
+    fireEvent.change(idField, { target: { value: 'été' } });
+    expect(screen.getByText(/only unaccented letters/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^add$/i })).toBeDisabled();
+
+    fireEvent.change(idField, { target: { value: 'summer-2026' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /display name/i }), { target: { value: 'Été 2026' } });
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+
+    expect(screen.getByText('/gallery/tag/summer-2026')).toBeInTheDocument();
+    expect(screen.getByText('Été 2026')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(updateGallery).mock.calls[0][0].themes[0]).toMatchObject({ coverIndex: 0 });
+    expect(vi.mocked(updateGallery).mock.calls[0][0].tags).toEqual([
+      { tag: 'nature', displayName: 'Nature' },
+      { tag: 'summer-2026', displayName: 'Été 2026' },
+    ]);
   });
 
-  it('saves a theme introduction typed under its header', async () => {
+  it('saves a tag description typed under its row', async () => {
     renderEditor();
-    fireEvent.change(await screen.findByLabelText(/theme introduction/i), {
+    fireEvent.change(await screen.findByLabelText(/description/i), {
       target: { value: 'Shot in **Corsica**.' },
     });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(updateGallery).mock.calls[0][0].themes[0]).toMatchObject({
-      presentation: 'Shot in **Corsica**.',
+    expect(vi.mocked(updateGallery).mock.calls[0][0].tags[0]).toEqual({
+      tag: 'nature',
+      displayName: 'Nature',
+      description: 'Shot in **Corsica**.',
     });
   });
 
@@ -139,11 +152,23 @@ describe('GalleryThemesEditor', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Shot A' })).not.toBeInTheDocument());
   });
 
-  it('deletes a theme, returning its items to the unthemed list', async () => {
+  it('deletes a tag — its references go with it, the items stay', async () => {
     renderEditor();
-    fireEvent.click(await screen.findByRole('button', { name: /delete theme/i }));
-    expect(screen.queryByText('/gallery/nature')).not.toBeInTheDocument();
-    // Its item survives at the root.
+    fireEvent.click(await screen.findByRole('button', { name: /delete tag/i }));
+    expect(screen.queryByText('/gallery/tag/nature')).not.toBeInTheDocument();
+    // The item survives, untagged.
     expect(screen.getByRole('button', { name: 'Tree' })).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+    });
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateGallery).mock.calls[0][0]).toMatchObject({
+      items: [
+        { title: 'Shot A', tags: [] },
+        { title: 'Tree', tags: [] },
+      ],
+      tags: [],
+    });
   });
 });

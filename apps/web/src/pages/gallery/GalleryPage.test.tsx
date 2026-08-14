@@ -25,10 +25,16 @@ const themeValue: ThemeContextValue = {
   availableThemes: [],
 };
 
-const configWith = (gallery?: GalleryConfig): SiteConfig =>
+type GalleryFixture = {
+  items?: Array<{ imageUrl?: string; title: string; subtitle?: string; tags?: string[] }>;
+  tags?: GalleryConfig['tags'];
+  design?: GalleryConfig['design'];
+};
+
+const configWith = (gallery?: GalleryFixture): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages: [], gallery }) as unknown as SiteConfig;
 
-const setConfig = (gallery?: GalleryConfig) =>
+const setConfig = (gallery?: GalleryFixture) =>
   vi.mocked(useSiteConfig).mockReturnValue({ config: configWith(gallery) } as unknown as ReturnType<typeof useSiteConfig>);
 
 function renderPage() {
@@ -53,7 +59,7 @@ describe('GalleryPage (public /gallery)', () => {
 
   it('renders the 404 page when the gallery feature is disabled, config or not', () => {
     vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false, gallery: false });
-    setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] });
+    setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }] });
     renderPage();
     expect(screen.getByText('Oops — nothing here!')).toBeInTheDocument();
   });
@@ -63,19 +69,18 @@ describe('GalleryPage (public /gallery)', () => {
     renderPage();
     expect(screen.getByText('Oops — nothing here!')).toBeInTheDocument();
 
-    setConfig({ items: [{ title: 'No image yet' }], themes: [{ themeId: 'draft', title: 'Draft', items: [] }] });
+    setConfig({ items: [{ title: 'No image yet', tags: ['draft'] }], tags: [{ tag: 'draft', displayName: 'Draft' }] });
     renderPage();
     expect(screen.getAllByText('Oops — nothing here!').length).toBeGreaterThan(0);
   });
 
-  it('lists unthemed items with title and subtitle, hiding items whose image is missing', () => {
+  it('lists the items with title and subtitle, hiding items whose image is missing', () => {
     setConfig({
       items: [
         { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
         { title: 'Hidden — no image' },
         { imageUrl: '/b.jpg', title: 'B' },
       ],
-      themes: [],
     });
     renderPage();
     expect(screen.getByRole('heading', { level: 1, name: 'Gallery' })).toBeInTheDocument();
@@ -88,7 +93,6 @@ describe('GalleryPage (public /gallery)', () => {
   it('places the caption before the image when the design says "above"', () => {
     setConfig({
       items: [{ imageUrl: '/a.jpg', title: 'A' }],
-      themes: [],
       design: { captionPosition: 'above' },
     });
     renderPage();
@@ -96,19 +100,20 @@ describe('GalleryPage (public /gallery)', () => {
     expect(within(row.firstElementChild as HTMLElement).getByRole('heading', { level: 3, name: 'A' })).toBeInTheDocument();
   });
 
-  it('renders theme covers linking to the theme pages, omitting non-displayable themes', () => {
+  it('browses every item from the root — tags never partition the root page', () => {
     setConfig({
-      items: [{ imageUrl: '/solo.jpg', title: 'Solo shot' }],
-      themes: [
-        { themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] },
-        { themeId: 'empty', title: 'Empty theme', items: [{ title: 'Image missing' }] },
+      items: [
+        { imageUrl: '/solo.jpg', title: 'Solo shot' },
+        { imageUrl: '/tree.jpg', title: 'Tree', tags: ['nature'] },
       ],
+      tags: [{ tag: 'nature', displayName: 'Nature' }],
     });
     renderPage();
-    expect(screen.getByRole('link', { name: /Nature/ })).toHaveAttribute('href', '/gallery/nature');
-    expect(screen.queryByText('Empty theme')).not.toBeInTheDocument();
-    // Unthemed items are still explored from the root, below the theme index.
+    // Tagged and untagged items sit in the same root list; a tag's collection
+    // is its own page, reached through the menu — no index cards here.
     expect(screen.getByRole('heading', { level: 3, name: 'Solo shot' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Tree' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Nature/ })).not.toBeInTheDocument();
   });
 
   it('opens the zoom mode on click and browses the list as a wrap-around carousel', async () => {
@@ -117,7 +122,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
         { imageUrl: '/b.jpg', title: 'B' },
       ],
-      themes: [],
     });
     renderPage();
 
@@ -149,7 +153,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: ikUrl, title: 'IK shot' },
         { imageUrl: '/local/raw.jpg', title: 'Local shot' },
       ],
-      themes: [],
     });
     renderPage();
 
@@ -178,7 +181,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: '/b.jpg', title: 'B' },
         { title: 'Hidden — no image' },
       ],
-      themes: [],
       // The caption position is a list-mode setting — ignored by the grid.
       design: { displayMode: 'grid', captionPosition: 'above' },
     });
@@ -202,7 +204,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: '/b.jpg', title: 'B' },
         { title: 'Hidden — no image' },
       ],
-      themes: [],
       design: { displayMode: 'mosaic' },
     });
     renderPage();
@@ -226,7 +227,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: '/a.jpg', title: 'A', subtitle: 'Sub A' },
         { imageUrl: '/b.jpg', title: 'B', subtitle: 'Sub B' },
       ],
-      themes: [],
       // captionPosition is ignored in alternate mode — rows place it themselves.
       design: { displayMode: 'alternate', captionPosition: 'above' },
     });
@@ -243,7 +243,6 @@ describe('GalleryPage (public /gallery)', () => {
   it('renders capped items without breaking (the media-gated cap itself is unit-tested)', () => {
     setConfig({
       items: [{ imageUrl: '/a.jpg', title: 'A' }],
-      themes: [],
       design: { itemMaxWidthPercent: 60 },
     });
     renderPage();
@@ -256,7 +255,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: '/a.jpg', title: 'A' },
         { imageUrl: '/b.jpg', title: 'B' },
       ],
-      themes: [],
       design: { displayMode: 'grid', itemColumns: 5, itemAspectRatio: '16:9', itemFit: 'contain' },
     });
     renderPage();
@@ -271,7 +269,6 @@ describe('GalleryPage (public /gallery)', () => {
     const ikUrl = 'https://ik.imagekit.io/demo/shot.jpg';
     setConfig({
       items: [{ imageUrl: ikUrl, title: 'A' }],
-      themes: [],
       design: { watermarkText: '© Studio', watermarkPosition: 'center', watermarkOpacity: 100 },
     });
     renderPage();
@@ -288,26 +285,6 @@ describe('GalleryPage (public /gallery)', () => {
     );
   });
 
-  it('uses the theme cover the admin picked for the index card', () => {
-    setConfig({
-      items: [],
-      themes: [
-        {
-          themeId: 'nature',
-          title: 'Nature',
-          coverIndex: 1,
-          items: [
-            { imageUrl: '/first.jpg', title: 'Tree' },
-            { imageUrl: '/picked.jpg', title: 'Lake' },
-          ],
-        },
-      ],
-    });
-    renderPage();
-    const cover = screen.getByRole('link', { name: /Nature/ }).querySelector('img') as HTMLImageElement;
-    expect(cover.getAttribute('src')).toContain('/picked.jpg');
-  });
-
   it('situates the visitor with a zoom counter that follows the carousel', () => {
     setConfig({
       items: [
@@ -315,7 +292,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: '/b.jpg', title: 'B' },
         { imageUrl: '/c.jpg', title: 'C' },
       ],
-      themes: [],
     });
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'A' }));
@@ -331,7 +307,7 @@ describe('GalleryPage (public /gallery)', () => {
   });
 
   it('shows no counter when a single shot is displayable', () => {
-    setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] });
+    setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }] });
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'A' }));
     expect(within(screen.getByRole('dialog')).queryByTestId('gallery-zoom-counter')).not.toBeInTheDocument();
@@ -343,7 +319,6 @@ describe('GalleryPage (public /gallery)', () => {
         { imageUrl: '/a.jpg', title: 'A' },
         { imageUrl: '/b.jpg', title: 'B' },
       ],
-      themes: [],
     });
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'A' }));
@@ -369,7 +344,7 @@ describe('GalleryPage (public /gallery)', () => {
   });
 
   it('shows no carousel arrows when a single item is displayable', () => {
-    setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] });
+    setConfig({ items: [{ imageUrl: '/a.jpg', title: 'A' }] });
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'A' }));
     const dialog = screen.getByRole('dialog');

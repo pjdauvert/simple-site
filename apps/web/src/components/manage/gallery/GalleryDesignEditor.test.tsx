@@ -16,8 +16,8 @@ const draft = (gallery?: GalleryConfig): SiteConfig =>
   ({ site: { siteName: 'S' }, themes: [], pages: [], gallery }) as unknown as SiteConfig;
 
 const seeded: GalleryConfig = {
-  items: [{ imageUrl: '/a.jpg', title: 'Shot A' }],
-  themes: [],
+  items: [{ imageUrl: '/a.jpg', title: 'Shot A', tags: [] }],
+  tags: [],
 };
 
 function renderEditor() {
@@ -46,7 +46,7 @@ describe('GalleryDesignEditor', () => {
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
-      themes: [],
+      tags: [],
       design: { displayMode: 'grid' },
     });
   });
@@ -62,7 +62,7 @@ describe('GalleryDesignEditor', () => {
       fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({ items: seeded.items, themes: [] });
+    expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({ items: seeded.items, tags: [] });
   });
 
   it('shows the symbolic skeleton preview matching the picked mode', async () => {
@@ -86,7 +86,7 @@ describe('GalleryDesignEditor', () => {
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
-      themes: [],
+      tags: [],
       design: { captionPosition: 'left', displayMode: 'mosaic' },
     });
   });
@@ -102,7 +102,7 @@ describe('GalleryDesignEditor', () => {
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
-      themes: [],
+      tags: [],
       design: { itemMaxWidthPercent: 60 },
     });
   });
@@ -143,7 +143,7 @@ describe('GalleryDesignEditor', () => {
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
-      themes: [],
+      tags: [],
       design: { itemElevation: 8, itemBorder: true, itemBorderColor: '#123456', itemCornerRadius: 0 },
     });
   });

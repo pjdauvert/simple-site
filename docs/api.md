@@ -121,12 +121,12 @@ Replaces the `menu` of the **draft** — the ordered list of navigation entries 
 
 ### `PUT /api/config/gallery`
 
-Replaces the `gallery` of the **draft** — the themed image gallery (see [configuration.md](configuration.md#gallery)). Gated by the **`FEATURE_GALLERY`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `gallery` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `gallery` — rejecting duplicate or invalid `themeId`s and empty theme/item titles — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/gallery` editor.
+Replaces the `gallery` of the **draft** — the tagged image gallery (see [configuration.md](configuration.md#gallery)). Gated by the **`FEATURE_GALLERY`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `gallery` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `gallery` — rejecting duplicate or charset-invalid `tag` ids (`^[a-zA-Z0-9_-]+$`, ≤ 64 chars), empty displayNames/item titles, and items referencing an undeclared tag (tag deletion cascades to its references) — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/gallery` editor.
 
 ```json
 // Request body — a GalleryConfig object
-{ "items": [ { "imageUrl": "https://…/sunrise.jpg", "title": "Sunrise", "subtitle": "Corsica" } ],
-  "themes": [ { "themeId": "landscapes", "title": "Landscapes", "items": [] } ],
+{ "items": [ { "imageUrl": "https://…/sunrise.jpg", "title": "Sunrise", "subtitle": "Corsica", "tags": ["landscapes"] } ],
+  "tags": [ { "tag": "landscapes", "displayName": "Landscapes", "description": "Shot in **Corsica**." } ],
   "design": { "captionPosition": "left", "displayMode": "grid" } }
 // design is optional; displayMode: "list" (default) | "grid" | "mosaic" | "alternate";
 // captionPosition ("above" | "below" (default) | "left" | "right") applies to the list mode only;

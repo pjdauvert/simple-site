@@ -2,26 +2,25 @@ import { describe, it, expect } from 'vitest';
 import { collectGalleryI18nEntries, type GalleryConfig, type SiteConfig } from '@simple-site/interfaces';
 import {
   displayableItems,
-  displayableThemes,
+  displayableItemsForTag,
   galleryAspectRatioValue,
   galleryColumnsSx,
   galleryDisplaySettings,
   galleryPageTitle,
-  galleryThemeRoute,
+  galleryTagRoute,
   itemFrameSx,
   itemWidthCapSx,
-  themeCoverUrl,
 } from './galleryDisplay';
 
-const gallery = (over: Partial<GalleryConfig> = {}): GalleryConfig => ({ items: [], themes: [], ...over });
+const gallery = (over: Partial<GalleryConfig> = {}): GalleryConfig => ({ items: [], tags: [], ...over });
 
 describe('displayableItems', () => {
   it('filters out items without an image while preserving CONFIG indexes (i18n keys are positional)', () => {
     const entries = displayableItems([
-      { title: 'No image yet' },
-      { imageUrl: '/a.jpg', title: 'A' },
-      { imageUrl: '   ', title: 'Blank url' },
-      { imageUrl: '/b.jpg', title: 'B' },
+      { title: 'No image yet', tags: [] },
+      { imageUrl: '/a.jpg', title: 'A', tags: [] },
+      { imageUrl: '   ', title: 'Blank url', tags: [] },
+      { imageUrl: '/b.jpg', title: 'B', tags: [] },
     ]);
     expect(entries.map((e) => e.item.title)).toEqual(['A', 'B']);
     expect(entries.map((e) => e.index)).toEqual([1, 3]);
@@ -32,23 +31,30 @@ describe('displayableItems', () => {
   });
 });
 
-describe('displayableThemes', () => {
-  it('keeps only themes with at least one displayable item', () => {
+describe('displayableItemsForTag', () => {
+  it('keeps only displayable items carrying the tag, with their CONFIG indexes', () => {
     const config = gallery({
-      themes: [
-        { themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] },
-        { themeId: 'empty', title: 'Empty', items: [] },
-        { themeId: 'draft', title: 'Draft', items: [{ title: 'Image missing' }] },
+      items: [
+        { imageUrl: '/tree.jpg', title: 'Tree', tags: ['nature'] },
+        { title: 'Image missing', tags: ['nature'] },
+        { imageUrl: '/paris.jpg', title: 'Paris', tags: ['cities'] },
+        { imageUrl: '/lake.jpg', title: 'Lake', tags: ['nature', 'cities'] },
+      ],
+      tags: [
+        { tag: 'nature', displayName: 'Nature' },
+        { tag: 'cities', displayName: 'Cities' },
       ],
     });
-    expect(displayableThemes(config).map((t) => t.themeId)).toEqual(['nature']);
-    expect(displayableThemes(undefined)).toEqual([]);
+    const entries = displayableItemsForTag(config, 'nature');
+    expect(entries.map((entry) => entry.item.title)).toEqual(['Tree', 'Lake']);
+    expect(entries.map((entry) => entry.index)).toEqual([0, 3]);
+    expect(displayableItemsForTag(undefined, 'nature')).toEqual([]);
   });
 });
 
-describe('galleryThemeRoute', () => {
-  it('nests theme pages under the gallery reserved route', () => {
-    expect(galleryThemeRoute('nature')).toBe('/gallery/nature');
+describe('galleryTagRoute', () => {
+  it('nests tag collections under the gallery reserved route', () => {
+    expect(galleryTagRoute('summer-2026')).toBe('/gallery/tag/summer-2026');
   });
 });
 
@@ -63,30 +69,6 @@ describe('itemWidthCapSx', () => {
 
   it('is empty without a cap — the mode keeps its natural width everywhere', () => {
     expect(itemWidthCapSx(undefined)).toEqual({});
-  });
-});
-
-describe('themeCoverUrl', () => {
-  const theme = (over: Partial<GalleryConfig['themes'][number]> = {}) => ({
-    themeId: 'nature',
-    title: 'Nature',
-    items: [
-      { title: 'No image' },
-      { imageUrl: '/a.jpg', title: 'A' },
-      { imageUrl: '/b.jpg', title: 'B' },
-    ],
-    ...over,
-  });
-
-  it('uses the explicit pick when it points at a displayable item', () => {
-    expect(themeCoverUrl(theme({ coverIndex: 2 }))).toBe('/b.jpg');
-  });
-
-  it('falls back to the first displayable item without a pick, or on a stale one', () => {
-    expect(themeCoverUrl(theme())).toBe('/a.jpg');
-    // Index 0 has no image, and index 9 no longer exists.
-    expect(themeCoverUrl(theme({ coverIndex: 0 }))).toBe('/a.jpg');
-    expect(themeCoverUrl(theme({ coverIndex: 9 }))).toBe('/a.jpg');
   });
 });
 
@@ -176,30 +158,31 @@ describe('galleryPageTitle', () => {
 });
 
 describe('collectGalleryI18nEntries', () => {
-  it('emits theme titles and positional item keys, skipping absent subtitles', () => {
+  it('emits positional item keys and per-tag name/description keys (hyphens allowed)', () => {
     const entries = collectGalleryI18nEntries(
       gallery({
-        items: [{ imageUrl: '/a.jpg', title: 'Root shot', subtitle: 'At dawn' }],
-        themes: [
-          { themeId: 'nature', title: 'Nature', items: [
-            { imageUrl: '/n1.jpg', title: 'Tree' },
-            { imageUrl: '/n2.jpg', title: 'Lake', subtitle: 'Winter' },
-          ] },
+        items: [
+          { imageUrl: '/a.jpg', title: 'Root shot', subtitle: 'At dawn', tags: ['summer-2026'] },
+          { imageUrl: '/n1.jpg', title: 'Tree', tags: [] },
+        ],
+        tags: [
+          { tag: 'summer-2026', displayName: 'Été 2026', description: 'Shot in **Corsica**.' },
+          { tag: 'cities', displayName: 'Cities' },
         ],
       }),
     );
     expect(entries).toEqual([
       { key: 'gallery.items.0.title', defaultValue: 'Root shot' },
       { key: 'gallery.items.0.subtitle', defaultValue: 'At dawn' },
-      { key: 'gallery.theme.nature.menuTitle', defaultValue: 'Nature' },
-      { key: 'gallery.theme.nature.items.0.title', defaultValue: 'Tree' },
-      { key: 'gallery.theme.nature.items.1.title', defaultValue: 'Lake' },
-      { key: 'gallery.theme.nature.items.1.subtitle', defaultValue: 'Winter' },
+      { key: 'gallery.items.1.title', defaultValue: 'Tree' },
+      { key: 'gallery.tag.summer-2026.menuTitle', defaultValue: 'Été 2026' },
+      { key: 'gallery.tag.summer-2026.description', defaultValue: 'Shot in **Corsica**.' },
+      { key: 'gallery.tag.cities.menuTitle', defaultValue: 'Cities' },
     ]);
   });
 
   it('still emits keys for items whose image is missing — the text is data, display is separate', () => {
-    const entries = collectGalleryI18nEntries(gallery({ items: [{ title: 'WIP' }] }));
+    const entries = collectGalleryI18nEntries(gallery({ items: [{ title: 'WIP', tags: [] }] }));
     expect(entries).toEqual([{ key: 'gallery.items.0.title', defaultValue: 'WIP' }]);
   });
 });

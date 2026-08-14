@@ -20,7 +20,6 @@ import {
   type GalleryItemAspectRatio,
   type GalleryItemFit,
   type GalleryItemSpacing,
-  type GalleryTheme,
   type SiteConfig,
 } from '@simple-site/interfaces';
 import type { IkWatermark } from '../../utils/imagekit';
@@ -28,9 +27,9 @@ import type { IkWatermark } from '../../utils/imagekit';
 /**
  * Display/selection helpers of the public gallery (web-only — the functions
  * never filter gallery items). Central rule: an item whose image is missing is
- * not displayed AT ALL — not in the lists, not in the zoom carousel, not as a
- * theme cover, and a theme with no displayable item disappears from the nav
- * and the theme index alike (it stays in the config).
+ * not displayed AT ALL — not in the lists, not in the zoom carousel — and a
+ * tag collection with no displayable item disappears from the nav and 404s at
+ * its route alike (the tag stays in the config).
  */
 
 /** A displayable item plus its index in the CONFIG array — i18n keys are positional. */
@@ -45,26 +44,16 @@ export const displayableItems = (items: GalleryItem[] | undefined): DisplayableG
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => Boolean(item.imageUrl?.trim()));
 
-/** The themes that render publicly: at least one displayable item. */
-export const displayableThemes = (gallery: GalleryConfig | undefined): GalleryTheme[] =>
-  (gallery?.themes ?? []).filter((theme) => displayableItems(theme.items).length > 0);
+/** The displayable items carrying `tag`, keeping their config positions. */
+export const displayableItemsForTag = (
+  gallery: GalleryConfig | undefined,
+  tag: string,
+): DisplayableGalleryItem[] =>
+  displayableItems(gallery?.items).filter(({ item }) => item.tags.includes(tag));
 
-/**
- * The image representing a theme on the gallery index: the admin's explicit
- * `coverIndex` when it points at a displayable item, else the first displayable
- * one (the original behavior, and the safety net when the pick was emptied).
- */
-export const themeCoverUrl = (theme: GalleryTheme): string | undefined => {
-  const displayable = displayableItems(theme.items);
-  const picked = theme.coverIndex !== undefined
-    ? displayable.find((entry) => entry.index === theme.coverIndex)
-    : undefined;
-  return (picked ?? displayable[0])?.item.imageUrl;
-};
-
-/** Public route of a theme page, nested under the gallery's reserved route. */
-export const galleryThemeRoute = (themeId: string): string =>
-  `${FEATURE_PAGE_ROUTES[FeaturePagesEnum.GALLERY]}/${themeId}`;
+/** Public route of a tag's collection page, nested under the gallery's reserved route. */
+export const galleryTagRoute = (tag: string): string =>
+  `${FEATURE_PAGE_ROUTES[FeaturePagesEnum.GALLERY]}/tag/${tag}`;
 
 /** The design settings the browsing views render with, defaults resolved. */
 export interface GalleryDisplaySettings {

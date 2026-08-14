@@ -142,7 +142,7 @@ describe('menu mutators', () => {
 
   it('moveEntry stays within its level', () => {
     const moved = moveEntry(base, { top: 1, child: 1 }, -1);
-    expect((moved[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.feature))).toEqual([
+    expect((moved[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.type === 'feature' ? c.feature : c.tag))).toEqual([
       'team',
       'page.about',
     ]);
@@ -164,7 +164,7 @@ describe('menu mutators', () => {
 
   it('deleteGroup re-inserts the children at the group position, in order', () => {
     const next = deleteGroup(base, 1);
-    expect(next.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.groupId))).toEqual([
+    expect(next.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.type === 'galleryTag' ? e.tag : e.groupId))).toEqual([
       'page.home',
       'page.about',
       'team',
@@ -175,7 +175,7 @@ describe('menu mutators', () => {
   it('moveIntoGroup appends a top-level leaf to the target group', () => {
     const next = moveIntoGroup(base, 2, 'more');
     expect(next).toHaveLength(2);
-    expect((next[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.feature))).toEqual([
+    expect((next[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.type === 'feature' ? c.feature : c.tag))).toEqual([
       'page.about',
       'team',
       'contact',

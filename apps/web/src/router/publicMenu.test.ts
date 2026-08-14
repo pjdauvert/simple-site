@@ -361,87 +361,50 @@ describe('collectI18nEntries (menu labels)', () => {
   });
 });
 
-describe('resolveNavTree — gallery themes as a submenu', () => {
+describe('resolveNavTree — gallery tag entries', () => {
   const GALLERY_ON: FeatureFlags = { media: false, team: false, contact: false, gallery: true };
 
   const galleryConfig = (pages: ReturnType<typeof page>[], menu: MenuConfig, gallery: unknown): SiteConfig =>
     ({ site: { siteName: 'Test' }, themes: [], pages, menu, gallery }) as unknown as SiteConfig;
 
-  const menuWithGallery: MenuConfig = {
-    entries: [
-      { type: 'page', pageName: 'page.home', visible: true },
-      { type: 'feature', feature: 'gallery', visible: true },
+  const tagged = {
+    items: [
+      { imageUrl: '/n.jpg', title: 'Tree', tags: ['nature'] },
+      { imageUrl: '/c.jpg', title: 'Paris', tags: ['cities'] },
+      { title: 'No image yet', tags: ['draft'] },
+    ],
+    tags: [
+      { tag: 'nature', displayName: 'Nature' },
+      { tag: 'cities', displayName: 'Cities' },
+      { tag: 'draft', displayName: 'Draft' },
     ],
   };
 
-  it('expands a top-level gallery entry into a group of its displayable themes', () => {
-    const config = galleryConfig([page('page.home', '/home', 'Home')], menuWithGallery, {
-      items: [],
-      themes: [
-        { themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] },
-        { themeId: 'cities', title: 'Cities', items: [{ imageUrl: '/c.jpg', title: 'Paris' }] },
+  it('resolves a galleryTag entry to its collection route, labelled by the tag displayName', () => {
+    const config = galleryConfig([page('page.home', '/home', 'Home')], {
+      entries: [
+        { type: 'page', pageName: 'page.home', visible: true },
+        { type: 'galleryTag', tag: 'nature', visible: true },
+        { type: 'galleryTag', tag: 'cities', visible: true, menuTitle: 'City walks' },
       ],
-    });
+    }, tagged);
     expect(resolveNavTree(config, GALLERY_ON)).toEqual([
       { kind: 'item', item: { menuTitle: 'Home', pageName: 'page.home', route: '/home' } },
-      {
-        kind: 'group',
-        id: 'feature:gallery',
-        menuTitle: 'Gallery',
-        i18nKey: 'gallery.menuTitle',
-        alwaysExpanded: false,
-        items: [
-          { menuTitle: 'Nature', pageName: 'gallery.theme.nature', route: '/gallery/nature' },
-          { menuTitle: 'Cities', pageName: 'gallery.theme.cities', route: '/gallery/cities' },
-        ],
-      },
+      // The label translation key is the tag's own (`gallery.tag.<tag>.menuTitle`, via pageName).
+      { kind: 'item', item: { menuTitle: 'Nature', pageName: 'gallery.tag.nature', route: '/gallery/tag/nature' } },
+      // A custom entry label overrides the displayName.
+      { kind: 'item', item: { menuTitle: 'City walks', pageName: 'gallery.tag.cities', route: '/gallery/tag/cities' } },
     ]);
   });
 
-  it('keeps the entry a plain /gallery link when no theme is displayable', () => {
-    // No theme at all, and a theme whose only item is missing its image, resolve alike.
-    for (const gallery of [
-      { items: [{ imageUrl: '/a.jpg', title: 'A' }], themes: [] },
-      { items: [], themes: [{ themeId: 'draft', title: 'Draft', items: [{ title: 'No image yet' }] }] },
-      undefined,
-    ]) {
-      const config = galleryConfig([page('page.home', '/home', 'Home')], menuWithGallery, gallery);
-      expect(resolveNavTree(config, GALLERY_ON)[1]).toEqual({
-        kind: 'item',
-        item: { menuTitle: 'Gallery', pageName: 'gallery', route: '/gallery' },
-      });
-    }
-  });
-
-  it('drops a non-displayable theme from the submenu and honours the custom entry label', () => {
-    const config = galleryConfig([page('page.home', '/home', 'Home')], {
-      entries: [{ type: 'feature', feature: 'gallery', visible: true, menuTitle: 'Portfolio' }],
-    }, {
-      items: [],
-      themes: [
-        { themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] },
-        { themeId: 'empty', title: 'Empty', items: [] },
-      ],
-    });
-    const [group] = resolveNavTree(config, GALLERY_ON);
-    expect(group).toMatchObject({
-      kind: 'group',
-      menuTitle: 'Portfolio',
-      items: [{ route: '/gallery/nature', menuTitle: 'Nature' }],
-    });
-  });
-
-  it('stays a plain link inside a config group — submenus cannot nest (depth 1)', () => {
-    const config = galleryConfig([page('page.home', '/home', 'Home')], {
+  it('resolves inside a config group like any leaf', () => {
+    const config = galleryConfig([], {
       entries: [
         { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
-          { type: 'feature', feature: 'gallery', visible: true },
+          { type: 'galleryTag', tag: 'nature', visible: true },
         ] },
       ],
-    }, {
-      items: [],
-      themes: [{ themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] }],
-    });
+    }, tagged);
     expect(resolveNavTree(config, GALLERY_ON)).toEqual([
       {
         kind: 'group',
@@ -449,16 +412,29 @@ describe('resolveNavTree — gallery themes as a submenu', () => {
         menuTitle: 'More',
         i18nKey: 'menu.more.menuTitle',
         alwaysExpanded: false,
-        items: [{ menuTitle: 'Gallery', pageName: 'gallery', route: '/gallery' }],
+        items: [{ menuTitle: 'Nature', pageName: 'gallery.tag.nature', route: '/gallery/tag/nature' }],
       },
     ]);
   });
 
-  it('drops the gallery entry entirely while the flag is off, themes or not', () => {
-    const config = galleryConfig([page('page.home', '/home', 'Home')], menuWithGallery, {
-      items: [],
-      themes: [{ themeId: 'nature', title: 'Nature', items: [{ imageUrl: '/n.jpg', title: 'Tree' }] }],
+  it('hides an entry whose tag is deleted, hidden, empty of displayable items, or flag-off', () => {
+    const entryFor = (tag: string, visible = true): MenuConfig => ({
+      entries: [{ type: 'galleryTag', tag, visible }],
     });
-    expect(resolveNavTree(config, FLAGS).map((n) => n.kind)).toEqual(['item']);
+    // Deleted tag (dangling reference), nothing displayable, hidden entry.
+    expect(resolveNavTree(galleryConfig([], entryFor('gone'), tagged), GALLERY_ON)).toEqual([]);
+    expect(resolveNavTree(galleryConfig([], entryFor('draft'), tagged), GALLERY_ON)).toEqual([]);
+    expect(resolveNavTree(galleryConfig([], entryFor('nature', false), tagged), GALLERY_ON)).toEqual([]);
+    // The gallery flag hides tag entries exactly like the feature entry.
+    expect(resolveNavTree(galleryConfig([], entryFor('nature'), tagged), FLAGS)).toEqual([]);
+  });
+
+  it('keeps the gallery feature entry a plain /gallery link — no automatic submenu', () => {
+    const config = galleryConfig([], {
+      entries: [{ type: 'feature', feature: 'gallery', visible: true }],
+    }, tagged);
+    expect(resolveNavTree(config, GALLERY_ON)).toEqual([
+      { kind: 'item', item: { menuTitle: 'Gallery', pageName: 'gallery', route: '/gallery' } },
+    ]);
   });
 });

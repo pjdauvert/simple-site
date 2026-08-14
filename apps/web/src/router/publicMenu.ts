@@ -1,12 +1,10 @@
 import {
   ALL_FEATURE_PAGE_IDS,
   FEATURE_PAGE_ROUTES,
-  FeaturePagesEnum,
   featureEntryLabel,
-  galleryThemeScope,
+  galleryTagScope,
   groupTitleKey,
   menuEntryId,
-  menuTitleKey,
   type GalleryConfig,
   type FeaturePageId,
   type MenuConfig,
@@ -18,7 +16,7 @@ import {
   type SiteConfig,
 } from '@simple-site/interfaces';
 import type { FeatureFlags } from '../services/featuresService';
-import { displayableThemes, galleryThemeRoute } from '../pages/gallery/galleryDisplay';
+import { displayableItemsForTag, galleryTagRoute } from '../pages/gallery/galleryDisplay';
 
 /**
  * Feature pages the web app ships (public pages owned by optional features, as
@@ -88,18 +86,36 @@ export const resolveGroupDisplay = (config: SiteConfig): MenuGroupDisplay =>
 
 /**
  * Resolves one leaf entry into a nav item, or null when it must not render:
- * hidden, referencing an unknown page, or a feature that is unregistered or
- * flag-off.
+ * hidden, referencing an unknown page, a feature that is unregistered or
+ * flag-off, or a gallery tag that no longer exists or has nothing displayable.
+ *
+ * A `galleryTag` entry is the ONLY way a tag collection reaches the nav —
+ * nothing is added automatically when tags are created. It resolves to the
+ * tag's `/gallery/tag/<tag>` route with the tag's displayName as its label
+ * (custom `menuTitle` overrides it); the label's translation key is the tag's
+ * own (`gallery.tag.<tag>.menuTitle`, via the item's `pageName` like every
+ * nav label). It hides with the gallery flag, exactly like the feature entry.
  */
 const resolveLeaf = (
   entry: MenuLeafEntry,
   pagesByName: ReadonlyMap<string, PageConfiguration>,
   flags: FeatureFlags,
+  gallery: GalleryConfig | undefined,
 ): MenuItem | null => {
   if (!entry.visible) return null;
   if (entry.type === 'page') {
     const page = pagesByName.get(entry.pageName);
     return page ? { menuTitle: entry.menuTitle ?? page.menuTitle, pageName: page.pageName, route: page.route } : null;
+  }
+  if (entry.type === 'galleryTag') {
+    if (!flags.gallery) return null;
+    const tag = gallery?.tags.find((candidate) => candidate.tag === entry.tag);
+    if (!tag || displayableItemsForTag(gallery, tag.tag).length === 0) return null;
+    return {
+      menuTitle: entry.menuTitle ?? tag.displayName,
+      pageName: galleryTagScope(tag.tag), // nav label i18n key: `gallery.tag.<tag>.menuTitle`
+      route: galleryTagRoute(tag.tag),
+    };
   }
   const definition = FEATURE_PAGE_REGISTRY[entry.feature];
   if (definition && flags[definition.flag]) {
@@ -109,39 +125,11 @@ const resolveLeaf = (
 };
 
 /**
- * The gallery's dynamically-populated submenu: when the gallery has displayable
- * themes, its top-level feature entry resolves as a group node whose children
- * are the theme pages (one level, exactly the menu-group model — `NavGroup` is
- * origin-agnostic, so `MenuBar` renders it like any config group). With no
- * displayable theme it returns null and the entry stays a plain /gallery link.
- * The `feature:` id prefix keeps the node from colliding with a config group
- * that a site may have named `gallery` (groupIds are colon-free camelCase).
- */
-const galleryNavGroup = (item: MenuItem, gallery: GalleryConfig | undefined): NavGroup | null => {
-  const themes = displayableThemes(gallery);
-  if (themes.length === 0) return null;
-  return {
-    kind: 'group',
-    id: `feature:${FeaturePagesEnum.GALLERY}`,
-    menuTitle: item.menuTitle,
-    i18nKey: menuTitleKey(item.pageName),
-    alwaysExpanded: false,
-    items: themes.map((theme) => ({
-      menuTitle: theme.title,
-      pageName: galleryThemeScope(theme.themeId), // nav label i18n key: `gallery.theme.<themeId>.menuTitle`
-      route: galleryThemeRoute(theme.themeId),
-    })),
-  };
-};
-
-/**
  * Resolves the stored menu into the nav tree rendered by the menu bars. When the
  * config has no `menu` (older configs), the nav derives from the pages array
  * order. Leaf entries resolve via `resolveLeaf`; a hidden group drops its whole
  * subtree, and a group whose children all resolve away is omitted (it stays in
- * the config — deleting it is an admin decision). A top-level gallery feature
- * entry expands into its themes' submenu (`galleryNavGroup`); inside a config
- * group it stays a plain link, since submenus cannot nest (depth 1 is structural).
+ * the config — deleting it is an admin decision).
  */
 export const resolveNavTree = (config: SiteConfig, flags: FeatureFlags): NavNode[] => {
   if (!config.menu) {
@@ -153,7 +141,7 @@ export const resolveNavTree = (config: SiteConfig, flags: FeatureFlags): NavNode
     if (entry.type === 'group') {
       if (!entry.visible) continue;
       const items = entry.children
-        .map((child) => resolveLeaf(child, pagesByName, flags))
+        .map((child) => resolveLeaf(child, pagesByName, flags, config.gallery))
         .filter((item): item is MenuItem => item !== null);
       if (items.length === 0) continue;
       nodes.push({
@@ -165,38 +153,40 @@ export const resolveNavTree = (config: SiteConfig, flags: FeatureFlags): NavNode
         items,
       });
     } else {
-      const item = resolveLeaf(entry, pagesByName, flags);
-      if (!item) continue;
-      const group =
-        entry.type === 'feature' && entry.feature === FeaturePagesEnum.GALLERY
-          ? galleryNavGroup(item, config.gallery)
-          : null;
-      nodes.push(group ?? { kind: 'item', item });
+      const item = resolveLeaf(entry, pagesByName, flags, config.gallery);
+      if (item) nodes.push({ kind: 'item', item });
     }
   }
   return nodes;
 };
 
 /**
- * Reconciles a stored menu against the current pages and enabled feature pages:
+ * Reconciles a stored menu against the current pages, enabled feature pages and
+ * declared gallery tags:
  * - no menu yet → seed page entries from the pages order (visible);
  * - prune page entries whose page no longer exists (a rename is a prune + re-append)
  *   at the top level and inside groups alike;
+ * - prune galleryTag entries whose tag was deleted (tag deletion cascades to
+ *   its references — the nav already hides them at resolution);
  * - keep groups even when all their children prune away (deleting is an admin call);
  * - append entries for new pages (visible) in pages order, at the top level only;
  * - append entries for newly-enabled features (hidden, until an admin opts them in);
  * - KEEP entries of currently-disabled features so flag flips don't lose ordering.
- * Ids are deduped first-occurrence-wins across one global space (top level and
- * every group's children combined), matching the schema's integrity rule.
- * Menu-level settings (e.g. `groupDisplay`) are carried through untouched.
- * Client-side consistency only — the server enforces menu integrity via the schema.
+ * Tag entries are NEVER auto-appended — linking a tag collection is an explicit
+ * admin action. Ids are deduped first-occurrence-wins across one global space
+ * (top level and every group's children combined), matching the schema's
+ * integrity rule. Menu-level settings (e.g. `groupDisplay`) are carried through
+ * untouched. Client-side consistency only — the server enforces menu integrity
+ * via the schema.
  */
 export const reconcileMenu = (
   menu: MenuConfig | undefined,
   pages: ReadonlyArray<{ pageName: string }>,
   enabledFeatures: readonly FeaturePageId[],
+  galleryTags: readonly string[] = [],
 ): MenuConfig => {
   const pageNames = new Set(pages.map((page) => page.pageName));
+  const declaredTags = new Set(galleryTags);
   const entries: MenuEntry[] = [];
   const present = new Set<string>();
 
@@ -204,6 +194,7 @@ export const reconcileMenu = (
     const id = menuEntryId(entry);
     if (present.has(id)) return false; // defensive dedupe — first occurrence wins
     if (entry.type === 'page' && !pageNames.has(entry.pageName)) return false;
+    if (entry.type === 'galleryTag' && !declaredTags.has(entry.tag)) return false;
     present.add(id);
     return true;
   };

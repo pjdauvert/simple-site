@@ -9,6 +9,8 @@ import {
   DEFAULT_GALLERY_WATERMARK_COLOR,
   DEFAULT_GALLERY_WATERMARK_OPACITY,
   DEFAULT_GALLERY_WATERMARK_POSITION,
+  GALLERY_TAG_MAX_LENGTH,
+  GALLERY_TAG_PATTERN,
   type GalleryCaptionPosition,
   type GalleryConfig,
   type GalleryDesign,
@@ -19,7 +21,6 @@ import {
   type GalleryItemSpacing,
   type GalleryWatermarkPosition,
 } from '@simple-site/interfaces';
-import { generateGroupId } from '../menu/menuDraft';
 import { moveItem } from '../pages/pagesDraft';
 
 /**
@@ -28,167 +29,104 @@ import { moveItem } from '../pages/pagesDraft';
  * single working copy, saved wholesale via `PUT /api/config/gallery`.
  */
 
-/** Position of an item: inside a theme (`themeIndex` set) or the root list (null). */
-export interface GalleryItemPath {
-  themeIndex: number | null;
-  itemIndex: number;
-}
+export const emptyGallery = (): GalleryConfig => ({ items: [], tags: [] });
 
-export const emptyGallery = (): GalleryConfig => ({ items: [], themes: [] });
+/** True when `tag` is usable as a NEW tag id: pattern-valid and not taken. */
+export const isValidNewTag = (gallery: GalleryConfig, tag: string): boolean =>
+  tag.length > 0 &&
+  tag.length <= GALLERY_TAG_MAX_LENGTH &&
+  GALLERY_TAG_PATTERN.test(tag) &&
+  !gallery.tags.some((existing) => existing.tag === tag);
 
-/** The list an item path points into (root items or a theme's items). */
-export const itemsAt = (gallery: GalleryConfig, themeIndex: number | null): GalleryItem[] =>
-  themeIndex === null ? gallery.items : (gallery.themes[themeIndex]?.items ?? []);
+export const addItem = (gallery: GalleryConfig, item: GalleryItem): GalleryConfig => ({
+  ...gallery,
+  items: [...gallery.items, item],
+});
+
+export const updateItem = (gallery: GalleryConfig, itemIndex: number, item: GalleryItem): GalleryConfig => ({
+  ...gallery,
+  items: gallery.items.map((existing, index) => (index === itemIndex ? item : existing)),
+});
+
+export const removeItem = (gallery: GalleryConfig, itemIndex: number): GalleryConfig => ({
+  ...gallery,
+  items: gallery.items.filter((_, index) => index !== itemIndex),
+});
+
+/** Moves an item by `offset` in the list (positional i18n keys re-map with it). */
+export const moveItemInList = (gallery: GalleryConfig, itemIndex: number, offset: number): GalleryConfig => ({
+  ...gallery,
+  items: moveItem(gallery.items, itemIndex, itemIndex + offset),
+});
 
 /**
- * Applies `update` to the list at `themeIndex`, returning a new gallery.
- * `mapCover` rewrites the theme's `coverIndex` alongside, so a cover pick
- * follows its image through reorders and never points at the wrong shot after
- * a deletion (undefined = the pick is dropped, falling back to the first
- * displayable item).
+ * Declares a new tag. The id is IMMUTABLE once created (only the translatable
+ * `displayName`/`description` change afterwards, so stored translations never
+ * orphan) — an invalid or already-taken id is a no-op, the editor validates
+ * before calling. The displayName defaults to the id until the admin names it.
  */
-const withItems = (
-  gallery: GalleryConfig,
-  themeIndex: number | null,
-  update: (items: GalleryItem[]) => GalleryItem[],
-  mapCover: (coverIndex: number) => number | undefined = (coverIndex) => coverIndex,
-): GalleryConfig => {
-  if (themeIndex === null) return { ...gallery, items: update(gallery.items) };
-  if (!gallery.themes[themeIndex]) return gallery;
+export const addTag = (gallery: GalleryConfig, tag: string, displayName?: string): GalleryConfig => {
+  const id = tag.trim();
+  if (!isValidNewTag(gallery, id)) return gallery;
   return {
     ...gallery,
-    themes: gallery.themes.map((theme, index) => {
-      if (index !== themeIndex) return theme;
-      const next = { ...theme, items: update(theme.items) };
-      const cover = theme.coverIndex === undefined ? undefined : mapCover(theme.coverIndex);
-      if (cover === undefined) delete next.coverIndex;
-      else next.coverIndex = cover;
-      return next;
-    }),
+    tags: [...gallery.tags, { tag: id, displayName: displayName?.trim() || id }],
   };
 };
 
-export const addItem = (gallery: GalleryConfig, themeIndex: number | null, item: GalleryItem): GalleryConfig =>
-  withItems(gallery, themeIndex, (items) => [...items, item]);
-
-export const updateItem = (gallery: GalleryConfig, path: GalleryItemPath, item: GalleryItem): GalleryConfig =>
-  withItems(gallery, path.themeIndex, (items) =>
-    items.map((existing, index) => (index === path.itemIndex ? item : existing)),
-  );
-
-export const removeItem = (gallery: GalleryConfig, path: GalleryItemPath): GalleryConfig =>
-  withItems(
-    gallery,
-    path.themeIndex,
-    (items) => items.filter((_, index) => index !== path.itemIndex),
-    // The cover image itself is gone → drop the pick; later items shift down.
-    (cover) => (cover === path.itemIndex ? undefined : cover > path.itemIndex ? cover - 1 : cover),
-  );
-
-/** Moves an item by `offset` within its own list. */
-export const moveItemInList = (gallery: GalleryConfig, path: GalleryItemPath, offset: number): GalleryConfig => {
-  const from = path.itemIndex;
-  const to = from + offset;
-  return withItems(
-    gallery,
-    path.themeIndex,
-    (items) => moveItem(items, from, to),
-    (cover) => {
-      const items = itemsAt(gallery, path.themeIndex);
-      if (to < 0 || to >= items.length) return cover; // no-op move
-      if (cover === from) return to;
-      if (from < cover && cover <= to) return cover - 1;
-      if (to <= cover && cover < from) return cover + 1;
-      return cover;
-    },
-  );
-};
-
-/** Marks the item at `path` as its theme's cover (root items have no cover). */
-export const setThemeCover = (gallery: GalleryConfig, path: GalleryItemPath): GalleryConfig => {
-  if (path.themeIndex === null || !gallery.themes[path.themeIndex]) return gallery;
+/** Sets a tag's presentation name — never its id (translations survive). */
+export const setTagDisplayName = (gallery: GalleryConfig, tagIndex: number, displayName: string): GalleryConfig => {
+  const trimmed = displayName.trim();
+  if (!trimmed) return gallery;
   return {
     ...gallery,
-    themes: gallery.themes.map((theme, index) =>
-      index === path.themeIndex ? { ...theme, coverIndex: path.itemIndex } : theme,
+    tags: gallery.tags.map((tag, index) => (index === tagIndex ? { ...tag, displayName: trimmed } : tag)),
+  };
+};
+
+/** Sets a tag's introduction text (markdown); empty clears it. */
+export const setTagDescription = (gallery: GalleryConfig, tagIndex: number, description: string): GalleryConfig => ({
+  ...gallery,
+  tags: gallery.tags.map((tag, index) => {
+    if (index !== tagIndex) return tag;
+    const next = { ...tag };
+    if (description.trim()) next.description = description.trim();
+    else delete next.description;
+    return next;
+  }),
+});
+
+/**
+ * Deletes a tag AND its references — every item carrying it is untagged from
+ * it (the items themselves stay). Menu entries pointing at the tag resolve
+ * away from the nav and are pruned on the next menu reconciliation.
+ */
+export const removeTag = (gallery: GalleryConfig, tagIndex: number): GalleryConfig => {
+  const removed = gallery.tags[tagIndex];
+  if (!removed) return gallery;
+  return {
+    ...gallery,
+    tags: gallery.tags.filter((_, index) => index !== tagIndex),
+    items: gallery.items.map((item) =>
+      item.tags.includes(removed.tag) ? { ...item, tags: item.tags.filter((tag) => tag !== removed.tag) } : item,
     ),
   };
 };
 
-/** Clears a theme's explicit cover pick (back to "the first displayable item"). */
-export const clearThemeCover = (gallery: GalleryConfig, themeIndex: number): GalleryConfig => ({
-  ...gallery,
-  themes: gallery.themes.map((theme, index) => {
-    if (index !== themeIndex) return theme;
-    const next = { ...theme };
-    delete next.coverIndex;
-    return next;
-  }),
-});
-
-/** Sets a theme's introduction text (markdown); empty clears it. */
-export const setThemePresentation = (
+/** Toggles `tag` on the item at `itemIndex` (declared-tag order is kept stable). */
+export const setItemTagged = (
   gallery: GalleryConfig,
-  themeIndex: number,
-  presentation: string,
-): GalleryConfig => ({
-  ...gallery,
-  themes: gallery.themes.map((theme, index) => {
-    if (index !== themeIndex) return theme;
-    const next = { ...theme };
-    if (presentation.trim()) next.presentation = presentation.trim();
-    else delete next.presentation;
-    return next;
-  }),
-});
-
-/** Moves an item to the end of another list (a theme or the root). */
-export const moveItemToList = (
-  gallery: GalleryConfig,
-  path: GalleryItemPath,
-  targetThemeIndex: number | null,
+  itemIndex: number,
+  tag: string,
+  tagged: boolean,
 ): GalleryConfig => {
-  const item = itemsAt(gallery, path.themeIndex)[path.itemIndex];
-  if (!item || path.themeIndex === targetThemeIndex) return gallery;
-  if (targetThemeIndex !== null && !gallery.themes[targetThemeIndex]) return gallery;
-  return addItem(removeItem(gallery, path), targetThemeIndex, item);
-};
-
-/** Appends a new empty theme named `title`; the id is derived once and immutable. */
-export const addTheme = (gallery: GalleryConfig, title: string): GalleryConfig => {
-  const trimmed = title.trim();
-  if (!trimmed) return gallery;
-  const existing = gallery.themes.map((theme) => theme.themeId);
-  return {
-    ...gallery,
-    themes: [...gallery.themes, { themeId: generateGroupId(trimmed, existing, 'theme'), title: trimmed, items: [] }],
-  };
-};
-
-/** Renames a theme — only the title changes, never the id (translations survive). */
-export const renameTheme = (gallery: GalleryConfig, themeIndex: number, title: string): GalleryConfig => {
-  const trimmed = title.trim();
-  if (!trimmed) return gallery;
-  return {
-    ...gallery,
-    themes: gallery.themes.map((theme, index) => (index === themeIndex ? { ...theme, title: trimmed } : theme)),
-  };
-};
-
-export const moveTheme = (gallery: GalleryConfig, themeIndex: number, offset: number): GalleryConfig => ({
-  ...gallery,
-  themes: moveItem(gallery.themes, themeIndex, themeIndex + offset),
-});
-
-/** Deletes a theme, returning its items to the root list (like deleting a menu group). */
-export const removeTheme = (gallery: GalleryConfig, themeIndex: number): GalleryConfig => {
-  const theme = gallery.themes[themeIndex];
-  if (!theme) return gallery;
-  return {
-    ...gallery,
-    items: [...gallery.items, ...theme.items],
-    themes: gallery.themes.filter((_, index) => index !== themeIndex),
-  };
+  const item = gallery.items[itemIndex];
+  if (!item || !gallery.tags.some((declared) => declared.tag === tag)) return gallery;
+  if (tagged === item.tags.includes(tag)) return gallery;
+  const tags = tagged
+    ? gallery.tags.map((declared) => declared.tag).filter((declared) => declared === tag || item.tags.includes(declared))
+    : item.tags.filter((existing) => existing !== tag);
+  return updateItem(gallery, itemIndex, { ...item, tags });
 };
 
 /** Drops defaulted design fields; undefined when nothing deviates (configs stay minimal). */

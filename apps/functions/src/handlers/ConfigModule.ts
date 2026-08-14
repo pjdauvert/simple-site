@@ -279,7 +279,8 @@ export class ConfigModule extends BaseHandler {
     private updateGallery = async (store: Store, body: string, path: string): Promise<Response> => {
         const gallery = GalleryConfigSchema.parse(JSON.parse(body));
         const current = await this.readDraft(store, path);
-        // Full re-parse validates gallery integrity (unique themeIds, valid ids).
+        // Full re-parse validates gallery integrity (unique tags, valid tag ids,
+  // no item referencing an undeclared tag).
         const merged = SiteConfigSchema.parse({ ...current, gallery });
         await this.writeDraft(store, merged);
         return this.createSuccessResponse({ message: 'Gallery updated successfully' });

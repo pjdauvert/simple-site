@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
+  type GalleryTag,
   type MenuEntry,
   type MenuGroupDisplay,
   type PageConfiguration,
@@ -41,8 +42,10 @@ import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { enabledFeaturePages, reconcileMenu } from '../../../router/publicMenu';
 import {
   type MenuEntryRow,
+  addGalleryTagEntry,
   addGroup,
   deleteGroup,
+  removeEntry,
   entryRows,
   moveEntry,
   moveIntoGroup,
@@ -80,6 +83,7 @@ export const MenuEditor: React.FC = () => {
   const flags = useFeatureFlags();
 
   const [pages, setPages] = useState<PageConfiguration[] | null>(null);
+  const [galleryTags, setGalleryTags] = useState<GalleryTag[]>([]);
   const [storedEntries, setStoredEntries] = useState<MenuEntry[]>([]);
   const [entries, setEntries] = useState<MenuEntry[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -91,6 +95,7 @@ export const MenuEditor: React.FC = () => {
   const [groupLabel, setGroupLabel] = useState('');
   const [rowMenuAnchor, setRowMenuAnchor] = useState<null | HTMLElement>(null);
   const [rowMenuIndex, setRowMenuIndex] = useState<number | null>(null);
+  const [tagMenuAnchor, setTagMenuAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -98,6 +103,7 @@ export const MenuEditor: React.FC = () => {
       .then((config) => {
         if (!active) return;
         setPages(config.pages);
+        setGalleryTags(config.gallery?.tags ?? []);
         setStoredEntries(config.menu?.entries ?? []);
         setGroupDisplay(config.menu?.groupDisplay ?? 'popover');
       })
@@ -112,8 +118,10 @@ export const MenuEditor: React.FC = () => {
   useEffect(() => {
     if (entries !== null || pages === null || flags === null) return;
     const menu = storedEntries.length > 0 ? { entries: storedEntries } : undefined;
-    setEntries(reconcileMenu(menu, pages, enabledFeaturePages(flags)).entries);
-  }, [entries, pages, storedEntries, flags]);
+    setEntries(
+      reconcileMenu(menu, pages, enabledFeaturePages(flags), galleryTags.map((tag) => tag.tag)).entries,
+    );
+  }, [entries, pages, storedEntries, flags, galleryTags]);
 
   const apply = (mutate: (prev: MenuEntry[]) => MenuEntry[]) => {
     setEntries((prev) => (prev ? mutate(prev) : prev));
@@ -168,9 +176,14 @@ export const MenuEditor: React.FC = () => {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
 
-  const rows = entryRows(entries, pages, flags);
+  const rows = entryRows(entries, pages, flags, galleryTags);
   const groups = entries.flatMap((entry) => (entry.type === 'group' ? [entry] : []));
   const menuRow = rowMenuIndex !== null ? rows[rowMenuIndex] : null;
+  // Tag collections not yet linked — the only way they reach the nav is here.
+  const presentIds = new Set(rows.map((row) => menuEntryId(row.entry)));
+  const addableTags = flags?.gallery
+    ? galleryTags.filter((tag) => !presentIds.has(`galleryTag:${tag.tag}`))
+    : [];
 
   /** Bounds of the row's own level: group children move within their group. */
   const levelBounds = (row: MenuEntryRow): { first: boolean; last: boolean } => {
@@ -184,7 +197,7 @@ export const MenuEditor: React.FC = () => {
 
   /** The overflow menu only shows when it has something to offer. */
   const hasRowMenu = (row: MenuEntryRow): boolean =>
-    row.kind === 'group' || row.depth === 1 || groups.length > 0;
+    row.kind === 'group' || row.kind === 'galleryTag' || row.depth === 1 || groups.length > 0;
 
   return (
     <Box sx={{ maxWidth: 640 }}>
@@ -214,9 +227,21 @@ export const MenuEditor: React.FC = () => {
             </Button>
           </Stack>
         ) : (
-          <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddingGroup(true)}>
-            <FormattedMessage id="page.manage.menu.addGroup" />
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddingGroup(true)}>
+              <FormattedMessage id="page.manage.menu.addGroup" />
+            </Button>
+            {addableTags.length > 0 && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={(e) => setTagMenuAnchor(e.currentTarget)}
+              >
+                <FormattedMessage id="page.manage.menu.addGalleryTag" />
+              </Button>
+            )}
+          </Stack>
         )}
         {groups.length > 0 && (
           <Stack direction="row" spacing={1} alignItems="center">
@@ -381,6 +406,20 @@ export const MenuEditor: React.FC = () => {
         })}
       </List>
 
+      <Menu anchorEl={tagMenuAnchor} open={Boolean(tagMenuAnchor)} onClose={() => setTagMenuAnchor(null)}>
+        {addableTags.map((tag) => (
+          <MenuItem
+            key={tag.tag}
+            onClick={() => {
+              apply((prev) => addGalleryTagEntry(prev, tag.tag));
+              setTagMenuAnchor(null);
+            }}
+          >
+            <ListItemText primary={tag.displayName} secondary={`/gallery/tag/${tag.tag}`} />
+          </MenuItem>
+        ))}
+      </Menu>
+
       <Menu anchorEl={rowMenuAnchor} open={Boolean(rowMenuAnchor)} onClose={closeRowMenu}>
         {menuRow?.kind === 'group' && [
           <MenuItem
@@ -405,6 +444,16 @@ export const MenuEditor: React.FC = () => {
             <FormattedMessage id="page.manage.menu.deleteGroup" />
           </MenuItem>,
         ]}
+        {menuRow?.kind === 'galleryTag' && (
+          <MenuItem
+            onClick={() => {
+              apply((prev) => removeEntry(prev, menuRow.path));
+              closeRowMenu();
+            }}
+          >
+            <FormattedMessage id="page.manage.menu.removeGalleryTag" />
+          </MenuItem>
+        )}
         {menuRow && menuRow.kind !== 'group' && menuRow.depth === 1 && (
           <MenuItem
             onClick={() => {

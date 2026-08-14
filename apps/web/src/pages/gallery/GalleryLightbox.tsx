@@ -13,8 +13,6 @@ import type { DisplayableGalleryItem } from './galleryDisplay';
 interface GalleryLightboxProps {
   /** The displayable entries being browsed (a theme's list or the root list). */
   entries: DisplayableGalleryItem[];
-  /** i18n scope of the list (`gallery` or `gallery.theme.<themeId>`). */
-  scope: string;
   /** Position in `entries` of the zoomed item, or null when closed. */
   index: number | null;
   /** Watermark burnt into the zoomed rendition (same design as the lists). */
@@ -50,7 +48,6 @@ const zoomTransformation = (watermark: IkWatermark | undefined): string => {
  */
 export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
   entries,
-  scope,
   index,
   watermark,
   onClose,
@@ -123,7 +120,7 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
             component="img"
             src={ikTransform(entry.item.imageUrl ?? '', zoomTransformation(watermark))}
             alt={intl.formatMessage({
-              id: galleryItemKey(scope, entry.index, 'title'),
+              id: galleryItemKey(entry.index, 'title'),
               defaultMessage: entry.item.title,
             })}
             sx={{ flex: 1, minHeight: 0, width: '100%', objectFit: 'contain' }}
@@ -162,12 +159,12 @@ export const GalleryLightbox: React.FC<GalleryLightboxProps> = ({
 
           <Box sx={{ textAlign: 'center', px: 2, py: { xs: 1.5, md: 2 } }}>
             <Typography variant="h6" component="p">
-              <FormattedMessage id={galleryItemKey(scope, entry.index, 'title')} defaultMessage={entry.item.title} />
+              <FormattedMessage id={galleryItemKey(entry.index, 'title')} defaultMessage={entry.item.title} />
             </Typography>
             {entry.item.subtitle?.trim() && (
               <Typography variant="body2" sx={{ opacity: 0.8 }}>
                 <FormattedMessage
-                  id={galleryItemKey(scope, entry.index, 'subtitle')}
+                  id={galleryItemKey(entry.index, 'subtitle')}
                   defaultMessage={entry.item.subtitle}
                 />
               </Typography>

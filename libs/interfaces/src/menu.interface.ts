@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GALLERY_TAG_PATTERN } from "./gallery.interface.js";
 
 // MenuItem schema — the resolved navigation view-model rendered by the menu bars.
 export const MenuItemSchema = z.object({
@@ -95,8 +96,29 @@ const MenuFeatureEntrySchema = z.object({
   menuTitle: z.string().optional(),
 });
 
+/**
+ * A link to one gallery tag's collection page (`/gallery/tag/<tag>`). Nothing
+ * reaches the navigation automatically when tags are created — the admin adds
+ * these entries explicitly. Like every entry it references its target (the tag
+ * id) instead of copying a route; an entry whose tag no longer exists, or whose
+ * gallery feature is off, resolves away from the nav (and is pruned on the next
+ * menu reconciliation, like a page entry whose page was deleted). `menuTitle`
+ * overrides the tag's own `displayName`; the label's translation key is the
+ * tag's (`gallery.tag.<tag>.menuTitle`).
+ */
+const MenuGalleryTagEntrySchema = z.object({
+  type: z.literal("galleryTag"),
+  tag: z.string().regex(GALLERY_TAG_PATTERN),
+  visible: z.boolean(),
+  menuTitle: z.string().optional(),
+});
+
 /** Leaf entries — the only things a group may contain (depth 1 is structural). */
-export const MenuLeafEntrySchema = z.discriminatedUnion("type", [MenuPageEntrySchema, MenuFeatureEntrySchema]);
+export const MenuLeafEntrySchema = z.discriminatedUnion("type", [
+  MenuPageEntrySchema,
+  MenuFeatureEntrySchema,
+  MenuGalleryTagEntrySchema,
+]);
 
 export type MenuLeafEntry = z.infer<typeof MenuLeafEntrySchema>;
 
@@ -122,6 +144,7 @@ export type MenuGroupEntry = z.infer<typeof MenuGroupEntrySchema>;
 export const MenuEntrySchema = z.discriminatedUnion("type", [
   MenuPageEntrySchema,
   MenuFeatureEntrySchema,
+  MenuGalleryTagEntrySchema,
   MenuGroupEntrySchema,
 ]);
 
@@ -156,6 +179,8 @@ export const menuEntryId = (entry: MenuEntry): string => {
       return `page:${entry.pageName}`;
     case "feature":
       return `feature:${entry.feature}`;
+    case "galleryTag":
+      return `galleryTag:${entry.tag}`;
     case "group":
       return `group:${entry.groupId}`;
   }

@@ -2,14 +2,18 @@ import {
   FEATURE_PAGE_ROUTES,
   GROUP_ID_PATTERN,
   featureEntryLabel,
+  galleryTagNameKey,
   groupTitleKey,
+  menuEntryId,
   menuTitleKey,
+  type GalleryTag,
   type MenuEntry,
   type MenuLeafEntry,
   type PageConfiguration,
 } from '@simple-site/interfaces';
 import type { FeatureFlags } from '../../../services/featuresService';
 import { FEATURE_PAGE_REGISTRY } from '../../../router/publicMenu';
+import { galleryTagRoute } from '../../../pages/gallery/galleryDisplay';
 import { moveItem } from '../pages/pagesDraft';
 
 /** Position of an entry in the depth-1 menu tree (`child` absent → top level). */
@@ -34,7 +38,7 @@ export interface MenuEntryRow {
    */
   baseLabel: string;
   route: string;
-  kind: 'page' | 'feature' | 'group';
+  kind: 'page' | 'feature' | 'galleryTag' | 'group';
   /** The label's translation key on the Translations page. */
   i18nKey: string;
   /**
@@ -53,8 +57,10 @@ export const entryRows = (
   entries: MenuEntry[],
   pages: ReadonlyArray<Pick<PageConfiguration, 'pageName' | 'route' | 'menuTitle'>>,
   flags: FeatureFlags | null,
+  galleryTags: readonly GalleryTag[] = [],
 ): MenuEntryRow[] => {
   const pagesByName = new Map(pages.map((page) => [page.pageName, page]));
+  const tagsById = new Map(galleryTags.map((tag) => [tag.tag, tag]));
 
   const leafRow = (entry: MenuLeafEntry, path: EntryPath, depth: 0 | 1): MenuEntryRow => {
     if (entry.type === 'page') {
@@ -70,6 +76,23 @@ export const entryRows = (
         kind: 'page' as const,
         i18nKey: menuTitleKey(entry.pageName),
         available: Boolean(page),
+      };
+    }
+    if (entry.type === 'galleryTag') {
+      // The label falls back to the tag's displayName; the entry hides with
+      // the gallery flag, like the feature entry it accompanies.
+      const tag = tagsById.get(entry.tag);
+      const baseLabel = tag?.displayName ?? entry.tag;
+      return {
+        entry,
+        path,
+        depth,
+        label: entry.menuTitle ?? baseLabel,
+        baseLabel,
+        route: galleryTagRoute(entry.tag),
+        kind: 'galleryTag' as const,
+        i18nKey: galleryTagNameKey(entry.tag),
+        available: Boolean(tag && flags?.gallery),
       };
     }
     const definition = FEATURE_PAGE_REGISTRY[entry.feature];
@@ -154,6 +177,38 @@ export const addGroup = (entries: MenuEntry[], label: string): MenuEntry[] => {
     ...entries,
     { type: 'group', groupId: generateGroupId(trimmed, existing), menuTitle: trimmed, visible: true, children: [] },
   ];
+};
+
+/**
+ * Appends a visible menu entry linking a gallery tag's collection page — the
+ * only way a collection reaches the navigation (nothing is added when a tag is
+ * created). No-op when the tag is already in the menu (top level or in a group).
+ */
+export const addGalleryTagEntry = (entries: MenuEntry[], tag: string): MenuEntry[] => {
+  const id = `galleryTag:${tag}`;
+  const present = entries.some(
+    (entry) =>
+      menuEntryId(entry) === id ||
+      (entry.type === 'group' && entry.children.some((child) => menuEntryId(child) === id)),
+  );
+  if (present) return entries;
+  return [...entries, { type: 'galleryTag', tag, visible: true }];
+};
+
+/**
+ * Removes the leaf entry at `path` from the menu — the entry's target (e.g.
+ * the gallery tag) is untouched. Offered for galleryTag entries only: page and
+ * feature entries are managed by reconciliation, not removed by hand.
+ */
+export const removeEntry = (entries: MenuEntry[], path: EntryPath): MenuEntry[] => {
+  if (path.child === undefined) return entries.filter((_, top) => top !== path.top);
+  const parent = entries[path.top];
+  if (parent?.type !== 'group') return entries;
+  return entries.map((entry, top) =>
+    top === path.top
+      ? { ...parent, children: parent.children.filter((_, child) => child !== path.child) }
+      : entry,
+  );
 };
 
 /** Deletes the group at `top`, re-inserting its children at its position in order. */

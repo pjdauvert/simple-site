@@ -1,2 +1,2 @@
-export { GalleryThemesEditor } from './GalleryThemesEditor';
+export { GalleryItemsEditor } from './GalleryItemsEditor';
 export { GalleryDesignEditor } from './GalleryDesignEditor';

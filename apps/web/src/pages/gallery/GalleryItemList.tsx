@@ -28,8 +28,6 @@ const ALTERNATE_SIZES = '(min-width: 900px) 58vw, 100vw';
 interface GalleryItemListProps extends GalleryDisplaySettings {
   /** Displayable entries (image present), with their config positions for i18n. */
   entries: DisplayableGalleryItem[];
-  /** i18n scope of the list (`gallery` or `gallery.theme.<themeId>`). */
-  scope: string;
 }
 
 /**
@@ -51,7 +49,6 @@ interface GalleryItemListProps extends GalleryDisplaySettings {
  */
 export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   entries,
-  scope,
   captionPosition,
   displayMode,
   itemMaxWidthPercent,
@@ -87,11 +84,11 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   const caption = (item: GalleryItem, index: number, sx?: SxProps<Theme>): React.ReactNode => (
     <Box key="caption" sx={{ textAlign: 'center', ...sx }}>
       <Typography variant="h6" component="h3">
-        <FormattedMessage id={galleryItemKey(scope, index, 'title')} defaultMessage={item.title} />
+        <FormattedMessage id={galleryItemKey(index, 'title')} defaultMessage={item.title} />
       </Typography>
       {item.subtitle?.trim() && (
         <Typography variant="body2" color="text.secondary">
-          <FormattedMessage id={galleryItemKey(scope, index, 'subtitle')} defaultMessage={item.subtitle} />
+          <FormattedMessage id={galleryItemKey(index, 'subtitle')} defaultMessage={item.subtitle} />
         </Typography>
       )}
     </Box>
@@ -132,7 +129,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
         // The first shot is the likely LCP — only the rest load lazily.
         loading={visibleIndex === 0 ? undefined : 'lazy'}
         decoding="async"
-        alt={intl.formatMessage({ id: galleryItemKey(scope, index, 'title'), defaultMessage: item.title })}
+        alt={intl.formatMessage({ id: galleryItemKey(index, 'title'), defaultMessage: item.title })}
         onError={() => markFailed(item.imageUrl)}
         sx={imgSx}
       />
@@ -142,7 +139,6 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
   const lightbox = (
     <GalleryLightbox
       entries={visible}
-      scope={scope}
       index={zoomIndex}
       watermark={watermark}
       onClose={() => setZoomIndex(null)}
@@ -159,7 +155,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
         <Box data-testid="gallery-grid" sx={{ display: 'grid', gridTemplateColumns: columns, gap }}>
           {visible.map(({ item, index }, visibleIndex) => (
             <Box
-              key={`${scope}-${index}`}
+              key={index}
               sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}
             >
               {imageButton(
@@ -191,7 +187,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
       <>
         <Box data-testid="gallery-mosaic" sx={{ columnCount: { xs: 1, sm: 2, md: itemColumns }, columnGap: gap }}>
           {visible.map(({ item, index }, visibleIndex) => (
-            <Box key={`${scope}-${index}`} sx={{ breakInside: 'avoid', mb: gap }}>
+            <Box key={index} sx={{ breakInside: 'avoid', mb: gap }}>
               {imageButton(
                 item,
                 index,
@@ -214,7 +210,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
         <Stack spacing={stackGap}>
           {visible.map(({ item, index }, visibleIndex) => (
             <Box
-              key={`${scope}-${index}`}
+              key={index}
               sx={{
                 display: 'flex',
                 // Sides flip on every row on desktop; mobile always stacks.
@@ -254,7 +250,7 @@ export const GalleryItemList: React.FC<GalleryItemListProps> = ({
           );
           return (
             <Box
-              key={`${scope}-${index}`}
+              key={index}
               sx={{
                 display: 'flex',
                 flexDirection: sideCaption ? { xs: 'column', md: 'row' } : 'column',
