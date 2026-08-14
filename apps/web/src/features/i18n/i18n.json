@@ -584,8 +584,7 @@
         "page.manage.pages.section.hero.group.background": "Background",
         "page.manage.pages.section.hero.group.design": "Design",
         "page.manage.pages.section.hero.backgroundUrl": "Background image",
-        "page.manage.gallery.tab.items": "Items & tags",
-        "page.manage.gallery.tags": "Tags",
+        "page.manage.gallery.tab.items": "Items",
         "page.manage.gallery.tags.hint": "A tag's identifier is permanent (it is the collection's address, /gallery/tag/…); only its display name and description — both translatable, shown in menus and on the collection page — change afterwards. Deleting a tag also removes it from every item; the items themselves stay. Collections never join the menu automatically: link them from Site settings → Menu.",
         "page.manage.gallery.addTag": "Add tag",
         "page.manage.gallery.addTag.id": "Identifier",
@@ -599,10 +598,10 @@
         "page.manage.gallery.tag.itemCount": "{count, plural, =0 {no items} one {# item} other {# items}}",
         "page.manage.gallery.tag.description": "Description (markdown)",
         "page.manage.gallery.tag.description.hint": "Shown under the collection page's heading. Translatable.",
-        "page.manage.gallery.items": "Items",
         "page.manage.gallery.items.hint": "Every item is browsed from the gallery root page; tag an item (from its dialog) to add it to that tag's collection.",
         "page.manage.gallery.dialog.tags": "Tags",
-        "page.manage.menu.badge.galleryTag": "Collection"
+        "page.manage.menu.badge.galleryTag": "Collection",
+        "page.manage.gallery.tab.tags": "Tags"
     },
     "fr": {
         "language.switch": "Changer de Langue",
@@ -1189,8 +1188,7 @@
         "page.manage.pages.section.hero.group.background": "Arrière-plan",
         "page.manage.pages.section.hero.group.design": "Conception",
         "page.manage.pages.section.hero.backgroundUrl": "Image d'arrière-plan",
-        "page.manage.gallery.tab.items": "Éléments et tags",
-        "page.manage.gallery.tags": "Tags",
+        "page.manage.gallery.tab.items": "Éléments",
         "page.manage.gallery.tags.hint": "L'identifiant d'un tag est définitif (c'est l'adresse de la collection, /gallery/tag/…) ; seuls son nom d'affichage et sa description — traduisibles, présentés dans les menus et sur la page de collection — changent ensuite. Supprimer un tag le retire aussi de tous les éléments ; les éléments, eux, restent. Les collections ne rejoignent jamais le menu automatiquement : liez-les depuis Configuration du site → Menu.",
         "page.manage.gallery.addTag": "Ajouter un tag",
         "page.manage.gallery.addTag.id": "Identifiant",
@@ -1204,9 +1202,9 @@
         "page.manage.gallery.tag.itemCount": "{count, plural, =0 {aucun élément} one {# élément} other {# éléments}}",
         "page.manage.gallery.tag.description": "Description (markdown)",
         "page.manage.gallery.tag.description.hint": "Affichée sous le titre de la page de collection. Traduisible.",
-        "page.manage.gallery.items": "Éléments",
         "page.manage.gallery.items.hint": "Tous les éléments s'explorent depuis la racine de la galerie ; taguez un élément (depuis sa fenêtre d'édition) pour l'ajouter à la collection de ce tag.",
         "page.manage.gallery.dialog.tags": "Tags",
-        "page.manage.menu.badge.galleryTag": "Collection"
+        "page.manage.menu.badge.galleryTag": "Collection",
+        "page.manage.gallery.tab.tags": "Tags"
     }
 }

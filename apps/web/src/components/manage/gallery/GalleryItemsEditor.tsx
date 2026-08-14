@@ -6,9 +6,7 @@ import {
   ButtonBase,
   Chip,
   IconButton,
-  InputAdornment,
   Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -16,54 +14,31 @@ import {
   Add as AddIcon,
   ChevronLeft as EarlierIcon,
   ChevronRight as LaterIcon,
-  DeleteOutline as DeleteIcon,
-  EditOutlined as EditIcon,
   HideImageOutlined as MissingImageIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import {
-  galleryTagDescriptionKey,
-  galleryTagNameKey,
-  type GalleryConfig,
-  type GalleryItem,
-} from '@simple-site/interfaces';
+import { type GalleryConfig, type GalleryItem } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { TranslateShortcut } from '../TranslateShortcut';
 import { ikTransform } from '../../../utils/imagekit';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useNotifications } from '../../../hooks/useNotifications';
-import {
-  addItem,
-  addTag,
-  emptyGallery,
-  isValidNewTag,
-  moveItemInList,
-  removeItem,
-  removeTag,
-  setTagDescription,
-  setTagDisplayName,
-  updateItem,
-} from './galleryDraft';
+import { addItem, emptyGallery, moveItemInList, pruneItemTags, removeItem, updateItem } from './galleryDraft';
 import { GalleryItemDialog } from './GalleryItemDialog';
 
 /** What the item dialog is editing: an existing item's index, or null to add. */
 type DialogState = { itemIndex: number | null };
 
 /**
- * Items & tags tab of /manage/gallery. Tags have their lifecycle here: created
- * with an immutable id (plain alphanumerics plus `-`/`_` — it doubles as the
- * collection's URL segment and i18n-key segment), presented through a
- * translatable displayName and description, deleted WITH their references
- * (every item carrying the tag is untagged; the items stay). Collections are
- * never added to the navigation automatically — the admin links them from the
- * menu explicitly (Site settings → Menu). Below the tags, the gallery's items:
- * one flat list, each item taggable with any number of tags from its dialog;
- * an added item appears as a thumbnail whose click opens its attributes.
- * Items without an image are flagged: they are not displayed publicly at all.
- * Saves via `PUT /api/config/gallery`, re-reading the draft first so the
- * Design tab's settings are never clobbered; changes go live only when
- * published from the Config Versions panel.
+ * Items tab of /manage/gallery — the gallery's items as one flat list, each
+ * taggable with any number of the declared tags from its dialog (tags
+ * themselves live on the Tags tab); an added item appears as a thumbnail
+ * whose click opens its attributes. Items without an image are flagged: they
+ * are not displayed publicly at all. Saves via `PUT /api/config/gallery`,
+ * re-reading the draft first so the Tags and Design tabs are never clobbered
+ * (item references are pruned against the draft's tags in case one was
+ * deleted meanwhile); changes go live only when published from the Config
+ * Versions panel.
  */
 export const GalleryItemsEditor: React.FC = () => {
   const intl = useIntl();
@@ -72,11 +47,6 @@ export const GalleryItemsEditor: React.FC = () => {
   const [gallery, setGallery] = useState<GalleryConfig | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [addingTag, setAddingTag] = useState(false);
-  const [tagId, setTagId] = useState('');
-  const [tagName, setTagName] = useState('');
-  const [renamingTag, setRenamingTag] = useState<number | null>(null);
-  const [renameValue, setRenameValue] = useState('');
   const [dialog, setDialog] = useState<DialogState | null>(null);
 
   useEffect(() => {
@@ -93,23 +63,6 @@ export const GalleryItemsEditor: React.FC = () => {
 
   const apply = (mutate: (prev: GalleryConfig) => GalleryConfig): void => {
     setGallery((prev) => (prev ? mutate(prev) : prev));
-  };
-
-  const cancelAddTag = (): void => {
-    setAddingTag(false);
-    setTagId('');
-    setTagName('');
-  };
-
-  const confirmAddTag = (): void => {
-    if (!gallery || !isValidNewTag(gallery, tagId.trim())) return;
-    apply((prev) => addTag(prev, tagId, tagName));
-    cancelAddTag();
-  };
-
-  const commitTagRename = (tagIndex: number): void => {
-    apply((prev) => setTagDisplayName(prev, tagIndex, renameValue));
-    setRenamingTag(null);
   };
 
   const confirmDialog = (item: GalleryItem): void => {
@@ -131,11 +84,12 @@ export const GalleryItemsEditor: React.FC = () => {
     if (!gallery) return;
     setSubmitting(true);
     try {
-      // Merge over the freshest draft so the Design tab's settings survive.
+      // Merge over the freshest draft so the Tags and Design tabs survive —
+      // pruning references to any tag deleted since this tab loaded.
       const fresh = (await loadDraftConfig()).gallery;
       await updateGallery({
-        items: gallery.items,
-        tags: gallery.tags,
+        items: pruneItemTags(gallery.items, fresh?.tags ?? []),
+        tags: fresh?.tags ?? [],
         ...(fresh?.design ? { design: fresh.design } : {}),
       });
       notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
@@ -153,8 +107,6 @@ export const GalleryItemsEditor: React.FC = () => {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
 
-  const trimmedTagId = tagId.trim();
-  const tagIdInvalid = trimmedTagId.length > 0 && !isValidNewTag(gallery, trimmedTagId);
   const dialogItem = dialog?.itemIndex != null ? (gallery.items[dialog.itemIndex] ?? null) : null;
 
   /** One thumbnail card: click → attributes dialog; arrows reorder the list. */
@@ -245,157 +197,8 @@ export const GalleryItemsEditor: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 860 }}>
-      {/* Tags — their whole lifecycle lives here. The id is immutable once
-          created; deleting a tag also deletes its references on the items. */}
-      <Typography variant="subtitle2" gutterBottom>
-        <FormattedMessage id="page.manage.gallery.tags" />
-      </Typography>
-      <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 1 }}>
-        <FormattedMessage id="page.manage.gallery.tags.hint" />
-      </Typography>
-
-      {gallery.tags.map((tag, tagIndex) => {
-        const itemCount = gallery.items.filter((item) => (item.tags ?? []).includes(tag.tag)).length;
-        return (
-          <Box key={tag.tag} sx={{ mb: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Chip size="small" label={tag.tag} sx={{ fontFamily: 'monospace' }} />
-              {renamingTag === tagIndex ? (
-                <TextField
-                  size="small"
-                  variant="standard"
-                  autoFocus
-                  value={renameValue}
-                  placeholder={tag.displayName}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  onBlur={() => commitTagRename(tagIndex)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitTagRename(tagIndex);
-                    if (e.key === 'Escape') setRenamingTag(null);
-                  }}
-                  slotProps={{ htmlInput: { 'aria-label': intl.formatMessage({ id: 'page.manage.gallery.tag.rename' }) } }}
-                />
-              ) : (
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>
-                  {tag.displayName}
-                </Typography>
-              )}
-              <Typography variant="caption" color="text.secondary" noWrap>
-                /gallery/tag/{tag.tag}
-              </Typography>
-              <Box sx={{ flex: 1 }} />
-              <Typography variant="caption" color={itemCount === 0 ? 'warning.main' : 'text.secondary'} noWrap>
-                <FormattedMessage id="page.manage.gallery.tag.itemCount" values={{ count: itemCount }} />
-              </Typography>
-              <Tooltip title={intl.formatMessage({ id: 'page.manage.gallery.tag.rename' })}>
-                <span>
-                  <IconButton
-                    size="small"
-                    disabled={renamingTag === tagIndex}
-                    onClick={() => { setRenamingTag(tagIndex); setRenameValue(tag.displayName); }}
-                    aria-label={intl.formatMessage({ id: 'page.manage.gallery.tag.rename' })}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <TranslateShortcut
-                i18nKey={galleryTagNameKey(tag.tag)}
-                label={intl.formatMessage({ id: 'page.manage.gallery.translate' })}
-              />
-              <Tooltip title={intl.formatMessage({ id: 'page.manage.gallery.tag.delete' })}>
-                <IconButton
-                  size="small"
-                  onClick={() => apply((prev) => removeTag(prev, tagIndex))}
-                  aria-label={intl.formatMessage({ id: 'page.manage.gallery.tag.delete' })}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-            {/* Introduction shown under the collection page's heading — a
-                translation DEFAULT, hence the Translate shortcut next to it. */}
-            <TextField
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-              value={tag.description ?? ''}
-              onChange={(e) => apply((prev) => setTagDescription(prev, tagIndex, e.target.value))}
-              label={intl.formatMessage({ id: 'page.manage.gallery.tag.description' })}
-              helperText={<FormattedMessage id="page.manage.gallery.tag.description.hint" />}
-              sx={{ mt: 1 }}
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                      <TranslateShortcut
-                        i18nKey={galleryTagDescriptionKey(tag.tag)}
-                        label={intl.formatMessage({ id: 'page.manage.gallery.translate' })}
-                      />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Box>
-        );
-      })}
-
-      {addingTag ? (
-        <Stack direction="row" spacing={1} alignItems="flex-start">
-          <TextField
-            size="small"
-            autoFocus
-            value={tagId}
-            error={tagIdInvalid}
-            label={intl.formatMessage({ id: 'page.manage.gallery.addTag.id' })}
-            helperText={
-              <FormattedMessage
-                id={tagIdInvalid ? 'page.manage.gallery.addTag.invalid' : 'page.manage.gallery.addTag.idHint'}
-              />
-            }
-            onChange={(e) => setTagId(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') confirmAddTag();
-              if (e.key === 'Escape') cancelAddTag();
-            }}
-          />
-          <TextField
-            size="small"
-            value={tagName}
-            label={intl.formatMessage({ id: 'page.manage.gallery.addTag.displayName' })}
-            placeholder={trimmedTagId}
-            onChange={(e) => setTagName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') confirmAddTag();
-              if (e.key === 'Escape') cancelAddTag();
-            }}
-          />
-          <Button
-            size="small"
-            variant="contained"
-            disabled={!trimmedTagId || tagIdInvalid}
-            onClick={confirmAddTag}
-            sx={{ mt: 0.5 }}
-          >
-            <FormattedMessage id="page.manage.gallery.addTag.confirm" />
-          </Button>
-          <Button size="small" onClick={cancelAddTag} sx={{ mt: 0.5 }}>
-            <FormattedMessage id="page.manage.gallery.addTag.cancel" />
-          </Button>
-        </Stack>
-      ) : (
-        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAddingTag(true)}>
-          <FormattedMessage id="page.manage.gallery.addTag" />
-        </Button>
-      )}
-
-      {/* The items — one flat list, browsed from the gallery root; tagging an
-          item adds it to that tag's collection page. */}
-      <Typography variant="subtitle2" gutterBottom sx={{ mt: 4 }}>
-        <FormattedMessage id="page.manage.gallery.items" />
-      </Typography>
+      {/* One flat list, browsed from the gallery root; tagging an item (from
+          its dialog) adds it to that tag's collection page. */}
       <Typography variant="caption" color="text.secondary" component="div">
         <FormattedMessage id="page.manage.gallery.items.hint" />
       </Typography>

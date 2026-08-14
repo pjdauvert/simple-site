@@ -19,6 +19,7 @@ import {
   type GalleryItemAspectRatio,
   type GalleryItemFit,
   type GalleryItemSpacing,
+  type GalleryTag,
   type GalleryWatermarkPosition,
 } from '@simple-site/interfaces';
 import { moveItem } from '../pages/pagesDraft';
@@ -113,6 +114,22 @@ export const removeTag = (gallery: GalleryConfig, tagIndex: number): GalleryConf
         : item,
     ),
   };
+};
+
+/**
+ * Drops item tag references that are not in `tags` — the save-time integrity
+ * net of the SPLIT admin tabs: each tab merges over a fresh draft, so the
+ * Items tab prunes its items against the draft's tags and the Tags tab prunes
+ * the draft's items against its tags (the delete cascade, applied at save).
+ * The schema rejects dangling references server-side; this keeps an honest
+ * concurrent edit from failing the save.
+ */
+export const pruneItemTags = (items: GalleryItem[], tags: readonly GalleryTag[]): GalleryItem[] => {
+  const declared = new Set(tags.map((tag) => tag.tag));
+  return items.map((item) => {
+    const kept = (item.tags ?? []).filter((tag) => declared.has(tag));
+    return kept.length === (item.tags ?? []).length ? item : { ...item, tags: kept };
+  });
 };
 
 /** Toggles `tag` on the item at `itemIndex` (declared-tag order is kept stable). */

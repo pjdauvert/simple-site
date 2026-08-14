@@ -15,6 +15,7 @@ import { TeamDesignTab } from "../pages/admin/TeamDesignTab";
 import { ContactPage } from "../pages/admin/ContactPage";
 import { GalleryPage } from "../pages/admin/GalleryPage";
 import { GalleryItemsTab } from "../pages/admin/GalleryItemsTab";
+import { GalleryTagsTab } from "../pages/admin/GalleryTagsTab";
 import { GalleryDesignTab } from "../pages/admin/GalleryDesignTab";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { ManageLayout } from "../layouts/ManageLayout";
@@ -73,6 +74,7 @@ const ManageArea: React.FC = () => {
           <Route path="gallery" element={<GalleryPage />}>
             <Route index element={<Navigate to="items" replace />} />
             <Route path="items" element={<GalleryItemsTab />} />
+            <Route path="tags" element={<GalleryTagsTab />} />
             <Route path="design" element={<GalleryDesignTab />} />
           </Route>
         )}

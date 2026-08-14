@@ -2,12 +2,12 @@ import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 
-const TABS = ['items', 'design'] as const;
+const TABS = ['items', 'tags', 'design'] as const;
 type TabKey = (typeof TABS)[number];
 
 /**
- * Gallery management shell (/manage/gallery, flag-gated): a tab bar (Items &
- * tags / Design) over an <Outlet/>. Each tab is a URL sub-route
+ * Gallery management shell (/manage/gallery, flag-gated): a tab bar (Items /
+ * Tags / Design) over an <Outlet/>. Each tab is a URL sub-route
  * (`/manage/gallery/<tab>`) so tabs are deep-linkable and survive a reload,
  * mirroring the team page. Unlike the team, both tabs write the config DRAFT
  * (`PUT /api/config/gallery`, merging over a fresh draft read so they can't
@@ -31,6 +31,12 @@ export const GalleryPage: React.FC = () => {
           component={RouterLink}
           to="items"
           label={<FormattedMessage id="page.manage.gallery.tab.items" />}
+        />
+        <Tab
+          value="tags"
+          component={RouterLink}
+          to="tags"
+          label={<FormattedMessage id="page.manage.gallery.tab.tags" />}
         />
         <Tab
           value="design"

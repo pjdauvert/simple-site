@@ -38,7 +38,7 @@ function renderEditor() {
   );
 }
 
-describe('GalleryItemsEditor', () => {
+describe('GalleryItemsEditor (Items tab)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(loadDraftConfig).mockResolvedValue(draft(seeded));
@@ -50,7 +50,6 @@ describe('GalleryItemsEditor', () => {
     // Thumbnails are buttons named by their title; a tag row shows its route.
     const thumb = await screen.findByRole('button', { name: 'Shot A' });
     expect(screen.getByRole('button', { name: 'Tree' })).toBeInTheDocument();
-    expect(screen.getByText('/gallery/tag/nature')).toBeInTheDocument();
 
     fireEvent.click(thumb);
     expect(await screen.findByLabelText(/^title/i)).toHaveValue('Shot A');
@@ -97,51 +96,30 @@ describe('GalleryItemsEditor', () => {
         { imageUrl: '/a.jpg', title: 'Shot A', subtitle: 'Sub A', tags: ['nature'] },
         { imageUrl: '/n.jpg', title: 'Tree', tags: ['nature'] },
       ],
+      // Tags and design come from the fresh draft — owned by the other tabs.
       tags: [{ tag: 'nature', displayName: 'Nature' }],
-      design: { displayMode: 'grid' }, // merged from the fresh draft, never clobbered
+      design: { displayMode: 'grid' },
     });
   });
 
-  it('declares a tag with a valid id, rejecting the invalid ones live', async () => {
+  it('prunes references to a tag deleted on the Tags tab since this tab loaded', async () => {
+    // The save-time re-read returns a draft whose tags were emptied meanwhile.
+    vi.mocked(loadDraftConfig)
+      .mockResolvedValueOnce(draft(seeded))
+      .mockResolvedValue(draft({ ...seeded, tags: [] }));
     renderEditor();
-    fireEvent.click(await screen.findByRole('button', { name: /add tag/i }));
-    const idField = await screen.findByRole('textbox', { name: /identifier/i });
-
-    // An accented id is off the charset — flagged, confirm disabled.
-    fireEvent.change(idField, { target: { value: 'été' } });
-    expect(screen.getByText(/only unaccented letters/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^add$/i })).toBeDisabled();
-
-    fireEvent.change(idField, { target: { value: 'summer-2026' } });
-    fireEvent.change(screen.getByRole('textbox', { name: /display name/i }), { target: { value: 'Été 2026' } });
-    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
-
-    expect(screen.getByText('/gallery/tag/summer-2026')).toBeInTheDocument();
-    expect(screen.getByText('Été 2026')).toBeInTheDocument();
-
+    await screen.findByRole('button', { name: 'Shot A' });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(updateGallery).mock.calls[0][0].tags).toEqual([
-      { tag: 'nature', displayName: 'Nature' },
-      { tag: 'summer-2026', displayName: 'Été 2026' },
-    ]);
-  });
-
-  it('saves a tag description typed under its row', async () => {
-    renderEditor();
-    fireEvent.change(await screen.findByLabelText(/description/i), {
-      target: { value: 'Shot in **Corsica**.' },
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
-    });
-    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(updateGallery).mock.calls[0][0].tags[0]).toEqual({
-      tag: 'nature',
-      displayName: 'Nature',
-      description: 'Shot in **Corsica**.',
+    // The schema rejects dangling references — the save prunes them instead of failing.
+    expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
+      items: [
+        { imageUrl: '/a.jpg', title: 'Shot A', subtitle: 'Sub A', tags: [] },
+        { imageUrl: '/n.jpg', title: 'Tree', tags: [] },
+      ],
+      tags: [],
     });
   });
 
@@ -152,23 +130,4 @@ describe('GalleryItemsEditor', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Shot A' })).not.toBeInTheDocument());
   });
 
-  it('deletes a tag — its references go with it, the items stay', async () => {
-    renderEditor();
-    fireEvent.click(await screen.findByRole('button', { name: /delete tag/i }));
-    expect(screen.queryByText('/gallery/tag/nature')).not.toBeInTheDocument();
-    // The item survives, untagged.
-    expect(screen.getByRole('button', { name: 'Tree' })).toBeInTheDocument();
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
-    });
-    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(updateGallery).mock.calls[0][0]).toMatchObject({
-      items: [
-        { title: 'Shot A', tags: [] },
-        { title: 'Tree', tags: [] },
-      ],
-      tags: [],
-    });
-  });
 });
