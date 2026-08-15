@@ -9,6 +9,7 @@ import {
     ConfigVersionsManifestSchema,
     ConfigImportRequestSchema,
     ConfigRenameRequestSchema,
+    GalleryConfigSchema,
     MAX_CONFIG_VERSIONS,
     MenuConfigSchema,
     type SiteConfig,
@@ -274,6 +275,17 @@ export class ConfigModule extends BaseHandler {
         return this.createSuccessResponse({ message: 'Menu updated successfully' });
     };
 
+    /** PUT /api/config/gallery — replace the `gallery` of the DRAFT. */
+    private updateGallery = async (store: Store, body: string, path: string): Promise<Response> => {
+        const gallery = GalleryConfigSchema.parse(JSON.parse(body));
+        const current = await this.readDraft(store, path);
+        // Full re-parse validates gallery integrity (unique tags, valid tag ids,
+  // no item referencing an undeclared tag).
+        const merged = SiteConfigSchema.parse({ ...current, gallery });
+        await this.writeDraft(store, merged);
+        return this.createSuccessResponse({ message: 'Gallery updated successfully' });
+    };
+
     /** POST /api/config — replace the whole DRAFT (never writes live). */
     private setDraft = async (store: Store, body: string): Promise<Response> => {
         const config = SiteConfigSchema.parse(JSON.parse(body));
@@ -453,6 +465,10 @@ export class ConfigModule extends BaseHandler {
             if (method === 'PUT' && pathname === '/api/config/menu') {
                 this.requireJson(request, path);
                 return await this.updateMenu(store, await request.text(), path);
+            }
+            if (method === 'PUT' && pathname === '/api/config/gallery') {
+                this.requireJson(request, path);
+                return await this.updateGallery(store, await request.text(), path);
             }
             if (method === 'POST' && pathname === '/api/config/publish') {
                 return await this.publishDraft(store, path);

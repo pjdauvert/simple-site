@@ -1,27 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
-import { MemoryRouter } from 'react-router-dom';
-import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import messages from '../../features/i18n/i18n.json';
 import { MediaUrlField } from './MediaUrlField';
 import { listMedia } from '../../services/mediaService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/mediaService', () => ({ listMedia: vi.fn() }));
 
 const en = messages.en as Record<string, string>;
 
 const renderField = (props: Partial<React.ComponentProps<typeof MediaUrlField>> = {}) =>
-  render(
-    <MemoryRouter>
-      <IntlProvider locale="en" messages={en}>
-        <NotificationsProvider>
-          <MediaUrlField label="Logo URL" value="" onChange={() => {}} {...props} />
-        </NotificationsProvider>
-      </IntlProvider>
-    </MemoryRouter>,
-  );
+  renderWithProviders(<MediaUrlField label="Logo URL" value="" onChange={() => {}} {...props} />, {
+    route: '/',
+    notifications: true,
+  });
 
 describe('MediaUrlField', () => {
   beforeEach(() => {

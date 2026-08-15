@@ -1,11 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { IntlProvider } from 'react-intl';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import type { SiteThemeConfig, TextSectionProps, ThemeConfig } from '@simple-site/interfaces';
-import { ThemeContext } from '../../../features/theme/ThemeContext';
-import type { ThemeContextValue } from '../../../features/theme/ThemeContext';
+import { screen } from '@testing-library/react';
+import type { TextSectionProps, ThemeConfig } from '@simple-site/interfaces';
 import { TextSection } from './TextSection';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 /**
  * Characterization tests for the PUBLIC rendering of a text section. These lock
@@ -24,33 +21,17 @@ const themeConfig = {
   menuHoverColor: '#e0e0e0',
 } as unknown as ThemeConfig;
 
-const themeValue: ThemeContextValue = {
-  themeName: 'default',
-  themeConfig,
-  siteThemeConfig: { siteName: 'Test', containerMaxWidth: 'lg' } as unknown as SiteThemeConfig,
-  switchTheme: () => {},
-  availableThemes: [],
-};
-
 const SECTION = 'page.home.intro';
 
-const renderText = (
-  props: Partial<TextSectionProps>,
-  messages: Record<string, string> = {},
-) =>
-  render(
-    <IntlProvider locale="en" messages={messages}>
-      <MuiThemeProvider theme={createTheme()}>
-        <ThemeContext.Provider value={themeValue}>
-          <TextSection
-            type="text"
-            sectionName={SECTION}
-            content={props.content ?? { columns: [{}] }}
-            design={props.design}
-          />
-        </ThemeContext.Provider>
-      </MuiThemeProvider>
-    </IntlProvider>,
+const renderText = (props: Partial<TextSectionProps>, messages: Record<string, string> = {}) =>
+  renderWithProviders(
+    <TextSection
+      type="text"
+      sectionName={SECTION}
+      content={props.content ?? { columns: [{}] }}
+      design={props.design}
+    />,
+    { messages, theme: { themeConfig } },
   );
 
 describe('TextSection (public rendering)', () => {

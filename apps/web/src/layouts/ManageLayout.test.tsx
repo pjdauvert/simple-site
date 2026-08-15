@@ -1,13 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { MemoryRouter } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
 import type { MenuItem } from '@simple-site/interfaces';
-import { AuthContext } from '../features/auth/AuthContext';
 import type { AuthContextValue } from '../features/auth/AuthContext';
-import messages from '../features/i18n/i18n.json';
 import { ManageLayout } from './ManageLayout';
+import { renderWithProviders, TEST_USER } from '../test/renderWithProviders';
 
 // The switchers and theme hook need providers this focused test doesn't set up.
 vi.mock('../features/theme/ThemeSwitcher', () => ({ ThemeSwitcher: () => <div /> }));
@@ -23,25 +20,13 @@ const menuItems: MenuItem[] = [
   { menuTitle: 'Media', pageName: 'manage.media', route: '/manage/media' },
 ];
 
-function renderLayout(path = '/manage', context: Partial<AuthContextValue> = {}) {
-  const defaults: AuthContextValue = {
-    user: { id: 'u1', email: 'a@b.com' },
-    isLoading: false,
-    login: vi.fn(),
-    logout: vi.fn(),
-  };
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <AuthContext.Provider value={{ ...defaults, ...context }}>
-          <ManageLayout menuItems={menuItems}>
-            <div>content</div>
-          </ManageLayout>
-        </AuthContext.Provider>
-      </IntlProvider>
-    </MemoryRouter>,
+const renderLayout = (path = '/manage', context: Partial<AuthContextValue> = {}) =>
+  renderWithProviders(
+    <ManageLayout menuItems={menuItems}>
+      <div>content</div>
+    </ManageLayout>,
+    { route: path, auth: { user: TEST_USER, ...context } },
   );
-}
 
 describe('ManageLayout', () => {
   beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });

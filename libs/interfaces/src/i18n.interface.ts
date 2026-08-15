@@ -44,8 +44,11 @@ export const I18nLocaleSchema = z.string().refine(isLocaleCode, 'Unknown or malf
 export type Locale = z.infer<typeof I18nLocaleSchema>;
 
 // i18n Dictionary schema
-// The dictionary is a record of locales, each containing a record of keys and values, where keys are strings allowing a-z, A-Z, 0-9, _ and . characters.
-export const I18nDictionarySchema = z.record(z.string().regex(/^[a-zA-Z0-9_.]+$/), z.string());
+// The dictionary is a record of locales, each containing a record of keys and values, where
+// keys are strings allowing a-z, A-Z, 0-9, _, - and . characters. Hand-written keys stay
+// dot-separated camelCase by convention; `-` exists for config-derived segments whose id
+// charset allows it (gallery tags — see GALLERY_TAG_PATTERN).
+export const I18nDictionarySchema = z.record(z.string().regex(/^[a-zA-Z0-9_.-]+$/), z.string());
 
 export type I18nDictionary = z.infer<typeof I18nDictionarySchema>;
 

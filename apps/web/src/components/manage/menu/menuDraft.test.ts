@@ -12,13 +12,14 @@ import {
   setEntryTitle,
   setGroupAlwaysExpanded,
 } from './menuDraft';
+import { featuresWith } from '../../../test/featureFlags';
 
 const pages = [
   { pageName: 'page.home', route: '/home', menuTitle: 'Home' },
   { pageName: 'page.about', route: '/about', menuTitle: 'About' },
 ];
 
-const FLAGS = { media: false, team: false, contact: false };
+const FLAGS = featuresWith();
 
 const group = (children: MenuEntry[] = [], overrides: Partial<MenuGroupEntry> = {}): MenuEntry => ({
   type: 'group',
@@ -36,6 +37,8 @@ describe('entryRows', () => {
       {
         entry: entries[0],
         path: { top: 0 },
+        rowKey: 'page:page.about',
+        visible: true,
         depth: 0,
         label: 'About',
         baseLabel: 'About',
@@ -50,7 +53,7 @@ describe('entryRows', () => {
   it('prefers a custom label and keeps the fallback as baseLabel', () => {
     const pageEntry: MenuEntry = { type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' };
     const featureEntry: MenuEntry = { type: 'feature', feature: 'team', visible: true, menuTitle: 'Notre équipe' };
-    const [pageRow, featureRow] = entryRows([pageEntry, featureEntry], pages, { media: false, team: true, contact: false });
+    const [pageRow, featureRow] = entryRows([pageEntry, featureEntry], pages, featuresWith('team'));
     expect(pageRow.label).toBe('Who we are');
     expect(pageRow.baseLabel).toBe('About');
     expect(featureRow.label).toBe('Notre équipe');
@@ -59,7 +62,7 @@ describe('entryRows', () => {
 
   it('marks feature rows unavailable while their flag is off', () => {
     const entries: MenuEntry[] = [{ type: 'feature', feature: 'team', visible: false }];
-    const [row] = entryRows(entries, pages, { media: true, team: false, contact: false });
+    const [row] = entryRows(entries, pages, featuresWith('media'));
     expect(row.kind).toBe('feature');
     expect(row.route).toBe('/team');
     expect(row.i18nKey).toBe('team.menuTitle');
@@ -68,7 +71,7 @@ describe('entryRows', () => {
 
   it('marks feature rows available when their flag is on', () => {
     const entries: MenuEntry[] = [{ type: 'feature', feature: 'team', visible: true }];
-    const [row] = entryRows(entries, pages, { media: false, team: true, contact: false });
+    const [row] = entryRows(entries, pages, featuresWith('team'));
     expect(row.label).toBe('Team');
     expect(row.available).toBe(true);
   });
@@ -110,6 +113,53 @@ describe('entryRows', () => {
   });
 });
 
+describe('entryRows — gallery tag submenu', () => {
+  const GALLERY_ON = featuresWith('gallery');
+  const declared = [
+    { tag: 'nature', displayName: 'Nature' },
+    { tag: 'summer-2026', displayName: 'Été 2026' },
+  ];
+
+  it('indents one row per submenu tag under the gallery entry, in the menu order', () => {
+    const entries: MenuEntry[] = [
+      {
+        type: 'feature',
+        feature: 'gallery',
+        visible: true,
+        galleryTags: [
+          { tag: 'summer-2026', visible: true },
+          { tag: 'nature', visible: false },
+        ],
+      },
+    ];
+    const rows = entryRows(entries, pages, GALLERY_ON, declared);
+    expect(rows.map((r) => [r.kind, r.depth, r.visible])).toEqual([
+      ['feature', 0, true],
+      ['galleryTag', 1, true],
+      ['galleryTag', 1, false],
+    ]);
+    // Labelled by the tag's displayName (named on the gallery page, not here),
+    // addressed by a tag path into the parent's submenu list.
+    expect(rows[1]).toMatchObject({
+      label: 'Été 2026',
+      route: '/gallery/tag/summer-2026',
+      i18nKey: 'gallery.tag.summer-2026.menuTitle',
+      path: { top: 0, tag: 0 },
+      rowKey: 'galleryTag:summer-2026',
+      available: true,
+    });
+    expect(rows[2].path).toEqual({ top: 0, tag: 1 });
+  });
+
+  it('greys the tag rows while the gallery flag is off', () => {
+    const entries: MenuEntry[] = [
+      { type: 'feature', feature: 'gallery', visible: true, galleryTags: [{ tag: 'nature', visible: true }] },
+    ];
+    const [, row] = entryRows(entries, pages, FLAGS, declared);
+    expect(row.available).toBe(false);
+  });
+});
+
 describe('normalizedMenuTitle', () => {
   it('trims the value and clears it when empty or equal to the fallback', () => {
     expect(normalizedMenuTitle('  Who we are ', 'About')).toBe('Who we are');
@@ -142,7 +192,7 @@ describe('menu mutators', () => {
 
   it('moveEntry stays within its level', () => {
     const moved = moveEntry(base, { top: 1, child: 1 }, -1);
-    expect((moved[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.feature))).toEqual([
+    expect((moved[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.type === 'feature' ? c.feature : c.tag))).toEqual([
       'team',
       'page.about',
     ]);
@@ -164,7 +214,7 @@ describe('menu mutators', () => {
 
   it('deleteGroup re-inserts the children at the group position, in order', () => {
     const next = deleteGroup(base, 1);
-    expect(next.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.groupId))).toEqual([
+    expect(next.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.type === 'galleryTag' ? e.tag : e.groupId))).toEqual([
       'page.home',
       'page.about',
       'team',
@@ -175,7 +225,7 @@ describe('menu mutators', () => {
   it('moveIntoGroup appends a top-level leaf to the target group', () => {
     const next = moveIntoGroup(base, 2, 'more');
     expect(next).toHaveLength(2);
-    expect((next[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.feature))).toEqual([
+    expect((next[1] as MenuGroupEntry).children.map((c) => (c.type === 'page' ? c.pageName : c.type === 'feature' ? c.feature : c.tag))).toEqual([
       'page.about',
       'team',
       'contact',

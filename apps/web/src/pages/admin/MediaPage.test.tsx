@@ -1,26 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { fireEvent, waitFor, within } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
-import { MemoryRouter } from 'react-router-dom';
 import type { MediaFile, MediaListResult } from '@simple-site/interfaces';
-import messages from '../../features/i18n/i18n.json';
 import { MediaPage } from './MediaPage';
-import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import * as mediaService from '../../services/mediaService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/mediaService');
 
 const renderPage = (initialEntry = '/manage/media') =>
-  render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <NotificationsProvider>
-          <MediaPage />
-        </NotificationsProvider>
-      </IntlProvider>
-    </MemoryRouter>,
-  );
+  renderWithProviders(<MediaPage />, { route: initialEntry, notifications: true });
 
 const file = (over: Partial<MediaFile> & Pick<MediaFile, 'fileId' | 'name'>): MediaFile => ({
   filePath: `/media/${over.name}`,

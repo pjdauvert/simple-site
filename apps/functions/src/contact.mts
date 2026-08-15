@@ -4,6 +4,7 @@ import { ContactModule } from './handlers/ContactModule';
 import { ApiErrorResponse, ErrorResponses } from './errors/error';
 import type { RequestHandler } from './types/server-types';
 import { isContactEnabled } from './handlers/FeaturesModule';
+import { withFeatureGate } from './handlers/featureGate';
 
 export const config: Config = {
   method: ['GET', 'POST', 'PUT'],
@@ -26,11 +27,6 @@ const errorResponse = (error: ApiErrorResponse): Response =>
 
 const handler: RequestHandler = async (request, context) => {
   const path = new URL(request.url).pathname;
-  // Feature flag: when the contact feature is disabled the whole surface behaves
-  // as if it does not exist (404), regardless of auth.
-  if (!isContactEnabled()) {
-    return errorResponse(ErrorResponses.notFound('Contact', path));
-  }
   // `/api/contact/message` is the public send — an action path of its own, so
   // the send can later move to its own function (per-function rate limits)
   // without a breaking rename. `/api/contact` is the settings resource:
@@ -46,4 +42,6 @@ const handler: RequestHandler = async (request, context) => {
   return errorResponse(ErrorResponses.methodNotAllowed(request.method, ['GET', 'PUT'], path));
 };
 
-export default handler;
+// While FEATURE_CONTACT is off the whole surface behaves as if it does not
+// exist (404), regardless of auth.
+export default withFeatureGate('Contact', isContactEnabled, handler);

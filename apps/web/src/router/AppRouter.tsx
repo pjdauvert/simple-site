@@ -4,11 +4,14 @@ import { MainLayout } from '../layouts/MainLayout';
 import { Page } from '../pages/dynamic/Page';
 import { NotFoundPage } from '../pages/error/NotFoundPage';
 import { useSiteConfig } from '../hooks/useSiteConfig';
-import { ALL_DISABLED, useFeatureFlags } from '../hooks/useFeatureFlags';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { ALL_DISABLED } from '../services/featuresService';
 import { resolveGroupDisplay, resolveNavTree, type NavNode } from './publicMenu';
 import { TeamPage } from '../pages/team/TeamPage';
 import { TeamMemberPage } from '../pages/team/TeamMemberPage';
 import { ContactPage } from '../pages/contact/ContactPage';
+import { GalleryPage } from '../pages/gallery/GalleryPage';
+import { GalleryTagPage } from '../pages/gallery/GalleryTagPage';
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
@@ -34,6 +37,8 @@ export const AppRouter: React.FC = () => {
         <Route path="/team" element={<TeamPage />} />
         <Route path="/team/member/:slug" element={<TeamMemberPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/gallery/tag/:tag" element={<GalleryTagPage />} />
         <Route path="*" Component={NotFoundPage} />
       </Routes>
     </MainLayout>

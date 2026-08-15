@@ -1,21 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { MenuConfig, SiteConfig } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { MenuEditor } from './MenuEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
-import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
+import { mockFeatures } from '../../../test/featureFlags';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../../services/menuService', () => ({ updateMenu: vi.fn() }));
-vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false },
-}));
+vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const page = (pageName: string, route: string, menuTitle: string) =>
   ({ pageName, route, menuTitle, sections: [] });
@@ -23,20 +18,12 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-function renderEditor() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <MenuEditor />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderEditor = () => renderWithProviders(<MenuEditor />, { notifications: true });
 
 describe('MenuEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
+    mockFeatures();
     vi.mocked(updateMenu).mockResolvedValue(undefined);
   });
 
@@ -50,7 +37,7 @@ describe('MenuEditor', () => {
     expect(screen.getByText('About')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(updateMenu).toHaveBeenCalledWith({
       entries: [
@@ -75,7 +62,7 @@ describe('MenuEditor', () => {
     expect(await screen.findByText('Who we are')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[1]).toEqual({ type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' });
@@ -120,7 +107,7 @@ describe('MenuEditor', () => {
     expect(await screen.findByText('Home')).toBeInTheDocument(); // reverted to the page title
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[0]).toEqual({ type: 'page', pageName: 'page.home', visible: true });
@@ -137,10 +124,10 @@ describe('MenuEditor', () => {
     fireEvent.click(upButtons[1]);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
-    expect(saved.entries.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.groupId))).toEqual([
+    expect(saved.entries.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.type === 'galleryTag' ? e.tag : e.groupId))).toEqual([
       'page.about',
       'page.home',
     ]);
@@ -157,7 +144,7 @@ describe('MenuEditor', () => {
     fireEvent.click(switches[1]);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toContainEqual({ type: 'page', pageName: 'page.about', visible: false });
@@ -182,7 +169,7 @@ describe('MenuEditor', () => {
 
     // The entry still saves — flag flips must not lose ordering.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateMenu).toHaveBeenCalled());
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
@@ -206,7 +193,7 @@ describe('MenuEditor', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: /move to "More links"/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(updateMenu).toHaveBeenCalledWith({
       entries: [
@@ -238,7 +225,7 @@ describe('MenuEditor', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: /move out of group/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toEqual([
@@ -267,7 +254,7 @@ describe('MenuEditor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /move up/i })[2]);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toEqual([
@@ -297,7 +284,7 @@ describe('MenuEditor', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: /delete group/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toEqual([
@@ -323,7 +310,7 @@ describe('MenuEditor', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: /always expanded on mobile/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[1]).toEqual({
@@ -346,13 +333,13 @@ describe('MenuEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /secondary bar/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(vi.mocked(updateMenu).mock.calls[0][0].groupDisplay).toBe('bar');
 
     fireEvent.click(screen.getByRole('button', { name: /pop-over/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(vi.mocked(updateMenu).mock.calls[1][0].groupDisplay).toBeUndefined();
   });
@@ -397,7 +384,7 @@ describe('MenuEditor', () => {
     expect(await screen.findByText('Extra')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[0]).toEqual({ type: 'group', groupId: 'more', menuTitle: 'Extra', visible: true, children: [] });

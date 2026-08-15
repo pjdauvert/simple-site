@@ -1,13 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import { AuthContext } from '../../features/auth/AuthContext';
+import { screen } from '@testing-library/react';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
-import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
-import messages from '../../features/i18n/i18n.json';
 import { ManagePage } from './ManagePage';
 import { listVersions } from '../../services/configVersionService';
+import { renderWithProviders, TEST_USER } from '../../test/renderWithProviders';
 
 // The dashboard now renders only the greeting + the config version panel; the
 // version panel pulls the manifest via `configVersionService` on mount.
@@ -23,25 +19,12 @@ vi.mock('../../services/configVersionService', () => ({
   deleteVersion: vi.fn(),
 }));
 
-function renderWithAuth(contextValue: Partial<AuthContextValue> = {}) {
-  const defaults: AuthContextValue = {
-    user: { id: 'u1', email: 'a@b.com' },
-    isLoading: false,
-    login: vi.fn(),
-    logout: vi.fn(),
-  };
-  return render(
-    <MemoryRouter>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
-          <NotificationsProvider>
-            <ManagePage />
-          </NotificationsProvider>
-        </AuthContext.Provider>
-      </IntlProvider>
-    </MemoryRouter>,
-  );
-}
+const renderWithAuth = (contextValue: Partial<AuthContextValue> = {}) =>
+  renderWithProviders(<ManagePage />, {
+    route: '/',
+    auth: { user: TEST_USER, ...contextValue },
+    notifications: true,
+  });
 
 describe('ManagePage', () => {
   beforeEach(() => {

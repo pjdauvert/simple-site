@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GALLERY_TAG_PATTERN } from "./gallery.interface.js";
 
 // MenuItem schema — the resolved navigation view-model rendered by the menu bars.
 export const MenuItemSchema = z.object({
@@ -22,9 +23,14 @@ export type MenuItem = z.infer<typeof MenuItemSchema>;
 export const FeaturePagesEnum = {
   TEAM: 'team',
   CONTACT: 'contact',
+  GALLERY: 'gallery',
 } as const;
 
-export const FeaturePageIdSchema = z.enum([FeaturePagesEnum.TEAM, FeaturePagesEnum.CONTACT]);
+export const FeaturePageIdSchema = z.enum([
+  FeaturePagesEnum.TEAM,
+  FeaturePagesEnum.CONTACT,
+  FeaturePagesEnum.GALLERY,
+]);
 export type FeaturePageId = z.infer<typeof FeaturePageIdSchema>;
 
 /** Every known feature page id, whether or not its feature is enabled. */
@@ -34,6 +40,7 @@ export const ALL_FEATURE_PAGE_IDS: readonly FeaturePageId[] = Object.values(Feat
 export const FEATURE_PAGE_ROUTES: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: '/team',
   [FeaturePagesEnum.CONTACT]: '/contact',
+  [FeaturePagesEnum.GALLERY]: '/gallery',
 };
 
 /**
@@ -44,6 +51,7 @@ export const FEATURE_PAGE_ROUTES: Record<FeaturePageId, string> = {
 export const FEATURE_PAGE_DEFAULT_LABELS: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: 'Team',
   [FeaturePagesEnum.CONTACT]: 'Contact',
+  [FeaturePagesEnum.GALLERY]: 'Gallery',
 };
 
 /** True when `route` is a feature-owned route or nests under one (e.g. `/team/member/x`). */
@@ -81,15 +89,52 @@ const MenuPageEntrySchema = z.object({
   menuTitle: z.string().optional(),
 });
 
+/**
+ * One row of the gallery entry's tag submenu: a reference to a declared tag
+ * plus its activation. The Menu tab lists EVERY declared tag here (order =
+ * submenu order); reconciliation appends newly created tags deactivated and
+ * prunes deleted ones, so the list always mirrors the gallery's tags.
+ */
+const MenuGalleryTagStateSchema = z.object({
+  tag: z.string().regex(GALLERY_TAG_PATTERN),
+  visible: z.boolean(),
+});
+
+export type MenuGalleryTagState = z.infer<typeof MenuGalleryTagStateSchema>;
+
 const MenuFeatureEntrySchema = z.object({
   type: z.literal("feature"),
   feature: FeaturePageIdSchema,
   visible: z.boolean(),
   menuTitle: z.string().optional(),
+  /**
+   * GALLERY ENTRY ONLY — the ordered tag submenu. In the public nav, at least
+   * one activated tag with a displayable collection turns the entry into a
+   * one-level submenu (an "all items" link first, then the active collections);
+   * otherwise it stays a plain /gallery link. Meaningless on other features.
+   */
+  galleryTags: z.array(MenuGalleryTagStateSchema).optional(),
+});
+
+/**
+ * DEPRECATED — the former standalone tag link, superseded by the gallery
+ * entry's `galleryTags` submenu. Still parsed so stored configs keep loading;
+ * never rendered, and reconciliation converts it (its activation moves onto
+ * the gallery entry's submenu row) before dropping it.
+ */
+const MenuGalleryTagEntrySchema = z.object({
+  type: z.literal("galleryTag"),
+  tag: z.string().regex(GALLERY_TAG_PATTERN),
+  visible: z.boolean(),
+  menuTitle: z.string().optional(),
 });
 
 /** Leaf entries — the only things a group may contain (depth 1 is structural). */
-export const MenuLeafEntrySchema = z.discriminatedUnion("type", [MenuPageEntrySchema, MenuFeatureEntrySchema]);
+export const MenuLeafEntrySchema = z.discriminatedUnion("type", [
+  MenuPageEntrySchema,
+  MenuFeatureEntrySchema,
+  MenuGalleryTagEntrySchema,
+]);
 
 export type MenuLeafEntry = z.infer<typeof MenuLeafEntrySchema>;
 
@@ -107,7 +152,12 @@ export const MenuGroupEntrySchema = z.object({
   visible: z.boolean(),
   // Mobile only: render as an always-open section header instead of an accordion.
   alwaysExpanded: z.boolean().optional(),
-  children: z.array(MenuLeafEntrySchema),
+  // The gallery entry carries its own tag submenu, and submenus cannot nest
+  // (depth 1 is structural) — so it can never join a group.
+  children: z.array(MenuLeafEntrySchema).refine(
+    (children) => !children.some((child) => child.type === "feature" && child.feature === FeaturePagesEnum.GALLERY),
+    { message: "The gallery entry cannot be part of a group" },
+  ),
 });
 
 export type MenuGroupEntry = z.infer<typeof MenuGroupEntrySchema>;
@@ -115,6 +165,7 @@ export type MenuGroupEntry = z.infer<typeof MenuGroupEntrySchema>;
 export const MenuEntrySchema = z.discriminatedUnion("type", [
   MenuPageEntrySchema,
   MenuFeatureEntrySchema,
+  MenuGalleryTagEntrySchema,
   MenuGroupEntrySchema,
 ]);
 
@@ -149,6 +200,8 @@ export const menuEntryId = (entry: MenuEntry): string => {
       return `page:${entry.pageName}`;
     case "feature":
       return `feature:${entry.feature}`;
+    case "galleryTag":
+      return `galleryTag:${entry.tag}`;
     case "group":
       return `group:${entry.groupId}`;
   }

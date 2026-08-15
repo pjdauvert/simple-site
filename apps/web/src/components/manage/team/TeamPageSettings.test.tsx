@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { TeamConfig, TeamMember } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { TeamPageSettings } from './TeamPageSettings';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadAllTranslations } from '../../../services/translationsService';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: vi.fn() }));
 vi.mock('../../../services/translationsService', () => ({ loadAllTranslations: vi.fn() }));
@@ -15,15 +13,7 @@ vi.mock('../../../services/translationsService', () => ({ loadAllTranslations: v
 const member = (slug: string, name: string): TeamMember =>
   ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
-function renderSettings() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <TeamPageSettings />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderSettings = () => renderWithProviders(<TeamPageSettings />, { notifications: true });
 
 describe('TeamPageSettings', () => {
   beforeEach(() => {
@@ -60,7 +50,7 @@ describe('TeamPageSettings', () => {
     open.mockRestore();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
@@ -86,7 +76,7 @@ describe('TeamPageSettings', () => {
     fireEvent.change(await screen.findByLabelText(/former members section title/i), { target: { value: 'Alumni' } });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
@@ -105,7 +95,7 @@ describe('TeamPageSettings', () => {
 
     fireEvent.change(await screen.findByLabelText(/team page title/i), { target: { value: 'The crew' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
