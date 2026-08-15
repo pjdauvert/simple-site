@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   FormControlLabel,
   Switch,
   TextField,
@@ -16,6 +15,7 @@ import {
   TeamConfigSchema,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadAllTranslations } from '../../../services/translationsService';
@@ -153,11 +153,7 @@ export const TeamPageSettings: React.FC = () => {
         />
       )}
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.team.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

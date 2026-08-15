@@ -18,11 +18,12 @@ import {
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-  Dashboard as DashboardIcon,
   Groups as GroupsIcon,
   Logout as LogoutIcon,
+  Mail as MailIcon,
   Menu as MenuIcon,
   PermMedia as PermMediaIcon,
+  PublishedWithChanges as PublishedWithChangesIcon,
   Settings as SettingsIcon,
   Translate as TranslateIcon,
 } from '@mui/icons-material';
@@ -34,6 +35,8 @@ import { ThemeSwitcher } from '../features/theme/ThemeSwitcher';
 import { LanguageSwitcher } from '../features/i18n/LanguageSwitcher';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { useAuth } from '../hooks/useAuth';
+import { ikTransform } from '../utils/imagekit';
+import { GalleryThumbnailIcon } from '../components/icons/GalleryThumbnailIcon';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_WIDTH = 64;
@@ -41,9 +44,11 @@ const COLLAPSED_KEY = 'manage.nav.collapsed';
 
 /** Leading icon per admin route (falls back to a settings glyph). */
 const ICONS: Record<string, React.ReactNode> = {
-  '/manage': <DashboardIcon />,
+  '/manage': <PublishedWithChangesIcon />,
   '/manage/site': <SettingsIcon />,
   '/manage/team': <GroupsIcon />,
+  '/manage/contact': <MailIcon />,
+  '/manage/gallery': <GalleryThumbnailIcon />,
   '/manage/translations': <TranslateIcon />,
   '/manage/media': <PermMediaIcon />,
 };
@@ -140,7 +145,7 @@ export const ManageLayout: React.FC<ManageLayoutProps> = ({ menuItems, children 
             {siteThemeConfig.logoUrl && (
               <Box
                 component="img"
-                src={`${siteThemeConfig.logoUrl}?tr=h-64,q-80,f-auto`}
+                src={ikTransform(siteThemeConfig.logoUrl, 'h-64,q-80,f-auto')}
                 alt={siteThemeConfig.siteName}
                 sx={{ height: { xs: 24, sm: 32 }, mr: 1 }}
               />

@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import type { SiteConfig, SiteThemeConfig } from '@simple-site/interfaces';
-import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
-import messages from '../../features/i18n/i18n.json';
 import { SiteConfigPage } from './SiteConfigPage';
 import { GeneralTab } from './GeneralTab';
 import { ThemesTab } from './ThemesTab';
@@ -13,13 +10,14 @@ import { PagesTab } from './PagesTab';
 import { MenuTab } from './MenuTab';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
-import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { mockFeatures } from '../../test/featureFlags';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn(), saveDraftConfig: vi.fn() }));
 vi.mock('../../services/siteConfigService', () => ({ updateSiteSettings: vi.fn() }));
 vi.mock('../../services/themesService', () => ({ updateThemes: vi.fn() }));
 vi.mock('../../services/menuService', () => ({ updateMenu: vi.fn() }));
-vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn(), ALL_DISABLED: { media: false, team: false, contact: false } }));
+vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const siteConfig = (site: Partial<SiteThemeConfig> = {}): SiteConfig =>
   ({
@@ -36,32 +34,26 @@ const siteConfig = (site: Partial<SiteThemeConfig> = {}): SiteConfig =>
 
 // Mirrors the nested route tree wired in ManageRouter, so tab links resolve the
 // same way (relative to `/manage/site`).
-function renderSiteConfig(initialPath = '/manage/site/general') {
-  return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <NotificationsProvider>
-          <Routes>
-            <Route path="/manage/site" element={<SiteConfigPage />}>
-              <Route index element={<Navigate to="general" replace />} />
-              <Route path="general" element={<GeneralTab />} />
-              <Route path="themes" element={<ThemesTab />} />
-              <Route path="pages" element={<PagesTab />} />
-              <Route path="menu" element={<MenuTab />} />
-            </Route>
-          </Routes>
-        </NotificationsProvider>
-      </IntlProvider>
-    </MemoryRouter>,
+const renderSiteConfig = (initialPath = '/manage/site/general') =>
+  renderWithProviders(
+    <Routes>
+      <Route path="/manage/site" element={<SiteConfigPage />}>
+        <Route index element={<Navigate to="general" replace />} />
+        <Route path="general" element={<GeneralTab />} />
+        <Route path="themes" element={<ThemesTab />} />
+        <Route path="pages" element={<PagesTab />} />
+        <Route path="menu" element={<MenuTab />} />
+      </Route>
+    </Routes>,
+    { route: initialPath, notifications: true },
   );
-}
 
 describe('SiteConfigPage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(loadDraftConfig).mockResolvedValue(siteConfig());
     vi.mocked(updateSiteSettings).mockResolvedValue(undefined);
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: true, team: false, contact: false });
+    mockFeatures('media');
   });
 
   it('renders the General / Themes / Pages / Menu tabs', async () => {
@@ -96,7 +88,9 @@ describe('SiteConfigPage', () => {
       pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }],
     } as SiteConfig);
     renderSiteConfig('/manage/site/menu');
-    expect(await screen.findByRole('button', { name: /save menu/i })).toBeInTheDocument();
+    // The save button reads "Save" on every tab now, so anchor on the Menu
+    // editor's own controls instead.
+    expect(await screen.findByRole('button', { name: /add group/i })).toBeInTheDocument();
     expect(screen.getByText('Home')).toBeInTheDocument();
   });
 
@@ -145,7 +139,7 @@ describe('SiteConfigPage', () => {
   });
 
   it('hides the library picker button when the media feature is disabled', async () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
+    mockFeatures();
     renderSiteConfig();
     await screen.findByLabelText(/site name/i);
     expect(screen.queryByRole('button', { name: /view library/i })).not.toBeInTheDocument();

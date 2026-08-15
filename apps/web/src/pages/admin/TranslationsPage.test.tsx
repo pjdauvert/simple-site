@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor, within } from '@testing-library/react';
+import { screen, act, waitFor, within } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { MemoryRouter } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
 import type { SiteConfig } from '@simple-site/interfaces';
-import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
-import messages from '../../features/i18n/i18n.json';
 import { TranslationsPage } from './TranslationsPage';
 import { buildExportPayload, NATIVE_KEY } from './translationsExport';
 import { loadDraftConfig } from '../../services/configVersionService';
@@ -17,6 +13,7 @@ import {
   loadAllTranslations,
   replaceTranslations,
 } from '../../services/translationsService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../services/teamService', () => ({ loadTeam: vi.fn() }));
@@ -51,15 +48,7 @@ const payload = () => ({
 });
 
 const renderPage = (initialEntries: string[] = ['/']) =>
-  render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <NotificationsProvider>
-          <TranslationsPage />
-        </NotificationsProvider>
-      </IntlProvider>
-    </MemoryRouter>,
-  );
+  renderWithProviders(<TranslationsPage />, { route: initialEntries, notifications: true });
 
 const selectLanguage = async (match: RegExp) => {
   fireEvent.mouseDown(screen.getByRole('combobox'));

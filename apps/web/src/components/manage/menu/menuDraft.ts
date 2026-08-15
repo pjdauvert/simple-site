@@ -2,27 +2,40 @@ import {
   FEATURE_PAGE_ROUTES,
   GROUP_ID_PATTERN,
   featureEntryLabel,
+  galleryTagNameKey,
   groupTitleKey,
+  menuEntryId,
   menuTitleKey,
+  type GalleryTag,
   type MenuEntry,
   type MenuLeafEntry,
   type PageConfiguration,
 } from '@simple-site/interfaces';
 import type { FeatureFlags } from '../../../services/featuresService';
 import { FEATURE_PAGE_REGISTRY } from '../../../router/publicMenu';
+import { galleryTagRoute } from '../../../pages/gallery/galleryDisplay';
 import { moveItem } from '../pages/pagesDraft';
 
-/** Position of an entry in the depth-1 menu tree (`child` absent → top level). */
+/**
+ * Position of an entry in the depth-1 menu tree (`child` absent → top level).
+ * `tag` set → a row of the gallery entry's tag submenu (index into its
+ * `galleryTags`), living UNDER the top-level entry at `top`.
+ */
 export interface EntryPath {
   top: number;
   child?: number;
+  tag?: number;
 }
 
 /** What the Menu tab renders for one entry: resolved label/route + availability. */
 export interface MenuEntryRow {
   entry: MenuEntry;
   path: EntryPath;
-  /** 0 = top level, 1 = inside the preceding group row. */
+  /** Unique list key — tag rows share their parent `entry`. */
+  rowKey: string;
+  /** The row's own visibility (a tag row toggles its submenu state, not its parent). */
+  visible: boolean;
+  /** 0 = top level, 1 = inside the preceding group/gallery row. */
   depth: 0 | 1;
   /** Effective display label — the entry's custom title, else `baseLabel`. */
   label: string;
@@ -34,7 +47,7 @@ export interface MenuEntryRow {
    */
   baseLabel: string;
   route: string;
-  kind: 'page' | 'feature' | 'group';
+  kind: 'page' | 'feature' | 'galleryTag' | 'group';
   /** The label's translation key on the Translations page. */
   i18nKey: string;
   /**
@@ -53,8 +66,10 @@ export const entryRows = (
   entries: MenuEntry[],
   pages: ReadonlyArray<Pick<PageConfiguration, 'pageName' | 'route' | 'menuTitle'>>,
   flags: FeatureFlags | null,
+  galleryTags: readonly GalleryTag[] = [],
 ): MenuEntryRow[] => {
   const pagesByName = new Map(pages.map((page) => [page.pageName, page]));
+  const tagsById = new Map(galleryTags.map((tag) => [tag.tag, tag]));
 
   const leafRow = (entry: MenuLeafEntry, path: EntryPath, depth: 0 | 1): MenuEntryRow => {
     if (entry.type === 'page') {
@@ -63,6 +78,8 @@ export const entryRows = (
       return {
         entry,
         path,
+        rowKey: menuEntryId(entry),
+        visible: entry.visible,
         depth,
         label: entry.menuTitle ?? baseLabel,
         baseLabel,
@@ -72,10 +89,29 @@ export const entryRows = (
         available: Boolean(page),
       };
     }
+    if (entry.type === 'galleryTag') {
+      // Deprecated standalone entries — reconciliation converts them away, so
+      // the rows never render; typed here only for exhaustiveness.
+      return {
+        entry,
+        path,
+        rowKey: menuEntryId(entry),
+        visible: entry.visible,
+        depth,
+        label: entry.tag,
+        baseLabel: entry.tag,
+        route: galleryTagRoute(entry.tag),
+        kind: 'galleryTag' as const,
+        i18nKey: galleryTagNameKey(entry.tag),
+        available: false,
+      };
+    }
     const definition = FEATURE_PAGE_REGISTRY[entry.feature];
     return {
       entry,
       path,
+      rowKey: menuEntryId(entry),
+      visible: entry.visible,
       depth,
       label: featureEntryLabel(entry),
       baseLabel: featureEntryLabel({ ...entry, menuTitle: undefined }),
@@ -86,11 +122,43 @@ export const entryRows = (
     };
   };
 
+  /**
+   * The gallery entry's tag submenu rows, indented under it: EVERY declared
+   * tag, labelled by its displayName (renaming happens on the gallery page —
+   * one place to name a tag), toggled and reordered here. No rename, no group
+   * moves — a tag row lives and dies with its tag.
+   */
+  const galleryTagRows = (entry: Extract<MenuEntry, { type: 'feature' }>, top: number): MenuEntryRow[] =>
+    (entry.galleryTags ?? []).map((state, tagIndex) => {
+      const tag = tagsById.get(state.tag);
+      const label = tag?.displayName ?? state.tag;
+      return {
+        entry,
+        path: { top, tag: tagIndex },
+        rowKey: `galleryTag:${state.tag}`,
+        visible: state.visible,
+        depth: 1 as const,
+        label,
+        baseLabel: label,
+        route: galleryTagRoute(state.tag),
+        kind: 'galleryTag' as const,
+        i18nKey: galleryTagNameKey(state.tag),
+        available: Boolean(tag && flags?.gallery),
+      };
+    });
+
   return entries.flatMap((entry, top) => {
-    if (entry.type !== 'group') return [leafRow(entry, { top }, 0)];
+    if (entry.type !== 'group') {
+      const row = leafRow(entry, { top }, 0);
+      return entry.type === 'feature' && entry.feature === 'gallery'
+        ? [row, ...galleryTagRows(entry, top)]
+        : [row];
+    }
     const groupRow: MenuEntryRow = {
       entry,
       path: { top },
+      rowKey: menuEntryId(entry),
+      visible: entry.visible,
       depth: 0,
       label: entry.menuTitle,
       baseLabel: entry.menuTitle,
@@ -126,8 +194,17 @@ const updateAt = (entries: MenuEntry[], path: EntryPath, update: (entry: MenuEnt
     };
   });
 
-export const setEntryVisible = (entries: MenuEntry[], path: EntryPath, visible: boolean): MenuEntry[] =>
-  updateAt(entries, path, (entry) => ({ ...entry, visible }));
+/** A tag path toggles its submenu row's state, never its parent gallery entry. */
+export const setEntryVisible = (entries: MenuEntry[], path: EntryPath, visible: boolean): MenuEntry[] => {
+  if (path.tag === undefined) return updateAt(entries, path, (entry) => ({ ...entry, visible }));
+  return updateAt(entries, { top: path.top }, (entry) => {
+    if (entry.type !== 'feature' || !entry.galleryTags) return entry;
+    return {
+      ...entry,
+      galleryTags: entry.galleryTags.map((state, index) => (index === path.tag ? { ...state, visible } : state)),
+    };
+  });
+};
 
 /** Sets an entry's custom title. Group labels are required — clearing keeps the current one. */
 export const setEntryTitle = (entries: MenuEntry[], path: EntryPath, menuTitle: string | undefined): MenuEntry[] =>
@@ -137,6 +214,14 @@ export const setEntryTitle = (entries: MenuEntry[], path: EntryPath, menuTitle: 
 
 /** Moves the entry at `path` by `offset` within its own level (a group moves as a block). */
 export const moveEntry = (entries: MenuEntry[], path: EntryPath, offset: number): MenuEntry[] => {
+  if (path.tag !== undefined) {
+    const tagIndex = path.tag;
+    return updateAt(entries, { top: path.top }, (entry) => {
+      if (entry.type !== 'feature' || !entry.galleryTags) return entry;
+      const galleryTags = moveItem(entry.galleryTags, tagIndex, tagIndex + offset);
+      return galleryTags === entry.galleryTags ? entry : { ...entry, galleryTags };
+    });
+  }
   if (path.child === undefined) return moveItem(entries, path.top, path.top + offset);
   const parent = entries[path.top];
   if (parent?.type !== 'group') return entries;
@@ -169,6 +254,8 @@ export const deleteGroup = (entries: MenuEntry[], top: number): MenuEntry[] => {
 export const moveIntoGroup = (entries: MenuEntry[], top: number, groupId: string): MenuEntry[] => {
   const entry = entries[top];
   if (!entry || entry.type === 'group') return entries;
+  // The gallery entry carries its own submenu — it can never join a group.
+  if (entry.type === 'feature' && entry.feature === 'gallery') return entries;
   if (!entries.some((candidate) => candidate.type === 'group' && candidate.groupId === groupId)) return entries;
   return entries
     .filter((_, index) => index !== top)
@@ -206,11 +293,12 @@ export const setGroupAlwaysExpanded = (entries: MenuEntry[], top: number, value:
 
 /**
  * Derives a group id from its label: camelCase word runs, diacritics stripped,
- * `group` when nothing usable remains, `g`-prefixed when starting with a digit,
- * numeric suffix on collision. Ids are immutable after creation so translations
- * stored under `menu.<groupId>.menuTitle` survive renames.
+ * `fallback` when nothing usable remains, `g`-prefixed when starting with a
+ * digit, numeric suffix on collision. Ids are immutable after creation so
+ * translations stored under `menu.<groupId>.menuTitle` survive renames. The
+ * gallery editor reuses it for theme ids (same pattern, same immutability).
  */
-export const generateGroupId = (label: string, existing: readonly string[]): string => {
+export const generateGroupId = (label: string, existing: readonly string[], fallback = 'group'): string => {
   const words =
     label
       .normalize('NFD')
@@ -220,7 +308,7 @@ export const generateGroupId = (label: string, existing: readonly string[]): str
     .map((word, index) => (index === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.slice(1).toLowerCase()))
     .join('');
   if (/^[0-9]/.test(base)) base = `g${base}`;
-  if (!GROUP_ID_PATTERN.test(base)) base = 'group';
+  if (!GROUP_ID_PATTERN.test(base)) base = fallback;
   const taken = new Set(existing);
   let candidate = base;
   let suffix = 2;

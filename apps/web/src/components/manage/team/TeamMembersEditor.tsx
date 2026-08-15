@@ -30,7 +30,9 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { BASE_LOCALE, TeamConfigSchema, type Locale, type TeamMember } from '@simple-site/interfaces';
 import { pickLocalizedText } from '../../../pages/team/teamDisplay';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { loadTeam, saveTeam } from '../../../services/teamService';
+import { ikTransform } from '../../../utils/imagekit';
 import { loadLanguages } from '../../../services/initService';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
@@ -210,7 +212,7 @@ export const TeamMembersEditor: React.FC = () => {
               }
             >
               <ListItemAvatar>
-                <Avatar src={member.photoUrl ? `${member.photoUrl}?tr=w-80,h-80,fo-face,q-80,f-auto` : undefined}>
+                <Avatar src={member.photoUrl ? ikTransform(member.photoUrl, 'w-80,h-80,fo-face,q-80,f-auto') : undefined}>
                   {(member.name.trim() || '?').charAt(0).toUpperCase()}
                 </Avatar>
               </ListItemAvatar>
@@ -249,11 +251,7 @@ export const TeamMembersEditor: React.FC = () => {
         </Button>
       </Box>
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.team.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
 
       {editIndex !== null && members[editIndex] && (
         <MemberFormDialog

@@ -50,6 +50,9 @@ export const collectI18nEntries = (config: SiteConfig): I18nEntry[] => {
   const pushLeaf = (entry: MenuLeafEntry): void => {
     if (entry.type === 'feature') {
       push({ key: menuTitleKey(entry.feature), defaultValue: featureEntryLabel(entry) });
+    } else if (entry.type === 'galleryTag') {
+      // Deprecated entry type — never rendered, contributes nothing. Tag labels
+      // are collected by the flag-gated gallery collector.
     } else if (entry.menuTitle) {
       push({ key: menuTitleKey(entry.pageName), defaultValue: entry.menuTitle });
     }

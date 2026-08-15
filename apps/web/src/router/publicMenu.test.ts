@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { collectI18nEntries, type MenuConfig, type SiteConfig } from '@simple-site/interfaces';
 import { reconcileMenu, resolveGroupDisplay, resolveNavTree, type NavNode } from './publicMenu';
 import type { FeatureFlags } from '../services/featuresService';
+import { featuresWith } from '../test/featureFlags';
 
 const page = (pageName: string, route: string, menuTitle: string) =>
   ({ pageName, route, menuTitle, sections: [] });
@@ -9,7 +10,7 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-const FLAGS: FeatureFlags = { media: false, team: false, contact: false };
+const FLAGS: FeatureFlags = featuresWith();
 
 /** Unwraps top-level item nodes — flat-menu tests read like before. */
 const items = (nodes: NavNode[]) => nodes.flatMap((n) => (n.kind === 'item' ? [n.item] : []));
@@ -53,7 +54,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: true, contact: false }))).toEqual([
+    expect(items(resolveNavTree(config, featuresWith('team')))).toEqual([
       { menuTitle: 'Team', pageName: 'team', route: '/team' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
@@ -67,7 +68,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: false, contact: true }))).toEqual([
+    expect(items(resolveNavTree(config, featuresWith('contact')))).toEqual([
       { menuTitle: 'Contact', pageName: 'contact', route: '/contact' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
@@ -83,7 +84,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: true, contact: false })).map((i) => i.menuTitle)).toEqual([
+    expect(items(resolveNavTree(config, featuresWith('team'))).map((i) => i.menuTitle)).toEqual([
       'Notre équipe',
       'Welcome',
     ]);
@@ -112,7 +113,7 @@ describe('resolveNavTree', () => {
         ] },
       ] },
     );
-    expect(resolveNavTree(config, { media: false, team: true, contact: false })).toEqual([
+    expect(resolveNavTree(config, featuresWith('team'))).toEqual([
       { kind: 'item', item: { menuTitle: 'Home', pageName: 'page.home', route: '/home' } },
       {
         kind: 'group',
@@ -358,5 +359,169 @@ describe('collectI18nEntries (menu labels)', () => {
     ]);
     // …and the feature owns its key.
     expect(entries).toContainEqual({ key: 'team.menuTitle', defaultValue: 'Team' });
+  });
+});
+
+describe('resolveNavTree — gallery tag submenu', () => {
+  const GALLERY_ON: FeatureFlags = featuresWith('gallery');
+
+  const galleryConfig = (pages: ReturnType<typeof page>[], menu: MenuConfig, gallery: unknown): SiteConfig =>
+    ({ site: { siteName: 'Test' }, themes: [], pages, menu, gallery }) as unknown as SiteConfig;
+
+  const tagged = {
+    items: [
+      { imageUrl: '/n.jpg', title: 'Tree', tags: ['nature'] },
+      { imageUrl: '/c.jpg', title: 'Paris', tags: ['cities'] },
+      { title: 'No image yet', tags: ['draft'] },
+    ],
+    tags: [
+      { tag: 'nature', displayName: 'Nature' },
+      { tag: 'cities', displayName: 'Cities' },
+      { tag: 'draft', displayName: 'Draft' },
+    ],
+  };
+
+  it('expands the gallery entry into a submenu — an "all items" link, then the ACTIVE tags in menu order', () => {
+    const config = galleryConfig([page('page.home', '/home', 'Home')], {
+      entries: [
+        { type: 'page', pageName: 'page.home', visible: true },
+        {
+          type: 'feature',
+          feature: 'gallery',
+          visible: true,
+          galleryTags: [
+            { tag: 'cities', visible: true },
+            { tag: 'draft', visible: true }, // nothing displayable → skipped
+            { tag: 'nature', visible: false }, // deactivated → skipped
+          ],
+        },
+      ],
+    }, tagged);
+    expect(resolveNavTree(config, GALLERY_ON)).toEqual([
+      { kind: 'item', item: { menuTitle: 'Home', pageName: 'page.home', route: '/home' } },
+      {
+        kind: 'group',
+        id: 'feature:gallery',
+        menuTitle: 'Gallery',
+        i18nKey: 'gallery.menuTitle',
+        alwaysExpanded: false,
+        items: [
+          // The dedicated translatable label (`gallery.all.menuTitle` via pageName).
+          { menuTitle: 'All items', pageName: 'gallery.all', route: '/gallery' },
+          { menuTitle: 'Cities', pageName: 'gallery.tag.cities', route: '/gallery/tag/cities' },
+        ],
+      },
+    ]);
+  });
+
+  it('stays a plain /gallery link when no tag counts: none declared, all deactivated, or all empty', () => {
+    const cases = [
+      undefined, // no galleryTags at all
+      [{ tag: 'nature', visible: false }], // deactivated
+      [{ tag: 'draft', visible: true }], // activated but nothing displayable
+      [{ tag: 'gone', visible: true }], // deleted tag (stale state)
+    ];
+    for (const galleryTags of cases) {
+      const config = galleryConfig([], {
+        entries: [{ type: 'feature', feature: 'gallery', visible: true, ...(galleryTags ? { galleryTags } : {}) }],
+      }, tagged);
+      expect(resolveNavTree(config, GALLERY_ON)).toEqual([
+        { kind: 'item', item: { menuTitle: 'Gallery', pageName: 'gallery', route: '/gallery' } },
+      ]);
+    }
+  });
+
+  it('drops the gallery entry entirely while the flag is off, and ignores deprecated galleryTag entries', () => {
+    const config = galleryConfig([], {
+      entries: [
+        { type: 'feature', feature: 'gallery', visible: true, galleryTags: [{ tag: 'nature', visible: true }] },
+        { type: 'galleryTag', tag: 'nature', visible: true }, // deprecated — never rendered
+      ],
+    }, tagged);
+    expect(resolveNavTree(config, FLAGS)).toEqual([]);
+    // Flag on: the submenu renders once, the deprecated entry still contributes nothing.
+    expect(resolveNavTree(config, GALLERY_ON)).toHaveLength(1);
+    expect(resolveNavTree(config, GALLERY_ON)[0].kind).toBe('group');
+  });
+});
+
+describe('reconcileMenu — gallery tag submenu', () => {
+  it('syncs the submenu with the declared tags: keeps stored order, appends new ones DEACTIVATED, prunes deleted', () => {
+    const menu: MenuConfig = {
+      entries: [
+        {
+          type: 'feature',
+          feature: 'gallery',
+          visible: true,
+          galleryTags: [
+            { tag: 'cities', visible: true },
+            { tag: 'gone', visible: true }, // deleted tag → pruned
+          ],
+        },
+      ],
+    };
+    const next = reconcileMenu(menu, [], ['gallery'], ['nature', 'cities']);
+    expect(next.entries[0]).toEqual({
+      type: 'feature',
+      feature: 'gallery',
+      visible: true,
+      // Stored order first, then the newcomer — activating it is an admin choice.
+      galleryTags: [
+        { tag: 'cities', visible: true },
+        { tag: 'nature', visible: false },
+      ],
+    });
+  });
+
+  it('seeds the submenu on a gallery entry that never had one', () => {
+    const menu: MenuConfig = { entries: [{ type: 'feature', feature: 'gallery', visible: false }] };
+    const next = reconcileMenu(menu, [], ['gallery'], ['nature']);
+    expect(next.entries[0]).toMatchObject({ galleryTags: [{ tag: 'nature', visible: false }] });
+    // And strips it back off when the last tag is deleted.
+    expect(reconcileMenu(next, [], ['gallery'], []).entries[0]).toEqual({
+      type: 'feature',
+      feature: 'gallery',
+      visible: false,
+    });
+  });
+
+  it('migrates deprecated galleryTag entries: dropped, their activation carried onto the submenu row', () => {
+    const menu: MenuConfig = {
+      entries: [
+        { type: 'feature', feature: 'gallery', visible: true },
+        { type: 'galleryTag', tag: 'nature', visible: true },
+        { type: 'galleryTag', tag: 'cities', visible: false },
+      ],
+    };
+    const next = reconcileMenu(menu, [], ['gallery'], ['nature', 'cities']);
+    expect(next.entries).toEqual([
+      {
+        type: 'feature',
+        feature: 'gallery',
+        visible: true,
+        galleryTags: [
+          { tag: 'nature', visible: true }, // was linked and visible → stays active
+          { tag: 'cities', visible: false },
+        ],
+      },
+    ]);
+  });
+
+  it('pulls a gallery entry out of a group — it carries its own submenu and can never nest', () => {
+    const menu: MenuConfig = {
+      entries: [
+        {
+          type: 'group', groupId: 'more', menuTitle: 'More', visible: true,
+          children: [
+            { type: 'page', pageName: 'page.home', visible: true },
+            { type: 'feature', feature: 'gallery', visible: true },
+          ],
+        },
+      ],
+    };
+    const next = reconcileMenu(menu, [{ pageName: 'page.home' }], ['gallery'], ['nature']);
+    expect(next.entries.map((e) => e.type)).toEqual(['group', 'feature']);
+    expect(next.entries[0]).toMatchObject({ children: [{ pageName: 'page.home' }] });
+    expect(next.entries[1]).toMatchObject({ feature: 'gallery', galleryTags: [{ tag: 'nature', visible: false }] });
   });
 });

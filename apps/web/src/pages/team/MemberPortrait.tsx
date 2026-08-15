@@ -1,6 +1,7 @@
 import React from 'react';
 import { Avatar, Box, useTheme } from '@mui/material';
 import type { TeamMember } from '@simple-site/interfaces';
+import { ikTransform } from '../../utils/imagekit';
 
 type ResponsiveSize = number | Record<string, number>;
 
@@ -46,7 +47,7 @@ export const MemberPortrait: React.FC<MemberPortraitProps> = ({
   return member.photoUrl ? (
     <Box
       component="img"
-      src={`${member.photoUrl}?tr=w-480,h-480,fo-face,q-80,f-auto`}
+      src={ikTransform(member.photoUrl, 'w-480,h-480,fo-face,q-80,f-auto')}
       alt={member.name}
       sx={{ ...shape, objectFit: 'cover', boxShadow: 3 }}
     />

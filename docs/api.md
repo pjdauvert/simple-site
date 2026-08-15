@@ -14,6 +14,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | PUT | `/api/config/site` | Update the `site` section of the **draft** (admin) |
 | PUT | `/api/config/themes` | Replace the `themes` array of the **draft** (admin) |
 | PUT | `/api/config/menu` | Replace the `menu` of the **draft** (admin) |
+| PUT | `/api/config/gallery` | Replace the `gallery` of the **draft** (admin, flag-gated) |
 | POST | `/api/config/publish` | Publish the draft — promote it live, archive the previous (admin) |
 | POST | `/api/config/import` | Upload a configuration as the new named draft (admin) |
 | GET | `/api/config/versions` | List versions: published, draft, archives (admin) |
@@ -102,7 +103,7 @@ Replaces the entire `themes` array of the **draft** (add / edit / delete are all
 
 ### `PUT /api/config/menu`
 
-Replaces the `menu` of the **draft** — the ordered list of navigation entries with per-entry visibility, including one-level `group` submenus (see [configuration.md](configuration.md#menu)). The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `menu`, re-validates the whole `SiteConfig` — rejecting duplicate entries (one id space across the top level and all group children), references to unknown pages (inside groups too), nested groups, invalid or duplicate `groupId`s, empty group labels, and page routes on feature-reserved paths — then persists the draft. Backs the **Menu** tab of the `/manage/site` configuration page.
+Replaces the `menu` of the **draft** — the ordered list of navigation entries with per-entry visibility, including one-level `group` submenus (see [configuration.md](configuration.md#menu)). The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `menu`, re-validates the whole `SiteConfig` — rejecting duplicate entries (one id space across the top level and all group children), references to unknown pages (inside groups too), nested groups, a gallery entry inside a group (it carries its own tag submenu — `galleryTags`, see [configuration.md](configuration.md#menu)), invalid or duplicate `groupId`s, empty group labels, and page routes on feature-reserved paths — then persists the draft. Backs the **Menu** tab of the `/manage/site` configuration page.
 
 ```json
 // Request body — a MenuConfig object
@@ -116,6 +117,34 @@ Replaces the `menu` of the **draft** — the ordered list of navigation entries 
 
 // 200 OK
 { "ok": true, "data": { "message": "Menu updated successfully" } }
+```
+
+### `PUT /api/config/gallery`
+
+Replaces the `gallery` of the **draft** — the tagged image gallery (see [configuration.md](configuration.md#gallery)). Gated by the **`FEATURE_GALLERY`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `gallery` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `gallery` — rejecting duplicate or charset-invalid `tag` ids (`^[a-zA-Z0-9_-]+$`, ≤ 64 chars), empty displayNames/item titles, and items referencing an undeclared tag (tag deletion cascades to its references) — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/gallery` editor.
+
+```json
+// Request body — a GalleryConfig object
+{ "items": [ { "imageUrl": "https://…/sunrise.jpg", "title": "Sunrise", "subtitle": "Corsica", "tags": ["landscapes"] } ],
+  "tags": [ { "tag": "landscapes", "displayName": "Landscapes", "description": "Shot in **Corsica**." } ],
+  "design": { "captionPosition": "left", "displayMode": "grid" } }
+// design is optional; displayMode: "list" (default) | "grid" | "mosaic" | "alternate";
+// captionPosition ("above" | "below" (default) | "left" | "right") applies to the list mode only;
+// itemShowTitle / itemShowSubtitle (booleans; absent = shown) hide the captions
+// in the browsing lists independently — the zoom view always keeps both;
+// itemMaxWidthPercent (int, 10-100, % of the screen width) caps each item's image
+// in every mode — landscape screens only;
+// layout: itemColumns (2-5, tiled modes), itemAspectRatio (original|1:1|4:3|3:2|16:9, grid)
+// + itemFit (cover|contain), itemSpacing (tight|normal|airy);
+// watermark: watermarkText (<=40 chars) + watermarkPosition, watermarkColor (#RRGGBB),
+// watermarkOpacity (10-100) — burnt into the public renditions by the CDN;
+// item frame: itemElevation (0|1|2|4|8|16|24 — the platform's shadow steps),
+// itemBorder (bool) + itemBorderColor
+// (CSS color, empty = theme primary), itemCornerRadius (int 0-48 px)
+
+
+// 200 OK
+{ "ok": true, "data": { "message": "Gallery updated successfully" } }
 ```
 
 ### `POST /api/config/publish`
@@ -272,7 +301,7 @@ Public. Reports which optional features the server currently has enabled, so the
 
 ```json
 // 200 OK
-{ "ok": true, "data": { "media": true, "team": false, "contact": false } }
+{ "ok": true, "data": { "media": true, "team": false, "contact": false, "gallery": false } }
 ```
 
 ---
@@ -486,6 +515,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | GET | `/api/config/draft` | ✓ |
 | POST | `/api/config` | ✓ |
 | PUT | `/api/config/site` | ✓ |
+| PUT | `/api/config/gallery` | ✓ (and flag-gated — 404 before auth) |
 | POST | `/api/config/publish` | ✓ |
 | POST | `/api/config/import` | ✓ |
 | GET | `/api/config/versions` | ✓ |
@@ -544,6 +574,7 @@ APP_NAME                 # Namespaces the Netlify Blobs store
 FEATURE_MEDIA            # "true" enables the media library (admin page + /api/media*)
 FEATURE_TEAM             # "true" enables the team feature (admin page, /team pages, /api/team)
 FEATURE_CONTACT          # "true" enables the contact feature (admin page, /contact page, /api/contact)
+FEATURE_GALLERY          # "true" enables the gallery (admin page, /gallery pages, menu entries, PUT /api/config/gallery)
 IMAGEKIT_PRIVATE_KEY
 IMAGEKIT_PUBLIC_KEY
 IMAGEKIT_URL_ENDPOINT

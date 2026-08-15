@@ -17,6 +17,7 @@ import type { MediaFile, MediaFolder } from '@simple-site/interfaces';
 import { listMedia } from '../../services/mediaService';
 import { Loader } from '../Loader';
 import { useNotifications } from '../../hooks/useNotifications';
+import { ikTransform } from '../../utils/imagekit';
 import { MediaBreadcrumbs } from './MediaBreadcrumbs';
 
 interface ImagePickerDialogProps {
@@ -126,7 +127,7 @@ export const ImagePickerDialog: React.FC<ImagePickerDialogProps> = ({ open, onCl
                   >
                     <Box
                       component="img"
-                      src={`${file.url}?tr=w-200,h-200,q-75,f-auto`}
+                      src={ikTransform(file.url, 'w-200,h-200,q-75,f-auto')}
                       alt={file.name}
                       loading="lazy"
                       sx={{ display: 'block', width: '100%', height: 120, objectFit: 'contain', bgcolor: 'action.hover' }}

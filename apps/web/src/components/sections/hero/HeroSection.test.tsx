@@ -1,11 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { IntlProvider } from 'react-intl';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import type { HeroSectionProps, SiteThemeConfig, ThemeConfig } from '@simple-site/interfaces';
-import { ThemeContext } from '../../../features/theme/ThemeContext';
-import type { ThemeContextValue } from '../../../features/theme/ThemeContext';
+import { screen } from '@testing-library/react';
+import type { HeroSectionProps, ThemeConfig } from '@simple-site/interfaces';
 import { HeroSection } from './HeroSection';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 /**
  * Characterization tests for the PUBLIC rendering of a hero section. These lock
@@ -25,33 +22,12 @@ const themeConfig = {
   menuHoverColor: '#e0e0e0',
 } as unknown as ThemeConfig;
 
-const themeValue: ThemeContextValue = {
-  themeName: 'default',
-  themeConfig,
-  siteThemeConfig: { siteName: 'Test', containerMaxWidth: 'lg' } as unknown as SiteThemeConfig,
-  switchTheme: () => {},
-  availableThemes: [],
-};
-
 const SECTION = 'page.home.hero';
 
-const renderHero = (
-  props: Partial<HeroSectionProps>,
-  messages: Record<string, string> = {},
-) =>
-  render(
-    <IntlProvider locale="en" messages={messages}>
-      <MuiThemeProvider theme={createTheme()}>
-        <ThemeContext.Provider value={themeValue}>
-          <HeroSection
-            type="hero"
-            sectionName={SECTION}
-            content={props.content ?? {}}
-            design={props.design}
-          />
-        </ThemeContext.Provider>
-      </MuiThemeProvider>
-    </IntlProvider>,
+const renderHero = (props: Partial<HeroSectionProps>, messages: Record<string, string> = {}) =>
+  renderWithProviders(
+    <HeroSection type="hero" sectionName={SECTION} content={props.content ?? {}} design={props.design} />,
+    { messages, theme: { themeConfig } },
   );
 
 describe('HeroSection (public rendering)', () => {

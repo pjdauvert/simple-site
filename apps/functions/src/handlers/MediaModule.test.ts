@@ -1,35 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { Context } from '@netlify/functions';
 import { MediaModule } from './MediaModule';
 import { ErrorCode } from '@simple-site/interfaces';
+import { jsonRequest, makeContext, readJson, stubEnv, stubFetch } from './testing/handlerTestKit';
 
-const ENV: Record<string, string> = {
+const IMAGEKIT_ENV: Record<string, string> = {
   IMAGEKIT_PRIVATE_KEY: 'private_test_key',
   IMAGEKIT_PUBLIC_KEY: 'public_test_key',
   IMAGEKIT_ROOT_DIR: '/root',
 };
 
-const stubEnv = (env: Record<string, string | undefined> = ENV) =>
-  vi.stubGlobal('Netlify', { env: { get: (k: string) => env[k] } });
-
-const mockFetch = (impl: (url: string, init?: RequestInit) => unknown) =>
-  vi.stubGlobal('fetch', vi.fn(impl as never));
-
-const makeContext = (params: Record<string, string> = {}): Context =>
-  ({ params } as unknown as Context);
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const readJson = async (res: Response): Promise<any> => res.json();
-
-const jsonRequest = (url: string, method: string, body?: unknown) =>
-  new Request(url, {
-    method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+/** Media routes read the `:fileId` segment off the context. */
+const withParams = (params: Record<string, string> = {}) => makeContext({ params });
 
 describe('MediaModule', () => {
-  beforeEach(() => stubEnv());
+  beforeEach(() => stubEnv(IMAGEKIT_ENV));
   afterEach(() => vi.unstubAllGlobals());
 
   it('POST /api/media/upload-auth scopes the upload folder under the root + path', async () => {
@@ -39,7 +23,7 @@ describe('MediaModule', () => {
         path: '/products',
         tags: ['a', 'b'],
       }),
-      makeContext(),
+      withParams(),
     );
     expect(res.status).toBe(200);
     const body = await readJson(res);
@@ -56,7 +40,7 @@ describe('MediaModule', () => {
   it('defaults the upload folder to the root when no path is given', async () => {
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media/upload-auth', 'POST', { fileName: 'pic.jpg' }),
-      makeContext(),
+      withParams(),
     );
     expect((await readJson(res)).data.uploadPayload.folder).toBe('/root');
   });
@@ -65,14 +49,14 @@ describe('MediaModule', () => {
     stubEnv({});
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media/upload-auth', 'POST', { fileName: 'pic.jpg' }),
-      makeContext(),
+      withParams(),
     );
     expect(res.status).toBe(500);
     expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
   });
 
   it('GET /api/media returns folders + files and filters videos by mime', async () => {
-    mockFetch(() => ({
+    stubFetch(() => ({
       ok: true,
       status: 200,
       json: async () => [
@@ -82,14 +66,14 @@ describe('MediaModule', () => {
       ],
     }));
 
-    const all = await new MediaModule().handle(jsonRequest('https://site.test/api/media', 'GET'), makeContext());
+    const all = await new MediaModule().handle(jsonRequest('https://site.test/api/media', 'GET'), withParams());
     const allData = (await readJson(all)).data;
     expect(allData.folders).toEqual([{ folderId: 'f1', name: 'products', path: '/products' }]);
     expect(allData.files).toHaveLength(2);
 
     const videos = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media?type=video', 'GET'),
-      makeContext(),
+      withParams(),
     );
     const videoData = (await readJson(videos)).data;
     expect(videoData.files).toHaveLength(1);
@@ -98,12 +82,11 @@ describe('MediaModule', () => {
   });
 
   it('GET /api/media requests the resolved folder path', async () => {
-    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 200, json: async () => [] }));
-    vi.stubGlobal('fetch', fetchSpy);
+    const fetchSpy = stubFetch(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 200, json: async () => [] }));
 
     await new MediaModule().handle(
       jsonRequest('https://site.test/api/media?path=/products', 'GET'),
-      makeContext(),
+      withParams(),
     );
     const calledUrl = fetchSpy.mock.calls[0][0] as string;
     // Literal slashes preserved (ImageKit does not decode %2F).
@@ -111,12 +94,11 @@ describe('MediaModule', () => {
   });
 
   it('POST /api/media/folder creates a folder under the resolved parent path', async () => {
-    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 201, json: async () => ({}) }));
-    vi.stubGlobal('fetch', fetchSpy);
+    const fetchSpy = stubFetch(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 201, json: async () => ({}) }));
 
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media/folder', 'POST', { name: 'new', path: '/products' }),
-      makeContext(),
+      withParams(),
     );
     expect(res.status).toBe(200);
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
@@ -126,12 +108,11 @@ describe('MediaModule', () => {
   });
 
   it('DELETE /api/media/folder deletes the resolved folder path', async () => {
-    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 204, json: async () => ({}) }));
-    vi.stubGlobal('fetch', fetchSpy);
+    const fetchSpy = stubFetch(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 204, json: async () => ({}) }));
 
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media/folder?path=/products', 'DELETE'),
-      makeContext(),
+      withParams(),
     );
     expect(res.status).toBe(200);
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
@@ -141,12 +122,11 @@ describe('MediaModule', () => {
   });
 
   it('PUT /api/media/folder renames the resolved folder via a bulk job', async () => {
-    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 202, json: async () => ({ jobId: 'job_1' }) }));
-    vi.stubGlobal('fetch', fetchSpy);
+    const fetchSpy = stubFetch(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 202, json: async () => ({ jobId: 'job_1' }) }));
 
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media/folder', 'PUT', { path: '/products', newName: 'goods' }),
-      makeContext(),
+      withParams(),
     );
     expect(res.status).toBe(200);
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
@@ -156,12 +136,11 @@ describe('MediaModule', () => {
   });
 
   it('PUT /api/media renames a file by its absolute path', async () => {
-    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 200, json: async () => ({}) }));
-    vi.stubGlobal('fetch', fetchSpy);
+    const fetchSpy = stubFetch(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 200, json: async () => ({}) }));
 
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media', 'PUT', { filePath: '/root/products/a.png', newFileName: 'b.png' }),
-      makeContext(),
+      withParams(),
     );
     expect(res.status).toBe(200);
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
@@ -171,12 +150,11 @@ describe('MediaModule', () => {
   });
 
   it('DELETE /api/media/:fileId removes the file', async () => {
-    const fetchSpy = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 204, json: async () => ({}) }));
-    vi.stubGlobal('fetch', fetchSpy);
+    const fetchSpy = stubFetch(async (_url: string, _init?: RequestInit) => ({ ok: true, status: 204, json: async () => ({}) }));
 
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media/file_123', 'DELETE'),
-      makeContext({ fileId: 'file_123' }),
+      withParams({ fileId: 'file_123' }),
     );
     expect(res.status).toBe(200);
     expect(fetchSpy).toHaveBeenCalledWith(
@@ -186,10 +164,10 @@ describe('MediaModule', () => {
   });
 
   it('maps an ImageKit 404 on delete to NOT_FOUND', async () => {
-    mockFetch(() => ({ ok: false, status: 404, json: async () => ({}) }));
+    stubFetch(() => ({ ok: false, status: 404, json: async () => ({}) }));
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media/missing', 'DELETE'),
-      makeContext({ fileId: 'missing' }),
+      withParams({ fileId: 'missing' }),
     );
     expect(res.status).toBe(404);
     expect((await readJson(res)).code).toBe(ErrorCode.NOT_FOUND);
@@ -198,7 +176,7 @@ describe('MediaModule', () => {
   it('rejects unsupported methods', async () => {
     const res = await new MediaModule().handle(
       jsonRequest('https://site.test/api/media', 'PATCH'),
-      makeContext(),
+      withParams(),
     );
     expect(res.status).toBe(405);
   });

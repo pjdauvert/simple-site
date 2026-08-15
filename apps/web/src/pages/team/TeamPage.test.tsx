@@ -1,55 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import type { TeamMember, ThemeConfig } from '@simple-site/interfaces';
-import messages from '../../features/i18n/i18n.json';
-import { ThemeContext, type ThemeContextValue } from '../../features/theme/ThemeContext';
+import { screen } from '@testing-library/react';
+import type { TeamMember } from '@simple-site/interfaces';
 import { TeamPage } from './TeamPage';
 import { isReversedRow } from './memberRowLayout';
-import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { mockFeatures } from '../../test/featureFlags';
 import { loadTeam } from '../../services/teamService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/teamService', () => ({ loadTeam: vi.fn() }));
-vi.mock('../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false },
-}));
-
-const themeValue: ThemeContextValue = {
-  themeName: 'default',
-  themeConfig: { themeName: 'default' } as unknown as ThemeConfig,
-  siteThemeConfig: { siteName: 'Test Site', containerMaxWidth: 'lg' } as ThemeContextValue['siteThemeConfig'],
-  switchTheme: () => {},
-  availableThemes: [],
-};
+vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const member = (slug: string, name: string, over: Partial<TeamMember> = {}): TeamMember =>
   ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: `About ${name}` }, ...over });
 
-function renderPage() {
-  return render(
-    <MemoryRouter initialEntries={['/team']}>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <MuiThemeProvider theme={createTheme()}>
-          <ThemeContext.Provider value={themeValue}>
-            <TeamPage />
-          </ThemeContext.Provider>
-        </MuiThemeProvider>
-      </IntlProvider>
-    </MemoryRouter>,
-  );
-}
+const renderPage = () => renderWithProviders(<TeamPage />, { route: '/team', theme: true });
 
 describe('TeamPage (public /team)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: true, contact: false });
+    mockFeatures('team');
   });
 
   it('renders the 404 page when the team feature is disabled', async () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
+    mockFeatures();
     renderPage();
     expect(await screen.findByText('Oops — nothing here!')).toBeInTheDocument();
     expect(loadTeam).not.toHaveBeenCalled();

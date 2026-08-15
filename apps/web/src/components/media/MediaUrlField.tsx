@@ -3,6 +3,7 @@ import { Box, IconButton, InputAdornment, TextField, Tooltip } from '@mui/materi
 import { HideImageOutlined as HideImageIcon, PhotoLibrary as PhotoLibraryIcon } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import { ImagePickerDialog } from './ImagePickerDialog';
+import { ikTransform } from '../../utils/imagekit';
 
 interface MediaUrlFieldProps {
   label: string;
@@ -101,7 +102,8 @@ export const MediaUrlField: React.FC<MediaUrlFieldProps> = ({
           {showImage ? (
             <Box
               component="img"
-              src={trimmed}
+              // The preview zone is 100px tall — never download the original for it.
+              src={ikTransform(trimmed, 'h-200,q-75,f-auto')}
               alt={intl.formatMessage({ id: 'page.manage.site.preview.alt' })}
               onError={() => setImageError(true)}
               sx={{ display: 'block', maxHeight: '100%', maxWidth: '100%' }}

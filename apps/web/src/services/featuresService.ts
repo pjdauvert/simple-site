@@ -9,7 +9,18 @@ export interface FeatureFlags {
   team: boolean;
   /** Contact feature (public /contact page and `/api/contact`). */
   contact: boolean;
+  /** Gallery feature (admin /manage/gallery, public /gallery pages, menu entries, `PUT /api/config/gallery`). */
+  gallery: boolean;
 }
+
+/**
+ * The zero value of {@link FeatureFlags}: every optional feature off. Used
+ * wherever the flags aren't known — while they load, or when the API can't be
+ * reached — so an unreachable server never exposes a feature. Adding a flag to
+ * the interface above updates every caller (and every test) through this
+ * constant; it is the single place the full set is spelled out.
+ */
+export const ALL_DISABLED: FeatureFlags = { media: false, team: false, contact: false, gallery: false };
 
 /** Fetches the feature flags the server currently has enabled. */
 export const getFeatureFlags = async (): Promise<FeatureFlags> => {

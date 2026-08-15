@@ -33,11 +33,13 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { I18n, I18nDictionary, Locale } from '@simple-site/interfaces';
-import { I18nSchema, collectContactI18nEntries, collectI18nEntries, collectTeamI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
+import { I18nSchema, collectContactI18nEntries, collectGalleryI18nEntries, collectI18nEntries, collectTeamI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { loadTeam } from '../../services/teamService';
 import { loadContactConfig } from '../../services/contactService';
+import { getFeatureFlags } from '../../services/featuresService';
 import { Loader } from '../../components/Loader';
+import { StickySaveButton } from '../../components/manage/StickySaveButton';
 import {
   deleteLanguage,
   importTranslations,
@@ -105,8 +107,11 @@ export const TranslationsPage: React.FC = () => {
       // of that feature to translate".
       loadTeam().catch(() => null),
       loadContactConfig().catch(() => null),
+      // The gallery lives in the config draft itself, so its keys need the
+      // flag to gate them (a failed flags fetch means "treat as disabled").
+      getFeatureFlags().catch(() => null),
     ])
-      .then(([payload, config, team, contact]) => {
+      .then(([payload, config, team, contact, flags]) => {
         if (!active) return;
         setDefaultLanguage(payload.defaultLanguage);
         setSaved(payload.translations);
@@ -115,6 +120,7 @@ export const TranslationsPage: React.FC = () => {
           ...collectI18nEntries(config),
           ...(team ? collectTeamI18nEntries(team) : []),
           ...(contact ? collectContactI18nEntries(contact) : []),
+          ...(flags?.gallery && config.gallery ? collectGalleryI18nEntries(config.gallery) : []),
         ]);
         const langs = (Object.keys(payload.translations) as Locale[]).sort();
         setLanguage(langs[0] ?? '');
@@ -456,13 +462,7 @@ export const TranslationsPage: React.FC = () => {
             </Box>
           )}
 
-          <Box sx={{ mt: 3 }}>
-            <Button variant="contained" onClick={handleSave} disabled={submitting || !dirty}>
-              {submitting ? <Loader variant="triskelion" size={20} /> : (
-                <FormattedMessage id="page.manage.translations.save" values={{ language: languageLabel(language) }} />
-              )}
-            </Button>
-          </Box>
+          <StickySaveButton onClick={handleSave} disabled={submitting || !dirty} submitting={submitting} />
         </>
       )}
 

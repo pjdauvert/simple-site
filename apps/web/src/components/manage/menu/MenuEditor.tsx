@@ -27,12 +27,13 @@ import {
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
+  type GalleryTag,
   type MenuEntry,
   type MenuGroupDisplay,
   type PageConfiguration,
-  menuEntryId,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
@@ -80,6 +81,7 @@ export const MenuEditor: React.FC = () => {
   const flags = useFeatureFlags();
 
   const [pages, setPages] = useState<PageConfiguration[] | null>(null);
+  const [galleryTags, setGalleryTags] = useState<GalleryTag[]>([]);
   const [storedEntries, setStoredEntries] = useState<MenuEntry[]>([]);
   const [entries, setEntries] = useState<MenuEntry[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -98,6 +100,7 @@ export const MenuEditor: React.FC = () => {
       .then((config) => {
         if (!active) return;
         setPages(config.pages);
+        setGalleryTags(config.gallery?.tags ?? []);
         setStoredEntries(config.menu?.entries ?? []);
         setGroupDisplay(config.menu?.groupDisplay ?? 'popover');
       })
@@ -112,8 +115,10 @@ export const MenuEditor: React.FC = () => {
   useEffect(() => {
     if (entries !== null || pages === null || flags === null) return;
     const menu = storedEntries.length > 0 ? { entries: storedEntries } : undefined;
-    setEntries(reconcileMenu(menu, pages, enabledFeaturePages(flags)).entries);
-  }, [entries, pages, storedEntries, flags]);
+    setEntries(
+      reconcileMenu(menu, pages, enabledFeaturePages(flags), galleryTags.map((tag) => tag.tag)).entries,
+    );
+  }, [entries, pages, storedEntries, flags, galleryTags]);
 
   const apply = (mutate: (prev: MenuEntry[]) => MenuEntry[]) => {
     setEntries((prev) => (prev ? mutate(prev) : prev));
@@ -168,12 +173,20 @@ export const MenuEditor: React.FC = () => {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><Loader variant="triskelion" size={48} /></Box>;
   }
 
-  const rows = entryRows(entries, pages, flags);
+  const rows = entryRows(entries, pages, flags, galleryTags);
   const groups = entries.flatMap((entry) => (entry.type === 'group' ? [entry] : []));
   const menuRow = rowMenuIndex !== null ? rows[rowMenuIndex] : null;
+  /** The gallery entry carries its own tag submenu — it can never join a group. */
+  const isGalleryRow = (row: MenuEntryRow): boolean =>
+    row.entry.type === 'feature' && row.entry.feature === 'gallery' && row.kind === 'feature';
 
-  /** Bounds of the row's own level: group children move within their group. */
+  /** Bounds of the row's own level: children move within their group/submenu. */
   const levelBounds = (row: MenuEntryRow): { first: boolean; last: boolean } => {
+    if (row.path.tag !== undefined) {
+      const parent = entries[row.path.top];
+      const count = parent?.type === 'feature' ? (parent.galleryTags?.length ?? 0) : 0;
+      return { first: row.path.tag === 0, last: row.path.tag === count - 1 };
+    }
     if (row.path.child !== undefined) {
       const parent = entries[row.path.top];
       const count = parent?.type === 'group' ? parent.children.length : 0;
@@ -184,7 +197,8 @@ export const MenuEditor: React.FC = () => {
 
   /** The overflow menu only shows when it has something to offer. */
   const hasRowMenu = (row: MenuEntryRow): boolean =>
-    row.kind === 'group' || row.depth === 1 || groups.length > 0;
+    row.kind !== 'galleryTag' &&
+    (row.kind === 'group' || row.depth === 1 || (groups.length > 0 && !isGalleryRow(row)));
 
   return (
     <Box sx={{ maxWidth: 640 }}>
@@ -246,7 +260,7 @@ export const MenuEditor: React.FC = () => {
           const bounds = levelBounds(row);
           return (
             <ListItem
-              key={menuEntryId(row.entry)}
+              key={row.rowKey}
               disableGutters
               sx={{
                 ...(row.available ? null : { opacity: 0.5 }),
@@ -254,18 +268,20 @@ export const MenuEditor: React.FC = () => {
               }}
               secondaryAction={
                 <Stack direction="row" spacing={0} alignItems="center">
-                  <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.rename' })}>
-                    <span>
-                      <IconButton
-                        size="small"
-                        disabled={renamingIndex === index}
-                        onClick={() => startRename(index, row.entry.menuTitle)}
-                        aria-label={intl.formatMessage({ id: 'page.manage.menu.rename' })}
-                      >
-                        <RenameIcon fontSize="small" />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
+                  {row.kind !== 'galleryTag' && (
+                    <Tooltip title={intl.formatMessage({ id: 'page.manage.menu.rename' })}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          disabled={renamingIndex === index}
+                          onClick={() => startRename(index, row.entry.menuTitle)}
+                          aria-label={intl.formatMessage({ id: 'page.manage.menu.rename' })}
+                        >
+                          <RenameIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  )}
                   <TranslateShortcut
                     i18nKey={row.i18nKey}
                     label={intl.formatMessage({ id: 'page.manage.menu.translate' })}
@@ -298,7 +314,7 @@ export const MenuEditor: React.FC = () => {
                     <span>
                       <Switch
                         size="small"
-                        checked={row.entry.visible}
+                        checked={row.visible}
                         disabled={!row.available}
                         onChange={(_, checked) => apply((prev) => setEntryVisible(prev, row.path, checked))}
                         inputProps={{ 'aria-label': intl.formatMessage({ id: 'page.manage.menu.visible' }) }}
@@ -429,11 +445,7 @@ export const MenuEditor: React.FC = () => {
           ))}
       </Menu>
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.menu.save" />}
-        </Button>
-      </Box>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

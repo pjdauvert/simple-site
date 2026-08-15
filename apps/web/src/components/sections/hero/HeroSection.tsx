@@ -9,6 +9,7 @@ import { EditableImage } from '../EditableImage';
 import { useSlotVisible, useSectionEdit } from '../sectionEdit';
 import { InlineDesignPopover, InlineAddButton } from '../InlineControls';
 import { INLINE_REVEAL_ZONE, inlineRevealZoneSx } from '../inlineReveal';
+import { ikTransform } from '../../../utils/imagekit';
 
 // Admin-only design panels for the inline popovers; lazy so the public bundle
 // never pulls them in (they render nothing without an editing context anyway).
@@ -161,7 +162,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ sectionName, content, 
         px: { xs: 2, sm: 3 },
         backgroundColor, color: textColor,
         ...(design?.backgroundUrl && {
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.3),rgba(0,0,0,0.3)),url(${design.backgroundUrl})`,
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.3),rgba(0,0,0,0.3)),url(${ikTransform(design.backgroundUrl, 'w-1920,q-80,f-auto')})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }),
