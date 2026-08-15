@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getFeatureFlags, type FeatureFlags } from '../services/featuresService';
-
-/** Used when the flags can't be fetched (e.g. the API is unreachable) or haven't loaded yet. */
-export const ALL_DISABLED: FeatureFlags = { media: false, team: false, contact: false, gallery: false };
+import { ALL_DISABLED, getFeatureFlags, type FeatureFlags } from '../services/featuresService';
 
 /**
  * Loads runtime feature flags once. Returns `null` while loading; on failure it

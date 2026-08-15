@@ -17,6 +17,36 @@
 - **Function tests live at the `handlers/` level** (`apps/functions/src/handlers/*.test.ts`) and cover project logic only: modules, validation, gates (e.g. `featureGate.ts`, `AuthHandler.ts`).
 - **Never test the framework.** The `*.mts` entrypoints are pure wiring — route → handler chain — and stay logic-free and untested by design; anything worth testing must be extracted into `handlers/` and tested there.
 
+## Tests — shared kits
+
+Each side owns its own test kit; they are never shared across the boundary (a
+backend kit imports the serverless runtime, a frontend kit imports React), and
+neither belongs in the shared interfaces package.
+
+| Kit | Provides | Used by |
+|-----|----------|---------|
+| `apps/functions/src/handlers/testing/handlerTestKit.ts` | `stubEnv`/`BASE_ENV`, `stubFetch`, `makeStore` (in-memory blob store), `jsonRequest`, `readJson`, `makeContext` | handler tests |
+| `apps/web/src/test/featureFlags.ts` | `featuresWith(...names)`, `mockFeatures(...names)`, `mockFeaturesLoading()` | anything reading feature flags |
+| `apps/web/src/test/renderWithProviders.tsx` | `renderWithProviders(ui, { route, locale, messages, auth, notifications, theme })`, `TEST_THEME`, `TEST_USER` | any component/page test |
+
+Rules of thumb:
+
+- **A fixture that would have to change when a shared type changes belongs in a
+  kit.** The flag set is the canonical case: `featuresWith('gallery')` derives
+  from the production `ALL_DISABLED`, so adding a `FEATURE_*` flag touches one
+  constant instead of every test that mocks the hook.
+- **Domain fixtures stay in the test that owns them** — a stored site config, a
+  team member, the Resend env. The kits hold *runtime doubles* and the *provider
+  stack*, nothing feature-specific.
+- The functions kit lives under `testing/`, which `tsconfig.build.json` excludes
+  alongside `*.test.ts` — it imports Vitest and must never reach the bundle.
+- `renderWithProviders` mounts only the providers the options name, so a
+  component missing a provider still fails the way it would in the app.
+- Module mocks (`vi.mock`) are hoisted per file and cannot come from a kit;
+  keep them in the test, and let the kit supply the values. For the flags:
+  `vi.mock('…/hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }))`,
+  then `mockFeatures('gallery')` in `beforeEach`.
+
 ## Code Quality Commands
 
 ```bash

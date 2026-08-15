@@ -1,27 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { TeamConfig, TeamMember } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { TeamDesignEditor } from './TeamDesignEditor';
 import { loadTeam, saveTeam } from '../../../services/teamService';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: vi.fn() }));
 
 const member = (slug: string, name: string): TeamMember =>
   ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
-function renderEditor() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <TeamDesignEditor />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderEditor = () => renderWithProviders(<TeamDesignEditor />, { notifications: true });
 
 describe('TeamDesignEditor', () => {
   beforeEach(() => {

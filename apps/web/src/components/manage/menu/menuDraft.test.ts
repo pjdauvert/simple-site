@@ -12,13 +12,14 @@ import {
   setEntryTitle,
   setGroupAlwaysExpanded,
 } from './menuDraft';
+import { featuresWith } from '../../../test/featureFlags';
 
 const pages = [
   { pageName: 'page.home', route: '/home', menuTitle: 'Home' },
   { pageName: 'page.about', route: '/about', menuTitle: 'About' },
 ];
 
-const FLAGS = { media: false, team: false, contact: false, gallery: false };
+const FLAGS = featuresWith();
 
 const group = (children: MenuEntry[] = [], overrides: Partial<MenuGroupEntry> = {}): MenuEntry => ({
   type: 'group',
@@ -52,7 +53,7 @@ describe('entryRows', () => {
   it('prefers a custom label and keeps the fallback as baseLabel', () => {
     const pageEntry: MenuEntry = { type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' };
     const featureEntry: MenuEntry = { type: 'feature', feature: 'team', visible: true, menuTitle: 'Notre équipe' };
-    const [pageRow, featureRow] = entryRows([pageEntry, featureEntry], pages, { media: false, team: true, contact: false, gallery: false });
+    const [pageRow, featureRow] = entryRows([pageEntry, featureEntry], pages, featuresWith('team'));
     expect(pageRow.label).toBe('Who we are');
     expect(pageRow.baseLabel).toBe('About');
     expect(featureRow.label).toBe('Notre équipe');
@@ -61,7 +62,7 @@ describe('entryRows', () => {
 
   it('marks feature rows unavailable while their flag is off', () => {
     const entries: MenuEntry[] = [{ type: 'feature', feature: 'team', visible: false }];
-    const [row] = entryRows(entries, pages, { media: true, team: false, contact: false, gallery: false });
+    const [row] = entryRows(entries, pages, featuresWith('media'));
     expect(row.kind).toBe('feature');
     expect(row.route).toBe('/team');
     expect(row.i18nKey).toBe('team.menuTitle');
@@ -70,7 +71,7 @@ describe('entryRows', () => {
 
   it('marks feature rows available when their flag is on', () => {
     const entries: MenuEntry[] = [{ type: 'feature', feature: 'team', visible: true }];
-    const [row] = entryRows(entries, pages, { media: false, team: true, contact: false, gallery: false });
+    const [row] = entryRows(entries, pages, featuresWith('team'));
     expect(row.label).toBe('Team');
     expect(row.available).toBe(true);
   });
@@ -113,7 +114,7 @@ describe('entryRows', () => {
 });
 
 describe('entryRows — gallery tag submenu', () => {
-  const GALLERY_ON = { media: false, team: false, contact: false, gallery: true };
+  const GALLERY_ON = featuresWith('gallery');
   const declared = [
     { tag: 'nature', displayName: 'Nature' },
     { tag: 'summer-2026', displayName: 'Été 2026' },

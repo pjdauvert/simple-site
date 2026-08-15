@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { TeamConfig, TeamMember } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { TeamPageSettings } from './TeamPageSettings';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadAllTranslations } from '../../../services/translationsService';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: vi.fn() }));
 vi.mock('../../../services/translationsService', () => ({ loadAllTranslations: vi.fn() }));
@@ -15,15 +13,7 @@ vi.mock('../../../services/translationsService', () => ({ loadAllTranslations: v
 const member = (slug: string, name: string): TeamMember =>
   ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
-function renderSettings() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <TeamPageSettings />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderSettings = () => renderWithProviders(<TeamPageSettings />, { notifications: true });
 
 describe('TeamPageSettings', () => {
   beforeEach(() => {

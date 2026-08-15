@@ -1,29 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import type { TeamMember, ThemeConfig } from '@simple-site/interfaces';
-import messages from '../../features/i18n/i18n.json';
-import { ThemeContext, type ThemeContextValue } from '../../features/theme/ThemeContext';
+import { Route, Routes } from 'react-router-dom';
+import type { TeamMember } from '@simple-site/interfaces';
 import { TeamMemberPage } from './TeamMemberPage';
-import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { mockFeatures } from '../../test/featureFlags';
 import { loadTeam } from '../../services/teamService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/teamService', () => ({ loadTeam: vi.fn() }));
-vi.mock('../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
-}));
-
-const themeValue: ThemeContextValue = {
-  themeName: 'default',
-  themeConfig: { themeName: 'default' } as unknown as ThemeConfig,
-  siteThemeConfig: { siteName: 'Test Site', containerMaxWidth: 'lg' } as ThemeContextValue['siteThemeConfig'],
-  switchTheme: () => {},
-  availableThemes: [],
-};
+vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const jane: TeamMember = {
   slug: 'jane-doe',
@@ -34,26 +20,18 @@ const jane: TeamMember = {
   socialLinks: { linkedin: 'https://linkedin.com/in/jane', website: 'https://jane.example.com' },
 };
 
-function renderAt(path: string, locale: 'en' | 'fr' = 'en') {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <IntlProvider locale={locale} messages={messages[locale] as Record<string, string>}>
-        <MuiThemeProvider theme={createTheme()}>
-          <ThemeContext.Provider value={themeValue}>
-            <Routes>
-              <Route path="/team/member/:slug" element={<TeamMemberPage />} />
-            </Routes>
-          </ThemeContext.Provider>
-        </MuiThemeProvider>
-      </IntlProvider>
-    </MemoryRouter>,
+const renderAt = (path: string, locale: 'en' | 'fr' = 'en') =>
+  renderWithProviders(
+    <Routes>
+      <Route path="/team/member/:slug" element={<TeamMemberPage />} />
+    </Routes>,
+    { route: path, locale, theme: true },
   );
-}
 
 describe('TeamMemberPage (public /team/member/:slug)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: true, contact: false, gallery: false });
+    mockFeatures('team');
     vi.mocked(loadTeam).mockResolvedValue({ members: [jane] });
   });
 
@@ -192,7 +170,7 @@ describe('TeamMemberPage (public /team/member/:slug)', () => {
   });
 
   it('renders the 404 page when the feature is disabled', async () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false, gallery: false });
+    mockFeatures();
     renderAt('/team/member/jane-doe');
     expect(await screen.findByText('Oops — nothing here!')).toBeInTheDocument();
     expect(loadTeam).not.toHaveBeenCalled();

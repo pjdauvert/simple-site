@@ -1,17 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import type { Context } from '@netlify/functions';
 import { FeaturesModule } from './FeaturesModule';
+import { jsonRequest, makeContext, readJson, stubEnv } from './testing/handlerTestKit';
 
-const stubEnv = (env: Record<string, string | undefined>) =>
-  vi.stubGlobal('Netlify', { env: { get: (k: string) => env[k] } });
-
-const makeRequest = () => new Request('https://site.test/api/features');
-const makeContext = () => ({} as unknown as Context);
-
-const readJson = async (
-  res: Response,
-): Promise<{ ok: boolean; data: { media: boolean; team: boolean; contact: boolean; gallery: boolean } }> =>
-  res.json() as Promise<{ ok: boolean; data: { media: boolean; team: boolean; contact: boolean; gallery: boolean } }>;
+const makeRequest = () => jsonRequest('https://site.test/api/features', 'GET');
 
 describe('FeaturesModule', () => {
   afterEach(() => vi.unstubAllGlobals());

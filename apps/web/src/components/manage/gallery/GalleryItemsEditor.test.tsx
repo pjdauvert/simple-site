@@ -1,21 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { SiteConfig, GalleryConfig } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { GalleryItemsEditor } from './GalleryItemsEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
+import { mockFeatures } from '../../../test/featureFlags';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../../services/galleryService', () => ({ updateGallery: vi.fn() }));
 vi.mock('../../../services/mediaService', () => ({ listMedia: vi.fn().mockResolvedValue({ folders: [], files: [] }) }));
-vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(() => ({ media: false, team: false, contact: false, gallery: true })),
-  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
-}));
+vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const draft = (gallery?: GalleryConfig): SiteConfig =>
   ({ site: { siteName: 'S' }, themes: [], pages: [], gallery }) as unknown as SiteConfig;
@@ -28,19 +24,12 @@ const seeded: GalleryConfig = {
   tags: [{ tag: 'nature', displayName: 'Nature' }],
 };
 
-function renderEditor() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <GalleryItemsEditor />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderEditor = () => renderWithProviders(<GalleryItemsEditor />, { notifications: true });
 
 describe('GalleryItemsEditor (Items tab)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockFeatures('gallery');
     vi.mocked(loadDraftConfig).mockResolvedValue(draft(seeded));
     vi.mocked(updateGallery).mockResolvedValue(undefined);
   });

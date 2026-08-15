@@ -1,38 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { TeamConfig, TeamMember } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { TeamMembersEditor } from './TeamMembersEditor';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';
+import { mockFeatures } from '../../../test/featureFlags';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: vi.fn() }));
 vi.mock('../../../services/initService', () => ({ loadLanguages: vi.fn() }));
 vi.mock('../../../services/mediaService', () => ({ listMedia: vi.fn().mockResolvedValue({ folders: [], files: [] }) }));
-vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(() => ({ media: false, team: true, contact: false, gallery: false })),
-  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
-}));
+vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const member = (slug: string, name: string): TeamMember =>
   ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
-function renderEditor() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <TeamMembersEditor />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderEditor = () => renderWithProviders(<TeamMembersEditor />, { notifications: true });
 
 describe('TeamMembersEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockFeatures('team');
     vi.mocked(loadTeam).mockResolvedValue({ members: [] });
     vi.mocked(loadLanguages).mockResolvedValue({ defaultLocale: 'en', locales: ['en', 'fr'] });
     vi.mocked(saveTeam).mockResolvedValue(undefined);

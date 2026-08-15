@@ -1,21 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { MenuConfig, SiteConfig } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { MenuEditor } from './MenuEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
-import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
+import { mockFeatures } from '../../../test/featureFlags';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../../services/menuService', () => ({ updateMenu: vi.fn() }));
-vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
-}));
+vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const page = (pageName: string, route: string, menuTitle: string) =>
   ({ pageName, route, menuTitle, sections: [] });
@@ -23,20 +18,12 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-function renderEditor() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <MenuEditor />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderEditor = () => renderWithProviders(<MenuEditor />, { notifications: true });
 
 describe('MenuEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false, gallery: false });
+    mockFeatures();
     vi.mocked(updateMenu).mockResolvedValue(undefined);
   });
 

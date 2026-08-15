@@ -1,25 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getStore } from '@netlify/blobs';
 import { ConfigModule } from './ConfigModule';
 import { ErrorCode } from '@simple-site/interfaces';
+import { jsonRequest, makeContext, makeStore, readJson, stubEnv } from './testing/handlerTestKit';
 
 vi.mock('@netlify/blobs', () => ({ getStore: vi.fn() }));
-
-// CONTEXT != 'dev' so seedBlob short-circuits and never touches the store.
-const ENV: Record<string, string> = { APP_NAME: 'test-app', CONTEXT: 'production' };
-
-const stubEnv = (env: Record<string, string | undefined> = ENV) =>
-  vi.stubGlobal('Netlify', { env: { get: (k: string) => env[k] } });
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const readJson = async (res: Response): Promise<any> => res.json();
-
-const jsonRequest = (url: string, method: string, body?: unknown, contentType = 'application/json') =>
-  new Request(url, {
-    method,
-    headers: body !== undefined ? { 'Content-Type': contentType } : undefined,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
 
 const storedConfig = {
   site: { siteName: 'Old Name', logoUrl: '/old.svg' },
@@ -59,25 +43,10 @@ const manifest = (over: Record<string, unknown> = {}) =>
     ...over,
   });
 
-/** Stubs `getStore` with an in-memory key/value store implementing get/set/delete/list. */
-const makeStore = (seed: Record<string, unknown> = { config: storedConfig }) => {
-  const data = new Map<string, string>(
-    Object.entries(seed).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)]),
-  );
-  const store = {
-    get: vi.fn(async (key: string) => data.get(key) ?? null),
-    set: vi.fn(async (key: string, value: string) => { data.set(key, value); }),
-    delete: vi.fn(async (key: string) => { data.delete(key); }),
-    list: vi.fn(async ({ prefix }: { prefix: string }) => ({
-      blobs: [...data.keys()].filter((k) => k.startsWith(prefix)).map((key) => ({ key, etag: 'e' })),
-      directories: [],
-    })),
-  };
-  vi.mocked(getStore).mockReturnValue(store as never);
-  return { store, data };
-};
+/** The published config is what most cases start from. */
+const seedStore = (seed: Record<string, unknown> = { config: storedConfig }) => makeStore(seed);
 
-const ctx = {} as never;
+const ctx = makeContext();
 const handle = (request: Request) => new ConfigModule().handle(request, ctx);
 
 describe('ConfigModule', () => {
@@ -85,7 +54,7 @@ describe('ConfigModule', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('GET /api/config returns the published config', async () => {
-    makeStore();
+    seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config', 'GET'));
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.site.siteName).toBe('Old Name');
@@ -97,14 +66,14 @@ describe('ConfigModule', () => {
   const legacyContactPage = { pageName: 'contact', route: '/contact', menuTitle: 'Contact', sections: [] };
 
   it('GET /api/config still reads a stored config whose page uses a now-reserved route', async () => {
-    makeStore({ config: { ...storedConfig, pages: [legacyContactPage] } });
+    seedStore({ config: { ...storedConfig, pages: [legacyContactPage] } });
     const res = await handle(jsonRequest('https://site.test/api/config', 'GET'));
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.pages.map((p: { route: string }) => p.route)).toEqual(['/contact']);
   });
 
   it('POST /api/config still rejects an incoming config that claims a feature-reserved route', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const res = await handle(
       jsonRequest('https://site.test/api/config', 'POST', { ...storedConfig, pages: [legacyContactPage] }),
     );
@@ -113,7 +82,7 @@ describe('ConfigModule', () => {
   });
 
   it('GET /api/config/draft returns the published config when no draft exists (no side effects)', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/draft', 'GET'));
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.site.siteName).toBe('Old Name');
@@ -121,7 +90,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/site writes the DRAFT and leaves the published config untouched', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const res = await handle(
       jsonRequest('https://site.test/api/config/site', 'PUT', {
         siteName: 'New Name',
@@ -143,7 +112,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/site rejects an invalid site body (missing siteName)', async () => {
-    const { store } = makeStore();
+    const { store } = seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/site', 'PUT', { logoUrl: '/x.svg' }));
     expect(res.status).toBe(500);
     expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
@@ -151,7 +120,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/site requires an application/json content type', async () => {
-    const { store } = makeStore();
+    const { store } = seedStore();
     const res = await handle(
       jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'X' }, 'text/plain'),
     );
@@ -161,7 +130,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config replaces the whole DRAFT and leaves the published config untouched', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
     const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
     expect(res.status).toBe(200);
@@ -170,7 +139,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config rejects duplicate page routes (uniqueness enforced server-side)', async () => {
-    const { store } = makeStore();
+    const { store } = seedStore();
     const config = {
       ...storedConfig,
       pages: [
@@ -185,7 +154,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config rejects duplicate page names (uniqueness enforced server-side)', async () => {
-    const { store } = makeStore();
+    const { store } = seedStore();
     const config = {
       ...storedConfig,
       pages: [
@@ -200,14 +169,14 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/site 404s when no config is stored yet', async () => {
-    makeStore({});
+    seedStore({});
     const res = await handle(jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'X' }));
     expect(res.status).toBe(404);
     expect((await readJson(res)).code).toBe(ErrorCode.NOT_FOUND);
   });
 
   it('PUT /api/config/themes writes the DRAFT themes and leaves the published config untouched', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const newThemes = [solarTheme];
     const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', newThemes));
     expect(res.status).toBe(200);
@@ -223,14 +192,14 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/themes accepts an empty themes array', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', []));
     expect(res.status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).themes).toEqual([]);
   });
 
   it('PUT /api/config/themes rejects an invalid theme (missing required color)', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', [{ themeName: 'Bad' }]));
     expect(res.status).toBe(500);
     expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
@@ -238,7 +207,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/themes requires an application/json content type', async () => {
-    const { store } = makeStore();
+    const { store } = seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', [], 'text/plain'));
     expect(res.status).toBe(400);
     expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
@@ -247,7 +216,7 @@ describe('ConfigModule', () => {
 
   it('PUT /api/config/menu writes the DRAFT menu and leaves pages/themes/site untouched', async () => {
     const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
-    const { data } = makeStore({ config });
+    const { data } = seedStore({ config });
     const menu = { entries: [
       { type: 'feature', feature: 'team', visible: false },
       { type: 'page', pageName: 'page.home', visible: true },
@@ -264,7 +233,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu rejects an entry referencing an unknown page', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const menu = { entries: [{ type: 'page', pageName: 'page.ghost', visible: true }] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
     expect(res.status).toBe(500);
@@ -273,7 +242,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu stores the gallery tag submenu and keeps the gallery entry out of groups', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     // The gallery entry carries its ordered tag submenu (per-tag activation).
     const withSubmenu = { entries: [
       { type: 'feature', feature: 'gallery', visible: true, galleryTags: [
@@ -297,7 +266,7 @@ describe('ConfigModule', () => {
 
   it('PUT /api/config/menu rejects duplicate entries', async () => {
     const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
-    const { data } = makeStore({ config });
+    const { data } = seedStore({ config });
     const menu = { entries: [
       { type: 'page', pageName: 'page.home', visible: true },
       { type: 'page', pageName: 'page.home', visible: false },
@@ -309,7 +278,7 @@ describe('ConfigModule', () => {
 
   it('PUT /api/config/menu accepts a group with page and feature children and writes the DRAFT', async () => {
     const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
-    const { data } = makeStore({ config });
+    const { data } = seedStore({ config });
     const menu = { entries: [
       { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, alwaysExpanded: true, children: [
         { type: 'page', pageName: 'page.home', visible: true },
@@ -323,7 +292,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu accepts an empty group', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const menu = { entries: [{ type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] }] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
     expect(res.status).toBe(200);
@@ -331,7 +300,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu rejects a group child referencing an unknown page', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const menu = { entries: [
       { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
         { type: 'page', pageName: 'page.ghost', visible: true },
@@ -345,7 +314,7 @@ describe('ConfigModule', () => {
 
   it('PUT /api/config/menu rejects the same entry at the top level and inside a group', async () => {
     const config = { ...storedConfig, pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }] };
-    const { data } = makeStore({ config });
+    const { data } = seedStore({ config });
     const menu = { entries: [
       { type: 'page', pageName: 'page.home', visible: true },
       { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
@@ -358,7 +327,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu rejects two groups sharing a groupId', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const menu = { entries: [
       { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [] },
       { type: 'group', groupId: 'more', menuTitle: 'Other', visible: true, children: [] },
@@ -369,7 +338,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu rejects a group nested inside a group (depth 1 only)', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const menu = { entries: [
       { type: 'group', groupId: 'outer', menuTitle: 'Outer', visible: true, children: [
         { type: 'group', groupId: 'inner', menuTitle: 'Inner', visible: true, children: [] },
@@ -381,7 +350,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu stores the menu-wide groupDisplay and rejects unknown values', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const menu = { entries: [], groupDisplay: 'bar' };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
     expect(res.status).toBe(200);
@@ -392,7 +361,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/menu rejects an invalid groupId and an empty group label', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const badId = { entries: [{ type: 'group', groupId: 'my-group', menuTitle: 'More', visible: true, children: [] }] };
     expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', badId))).status).toBe(500);
     const emptyLabel = { entries: [{ type: 'group', groupId: 'more', menuTitle: '', visible: true, children: [] }] };
@@ -401,7 +370,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery writes the DRAFT gallery and leaves pages/themes/site untouched', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const gallery = {
       items: [
         { imageUrl: '/img/solo.jpg', title: 'Solo', tags: [] },
@@ -422,7 +391,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery keeps an item without an image (hidden publicly, kept in config)', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const gallery = { items: [{ title: 'Work in progress' }], tags: [] };
     const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery));
     expect(res.status).toBe(200);
@@ -430,7 +399,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery accepts the independent caption toggles and rejects non-booleans', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const design = { itemShowTitle: false, itemShowSubtitle: false };
     expect(
       (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design }))).status,
@@ -442,14 +411,14 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery accepts the mosaic display mode', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const gallery = { items: [], tags: [], design: { displayMode: 'mosaic' } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', gallery))).status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ displayMode: 'mosaic' });
   });
 
   it('PUT /api/config/gallery accepts the frame options and rejects out-of-range ones', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const design = { itemElevation: 8, itemBorder: true, itemBorderColor: '#123456', itemCornerRadius: 0 };
     const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design }));
     expect(res.status).toBe(200);
@@ -465,7 +434,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery accepts an in-range itemMaxWidthPercent and rejects out-of-range ones', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const capped = { items: [], tags: [], design: { itemMaxWidthPercent: 60 } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', capped))).status).toBe(200);
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual({ itemMaxWidthPercent: 60 });
@@ -477,7 +446,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery accepts the layout + watermark options and rejects invalid ones', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const design = {
       itemColumns: 5,
       itemAspectRatio: '16:9',
@@ -508,7 +477,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery stores a tag with its displayName and description', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const gallery = {
       items: [{ imageUrl: '/a.jpg', title: 'Tree', tags: ['nature-2026'] }],
       tags: [{ tag: 'nature-2026', displayName: 'Nature', description: 'Shot in **Corsica**.' }],
@@ -522,7 +491,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery rejects two tags sharing an id and an item referencing an unknown tag', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const duplicated = { items: [], tags: [
       { tag: 'nature', displayName: 'Nature' },
       { tag: 'nature', displayName: 'Other nature' },
@@ -538,7 +507,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery enforces the tag charset (plain alphanumerics, - and _)', async () => {
-    makeStore();
+    seedStore();
     // '-' and '_' are part of the contract.
     const kebab = { items: [], tags: [{ tag: 'my-theme_2', displayName: 'Kebab' }] };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', kebab))).status).toBe(200);
@@ -550,7 +519,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery rejects an empty tag displayName and an empty item title', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const emptyName = { items: [], tags: [{ tag: 'ok', displayName: '' }] };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyName))).status).toBe(500);
     const emptyItem = { items: [{ imageUrl: '/img/a.jpg', title: '' }], tags: [] };
@@ -559,7 +528,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/gallery rejects unknown design values and a non-json content type', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const badDesign = { items: [], tags: [], design: { captionPosition: 'diagonal' } };
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badDesign))).status).toBe(500);
     const badMode = { items: [], tags: [], design: { displayMode: 'carousel' } };
@@ -571,7 +540,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config rejects a page using a feature-reserved route', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const config = { ...storedConfig, pages: [{ menuTitle: 'Team', pageName: 'page.team', route: '/team', sections: [] }] };
     const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
     expect(res.status).toBe(500);
@@ -580,7 +549,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config/publish promotes the draft and archives the previous published config', async () => {
-    const { data } = makeStore({ config: storedConfig, 'config:draft': withSiteName('Draft Name') });
+    const { data } = seedStore({ config: storedConfig, 'config:draft': withSiteName('Draft Name') });
     const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
     expect(res.status).toBe(200);
 
@@ -599,14 +568,14 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config/publish rejects when there is no draft', async () => {
-    makeStore();
+    seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
     expect(res.status).toBe(409);
     expect((await readJson(res)).code).toBe(ErrorCode.CONFLICT);
   });
 
   it('POST /api/config/publish rejects a no-op (draft equals published)', async () => {
-    makeStore({ config: storedConfig, 'config:draft': storedConfig });
+    seedStore({ config: storedConfig, 'config:draft': storedConfig });
     const res = await handle(jsonRequest('https://site.test/api/config/publish', 'POST'));
     expect(res.status).toBe(409);
   });
@@ -625,7 +594,7 @@ describe('ConfigModule', () => {
       draft: { key: 'draft', name: 'Draft', createdAt: '2021-01-01T00:00:00.000Z' },
       archives,
     });
-    return makeStore(seed);
+    return seedStore(seed);
   };
 
   it('publishing at the version cap erases the oldest archive', async () => {
@@ -654,7 +623,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config/versions/:key/draft starts a draft from an archive (no existing draft)', async () => {
-    const { data } = makeStore({
+    const { data } = seedStore({
       config: storedConfig,
       'config:archive:20200101000000': withSiteName('Archived'),
       'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
@@ -670,7 +639,7 @@ describe('ConfigModule', () => {
   });
 
   it('starting a draft from a version archives the existing draft first', async () => {
-    const { data } = makeStore({
+    const { data } = seedStore({
       config: storedConfig,
       'config:draft': withSiteName('Old Draft'),
       'config:archive:20200101000000': withSiteName('Archived'),
@@ -690,7 +659,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config/import archives an existing draft before replacing it', async () => {
-    const { data } = makeStore({
+    const { data } = seedStore({
       config: storedConfig,
       'config:draft': withSiteName('Old Draft'),
       'config:versions': manifest({ draft: { key: 'draft', name: 'Old Draft', createdAt: '2021-01-01T00:00:00.000Z' } }),
@@ -708,14 +677,14 @@ describe('ConfigModule', () => {
   });
 
   it('GET /api/config/versions returns the manifest', async () => {
-    makeStore();
+    seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
     expect(res.status).toBe(200);
     expect((await readJson(res)).data.published.key).toBe('published');
   });
 
   it('initial manifest for a seeded store has the published config and no draft/archives', async () => {
-    makeStore({ config: storedConfig });
+    seedStore({ config: storedConfig });
     const res = await handle(jsonRequest('https://site.test/api/config/versions', 'GET'));
     const body = await readJson(res);
     expect(body.data.published.key).toBe('published');
@@ -726,7 +695,7 @@ describe('ConfigModule', () => {
   });
 
   it('rebuild ignores non-archive keys even when list() does not honour the prefix', async () => {
-    const { store, data } = makeStore({ config: storedConfig, translations: { en: {} }, 'config:draft': storedConfig });
+    const { store, data } = seedStore({ config: storedConfig, translations: { en: {} }, 'config:draft': storedConfig });
     // Simulate the local dev list() returning every key regardless of `prefix`.
     store.list.mockImplementation(async () => ({
       blobs: [...data.keys()].map((key) => ({ key, etag: 'e' })),
@@ -738,7 +707,7 @@ describe('ConfigModule', () => {
   });
 
   it('GET /api/config/versions self-heals a manifest polluted with a phantom archive', async () => {
-    const { data } = makeStore({
+    const { data } = seedStore({
       config: storedConfig,
       'config:versions': manifest({
         draft: { key: 'draft', name: 'Working draft' },
@@ -753,7 +722,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config/import stores the uploaded config as the named draft', async () => {
-    const { data } = makeStore();
+    const { data } = seedStore();
     const res = await handle(
       jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Imported', config: withSiteName('From File') }),
     );
@@ -763,7 +732,7 @@ describe('ConfigModule', () => {
   });
 
   it('POST /api/config/import rejects an invalid configuration', async () => {
-    makeStore();
+    seedStore();
     const res = await handle(
       jsonRequest('https://site.test/api/config/import', 'POST', { name: 'Bad', config: { nonsense: true } }),
     );
@@ -772,7 +741,7 @@ describe('ConfigModule', () => {
   });
 
   it('PUT /api/config/versions/:key renames an archive', async () => {
-    const { data } = makeStore({
+    const { data } = seedStore({
       config: storedConfig,
       'config:archive:20200101000000': withSiteName('Snapshot'),
       'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
@@ -785,7 +754,7 @@ describe('ConfigModule', () => {
   });
 
   it('DELETE /api/config/versions/:key removes an archive', async () => {
-    const { data } = makeStore({
+    const { data } = seedStore({
       config: storedConfig,
       'config:archive:20200101000000': withSiteName('Snapshot'),
       'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
@@ -797,14 +766,14 @@ describe('ConfigModule', () => {
   });
 
   it('DELETE /api/config/versions/published is rejected', async () => {
-    makeStore();
+    seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/versions/published', 'DELETE'));
     expect(res.status).toBe(400);
     expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
   });
 
   it('POST /api/config/versions/:key/publish rolls back to an archive', async () => {
-    const { data } = makeStore({
+    const { data } = seedStore({
       config: storedConfig,
       'config:archive:20200101000000': withSiteName('Archived'),
       'config:versions': manifest({ archives: [{ key: '20200101000000', name: 'Snapshot', createdAt: '2020-01-01T00:00:00.000Z' }] }),
@@ -824,7 +793,7 @@ describe('ConfigModule', () => {
   });
 
   it('rejects unsupported methods', async () => {
-    makeStore();
+    seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config', 'PATCH'));
     expect(res.status).toBe(405);
   });

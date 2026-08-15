@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { collectI18nEntries, type MenuConfig, type SiteConfig } from '@simple-site/interfaces';
 import { reconcileMenu, resolveGroupDisplay, resolveNavTree, type NavNode } from './publicMenu';
 import type { FeatureFlags } from '../services/featuresService';
+import { featuresWith } from '../test/featureFlags';
 
 const page = (pageName: string, route: string, menuTitle: string) =>
   ({ pageName, route, menuTitle, sections: [] });
@@ -9,7 +10,7 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-const FLAGS: FeatureFlags = { media: false, team: false, contact: false, gallery: false };
+const FLAGS: FeatureFlags = featuresWith();
 
 /** Unwraps top-level item nodes — flat-menu tests read like before. */
 const items = (nodes: NavNode[]) => nodes.flatMap((n) => (n.kind === 'item' ? [n.item] : []));
@@ -53,7 +54,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: true, contact: false, gallery: false }))).toEqual([
+    expect(items(resolveNavTree(config, featuresWith('team')))).toEqual([
       { menuTitle: 'Team', pageName: 'team', route: '/team' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
@@ -67,7 +68,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: false, contact: true, gallery: false }))).toEqual([
+    expect(items(resolveNavTree(config, featuresWith('contact')))).toEqual([
       { menuTitle: 'Contact', pageName: 'contact', route: '/contact' },
       { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
     ]);
@@ -83,7 +84,7 @@ describe('resolveNavTree', () => {
         { type: 'page', pageName: 'page.home', visible: true, menuTitle: 'Welcome' },
       ] },
     );
-    expect(items(resolveNavTree(config, { media: false, team: true, contact: false, gallery: false })).map((i) => i.menuTitle)).toEqual([
+    expect(items(resolveNavTree(config, featuresWith('team'))).map((i) => i.menuTitle)).toEqual([
       'Notre équipe',
       'Welcome',
     ]);
@@ -112,7 +113,7 @@ describe('resolveNavTree', () => {
         ] },
       ] },
     );
-    expect(resolveNavTree(config, { media: false, team: true, contact: false, gallery: false })).toEqual([
+    expect(resolveNavTree(config, featuresWith('team'))).toEqual([
       { kind: 'item', item: { menuTitle: 'Home', pageName: 'page.home', route: '/home' } },
       {
         kind: 'group',
@@ -362,7 +363,7 @@ describe('collectI18nEntries (menu labels)', () => {
 });
 
 describe('resolveNavTree — gallery tag submenu', () => {
-  const GALLERY_ON: FeatureFlags = { media: false, team: false, contact: false, gallery: true };
+  const GALLERY_ON: FeatureFlags = featuresWith('gallery');
 
   const galleryConfig = (pages: ReturnType<typeof page>[], menu: MenuConfig, gallery: unknown): SiteConfig =>
     ({ site: { siteName: 'Test' }, themes: [], pages, menu, gallery }) as unknown as SiteConfig;

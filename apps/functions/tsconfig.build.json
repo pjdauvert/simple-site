@@ -12,6 +12,8 @@
   // Tests never reach dist: Netlify instantiates every TOP-LEVEL file of the
   // functions directory as a function, so a compiled test would be loaded as
   // a function module by `netlify dev`. Tests live in handlers/ and run via
-  // Vitest; typechecking still covers them through tsconfig.json.
-  "exclude": ["src/**/*.test.ts"]
+  // Vitest; typechecking still covers them through tsconfig.json. `testing/`
+  // holds their shared kit — test-only too, and it imports vitest, which the
+  // bundle must never pull in.
+  "exclude": ["src/**/*.test.ts", "src/**/testing/**"]
 }

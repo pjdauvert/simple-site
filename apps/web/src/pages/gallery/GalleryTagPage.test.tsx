@@ -1,28 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import type { GalleryConfig, SiteConfig, ThemeConfig } from '@simple-site/interfaces';
-import messages from '../../features/i18n/i18n.json';
-import { ThemeContext, type ThemeContextValue } from '../../features/theme/ThemeContext';
+import { screen } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
+import type { GalleryConfig, SiteConfig } from '@simple-site/interfaces';
 import { GalleryTagPage } from './GalleryTagPage';
-import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { mockFeatures } from '../../test/featureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
-vi.mock('../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false, gallery: false },
-}));
+vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 vi.mock('../../hooks/useSiteConfig', () => ({ useSiteConfig: vi.fn() }));
-
-const themeValue: ThemeContextValue = {
-  themeName: 'default',
-  themeConfig: { themeName: 'default' } as unknown as ThemeConfig,
-  siteThemeConfig: { siteName: 'Test Site', containerMaxWidth: 'lg' } as ThemeContextValue['siteThemeConfig'],
-  switchTheme: () => {},
-  availableThemes: [],
-};
 
 const gallery: GalleryConfig = {
   items: [
@@ -41,31 +27,23 @@ const setConfig = (over?: GalleryConfig) =>
     config: ({ site: { siteName: 'Test' }, themes: [], pages: [], gallery: over ?? gallery }) as unknown as SiteConfig,
   } as unknown as ReturnType<typeof useSiteConfig>);
 
-function renderAt(path: string) {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <MuiThemeProvider theme={createTheme()}>
-          <ThemeContext.Provider value={themeValue}>
-            <Routes>
-              <Route path="/gallery/tag/:tag" element={<GalleryTagPage />} />
-            </Routes>
-          </ThemeContext.Provider>
-        </MuiThemeProvider>
-      </IntlProvider>
-    </MemoryRouter>,
+const renderAt = (path: string) =>
+  renderWithProviders(
+    <Routes>
+      <Route path="/gallery/tag/:tag" element={<GalleryTagPage />} />
+    </Routes>,
+    { route: path, theme: true },
   );
-}
 
 describe('GalleryTagPage (public /gallery/tag/:tag)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false, gallery: true });
+    mockFeatures('gallery');
     setConfig();
   });
 
   it('renders the 404 page when the gallery feature is disabled', () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false, gallery: false });
+    mockFeatures();
     renderAt('/gallery/tag/nature');
     expect(screen.getByText('Oops — nothing here!')).toBeInTheDocument();
   });

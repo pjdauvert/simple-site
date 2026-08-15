@@ -1,25 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
-import messages from '../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import { ContactPage } from './ContactPage';
 import { loadContactConfig, saveContactConfig } from '../../services/contactService';
 import { loadAllTranslations } from '../../services/translationsService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/contactService', () => ({ loadContactConfig: vi.fn(), saveContactConfig: vi.fn() }));
 vi.mock('../../services/translationsService', () => ({ loadAllTranslations: vi.fn() }));
 
-function renderPage() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <ContactPage />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderPage = () => renderWithProviders(<ContactPage />, { notifications: true });
 
 describe('ContactPage (admin /manage/contact)', () => {
   beforeEach(() => {

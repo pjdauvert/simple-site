@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { SiteConfig, GalleryConfig } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { GalleryTagsEditor } from './GalleryTagsEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
 vi.mock('../../../services/galleryService', () => ({ updateGallery: vi.fn() }));
@@ -23,15 +21,7 @@ const seeded: GalleryConfig = {
   tags: [{ tag: 'nature', displayName: 'Nature' }],
 };
 
-function renderEditor() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <GalleryTagsEditor />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderEditor = () => renderWithProviders(<GalleryTagsEditor />, { notifications: true });
 
 describe('GalleryTagsEditor (Tags tab)', () => {
   beforeEach(() => {
