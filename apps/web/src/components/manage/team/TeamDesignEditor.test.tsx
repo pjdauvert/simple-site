@@ -52,7 +52,7 @@ describe('TeamDesignEditor', () => {
     fireEvent.click(frameBorderSwitches[1]);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
@@ -70,7 +70,7 @@ describe('TeamDesignEditor', () => {
     await screen.findByText('Team page design');
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;

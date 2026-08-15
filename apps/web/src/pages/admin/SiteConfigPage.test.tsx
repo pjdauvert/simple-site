@@ -88,7 +88,9 @@ describe('SiteConfigPage', () => {
       pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }],
     } as SiteConfig);
     renderSiteConfig('/manage/site/menu');
-    expect(await screen.findByRole('button', { name: /save menu/i })).toBeInTheDocument();
+    // The save button reads "Save" on every tab now, so anchor on the Menu
+    // editor's own controls instead.
+    expect(await screen.findByRole('button', { name: /add group/i })).toBeInTheDocument();
     expect(screen.getByText('Home')).toBeInTheDocument();
   });
 

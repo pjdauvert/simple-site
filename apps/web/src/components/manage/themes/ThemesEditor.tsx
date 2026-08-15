@@ -126,9 +126,7 @@ export const ThemesEditor: React.FC = () => {
         </Button>
       </Box>
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
-        <FormattedMessage id="page.manage.themes.save" />
-      </StickySaveButton>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

@@ -77,7 +77,7 @@ describe('GalleryItemsEditor (Items tab)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
@@ -99,7 +99,7 @@ describe('GalleryItemsEditor (Items tab)', () => {
     renderEditor();
     await screen.findByRole('button', { name: 'Shot A' });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     // The schema rejects dangling references — the save prunes them instead of failing.

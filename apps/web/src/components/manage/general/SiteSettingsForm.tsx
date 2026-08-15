@@ -198,9 +198,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           <MenuItem value="false"><FormattedMessage id="page.manage.site.containerMaxWidth.full" /></MenuItem>
         </TextField>
 
-        <StickySaveButton type="submit" disabled={submitting || !isDirty} submitting={submitting}>
-          <FormattedMessage id="page.manage.site.save" />
-        </StickySaveButton>
+        <StickySaveButton type="submit" disabled={submitting || !isDirty} submitting={submitting} />
       </Stack>
     </Box>
   );

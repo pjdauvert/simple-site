@@ -265,9 +265,7 @@ export const GalleryTagsEditor: React.FC = () => {
         </Button>
       )}
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
-        <FormattedMessage id="page.manage.gallery.save" />
-      </StickySaveButton>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

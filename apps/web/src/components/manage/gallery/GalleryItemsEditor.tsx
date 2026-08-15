@@ -229,9 +229,7 @@ export const GalleryItemsEditor: React.FC = () => {
         onDelete={dialog?.itemIndex != null ? deleteDialogItem : undefined}
       />
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
-        <FormattedMessage id="page.manage.gallery.save" />
-      </StickySaveButton>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

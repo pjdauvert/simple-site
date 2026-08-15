@@ -109,9 +109,7 @@ export const ContactPage: React.FC = () => {
               },
             }}
           />
-          <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
-            <FormattedMessage id="page.manage.contact.save" />
-          </StickySaveButton>
+          <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
         </Box>
       )}
     </Box>

@@ -251,9 +251,7 @@ export const TeamMembersEditor: React.FC = () => {
         </Button>
       </Box>
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
-        <FormattedMessage id="page.manage.team.save" />
-      </StickySaveButton>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
 
       {editIndex !== null && members[editIndex] && (
         <MemberFormDialog

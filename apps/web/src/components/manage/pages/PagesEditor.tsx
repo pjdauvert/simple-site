@@ -20,7 +20,6 @@ import {
 import {
   FileDownloadOutlined as DownloadIcon,
   FileUploadOutlined as UploadIcon,
-  Save as SaveIcon,
   TuneOutlined as SettingsIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -378,9 +377,7 @@ export const PagesEditor: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} startIcon={<SaveIcon />}>
-        <FormattedMessage id="page.manage.pages.save" />
-      </StickySaveButton>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

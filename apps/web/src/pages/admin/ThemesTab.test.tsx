@@ -43,7 +43,7 @@ describe('ThemesTab', () => {
     renderTab();
     await screen.findByText('Light');
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save themes/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(updateThemes).toHaveBeenCalledWith([lightTheme]);
     await waitFor(() => expect(screen.getByText('Themes saved')).toBeInTheDocument());
@@ -55,7 +55,7 @@ describe('ThemesTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /add theme/i }));
     expect(screen.getByText('Untitled theme')).toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save themes/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(updateThemes).not.toHaveBeenCalled();
     expect(
@@ -70,7 +70,7 @@ describe('ThemesTab', () => {
     renderTab();
     await screen.findAllByText('Light');
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save themes/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(updateThemes).not.toHaveBeenCalled();
     expect(await screen.findByText('Theme names must be unique')).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('ThemesTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /delete theme/i }));
     await waitFor(() => expect(screen.queryByText('Light')).not.toBeInTheDocument());
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save themes/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(updateThemes).toHaveBeenCalledWith([]);
   });

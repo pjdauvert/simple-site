@@ -195,9 +195,7 @@ export const TeamDesignEditor: React.FC = () => {
       </Typography>
       <SectionDesignFields value={memberPage} onChange={setMemberPage} />
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting}>
-        <FormattedMessage id="page.manage.team.save" />
-      </StickySaveButton>
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

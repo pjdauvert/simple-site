@@ -55,7 +55,7 @@ describe('GalleryTagsEditor (Tags tab)', () => {
     expect(screen.getByText('Été 2026')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     // The items ride along from the fresh draft — owned by the Items tab.
@@ -74,7 +74,7 @@ describe('GalleryTagsEditor (Tags tab)', () => {
       target: { value: 'Shot in **Corsica**.' },
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0].tags[0]).toEqual({
@@ -90,7 +90,7 @@ describe('GalleryTagsEditor (Tags tab)', () => {
     expect(screen.queryByText('/gallery/tag/nature')).not.toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     // The items themselves stay (they belong to the Items tab), untagged from

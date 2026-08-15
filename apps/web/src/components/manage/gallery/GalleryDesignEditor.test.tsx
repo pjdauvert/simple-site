@@ -31,7 +31,7 @@ describe('GalleryDesignEditor', () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /grid/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
@@ -49,7 +49,7 @@ describe('GalleryDesignEditor', () => {
     fireEvent.click(await screen.findByRole('button', { name: /list/i }));
     fireEvent.click(screen.getByRole('button', { name: /below/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({ items: seeded.items, tags: [] });
@@ -71,7 +71,7 @@ describe('GalleryDesignEditor', () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /mosaic/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
@@ -87,7 +87,7 @@ describe('GalleryDesignEditor', () => {
       target: { value: '60' },
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
@@ -103,10 +103,10 @@ describe('GalleryDesignEditor', () => {
       target: { value: '5' },
     });
     expect(screen.getByText('Enter a value between 10 and 100 %.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /save gallery/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled();
     // Emptying the field returns to "no cap" and unblocks the save.
     fireEvent.change(screen.getByRole('spinbutton', { name: /maximum item width/i }), { target: { value: '' } });
-    expect(screen.getByRole('button', { name: /save gallery/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /^save$/i })).not.toBeDisabled();
   });
 
   it('saves the frame options — elevation and radius sliders, border switch and its color', async () => {
@@ -128,7 +128,7 @@ describe('GalleryDesignEditor', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /border color/i }), { target: { value: '#123456' } });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
@@ -182,7 +182,7 @@ describe('GalleryDesignEditor', () => {
     expect(screen.queryByRole('button', { name: /above/i })).not.toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save gallery/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     // Only the hidden states are stored — shown is the default.

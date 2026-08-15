@@ -45,7 +45,7 @@ describe('TeamMembersEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalledTimes(1));
@@ -66,7 +66,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.change(screen.getByLabelText(/website|site web/i), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
-    const save = await screen.findByRole('button', { name: /save team/i });
+    const save = await screen.findByRole('button', { name: /^save$/i });
     await act(async () => { fireEvent.click(save); });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
@@ -85,7 +85,7 @@ describe('TeamMembersEditor', () => {
 
     expect(await screen.findByText('Former')).toBeInTheDocument();
 
-    const save = await screen.findByRole('button', { name: /save team/i });
+    const save = await screen.findByRole('button', { name: /^save$/i });
     await act(async () => { fireEvent.click(save); });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
@@ -113,7 +113,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(saveTeam).not.toHaveBeenCalled();
     expect(
@@ -145,7 +145,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     // The editor-only `persisted` marker never reaches the API payload.
@@ -164,7 +164,7 @@ describe('TeamMembersEditor', () => {
     const upButtons = screen.getAllByRole('button', { name: /move up/i });
     fireEvent.click(upButtons[1]);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
@@ -181,7 +181,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
 
     // findByRole waits for the confirm dialog to release the page (aria-hidden).
-    const save = await screen.findByRole('button', { name: /save team/i });
+    const save = await screen.findByRole('button', { name: /^save$/i });
     await act(async () => {
       fireEvent.click(save);
     });
@@ -207,7 +207,7 @@ describe('TeamMembersEditor', () => {
     const upDummy = screen.getAllByRole('button', { name: /edit member/i });
     expect(upDummy).toHaveLength(1);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());

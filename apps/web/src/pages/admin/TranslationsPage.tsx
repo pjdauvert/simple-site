@@ -462,9 +462,7 @@ export const TranslationsPage: React.FC = () => {
             </Box>
           )}
 
-          <StickySaveButton onClick={handleSave} disabled={submitting || !dirty} submitting={submitting}>
-            <FormattedMessage id="page.manage.translations.save" values={{ language: languageLabel(language) }} />
-          </StickySaveButton>
+          <StickySaveButton onClick={handleSave} disabled={submitting || !dirty} submitting={submitting} />
         </>
       )}
 

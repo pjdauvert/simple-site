@@ -496,9 +496,7 @@ export const GalleryDesignEditor: React.FC = () => {
           </Stack>
         </Box>
 
-        <StickySaveButton onClick={handleSave} disabled={submitting || widthInvalid} submitting={submitting}>
-          <FormattedMessage id="page.manage.gallery.save" />
-        </StickySaveButton>
+        <StickySaveButton onClick={handleSave} disabled={submitting || widthInvalid} submitting={submitting} />
       </Stack>
 
       {/* Symbolic preview of the picked design — right half, desktop only.
