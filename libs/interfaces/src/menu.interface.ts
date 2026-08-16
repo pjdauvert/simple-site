@@ -24,12 +24,14 @@ export const FeaturePagesEnum = {
   TEAM: 'team',
   CONTACT: 'contact',
   GALLERY: 'gallery',
+  EVENTS: 'events',
 } as const;
 
 export const FeaturePageIdSchema = z.enum([
   FeaturePagesEnum.TEAM,
   FeaturePagesEnum.CONTACT,
   FeaturePagesEnum.GALLERY,
+  FeaturePagesEnum.EVENTS,
 ]);
 export type FeaturePageId = z.infer<typeof FeaturePageIdSchema>;
 
@@ -41,6 +43,7 @@ export const FEATURE_PAGE_ROUTES: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: '/team',
   [FeaturePagesEnum.CONTACT]: '/contact',
   [FeaturePagesEnum.GALLERY]: '/gallery',
+  [FeaturePagesEnum.EVENTS]: '/events',
 };
 
 /**
@@ -52,6 +55,7 @@ export const FEATURE_PAGE_DEFAULT_LABELS: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: 'Team',
   [FeaturePagesEnum.CONTACT]: 'Contact',
   [FeaturePagesEnum.GALLERY]: 'Gallery',
+  [FeaturePagesEnum.EVENTS]: 'Events',
 };
 
 /** True when `route` is a feature-owned route or nests under one (e.g. `/team/member/x`). */
