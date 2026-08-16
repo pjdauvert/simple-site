@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ThemeConfigSchema, SiteThemeConfigSchema } from './theme.interface.js';
 import { PageConfigurationSchema } from './page.interface.js';
+import { GalleryConfigSchema } from './gallery.interface.js';
 import {
   MenuConfigSchema,
   isReservedRoute,
@@ -34,6 +35,9 @@ export const StoredSiteConfigSchema = z
     themes: z.array(ThemeConfigSchema),
     pages: z.array(PageConfigurationSchema),
     menu: MenuConfigSchema.optional(),
+    // Flag-gated (FEATURE_GALLERY): kept in the stored config even while the
+    // flag is off — only its interpretation (rendering, routes, menu) is gated.
+    gallery: GalleryConfigSchema.optional(),
   })
   .refine((config) => allUnique(config.pages, (p) => p.route), {
     message: 'Page routes must be unique',

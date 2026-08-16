@@ -20,7 +20,6 @@ import {
 import {
   FileDownloadOutlined as DownloadIcon,
   FileUploadOutlined as UploadIcon,
-  Save as SaveIcon,
   TuneOutlined as SettingsIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -40,6 +39,7 @@ import { PageSelector } from './PageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { SectionPreview } from './SectionPreview';
 import { Loader } from '../../Loader';
+import { StickySaveButton } from '../StickySaveButton';
 import { PageSettingsDialog } from './PageSettingsDialog';
 import { createPage, createSection, isHomePage, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
@@ -290,9 +290,6 @@ export const PagesEditor: React.FC = () => {
         <Button variant="outlined" startIcon={<DownloadIcon />} disabled={pages.length === 0} onClick={(e) => setExportAnchor(e.currentTarget)}>
           <FormattedMessage id="page.manage.pages.export" />
         </Button>
-        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={submitting}>
-          {submitting ? <Loader variant="triskelion" size={20} /> : <FormattedMessage id="page.manage.pages.save" />}
-        </Button>
       </Stack>
 
       <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
@@ -379,6 +376,8 @@ export const PagesEditor: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

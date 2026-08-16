@@ -9,6 +9,7 @@ import { EditableMarkdown } from '../EditableMarkdown';
 import { InlineDesignPopover, InlineAddButton } from '../InlineControls';
 import { INLINE_REVEAL_ZONE, inlineRevealZoneSx } from '../inlineReveal';
 import { useSectionEdit, useSlotVisible } from '../sectionEdit';
+import { ikTransform } from '../../../utils/imagekit';
 
 const MAX_COLUMNS = 4;
 
@@ -88,7 +89,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
     return (
       <Box
         component="img"
-        src={media?.url}
+        src={ikTransform(media?.url ?? '', 'w-1200,q-80,f-auto')}
         alt="Column media"
         sx={{
           width: '100%', height: 'auto', display: 'block',
@@ -135,7 +136,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
         )}
         {media?.position === 'cover' ? (
           <Box sx={{
-            backgroundImage: `url(${media.url})`,
+            backgroundImage: `url(${ikTransform(media.url, 'w-1920,q-80,f-auto')})`,
             backgroundSize: 'cover',
             backgroundPosition: MEDIA_VERT[media.verticalAlign ?? ''] ?? 'center',
             borderRadius: 2, minHeight: '300px',
@@ -162,7 +163,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ sectionName, content, 
       sx={{
         backgroundColor, color: textColor, py: 4,
         ...(design?.backgroundUrl && {
-          backgroundImage: `linear-gradient(rgba(0,0,0,0.3),rgba(0,0,0,0.3)),url(${design.backgroundUrl})`,
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.3),rgba(0,0,0,0.3)),url(${ikTransform(design.backgroundUrl, 'w-1920,q-80,f-auto')})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: design.parallax ? 'fixed' : 'scroll',

@@ -1,15 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { MemoryRouter } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import type { PageConfiguration, SiteConfig, ThemeConfig } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
-import { ThemeContext, type ThemeContextValue } from '../../../features/theme/ThemeContext';
 import { PagesEditor } from './PagesEditor';
 import { loadDraftConfig, saveDraftConfig } from '../../../services/configVersionService';
+import { mockFeatures } from '../../../test/featureFlags';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/configVersionService', () => ({
   loadDraftConfig: vi.fn(),
@@ -18,7 +14,7 @@ vi.mock('../../../services/configVersionService', () => ({
 vi.mock('../../../services/mediaService', () => ({
   listMedia: vi.fn().mockResolvedValue({ folders: [], files: [] }),
 }));
-vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn(() => ({ media: false, team: false, contact: false })) }));
+vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const themeConfig: ThemeConfig = {
   themeName: 'default',
@@ -31,38 +27,18 @@ const themeConfig: ThemeConfig = {
   menuHoverColor: '#e0e0e0',
 } as unknown as ThemeConfig;
 
-const themeValue: ThemeContextValue = {
-  themeName: 'default',
-  themeConfig,
-  siteThemeConfig: { siteName: 'Test', containerMaxWidth: 'lg' } as ThemeContextValue['siteThemeConfig'],
-  switchTheme: () => {},
-  availableThemes: [],
-};
-
 const theme = (name: string): ThemeConfig => ({ ...themeConfig, themeName: name });
 
 const configWith = (pages: PageConfiguration[], themes: unknown[] = []): SiteConfig =>
   ({ site: { siteName: 'Test', containerMaxWidth: 'lg' }, themes, pages }) as unknown as SiteConfig;
 
-function renderEditor() {
-  return render(
-    <MemoryRouter>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <MuiThemeProvider theme={createTheme()}>
-          <ThemeContext.Provider value={themeValue}>
-            <NotificationsProvider>
-              <PagesEditor />
-            </NotificationsProvider>
-          </ThemeContext.Provider>
-        </MuiThemeProvider>
-      </IntlProvider>
-    </MemoryRouter>,
-  );
-}
+const renderEditor = () =>
+  renderWithProviders(<PagesEditor />, { route: '/', theme: { themeConfig }, notifications: true });
 
 describe('PagesEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockFeatures(); // no optional feature on: the section editors show their plain fields
     vi.mocked(loadDraftConfig).mockResolvedValue(configWith([]));
     vi.mocked(saveDraftConfig).mockResolvedValue(undefined);
   });

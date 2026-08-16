@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import type { MediaFolder } from '@simple-site/interfaces';
-import { NotificationsProvider } from '../../features/notifications/NotificationsProvider';
 import messages from '../../features/i18n/i18n.json';
 import { ImagePickerDialog } from './ImagePickerDialog';
 import { listMedia } from '../../services/mediaService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/mediaService', () => ({ listMedia: vi.fn() }));
 
@@ -21,20 +20,15 @@ const LocationProbe = () => {
 };
 
 const renderDialog = () =>
-  render(
-    <MemoryRouter initialEntries={['/manage/site/general']}>
-      <IntlProvider locale="en" messages={en}>
-        <NotificationsProvider>
-          <Routes>
-            <Route
-              path="/manage/site/general"
-              element={<ImagePickerDialog open onClose={noop} onSelect={noop} />}
-            />
-            <Route path="/manage/media" element={<LocationProbe />} />
-          </Routes>
-        </NotificationsProvider>
-      </IntlProvider>
-    </MemoryRouter>,
+  renderWithProviders(
+    <Routes>
+      <Route
+        path="/manage/site/general"
+        element={<ImagePickerDialog open onClose={noop} onSelect={noop} />}
+      />
+      <Route path="/manage/media" element={<LocationProbe />} />
+    </Routes>,
+    { route: '/manage/site/general', notifications: true },
   );
 
 describe('ImagePickerDialog upload action', () => {

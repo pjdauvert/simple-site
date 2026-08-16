@@ -14,6 +14,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // `netlify dev` continuously re-bundles functions (tests included) under
+    // .netlify/functions-serve — never pick those artifacts up as web tests.
     exclude: [...configDefaults.exclude, '**/.netlify/**'],
     setupFiles: './src/test/setup.ts',
     env: {

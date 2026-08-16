@@ -1,25 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getStore } from '@netlify/blobs';
 import { TeamModule } from './TeamModule';
 import { ErrorCode } from '@simple-site/interfaces';
+import { jsonRequest, makeContext, makeStore, readJson, stubEnv } from './testing/handlerTestKit';
 
 vi.mock('@netlify/blobs', () => ({ getStore: vi.fn() }));
-
-// CONTEXT != 'dev' so seedBlob short-circuits and never touches the store.
-const ENV: Record<string, string> = { APP_NAME: 'test-app', CONTEXT: 'production' };
-
-const stubEnv = (env: Record<string, string | undefined> = ENV) =>
-  vi.stubGlobal('Netlify', { env: { get: (k: string) => env[k] } });
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const readJson = async (res: Response): Promise<any> => res.json();
-
-const jsonRequest = (url: string, method: string, body?: unknown, contentType = 'application/json') =>
-  new Request(url, {
-    method,
-    headers: body !== undefined ? { 'Content-Type': contentType } : undefined,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
 
 const member = (slug: string, over: Record<string, unknown> = {}) => ({
   slug,
@@ -29,21 +13,7 @@ const member = (slug: string, over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** Stubs `getStore` with an in-memory key/value store. */
-const makeStore = (seed: Record<string, unknown> = {}) => {
-  const data = new Map<string, string>(
-    Object.entries(seed).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)]),
-  );
-  const store = {
-    get: vi.fn(async (key: string) => data.get(key) ?? null),
-    set: vi.fn(async (key: string, value: string) => { data.set(key, value); }),
-    delete: vi.fn(async (key: string) => { data.delete(key); }),
-  };
-  vi.mocked(getStore).mockReturnValue(store as never);
-  return { store, data };
-};
-
-const ctx = {} as never;
+const ctx = makeContext();
 const handle = (request: Request) => new TeamModule().handle(request, ctx);
 
 describe('TeamModule', () => {

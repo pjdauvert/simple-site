@@ -1,27 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import messages from '../../features/i18n/i18n.json';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { ContactPage } from './ContactPage';
-import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { mockFeatures } from '../../test/featureFlags';
 import { loadContactConfig, sendContactMessage } from '../../services/contactService';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 vi.mock('../../services/contactService', () => ({ sendContactMessage: vi.fn(), loadContactConfig: vi.fn() }));
-vi.mock('../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(),
-  ALL_DISABLED: { media: false, team: false, contact: false },
-}));
+vi.mock('../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
-function renderPage() {
-  return render(
-    <MemoryRouter initialEntries={['/contact']}>
-      <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-        <ContactPage />
-      </IntlProvider>
-    </MemoryRouter>,
-  );
-}
+const renderPage = () => renderWithProviders(<ContactPage />, { route: '/contact' });
 
 const fillForm = async (email: string, message: string) => {
   fireEvent.change(await screen.findByLabelText(/Your email/), { target: { value: email } });
@@ -33,12 +20,12 @@ const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Send me
 describe('ContactPage (public /contact)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: true });
+    mockFeatures('contact');
     vi.mocked(loadContactConfig).mockResolvedValue({});
   });
 
   it('renders the 404 page when the contact feature is disabled', async () => {
-    vi.mocked(useFeatureFlags).mockReturnValue({ media: false, team: false, contact: false });
+    mockFeatures();
     renderPage();
     expect(await screen.findByText('Oops — nothing here!')).toBeInTheDocument();
     expect(loadContactConfig).not.toHaveBeenCalled();

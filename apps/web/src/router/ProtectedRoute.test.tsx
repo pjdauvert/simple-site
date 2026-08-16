@@ -1,36 +1,19 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import { AuthContext } from '../features/auth/AuthContext';
+import { describe, it, expect } from 'vitest';
+import { screen } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
 import type { AuthContextValue } from '../features/auth/AuthContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { loginPath, loggedPath } from '../features/auth/auth.constants';
-import messages from '../features/i18n/i18n.json';
+import { renderWithProviders } from '../test/renderWithProviders';
 
-function renderWithAuth(
-  ui: React.ReactElement,
-  contextValue: Partial<AuthContextValue> = {}
-) {
-  const defaults: AuthContextValue = {
-    user: null,
-    isLoading: false,
-    login: vi.fn(),
-    logout: vi.fn(),
-  };
-  return render(
-    <IntlProvider locale="en" messages={messages.en}>
-      <MemoryRouter initialEntries={[loggedPath]}>
-        <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
-          <Routes>
-            <Route path={loginPath} element={<div>Login Page</div>} />
-            <Route path={loggedPath} element={ui} />
-          </Routes>
-        </AuthContext.Provider>
-      </MemoryRouter>
-    </IntlProvider>
+const renderWithAuth = (ui: React.ReactElement, contextValue: Partial<AuthContextValue> = {}) =>
+  renderWithProviders(
+    <Routes>
+      <Route path={loginPath} element={<div>Login Page</div>} />
+      <Route path={loggedPath} element={ui} />
+    </Routes>,
+    { route: loggedPath, auth: contextValue },
   );
-}
 
 describe('ProtectedRoute', () => {
   it('shows loading while resolving auth', () => {

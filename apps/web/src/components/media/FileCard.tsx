@@ -20,6 +20,7 @@ import { CopyButton } from './CopyButton';
 import { ItemTransition } from './ItemTransition';
 import { MediaItemMenu } from './MediaItemMenu';
 import { extensionOf, formatBytes, formatDuration, isVideo } from './mediaUtils';
+import { ikTransform } from '../../utils/imagekit';
 import type { DeletionPhase } from './types';
 
 interface FileCardProps {
@@ -126,7 +127,7 @@ export const FileCard: React.FC<FileCardProps> = ({
           ) : (
             <CardMedia
               component="img"
-              image={`${item.url}?tr=w-400`}
+              image={ikTransform(item.url, 'w-400,q-80,f-auto')}
               alt={item.name}
               sx={{ height: 160, objectFit: 'contain', bgcolor: 'action.hover' }}
             />

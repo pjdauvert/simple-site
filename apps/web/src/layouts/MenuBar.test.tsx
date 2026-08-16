@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { MemoryRouter } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
 import type { MenuGroupDisplay } from '@simple-site/interfaces';
-import { AuthContext } from '../features/auth/AuthContext';
 import type { AuthContextValue } from '../features/auth/AuthContext';
-import messages from '../features/i18n/i18n.json';
 import type { NavNode } from '../router/publicMenu';
 import { MenuBar } from './MenuBar';
+import { renderWithProviders } from '../test/renderWithProviders';
 
 // The switchers and theme hook need providers this focused test doesn't set up.
 vi.mock('../features/theme/ThemeSwitcher', () => ({ ThemeSwitcher: () => <div /> }));
@@ -38,24 +35,18 @@ const nodes: NavNode[] = [
   group(),
 ];
 
-function renderBar(
+const renderBar = (
   navNodes: NavNode[],
   path = '/home',
   extraMessages: Record<string, string> = {},
   context: Partial<AuthContextValue> = {},
   groupDisplay?: MenuGroupDisplay,
-) {
-  const defaults: AuthContextValue = { user: null, isLoading: false, login: vi.fn(), logout: vi.fn() };
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <IntlProvider locale="en" messages={{ ...(messages.en as Record<string, string>), ...extraMessages }}>
-        <AuthContext.Provider value={{ ...defaults, ...context }}>
-          <MenuBar navNodes={navNodes} groupDisplay={groupDisplay} />
-        </AuthContext.Provider>
-      </IntlProvider>
-    </MemoryRouter>,
-  );
-}
+) =>
+  renderWithProviders(<MenuBar navNodes={navNodes} groupDisplay={groupDisplay} />, {
+    route: path,
+    messages: extraMessages,
+    auth: context,
+  });
 
 /** The mobile popover's nav list (desktop and mobile coexist in the DOM). */
 const openMobileNav = () => {

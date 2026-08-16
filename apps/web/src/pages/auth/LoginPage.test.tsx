@@ -1,39 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { IntlProvider } from 'react-intl';
-import { AuthContext } from '../../features/auth/AuthContext';
+import { Route, Routes } from 'react-router-dom';
 import type { AuthContextValue } from '../../features/auth/AuthContext';
 import { LoginPage } from './LoginPage';
-import staticTranslations from '../../features/i18n/i18n.json';
 import {loggedPath, loginPath} from '../../features/auth/auth.constants'
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 const VALID_EMAIL = 'user@example.com';
 
-function renderWithAuth(
-  ui: React.ReactElement,
-  contextValue: Partial<AuthContextValue> = {}
-) {
-  const defaults: AuthContextValue = {
-    user: null,
-    isLoading: false,
-    login: vi.fn(),
-    logout: vi.fn(),
-  };
-  return render(
-    <IntlProvider locale="en" messages={staticTranslations.en} defaultLocale="en">
-      <MemoryRouter initialEntries={[loginPath]}>
-        <AuthContext.Provider value={{ ...defaults, ...contextValue }}>
-          <Routes>
-            <Route path={loginPath} element={ui} />
-            <Route path={loggedPath} element={<div>Admin Page</div>} />
-          </Routes>
-        </AuthContext.Provider>
-      </MemoryRouter>
-    </IntlProvider>
+const renderWithAuth = (ui: React.ReactElement, contextValue: Partial<AuthContextValue> = {}) =>
+  renderWithProviders(
+    <Routes>
+      <Route path={loginPath} element={ui} />
+      <Route path={loggedPath} element={<div>Admin Page</div>} />
+    </Routes>,
+    { route: loginPath, auth: contextValue },
   );
-}
 
 describe('LoginPage', () => {
   it('renders email, password fields and submit button', () => {

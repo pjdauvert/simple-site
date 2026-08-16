@@ -1,38 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { IntlProvider } from 'react-intl';
 import type { TeamConfig, TeamMember } from '@simple-site/interfaces';
-import messages from '../../../features/i18n/i18n.json';
-import { NotificationsProvider } from '../../../features/notifications/NotificationsProvider';
 import { TeamMembersEditor } from './TeamMembersEditor';
 import { loadTeam, saveTeam } from '../../../services/teamService';
 import { loadLanguages } from '../../../services/initService';
+import { mockFeatures } from '../../../test/featureFlags';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/teamService', () => ({ loadTeam: vi.fn(), saveTeam: vi.fn() }));
 vi.mock('../../../services/initService', () => ({ loadLanguages: vi.fn() }));
 vi.mock('../../../services/mediaService', () => ({ listMedia: vi.fn().mockResolvedValue({ folders: [], files: [] }) }));
-vi.mock('../../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: vi.fn(() => ({ media: false, team: true, contact: false })),
-  ALL_DISABLED: { media: false, team: false, contact: false },
-}));
+vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 
 const member = (slug: string, name: string): TeamMember =>
   ({ slug, name, jobTitle: { en: 'Engineer' }, biography: { en: 'Bio' } });
 
-function renderEditor() {
-  return render(
-    <IntlProvider locale="en" messages={messages.en as Record<string, string>}>
-      <NotificationsProvider>
-        <TeamMembersEditor />
-      </NotificationsProvider>
-    </IntlProvider>,
-  );
-}
+const renderEditor = () => renderWithProviders(<TeamMembersEditor />, { notifications: true });
 
 describe('TeamMembersEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockFeatures('team');
     vi.mocked(loadTeam).mockResolvedValue({ members: [] });
     vi.mocked(loadLanguages).mockResolvedValue({ defaultLocale: 'en', locales: ['en', 'fr'] });
     vi.mocked(saveTeam).mockResolvedValue(undefined);
@@ -56,7 +45,7 @@ describe('TeamMembersEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalledTimes(1));
@@ -77,7 +66,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.change(screen.getByLabelText(/website|site web/i), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
-    const save = await screen.findByRole('button', { name: /save team/i });
+    const save = await screen.findByRole('button', { name: /^save$/i });
     await act(async () => { fireEvent.click(save); });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
@@ -96,7 +85,7 @@ describe('TeamMembersEditor', () => {
 
     expect(await screen.findByText('Former')).toBeInTheDocument();
 
-    const save = await screen.findByRole('button', { name: /save team/i });
+    const save = await screen.findByRole('button', { name: /^save$/i });
     await act(async () => { fireEvent.click(save); });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     const saved = vi.mocked(saveTeam).mock.calls[0][0] as TeamConfig;
@@ -124,7 +113,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     expect(saveTeam).not.toHaveBeenCalled();
     expect(
@@ -156,7 +145,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /^done$/i }));
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
     // The editor-only `persisted` marker never reaches the API payload.
@@ -175,7 +164,7 @@ describe('TeamMembersEditor', () => {
     const upButtons = screen.getAllByRole('button', { name: /move up/i });
     fireEvent.click(upButtons[1]);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
@@ -192,7 +181,7 @@ describe('TeamMembersEditor', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
 
     // findByRole waits for the confirm dialog to release the page (aria-hidden).
-    const save = await screen.findByRole('button', { name: /save team/i });
+    const save = await screen.findByRole('button', { name: /^save$/i });
     await act(async () => {
       fireEvent.click(save);
     });
@@ -218,7 +207,7 @@ describe('TeamMembersEditor', () => {
     const upDummy = screen.getAllByRole('button', { name: /edit member/i });
     expect(upDummy).toHaveLength(1);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save team/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     });
 
     await waitFor(() => expect(saveTeam).toHaveBeenCalled());
