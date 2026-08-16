@@ -17,6 +17,9 @@ import { GalleryPage } from "../pages/admin/GalleryPage";
 import { GalleryItemsTab } from "../pages/admin/GalleryItemsTab";
 import { GalleryTagsTab } from "../pages/admin/GalleryTagsTab";
 import { GalleryDesignTab } from "../pages/admin/GalleryDesignTab";
+import { EventsPage } from "../pages/admin/EventsPage";
+import { EventsListTab } from "../pages/admin/EventsListTab";
+import { EventsDesignTab } from "../pages/admin/EventsDesignTab";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { ManageLayout } from "../layouts/ManageLayout";
 import { Loading } from "../components";
@@ -30,6 +33,7 @@ const siteItem: MenuItem = { menuTitle: "Site configuration", pageName: "manage.
 const teamItem: MenuItem = { menuTitle: "Team", pageName: "manage.team", route: "/manage/team" };
 const contactItem: MenuItem = { menuTitle: "Contact", pageName: "manage.contact", route: "/manage/contact" };
 const galleryItem: MenuItem = { menuTitle: "Gallery", pageName: "manage.gallery", route: "/manage/gallery" };
+const eventsItem: MenuItem = { menuTitle: "Events", pageName: "manage.events", route: "/manage/events" };
 const translationsItem: MenuItem = { menuTitle: "Translations", pageName: "manage.translations", route: "/manage/translations" };
 const mediaItem: MenuItem = { menuTitle: "Media", pageName: "manage.media", route: "/manage/media" };
 
@@ -46,6 +50,7 @@ const ManageArea: React.FC = () => {
     ...(flags.team ? [teamItem] : []),
     ...(flags.contact ? [contactItem] : []),
     ...(flags.gallery ? [galleryItem] : []),
+    ...(flags.events ? [eventsItem] : []),
     translationsItem,
     ...(flags.media ? [mediaItem] : []),
   ];
@@ -76,6 +81,13 @@ const ManageArea: React.FC = () => {
             <Route path="items" element={<GalleryItemsTab />} />
             <Route path="tags" element={<GalleryTagsTab />} />
             <Route path="design" element={<GalleryDesignTab />} />
+          </Route>
+        )}
+        {flags.events && (
+          <Route path="events" element={<EventsPage />}>
+            <Route index element={<Navigate to="list" replace />} />
+            <Route path="list" element={<EventsListTab />} />
+            <Route path="design" element={<EventsDesignTab />} />
           </Route>
         )}
         <Route path="translations" element={<TranslationsPage />} />
