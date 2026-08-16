@@ -410,6 +410,51 @@ describe('ConfigModule', () => {
     expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
   });
 
+  it('PUT /api/config/events writes the DRAFT events and leaves pages/themes/site untouched', async () => {
+    const { data } = seedStore();
+    const events = {
+      events: [
+        {
+          slug: 'summer-festival',
+          name: 'Summer Festival',
+          description: 'Three days on the waterfront.',
+          startDateTime: '2027-06-18T15:00:00.000Z',
+          endDateTime: '2027-06-20T20:00:00.000Z',
+          location: 'Place de la Bourse, Bordeaux',
+          websiteUrl: 'https://example.com/festival',
+        },
+        { slug: 'winter-market', name: 'Winter Market', startDateTime: '2026-12-05T17:00:00.000Z', location: 'Halle des Douves' },
+      ],
+      nextTitle: 'Prochainement',
+      pastHeader: 'Nos *souvenirs*.',
+      design: { agendaPage: { pastEventsMode: 'from', pastEventsFromDate: '2026-01-01', columns: 2 } },
+    };
+    const res = await handle(jsonRequest('https://site.test/api/config/events', 'PUT', events));
+    expect(res.status).toBe(200);
+    expect((await readJson(res)).data.message).toMatch(/updated/i);
+
+    const draft = JSON.parse(data.get('config:draft')!);
+    expect(draft.events).toEqual(events);
+    expect(draft.themes).toEqual(storedConfig.themes);
+    expect(draft.site).toMatchObject(storedConfig.site);
+    expect(JSON.parse(data.get('config')!).events).toBeUndefined(); // published untouched
+  });
+
+  it('PUT /api/config/events rejects duplicate slugs, bad instants and end-before-start — draft untouched', async () => {
+    const { data } = seedStore();
+    const event = { slug: 'one', name: 'One', startDateTime: '2027-01-01T10:00:00.000Z', location: 'Here' };
+    for (const events of [
+      { events: [event, { ...event, name: 'Bis' }] }, // duplicate slug
+      { events: [{ ...event, startDateTime: '2027-01-01T10:00:00+02:00' }] }, // offset instant
+      { events: [{ ...event, startDateTime: '2027-01-01T10:00:00' }] }, // timezone-less
+      { events: [{ ...event, endDateTime: '2026-12-31T10:00:00.000Z' }] }, // ends before start
+      { events: [{ ...event, slug: 'Bad_Slug' }] },
+    ]) {
+      expect((await handle(jsonRequest('https://site.test/api/config/events', 'PUT', events))).status).toBe(500);
+    }
+    expect(data.has('config:draft')).toBe(false);
+  });
+
   it('PUT /api/config/gallery accepts the mosaic display mode', async () => {
     const { data } = seedStore();
     const gallery = { items: [], tags: [], design: { displayMode: 'mosaic' } };
