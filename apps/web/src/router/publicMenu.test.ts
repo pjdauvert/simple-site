@@ -76,6 +76,22 @@ describe('resolveNavTree', () => {
     expect(items(resolveNavTree(config, FLAGS)).map((i) => i.pageName)).toEqual(['page.home']);
   });
 
+  it('renders the events feature entry when its flag is on', () => {
+    const config = configWith(
+      [page('page.home', '/home', 'Home')],
+      { entries: [
+        { type: 'feature', feature: 'events', visible: true },
+        { type: 'page', pageName: 'page.home', visible: true },
+      ] },
+    );
+    expect(items(resolveNavTree(config, featuresWith('events')))).toEqual([
+      { menuTitle: 'Events', pageName: 'events', route: '/events' },
+      { menuTitle: 'Home', pageName: 'page.home', route: '/home' },
+    ]);
+    // Flag off → the entry is skipped like any disabled feature.
+    expect(items(resolveNavTree(config, FLAGS)).map((i) => i.pageName)).toEqual(['page.home']);
+  });
+
   it('renders custom entry labels — a page override and a renamed feature', () => {
     const config = configWith(
       [page('page.home', '/home', 'Home')],
@@ -208,9 +224,10 @@ describe('reconcileMenu', () => {
   });
 
   it('appends newly-enabled features hidden, and keeps disabled-feature entries in place', () => {
-    const withFeature = reconcileMenu(undefined, pages, ['team', 'contact']);
+    const withFeature = reconcileMenu(undefined, pages, ['team', 'contact', 'events']);
     expect(withFeature.entries).toContainEqual({ type: 'feature', feature: 'team', visible: false });
     expect(withFeature.entries).toContainEqual({ type: 'feature', feature: 'contact', visible: false });
+    expect(withFeature.entries).toContainEqual({ type: 'feature', feature: 'events', visible: false });
 
     // Feature already stored (e.g. ordered first), flag now off: the entry survives untouched.
     const stored: MenuConfig = { entries: [

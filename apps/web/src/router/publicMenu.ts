@@ -57,6 +57,11 @@ export const FEATURE_PAGE_REGISTRY: Partial<Record<FeaturePageId, FeaturePageDef
     pageName: 'gallery', // nav label i18n key: `gallery.menuTitle`
     flag: 'gallery',
   },
+  events: {
+    route: FEATURE_PAGE_ROUTES.events,
+    pageName: 'events', // nav label i18n key: `events.menuTitle`
+    flag: 'events',
+  },
 };
 
 /** The feature pages this app version can render whose flag is currently on. */
