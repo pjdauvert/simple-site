@@ -92,7 +92,10 @@ export const NextEventSection: React.FC<{
                   width: "100%",
                   maxHeight: { xs: 360, md: 480 },
                   objectFit: "contain",
-                  boxShadow: 6,
+                  // Without the blurred backdrop the poster stands out on its
+                  // own: elevated with a shadow (8 — a step the platform's
+                  // shadow scale actually defines; anything else renders flat).
+                  boxShadow: showBackdrop ? undefined : 8,
                   mx: "auto",
                 }}
               />
