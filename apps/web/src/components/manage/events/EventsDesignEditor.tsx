@@ -16,7 +16,6 @@ import {
   EVENT_COLUMNS_MAX,
   EVENT_COLUMNS_MIN,
   EVENTS_NEXT_HEADER_KEY,
-  EVENTS_NEXT_TITLE_KEY,
   EVENTS_PAST_HEADER_KEY,
   EVENTS_PAST_TITLE_KEY,
   EVENTS_UPCOMING_HEADER_KEY,
@@ -47,14 +46,15 @@ import {
 const aspectLabelKey = (ratio: EventAspectRatio): string =>
   `page.manage.events.design.aspect.${ratio.replace(':', '_')}`;
 
+// The featured section has no heading of its own — only the markdown intro.
 const SECTION_TEXTS: Array<{
-  titleField: 'nextTitle' | 'upcomingTitle' | 'pastTitle';
+  titleField?: 'upcomingTitle' | 'pastTitle';
   headerField: 'nextHeader' | 'upcomingHeader' | 'pastHeader';
-  titleKey: string;
+  titleKey?: string;
   headerKey: string;
   labelKey: string;
 }> = [
-  { titleField: 'nextTitle', headerField: 'nextHeader', titleKey: EVENTS_NEXT_TITLE_KEY, headerKey: EVENTS_NEXT_HEADER_KEY, labelKey: 'page.events.nextTitle' },
+  { headerField: 'nextHeader', headerKey: EVENTS_NEXT_HEADER_KEY, labelKey: 'page.events.nextTitle' },
   { titleField: 'upcomingTitle', headerField: 'upcomingHeader', titleKey: EVENTS_UPCOMING_TITLE_KEY, headerKey: EVENTS_UPCOMING_HEADER_KEY, labelKey: 'page.events.upcomingTitle' },
   { titleField: 'pastTitle', headerField: 'pastHeader', titleKey: EVENTS_PAST_TITLE_KEY, headerKey: EVENTS_PAST_HEADER_KEY, labelKey: 'page.events.pastTitle' },
 ];
@@ -216,15 +216,17 @@ export const EventsDesignEditor: React.FC = () => {
       </Typography>
 
       {SECTION_TEXTS.map(({ titleField, headerField, titleKey, headerKey, labelKey }) => (
-        <Box key={titleField} sx={{ display: 'grid', gap: 1.5 }}>
-          <TextField
-            label={`${intl.formatMessage({ id: 'page.manage.events.field.sectionTitle' })} — ${intl.formatMessage({ id: labelKey })}`}
-            value={texts[titleField]}
-            onChange={(e) => setTexts({ ...texts, [titleField]: e.target.value })}
-            size="small"
-            helperText={intl.formatMessage({ id: 'page.manage.events.field.sectionTitle.help' })}
-            slotProps={{ input: { endAdornment: translateAdornment(titleKey) } }}
-          />
+        <Box key={headerField} sx={{ display: 'grid', gap: 1.5 }}>
+          {titleField && titleKey && (
+            <TextField
+              label={`${intl.formatMessage({ id: 'page.manage.events.field.sectionTitle' })} — ${intl.formatMessage({ id: labelKey })}`}
+              value={texts[titleField]}
+              onChange={(e) => setTexts({ ...texts, [titleField]: e.target.value })}
+              size="small"
+              helperText={intl.formatMessage({ id: 'page.manage.events.field.sectionTitle.help' })}
+              slotProps={{ input: { endAdornment: translateAdornment(titleKey) } }}
+            />
+          )}
           <TextField
             label={`${intl.formatMessage({ id: 'page.manage.events.field.sectionHeader' })} — ${intl.formatMessage({ id: labelKey })}`}
             value={texts[headerField]}

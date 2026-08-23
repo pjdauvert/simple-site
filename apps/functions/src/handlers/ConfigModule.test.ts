@@ -425,7 +425,7 @@ describe('ConfigModule', () => {
         },
         { slug: 'winter-market', name: 'Winter Market', startDateTime: '2026-12-05T17:00:00.000Z', location: 'Halle des Douves' },
       ],
-      nextTitle: 'Prochainement',
+      upcomingTitle: 'Bientôt',
       pastHeader: 'Nos *souvenirs*.',
       design: { agendaPage: { pastEventsMode: 'from', pastEventsFromDate: '2026-01-01', columns: 2 } },
     };

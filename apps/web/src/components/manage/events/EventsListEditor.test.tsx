@@ -32,7 +32,7 @@ const seeded: Partial<EventsConfig> = {
       location: 'Place de la Bourse',
     },
   ],
-  nextTitle: 'Prochainement',
+  upcomingTitle: 'Bientôt',
 };
 
 // The dialog embeds router-dependent pieces (media picker, translate shortcut).
@@ -95,7 +95,7 @@ describe('EventsListEditor (List tab)', () => {
     expect(saved.events.map((e) => e.slug)).toEqual(['summer-festival', 'winter-market', 'spring-regatta']);
     // Texts/design come from the fresh draft — owned by the Design tab.
     expect(saved.pastTitle).toBe('Archives');
-    expect(saved.nextTitle).toBe('Prochainement');
+    expect(saved.upcomingTitle).toBe('Bientôt');
   });
 
   it('refuses to save an incomplete event and keeps the endpoint untouched', async () => {

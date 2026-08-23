@@ -30,7 +30,7 @@ export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({ ev
   const imageUrl = event.imageUrl ? eventHeaderImageUrl(event.imageUrl) : undefined;
 
   return (
-    <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: 3 }}>
+    <Box sx={{ position: 'relative', overflow: 'hidden' }}>
       {/* Abstract backdrop: the illustration blurred to a cover (scaled to hide edge fringing). */}
       <Box
         aria-hidden
@@ -60,7 +60,6 @@ export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({ ev
                 width: '100%',
                 maxHeight: { xs: 360, md: 480 },
                 objectFit: 'contain',
-                borderRadius: 2,
                 boxShadow: 6,
                 mx: 'auto',
               }}

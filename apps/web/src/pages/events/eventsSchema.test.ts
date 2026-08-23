@@ -10,7 +10,7 @@ import {
   eventDescriptionKey,
   eventLocationKey,
   eventNameKey,
-  EVENTS_NEXT_TITLE_KEY,
+  EVENTS_UPCOMING_TITLE_KEY,
   EVENTS_PAST_HEADER_KEY,
 } from '@simple-site/interfaces';
 
@@ -103,10 +103,10 @@ describe('collectEventsI18nEntries', () => {
 
   it('emits section titles and headers only when non-empty', () => {
     const entries = collectEventsI18nEntries(
-      EventsConfigSchema.parse({ events: [], nextTitle: 'Prochainement', pastHeader: 'Nos *souvenirs*.', upcomingTitle: '  ' }),
+      EventsConfigSchema.parse({ events: [], upcomingTitle: 'Bientôt', pastHeader: 'Nos *souvenirs*.', pastTitle: '  ' }),
     );
     const keys = entries.map((e) => e.key);
-    expect(keys).toContain(EVENTS_NEXT_TITLE_KEY);
+    expect(keys).toContain(EVENTS_UPCOMING_TITLE_KEY);
     expect(keys).toContain(EVENTS_PAST_HEADER_KEY);
     expect(keys).toHaveLength(2);
   });

@@ -3,7 +3,6 @@ import { Box, Container, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   EVENTS_NEXT_HEADER_KEY,
-  EVENTS_NEXT_TITLE_KEY,
   EVENTS_PAST_HEADER_KEY,
   EVENTS_PAST_TITLE_KEY,
   EVENTS_UPCOMING_HEADER_KEY,
@@ -89,14 +88,15 @@ export const EventsPage: React.FC = () => {
   return (
     <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'lg'} sx={{ py: { xs: 4, md: 6 } }}>
       {next && (
-        <Box component="section">
-          <SectionHeading
-            titleKey={EVENTS_NEXT_TITLE_KEY}
-            storedTitle={events?.nextTitle}
-            bundledTitleKey="page.events.nextTitle"
-            headerKey={EVENTS_NEXT_HEADER_KEY}
-            storedHeader={events?.nextHeader}
-          />
+        <Box component="section" sx={{ my: { xs: 4, md: 6 } }}>
+          {/* The featured section carries no heading — only its optional markdown intro. */}
+          {events?.nextHeader?.trim() && (
+            <Box sx={{ mb: 2, '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 } }}>
+              <FormattedMessage id={EVENTS_NEXT_HEADER_KEY} defaultMessage={events.nextHeader}>
+                {(message) => <Markdown>{String(message)}</Markdown>}
+              </FormattedMessage>
+            </Box>
+          )}
           <NextEventSection event={next} now={now} />
         </Box>
       )}

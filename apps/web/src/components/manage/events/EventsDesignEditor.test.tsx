@@ -47,7 +47,7 @@ describe('EventsDesignEditor (Design tab)', () => {
       .mockResolvedValue(draft({ events: freshEvents }));
     renderEditor();
 
-    fireEvent.change(await screen.findByLabelText(/section title — next event/i), { target: { value: ' Prochainement ' } });
+    fireEvent.change(await screen.findByLabelText(/section title — upcoming events/i), { target: { value: ' Bientôt ' } });
     fireEvent.change(screen.getByLabelText(/section introduction \(markdown\) — past events/i), {
       target: { value: 'Nos *souvenirs*.' },
     });
@@ -61,7 +61,7 @@ describe('EventsDesignEditor (Design tab)', () => {
     expect(vi.mocked(updateEvents).mock.calls[0][0]).toEqual({
       // The events come from the fresh draft — owned by the List tab.
       events: freshEvents,
-      nextTitle: 'Prochainement',
+      upcomingTitle: 'Bientôt',
       pastHeader: 'Nos *souvenirs*.',
       design: { agendaPage: { columns: 2 } },
     });

@@ -16,7 +16,7 @@ describe('agenda design draft', () => {
     expect(pristine).toEqual({
       pastEventsMode: 'all',
       pastEventsFromDate: '',
-      cardAspectRatio: '16:9',
+      cardAspectRatio: 'A4',
       columns: 3,
       showLocationOnCards: true,
     });
@@ -29,11 +29,11 @@ describe('agenda design draft', () => {
     const stored = fromAgendaDraft({
       pastEventsMode: 'none',
       pastEventsFromDate: '',
-      cardAspectRatio: '16:9',
+      cardAspectRatio: '16:9', // deviates from the A4 default → stored
       columns: 2,
       showLocationOnCards: false,
     });
-    expect(stored).toEqual({ pastEventsMode: 'none', columns: 2, showLocationOnCards: false });
+    expect(stored).toEqual({ pastEventsMode: 'none', cardAspectRatio: '16:9', columns: 2, showLocationOnCards: false });
   });
 
   it('keeps the from-date whatever the mode — switching away never loses it', () => {
@@ -50,12 +50,12 @@ describe('agenda design draft', () => {
 
 describe('section texts draft', () => {
   it('maps stored texts to the form and back, trimming and dropping empties', () => {
-    const events = { events: [], nextTitle: 'Prochainement', pastHeader: 'Nos *souvenirs*.' } as unknown as EventsConfig;
+    const events = { events: [], nextHeader: 'À ne pas *manquer*.', pastHeader: 'Nos *souvenirs*.' } as unknown as EventsConfig;
     const draft = toTextsDraft(events);
-    expect(draft.nextTitle).toBe('Prochainement');
+    expect(draft.nextHeader).toBe('À ne pas *manquer*.');
     expect(draft.upcomingTitle).toBe('');
     expect(fromTextsDraft({ ...draft, upcomingTitle: '  ', pastTitle: ' Archives ' })).toEqual({
-      nextTitle: 'Prochainement',
+      nextHeader: 'À ne pas *manquer*.',
       pastTitle: 'Archives',
       pastHeader: 'Nos *souvenirs*.',
     });

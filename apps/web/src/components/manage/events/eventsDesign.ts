@@ -30,9 +30,8 @@ export interface EventPageDesignDraft {
   imageAspectRatio: EventAspectRatio;
 }
 
-/** The agenda sections' editable texts — titles and markdown headers ('' ↔ absent). */
+/** The agenda sections' editable texts ('' ↔ absent) — the featured section only has an intro. */
 export interface SectionTextsDraft {
-  nextTitle: string;
   upcomingTitle: string;
   pastTitle: string;
   nextHeader: string;
@@ -79,7 +78,6 @@ export const buildDesign = (
 };
 
 export const toTextsDraft = (events: EventsConfig | undefined): SectionTextsDraft => ({
-  nextTitle: events?.nextTitle ?? '',
   upcomingTitle: events?.upcomingTitle ?? '',
   pastTitle: events?.pastTitle ?? '',
   nextHeader: events?.nextHeader ?? '',

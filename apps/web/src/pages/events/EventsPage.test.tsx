@@ -62,8 +62,8 @@ describe('EventsPage (public /events)', () => {
     });
     renderPage();
 
-    // Bundled section titles (no stored overrides).
-    expect(screen.getByRole('heading', { level: 2, name: 'Next event' })).toBeInTheDocument();
+    // Bundled section titles (no stored overrides) — the featured section has no heading.
+    expect(screen.queryByRole('heading', { level: 2, name: 'Next event' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Upcoming events' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Past events' })).toBeInTheDocument();
 
@@ -77,16 +77,16 @@ describe('EventsPage (public /events)', () => {
     expect(screen.getByRole('heading', { level: 3, name: 'Older Expo' })).toBeInTheDocument();
   });
 
-  it('renders stored section titles and markdown headers as translation defaults', () => {
+  it('renders stored section titles and markdown intros as translation defaults', () => {
     setConfig({
-      events: [event('next-show', 'Next Show', inDays(5))],
-      nextTitle: 'Prochainement',
+      events: [event('next-show', 'Next Show', inDays(5)), event('later-show', 'Later Show', inDays(60))],
+      upcomingTitle: 'Bientôt',
       nextHeader: 'Ne manquez **pas** ceci.',
     });
     renderPage();
-    expect(screen.getByRole('heading', { level: 2, name: 'Prochainement' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { level: 2, name: 'Next event' })).not.toBeInTheDocument();
-    expect(screen.getByText('pas')).toBeInTheDocument(); // markdown <strong> rendered
+    expect(screen.getByRole('heading', { level: 2, name: 'Bientôt' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Upcoming events' })).not.toBeInTheDocument();
+    expect(screen.getByText('pas')).toBeInTheDocument(); // featured markdown intro rendered
   });
 
   it('hides the past section entirely when the design says none', () => {
@@ -157,7 +157,8 @@ describe('EventsPage (public /events)', () => {
   it('omits the featured section entirely when no event is ongoing or upcoming', () => {
     setConfig({ events: [event('old-fair', 'Old Fair', utc(2023, 5, 10))] });
     renderPage();
-    expect(screen.queryByRole('heading', { level: 2, name: 'Next event' })).not.toBeInTheDocument();
+    // No featured block: no Maps link anywhere (the card location is plain text).
+    expect(document.querySelector('a[href*="google.com/maps"]')).toBeNull();
     expect(screen.getByRole('heading', { level: 2, name: 'Past events' })).toBeInTheDocument();
   });
 

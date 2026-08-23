@@ -158,11 +158,12 @@ Replaces the `events` of the **draft** — the agenda's event list, section text
                 "description": "Three days of **concerts**.", "imageUrl": "https://…/festival.jpg",
                 "startDateTime": "2027-06-18T15:00:00.000Z", "endDateTime": "2027-06-20T20:00:00.000Z",
                 "location": "Place de la Bourse, Bordeaux", "websiteUrl": "https://example.com/festival" } ],
-  "nextTitle": "Prochainement",
+  "upcomingTitle": "Bientôt",
   "design": { "agendaPage": { "pastEventsMode": "from", "pastEventsFromDate": "2026-01-01" } } }
 // slugs are immutable public identities (URL + i18n keys); instants are UTC ISO strings
-// (rendered in the visitor's timezone); nextTitle/upcomingTitle/pastTitle and
-// nextHeader/upcomingHeader/pastHeader (markdown) are optional translation defaults;
+// (rendered in the visitor's timezone); upcomingTitle/pastTitle and
+// nextHeader/upcomingHeader/pastHeader (markdown) are optional translation defaults
+// (the featured section has no heading of its own);
 // design.agendaPage: pastEventsMode (all — default — | none | from) + pastEventsFromDate
 // (YYYY-MM-DD, kept across mode switches), cardAspectRatio (A4 — portrait poster, default — | 16:9 | 4:3 | 1:1),
 // columns (2-4; default 3), showLocationOnCards (absent = shown);

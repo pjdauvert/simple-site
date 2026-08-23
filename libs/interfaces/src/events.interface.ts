@@ -126,11 +126,10 @@ export const EventsConfigSchema = z
     /** Every event, in any order — the pages place them from their dates. */
     events: z.array(SiteEventSchema).default([]),
     /**
-     * The agenda sections' headings — translation DEFAULTS (keys
-     * `events.nextTitle|upcomingTitle|pastTitle`); absent/empty → the app's
-     * bundled `page.events.*Title` labels.
+     * The upcoming/past sections' headings — translation DEFAULTS (keys
+     * `events.upcomingTitle|pastTitle`); absent/empty → the app's bundled
+     * `page.events.*Title` labels. The featured section has no heading.
      */
-    nextTitle: z.string().optional(),
     upcomingTitle: z.string().optional(),
     pastTitle: z.string().optional(),
     /**
@@ -171,7 +170,7 @@ export type EventsConfig = z.infer<typeof EventsConfigSchema>;
 // collector (not `collectI18nEntries`) so the Translations editor can merge
 // them only while the feature flag is on — mirroring the gallery collector.
 // Key layout:
-//  - `events.nextTitle|upcomingTitle|pastTitle`    the agenda section headings
+//  - `events.upcomingTitle|pastTitle`              the agenda section headings
 //  - `events.nextHeader|upcomingHeader|pastHeader` the section introductions
 //  - `events.<slug>.name|description|location`    per-event texts (slug-scoped,
 //    so reordering the list never re-maps translations — the positional-key
@@ -184,7 +183,6 @@ export type EventsConfig = z.infer<typeof EventsConfigSchema>;
 /** i18n scope of the events feature. */
 export const EVENTS_SCOPE = 'events';
 
-export const EVENTS_NEXT_TITLE_KEY = `${EVENTS_SCOPE}.nextTitle`;
 export const EVENTS_UPCOMING_TITLE_KEY = `${EVENTS_SCOPE}.upcomingTitle`;
 export const EVENTS_PAST_TITLE_KEY = `${EVENTS_SCOPE}.pastTitle`;
 export const EVENTS_NEXT_HEADER_KEY = `${EVENTS_SCOPE}.nextHeader`;
@@ -213,7 +211,6 @@ export const collectEventsI18nEntries = (config: EventsConfig): I18nEntry[] => {
   const add = (key: string, value: string | undefined): void => {
     if (value?.trim()) entries.push({ key, defaultValue: value });
   };
-  add(EVENTS_NEXT_TITLE_KEY, config.nextTitle);
   add(EVENTS_UPCOMING_TITLE_KEY, config.upcomingTitle);
   add(EVENTS_PAST_TITLE_KEY, config.pastTitle);
   add(EVENTS_NEXT_HEADER_KEY, config.nextHeader);
