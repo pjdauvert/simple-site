@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Stack, Typography } from "@mui/material";
 import { FormattedMessage, useIntl } from "react-intl";
 import {
   EVENTS_NEXT_HEADER_KEY,
@@ -127,39 +127,43 @@ export const EventsPage: React.FC = () => {
         </Box>
       )}
 
+      {/* The container's own padding frames the first section; a Stack spaces the
+          sections BETWEEN each other, so padding and margins never add up. */}
       <Container maxWidth={maxWidth} sx={{ py: { xs: 4, md: 6 } }}>
-        {upcoming.length > 0 && (
-          <Box component="section" sx={{ mt: { xs: 5, md: 7 } }}>
-            <SectionHeading
-              titleKey={EVENTS_UPCOMING_TITLE_KEY}
-              storedTitle={events?.upcomingTitle}
-              bundledTitleKey="page.events.upcomingTitle"
-              headerKey={EVENTS_UPCOMING_HEADER_KEY}
-              storedHeader={events?.upcomingHeader}
-            />
-            <EventCardGrid events={upcoming} design={design} />
-          </Box>
-        )}
+        <Stack spacing={{ xs: 5, md: 7 }}>
+          {upcoming.length > 0 && (
+            <Box component="section">
+              <SectionHeading
+                titleKey={EVENTS_UPCOMING_TITLE_KEY}
+                storedTitle={events?.upcomingTitle}
+                bundledTitleKey="page.events.upcomingTitle"
+                headerKey={EVENTS_UPCOMING_HEADER_KEY}
+                storedHeader={events?.upcomingHeader}
+              />
+              <EventCardGrid events={upcoming} design={design} />
+            </Box>
+          )}
 
-        {visiblePast.length > 0 && (
-          <Box component="section" sx={{ mt: { xs: 5, md: 7 } }}>
-            <SectionHeading
-              titleKey={EVENTS_PAST_TITLE_KEY}
-              storedTitle={events?.pastTitle}
-              bundledTitleKey="page.events.pastTitle"
-              headerKey={EVENTS_PAST_HEADER_KEY}
-              storedHeader={events?.pastHeader}
-            />
-            {visiblePast.map((bucket) => (
-              <Box key={bucket.year} sx={{ mt: 3 }}>
-                <Typography variant="h5" component="h3" gutterBottom>
-                  {bucket.year}
-                </Typography>
-                <EventCardGrid events={bucket.events} design={design} />
-              </Box>
-            ))}
-          </Box>
-        )}
+          {visiblePast.length > 0 && (
+            <Box component="section">
+              <SectionHeading
+                titleKey={EVENTS_PAST_TITLE_KEY}
+                storedTitle={events?.pastTitle}
+                bundledTitleKey="page.events.pastTitle"
+                headerKey={EVENTS_PAST_HEADER_KEY}
+                storedHeader={events?.pastHeader}
+              />
+              {visiblePast.map((bucket) => (
+                <Box key={bucket.year} sx={{ mt: 3 }}>
+                  <Typography variant="h5" component="h3" gutterBottom>
+                    {bucket.year}
+                  </Typography>
+                  <EventCardGrid events={bucket.events} design={design} />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Stack>
       </Container>
     </>
   );
