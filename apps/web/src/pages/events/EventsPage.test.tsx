@@ -132,14 +132,29 @@ describe('EventsPage (public /events)', () => {
     expect(mapLink.getAttribute('href')).toContain(encodeURIComponent('venue, Bordeaux'));
   });
 
-  it('shows the website link on the featured event, opening in a new tab', () => {
+  it('presents the featured event in full: full markdown description, then the website link in a new tab', () => {
     setConfig({
-      events: [event('next-show', 'Next Show', inDays(5), { websiteUrl: 'https://example.com/show' })],
+      events: [
+        event('next-show', 'Next Show', inDays(5), {
+          description: 'Doors open at **seven**.',
+          websiteUrl: 'https://example.com/show',
+        }),
+        event('later-show', 'Later Show', inDays(60), { description: 'Cards never show this.' }),
+      ],
     });
     renderPage();
+    expect(screen.getByText('seven')).toBeInTheDocument(); // markdown rendered in the featured block
+    expect(screen.queryByText(/Cards never show this/)).not.toBeInTheDocument();
     const website = screen.getByRole('link', { name: 'Visit the event website' });
     expect(website).toHaveAttribute('href', 'https://example.com/show');
     expect(website).toHaveAttribute('target', '_blank');
+  });
+
+  it('omits the featured section entirely when no event is ongoing or upcoming', () => {
+    setConfig({ events: [event('old-fair', 'Old Fair', utc(2023, 5, 10))] });
+    renderPage();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Next event' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Past events' })).toBeInTheDocument();
   });
 
   it('hides the location on cards when the design turns it off — the featured block keeps its own', () => {

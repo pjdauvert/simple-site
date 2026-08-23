@@ -1,17 +1,21 @@
 import React from 'react';
-import { Box, Button, Link, Paper, Stack, Typography } from '@mui/material';
+import { Box, Link, Stack, Typography } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { Link as RouterLink } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
-import { eventNameKey, type SiteEvent } from '@simple-site/interfaces';
+import { eventDescriptionKey, eventNameKey, type SiteEvent } from '@simple-site/interfaces';
+import { Markdown } from '../../components';
 import { EventDateSentence } from './EventDateSentence';
 import { EventLocationLink } from './EventLocationLink';
 import { eventHeaderImageUrl, eventRoute } from './eventDisplay';
 
 /**
- * The agenda's featured block: the next (or ongoing) event, image beside the
- * content from `md` up, stacked on phones. The name and the details button
- * navigate to the event's page; location and website open externally.
+ * The agenda's featured block — the next (or ongoing) event, laid out like a
+ * hero section: the illustration on the left third, the FULL presentation on
+ * the right two thirds (name, date sentence, location, the whole markdown
+ * description, then the website link). Phones stack image over content. The
+ * section itself is omitted by the page when no event is ongoing or upcoming.
  */
 export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({ event, now }) => {
   const theme = useTheme();
@@ -20,9 +24,9 @@ export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({ ev
   const tertiary = theme.palette.tertiary?.main ?? primary;
 
   return (
-    <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
-        <Box sx={{ flex: { md: '0 0 45%' }, aspectRatio: '16 / 9', overflow: 'hidden' }}>
+    <Grid container spacing={{ xs: 3, md: 5 }} alignItems="flex-start">
+      <Grid size={{ xs: 12, md: 4 }}>
+        <Box sx={{ aspectRatio: '4 / 3', overflow: 'hidden', borderRadius: 3 }}>
           {event.imageUrl ? (
             <Box
               component="img"
@@ -40,7 +44,9 @@ export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({ ev
             />
           )}
         </Box>
-        <Stack spacing={1.5} sx={{ p: { xs: 2, md: 3 }, justifyContent: 'center', minWidth: 0, flex: 1 }}>
+      </Grid>
+      <Grid size={{ xs: 12, md: 8 }}>
+        <Stack spacing={1.5} sx={{ minWidth: 0 }}>
           <Typography variant="h4" component="h3">
             <Link component={RouterLink} to={eventRoute(event.slug)} underline="hover" color="inherit">
               <FormattedMessage id={eventNameKey(event.slug)} defaultMessage={event.name} />
@@ -52,28 +58,25 @@ export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({ ev
           <Box sx={{ typography: 'body1' }}>
             <EventLocationLink event={event} />
           </Box>
+          {event.description?.trim() && (
+            <Box sx={{ '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 }, '& > :last-child': { mb: 0 } }}>
+              <FormattedMessage id={eventDescriptionKey(event.slug)} defaultMessage={event.description}>
+                {(message) => <Markdown>{String(message)}</Markdown>}
+              </FormattedMessage>
+            </Box>
+          )}
           {event.websiteUrl && (
             <Link
               href={event.websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
+              sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, alignSelf: 'flex-start' }}
             >
               <FormattedMessage id="page.events.website" />
             </Link>
           )}
-          <Box>
-            <Button
-              component={RouterLink}
-              to={eventRoute(event.slug)}
-              variant="contained"
-              sx={{ minHeight: 44 }}
-            >
-              <FormattedMessage id="page.events.details" />
-            </Button>
-          </Box>
         </Stack>
-      </Box>
-    </Paper>
+      </Grid>
+    </Grid>
   );
 };
