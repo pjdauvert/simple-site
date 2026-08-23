@@ -123,7 +123,7 @@ export const EventsPage: React.FC = () => {
               </FormattedMessage>
             </Container>
           )}
-          <NextEventSection event={next} now={now} />
+          <NextEventSection event={next} now={now} showBackdrop={design.showFeaturedBackdrop} />
         </Box>
       )}
 

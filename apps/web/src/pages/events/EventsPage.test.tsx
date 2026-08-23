@@ -154,6 +154,22 @@ describe('EventsPage (public /events)', () => {
     expect(website).toHaveAttribute('target', '_blank');
   });
 
+  it('paints the featured backdrop by default and drops it when the design turns it off', () => {
+    setConfig({ events: [event('next-show', 'Next Show', inDays(5))] });
+    const first = renderPage();
+    expect(screen.getByTestId('featured-backdrop')).toBeInTheDocument();
+    first.unmount();
+
+    setConfig({
+      events: [event('next-show', 'Next Show', inDays(5))],
+      design: { agendaPage: { showFeaturedBackdrop: false } },
+    });
+    renderPage();
+    // The section still renders — only the blurred layer is gone.
+    expect(screen.getByRole('heading', { level: 3, name: 'Next Show' })).toBeInTheDocument();
+    expect(screen.queryByTestId('featured-backdrop')).not.toBeInTheDocument();
+  });
+
   it('omits the featured section entirely when no event is ongoing or upcoming', () => {
     setConfig({ events: [event('old-fair', 'Old Fair', utc(2023, 5, 10))] });
     renderPage();

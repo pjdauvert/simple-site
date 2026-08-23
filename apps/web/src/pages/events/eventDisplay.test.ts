@@ -18,6 +18,7 @@ describe('design resolution (stored deviations over defaults)', () => {
       cardAspectRatio: 'A4',
       columns: 3,
       showLocationOnCards: true,
+      showFeaturedBackdrop: true,
     });
     expect(resolveEventPageDesign(undefined)).toEqual({ imageAspectRatio: '16:9' });
   });
@@ -26,7 +27,7 @@ describe('design resolution (stored deviations over defaults)', () => {
     const events = {
       events: [],
       design: {
-        agendaPage: { pastEventsMode: 'from', pastEventsFromDate: '2026-01-01', columns: 2, showLocationOnCards: false },
+        agendaPage: { pastEventsMode: 'from', pastEventsFromDate: '2026-01-01', columns: 2, showLocationOnCards: false, showFeaturedBackdrop: false },
         eventPage: { imageAspectRatio: '4:3' },
       },
     } as unknown as EventsConfig;
@@ -36,6 +37,7 @@ describe('design resolution (stored deviations over defaults)', () => {
       cardAspectRatio: 'A4', // untouched → default
       columns: 2,
       showLocationOnCards: false,
+      showFeaturedBackdrop: false,
     });
     expect(resolveEventPageDesign(events)).toEqual({ imageAspectRatio: '4:3' });
   });

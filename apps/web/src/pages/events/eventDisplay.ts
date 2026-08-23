@@ -26,6 +26,7 @@ export interface ResolvedAgendaDesign {
   cardAspectRatio: EventAspectRatio;
   columns: number;
   showLocationOnCards: boolean;
+  showFeaturedBackdrop: boolean;
 }
 
 export const resolveAgendaDesign = (events: EventsConfig | undefined): ResolvedAgendaDesign => ({
@@ -34,6 +35,7 @@ export const resolveAgendaDesign = (events: EventsConfig | undefined): ResolvedA
   cardAspectRatio: events?.design?.agendaPage?.cardAspectRatio ?? DEFAULT_EVENT_CARD_ASPECT_RATIO,
   columns: events?.design?.agendaPage?.columns ?? DEFAULT_EVENT_COLUMNS,
   showLocationOnCards: events?.design?.agendaPage?.showLocationOnCards ?? true,
+  showFeaturedBackdrop: events?.design?.agendaPage?.showFeaturedBackdrop ?? true,
 });
 
 export interface ResolvedEventPageDesign {

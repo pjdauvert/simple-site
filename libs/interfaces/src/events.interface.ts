@@ -110,6 +110,12 @@ export const EventsAgendaDesignSchema = z.object({
   columns: z.number().int().min(EVENT_COLUMNS_MIN).max(EVENT_COLUMNS_MAX).optional(),
   /** Whether cards show the event's location. Absent → shown (only `false` is stored). */
   showLocationOnCards: z.boolean().optional(),
+  /**
+   * Whether the featured section paints its blurred-cover backdrop (the
+   * illustration abstracted full-bleed; gradient without one). Absent → shown
+   * (only `false` is stored) — off, the section sits on the page background.
+   */
+  showFeaturedBackdrop: z.boolean().optional(),
 });
 
 export type EventsAgendaDesign = z.infer<typeof EventsAgendaDesignSchema>;

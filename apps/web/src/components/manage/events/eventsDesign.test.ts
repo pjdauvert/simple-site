@@ -19,6 +19,7 @@ describe('agenda design draft', () => {
       cardAspectRatio: 'A4',
       columns: 3,
       showLocationOnCards: true,
+      showFeaturedBackdrop: true,
     });
     expect(fromAgendaDraft(pristine)).toBeUndefined();
     expect(fromEventPageDraft(toEventPageDraft(undefined))).toBeUndefined();
@@ -32,8 +33,15 @@ describe('agenda design draft', () => {
       cardAspectRatio: '16:9', // deviates from the A4 default → stored
       columns: 2,
       showLocationOnCards: false,
+      showFeaturedBackdrop: false,
     });
-    expect(stored).toEqual({ pastEventsMode: 'none', cardAspectRatio: '16:9', columns: 2, showLocationOnCards: false });
+    expect(stored).toEqual({
+      pastEventsMode: 'none',
+      cardAspectRatio: '16:9',
+      columns: 2,
+      showLocationOnCards: false,
+      showFeaturedBackdrop: false,
+    });
   });
 
   it('keeps the from-date whatever the mode — switching away never loses it', () => {

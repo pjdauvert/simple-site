@@ -24,15 +24,17 @@ import { eventHeaderImageUrl, eventRoute } from "./eventDisplay";
  * presentation on the right two thirds — date first, then name, location,
  * the whole markdown description, and a "More info" button to the event's
  * website. The text zone sits on a contrasted, slightly transparent panel so
- * it stays readable over any backdrop. The backdrop spans the FULL viewport
+ * it stays readable over any backdrop. The design can disable the backdrop
+ * entirely (`showBackdrop`). It spans the FULL viewport
  * width (the page renders this section outside its container) while the
  * content keeps the site's max width. The section itself is omitted by the
  * page when no event is ongoing or upcoming.
  */
-export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({
-  event,
-  now,
-}) => {
+export const NextEventSection: React.FC<{
+  event: SiteEvent;
+  now: Date;
+  showBackdrop: boolean;
+}> = ({ event, now, showBackdrop }) => {
   const theme = useTheme();
   const { siteThemeConfig } = useAppTheme();
   const primary = theme.palette.primary.main;
@@ -44,25 +46,29 @@ export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({
 
   return (
     <Box sx={{ position: "relative", overflow: "hidden" }}>
-      {/* Abstract backdrop: the illustration blurred to a cover (scaled to hide edge fringing). */}
-      <Box
-        aria-hidden
-        sx={{
-          position: "absolute",
-          inset: 0,
-          ...(imageUrl
-            ? {
-                backgroundImage: `url("${imageUrl}")`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                filter: "blur(24px)",
-                transform: "scale(1.15)",
-              }
-            : {
-                background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 50%, ${tertiary} 100%)`,
-              }),
-        }}
-      />
+      {/* Abstract backdrop: the illustration blurred to a cover (scaled to hide
+          edge fringing) — the design can turn the whole layer off. */}
+      {showBackdrop && (
+        <Box
+          aria-hidden
+          data-testid="featured-backdrop"
+          sx={{
+            position: "absolute",
+            inset: 0,
+            ...(imageUrl
+              ? {
+                  backgroundImage: `url("${imageUrl}")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  filter: "blur(24px)",
+                  transform: "scale(1.15)",
+                }
+              : {
+                  background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 50%, ${tertiary} 100%)`,
+                }),
+          }}
+        />
+      )}
       {/* The backdrop bleeds across the viewport; the CONTENT stays on the site's max width,
           with generous vertical padding inside the backgrounded surface. */}
       <Container

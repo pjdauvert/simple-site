@@ -24,6 +24,7 @@ export interface AgendaDesignDraft {
   cardAspectRatio: EventAspectRatio;
   columns: number;
   showLocationOnCards: boolean;
+  showFeaturedBackdrop: boolean;
 }
 
 export interface EventPageDesignDraft {
@@ -45,6 +46,7 @@ export const toAgendaDraft = (events: EventsConfig | undefined): AgendaDesignDra
   cardAspectRatio: events?.design?.agendaPage?.cardAspectRatio ?? DEFAULT_EVENT_CARD_ASPECT_RATIO,
   columns: events?.design?.agendaPage?.columns ?? DEFAULT_EVENT_COLUMNS,
   showLocationOnCards: events?.design?.agendaPage?.showLocationOnCards ?? true,
+  showFeaturedBackdrop: events?.design?.agendaPage?.showFeaturedBackdrop ?? true,
 });
 
 export const fromAgendaDraft = (draft: AgendaDesignDraft): EventsAgendaDesign | undefined => {
@@ -54,6 +56,7 @@ export const fromAgendaDraft = (draft: AgendaDesignDraft): EventsAgendaDesign | 
   if (draft.cardAspectRatio !== DEFAULT_EVENT_CARD_ASPECT_RATIO) design.cardAspectRatio = draft.cardAspectRatio;
   if (draft.columns !== DEFAULT_EVENT_COLUMNS) design.columns = draft.columns;
   if (!draft.showLocationOnCards) design.showLocationOnCards = false;
+  if (!draft.showFeaturedBackdrop) design.showFeaturedBackdrop = false;
   return Object.keys(design).length > 0 ? design : undefined;
 };
 

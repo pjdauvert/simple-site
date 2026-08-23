@@ -209,6 +209,19 @@ export const EventsDesignEditor: React.FC = () => {
           </Typography>
         }
       />
+      <FormControlLabel
+        control={
+          <Switch
+            checked={agenda.showFeaturedBackdrop}
+            onChange={(_, checked) => setAgenda({ ...agenda, showFeaturedBackdrop: checked })}
+          />
+        }
+        label={
+          <Typography variant="body2">
+            <FormattedMessage id="page.manage.events.design.showFeaturedBackdrop" />
+          </Typography>
+        }
+      />
 
       <Divider />
       <Typography variant="subtitle1">

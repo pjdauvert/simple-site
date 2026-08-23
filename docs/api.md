@@ -166,7 +166,7 @@ Replaces the `events` of the **draft** — the agenda's event list, section text
 // (the featured section has no heading of its own);
 // design.agendaPage: pastEventsMode (all — default — | none | from) + pastEventsFromDate
 // (YYYY-MM-DD, kept across mode switches), cardAspectRatio (A4 — portrait poster, default — | 16:9 | 4:3 | 1:1),
-// columns (2-4; default 3), showLocationOnCards (absent = shown);
+// columns (2-4; default 3), showLocationOnCards / showFeaturedBackdrop (absent = shown);
 // design.eventPage: imageAspectRatio (same ratios; default 16:9)
 
 

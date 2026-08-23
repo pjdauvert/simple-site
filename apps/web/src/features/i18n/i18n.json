@@ -673,7 +673,8 @@
     "page.manage.events.design.aspect.4_3": "Classic (4:3)",
     "page.manage.events.design.aspect.1_1": "Square (1:1)",
     "page.events.moreInfo": "More info",
-    "page.manage.events.design.aspect.A4": "Poster (A4)"
+    "page.manage.events.design.aspect.A4": "Poster (A4)",
+    "page.manage.events.design.showFeaturedBackdrop": "Show the blurred backdrop behind the featured event"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -1349,6 +1350,7 @@
     "page.manage.events.design.aspect.4_3": "Classique (4:3)",
     "page.manage.events.design.aspect.1_1": "Carré (1:1)",
     "page.events.moreInfo": "Plus d'info",
-    "page.manage.events.design.aspect.A4": "Affiche (A4)"
+    "page.manage.events.design.aspect.A4": "Affiche (A4)",
+    "page.manage.events.design.showFeaturedBackdrop": "Afficher le fond flouté derrière le prochain événement"
   }
 }
