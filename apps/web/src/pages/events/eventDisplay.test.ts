@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import type { EventsConfig, SiteConfig } from '@simple-site/interfaces';
 import {
   aspectRatioCss,
+  eventCardImageSrcSet,
   eventCardImageUrl,
+  eventCardSizes,
+  eventColumnsSx,
   eventRoute,
   eventsPageTitle,
   googleMapsSearchUrl,
@@ -65,6 +68,18 @@ describe('URL helpers', () => {
       'https://ik.imagekit.io/demo/shot.jpg?tr=w-640,q-80,f-auto',
     );
     expect(eventCardImageUrl('/local/raw.jpg')).toBe('/local/raw.jpg');
+  });
+
+  it('ships a responsive srcSet with a column-derived sizes hint', () => {
+    expect(eventCardImageSrcSet('https://ik.imagekit.io/demo/shot.jpg')).toContain('w-320,q-80,f-auto 320w');
+    expect(eventCardImageSrcSet('/local/raw.jpg')).toBeUndefined();
+    expect(eventCardSizes(4)).toBe('(min-width: 900px) 25vw, (min-width: 600px) 50vw, 100vw');
+  });
+});
+
+describe('eventColumnsSx', () => {
+  it('stacks on phones, pairs on tablets, honours the design count on desktop only', () => {
+    expect(eventColumnsSx(4)).toEqual({ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' });
   });
 });
 

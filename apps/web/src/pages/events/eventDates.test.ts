@@ -36,6 +36,14 @@ describe('localDateISO / isMultiDay', () => {
     expect(localDateISO(new Date(utc(2026, 8, 16, 9)))).toBe('2026-08-16');
   });
 
+  it('follows the VIEWER timezone near midnight UTC — a getUTC* regression would fail here off-UTC', () => {
+    // Independent oracle: `en-CA` formats as YYYY-MM-DD in the runtime timezone.
+    // The suite pins a non-UTC TZ (vitest.config.ts), so on 23:30Z the local
+    // day differs from the UTC day and a local/UTC mix-up becomes visible.
+    const nearMidnightUtc = new Date('2026-08-16T23:30:00.000Z');
+    expect(localDateISO(nearMidnightUtc)).toBe(nearMidnightUtc.toLocaleDateString('en-CA'));
+  });
+
   it('is multi-day only when start and end fall on different local days', () => {
     expect(isMultiDay(event('same', utc(2026, 9, 12, 10), utc(2026, 9, 12, 23)))).toBe(false);
     expect(isMultiDay(event('two', utc(2026, 9, 12, 10), utc(2026, 9, 13, 1)))).toBe(true);
@@ -53,6 +61,13 @@ describe('isPastEvent', () => {
     expect(isPastEvent(event('yesterday', utc(2026, 8, 15, 9)), NOW)).toBe(true);
     expect(isPastEvent(event('ended-yesterday', utc(2026, 8, 10, 9), utc(2026, 8, 15, 23)), NOW)).toBe(true);
   });
+
+  it('flips exactly AT the local midnight after the last day (inclusive boundary)', () => {
+    const endsAug15 = event('boundary', utc(2026, 8, 15, 9));
+    const midnightAfter = new Date(2026, 7, 16, 0, 0, 0, 0);
+    expect(isPastEvent(endsAug15, midnightAfter)).toBe(true);
+    expect(isPastEvent(endsAug15, new Date(midnightAfter.getTime() - 1))).toBe(false);
+  });
 });
 
 describe('featuredDateRule', () => {
@@ -67,6 +82,9 @@ describe('featuredDateRule', () => {
     expect(featuredDateRule(event('u', utc(2026, 8, 16, 9), utc(2026, 8, 18, 18)), NOW)).toBe('until');
     // Starts today but later than now → still announced as a range.
     expect(featuredDateRule(event('r2', utc(2026, 8, 16, 20), utc(2026, 8, 18, 18)), NOW)).toBe('range');
+    // The start instant itself counts as started (inclusive boundary).
+    const start = utc(2026, 8, 16, 12);
+    expect(featuredDateRule(event('b', start, utc(2026, 8, 18, 18)), new Date(start))).toBe('until');
   });
 });
 

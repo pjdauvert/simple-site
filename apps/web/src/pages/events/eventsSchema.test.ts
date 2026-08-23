@@ -47,10 +47,18 @@ describe('SiteEventSchema', () => {
     expect(SiteEventSchema.safeParse({ ...validEvent, startDateTime: '2026-09-12' }).success).toBe(false);
   });
 
-  it('enforces the kebab-case slug charset', () => {
-    for (const slug of ['Fete', 'fete_du_port', '-fete', 'fete-', 'fête']) {
+  it('enforces the kebab-case slug charset and length cap', () => {
+    for (const slug of ['Fete', 'fete_du_port', '-fete', 'fete-', 'fête', 'a'.repeat(65)]) {
       expect(SiteEventSchema.safeParse({ ...validEvent, slug }).success).toBe(false);
     }
+    expect(SiteEventSchema.safeParse({ ...validEvent, slug: 'a'.repeat(64) }).success).toBe(true);
+  });
+
+  it('rejects empty required texts and malformed URLs', () => {
+    expect(SiteEventSchema.safeParse({ ...validEvent, name: '' }).success).toBe(false);
+    expect(SiteEventSchema.safeParse({ ...validEvent, location: '' }).success).toBe(false);
+    expect(SiteEventSchema.safeParse({ ...validEvent, websiteUrl: 'not a url' }).success).toBe(false);
+    expect(SiteEventSchema.safeParse({ ...validEvent, imageUrl: 'not a url' }).success).toBe(false);
   });
 });
 
