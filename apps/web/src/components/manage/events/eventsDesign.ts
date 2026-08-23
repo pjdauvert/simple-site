@@ -2,34 +2,35 @@ import {
   DEFAULT_EVENT_CARD_ASPECT_RATIO,
   DEFAULT_EVENT_COLUMNS,
   DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO,
+  DEFAULT_EVENT_SHOW_FEATURED_BACKDROP,
+  DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS,
   DEFAULT_PAST_EVENTS_MODE,
-  type EventAspectRatio,
   type EventsAgendaDesign,
   type EventsConfig,
   type EventsPageDesign,
-  type PastEventsMode,
 } from '@simple-site/interfaces';
+import {
+  resolveAgendaDesign,
+  resolveEventPageDesign,
+  type ResolvedAgendaDesign,
+  type ResolvedEventPageDesign,
+} from '../../../pages/events/eventDisplay';
 
 /**
  * Pure draft ↔ stored converters of the events Design tab. Drafts carry every
- * option RESOLVED (defaults filled in) so the form is fully controlled; the
- * `from*` converters keep only deviations from the defaults, so a pristine
- * tab persists nothing (`undefined`).
+ * option RESOLVED (defaults filled in) so the form is fully controlled — the
+ * resolution itself is the public pages' (`resolveAgendaDesign`), so admin and
+ * rendering can never disagree on a default; the `from*` converters keep only
+ * deviations from the defaults, so a pristine tab persists nothing
+ * (`undefined`).
  */
 
-export interface AgendaDesignDraft {
-  pastEventsMode: PastEventsMode;
-  /** Kept whatever the mode — switching away and back never loses the date. */
+export interface AgendaDesignDraft extends Omit<ResolvedAgendaDesign, 'pastEventsFromDate'> {
+  /** Kept whatever the mode — switching away and back never loses the date ('' ↔ absent). */
   pastEventsFromDate: string;
-  cardAspectRatio: EventAspectRatio;
-  columns: number;
-  showLocationOnCards: boolean;
-  showFeaturedBackdrop: boolean;
 }
 
-export interface EventPageDesignDraft {
-  imageAspectRatio: EventAspectRatio;
-}
+export type EventPageDesignDraft = ResolvedEventPageDesign;
 
 /** The agenda sections' editable texts ('' ↔ absent) — the featured section only has an intro. */
 export interface SectionTextsDraft {
@@ -40,14 +41,10 @@ export interface SectionTextsDraft {
   pastHeader: string;
 }
 
-export const toAgendaDraft = (events: EventsConfig | undefined): AgendaDesignDraft => ({
-  pastEventsMode: events?.design?.agendaPage?.pastEventsMode ?? DEFAULT_PAST_EVENTS_MODE,
-  pastEventsFromDate: events?.design?.agendaPage?.pastEventsFromDate ?? '',
-  cardAspectRatio: events?.design?.agendaPage?.cardAspectRatio ?? DEFAULT_EVENT_CARD_ASPECT_RATIO,
-  columns: events?.design?.agendaPage?.columns ?? DEFAULT_EVENT_COLUMNS,
-  showLocationOnCards: events?.design?.agendaPage?.showLocationOnCards ?? true,
-  showFeaturedBackdrop: events?.design?.agendaPage?.showFeaturedBackdrop ?? true,
-});
+export const toAgendaDraft = (events: EventsConfig | undefined): AgendaDesignDraft => {
+  const resolved = resolveAgendaDesign(events);
+  return { ...resolved, pastEventsFromDate: resolved.pastEventsFromDate ?? '' };
+};
 
 export const fromAgendaDraft = (draft: AgendaDesignDraft): EventsAgendaDesign | undefined => {
   const design: EventsAgendaDesign = {};
@@ -55,14 +52,13 @@ export const fromAgendaDraft = (draft: AgendaDesignDraft): EventsAgendaDesign | 
   if (draft.pastEventsFromDate) design.pastEventsFromDate = draft.pastEventsFromDate;
   if (draft.cardAspectRatio !== DEFAULT_EVENT_CARD_ASPECT_RATIO) design.cardAspectRatio = draft.cardAspectRatio;
   if (draft.columns !== DEFAULT_EVENT_COLUMNS) design.columns = draft.columns;
-  if (!draft.showLocationOnCards) design.showLocationOnCards = false;
-  if (!draft.showFeaturedBackdrop) design.showFeaturedBackdrop = false;
+  if (draft.showLocationOnCards !== DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS) design.showLocationOnCards = false;
+  if (draft.showFeaturedBackdrop !== DEFAULT_EVENT_SHOW_FEATURED_BACKDROP) design.showFeaturedBackdrop = false;
   return Object.keys(design).length > 0 ? design : undefined;
 };
 
-export const toEventPageDraft = (events: EventsConfig | undefined): EventPageDesignDraft => ({
-  imageAspectRatio: events?.design?.eventPage?.imageAspectRatio ?? DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO,
-});
+export const toEventPageDraft = (events: EventsConfig | undefined): EventPageDesignDraft =>
+  resolveEventPageDesign(events);
 
 export const fromEventPageDraft = (draft: EventPageDesignDraft): EventsPageDesign | undefined =>
   draft.imageAspectRatio !== DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO

@@ -4,7 +4,6 @@ import {
   Box,
   Divider,
   FormControlLabel,
-  InputAdornment,
   MenuItem,
   Switch,
   TextField,
@@ -27,7 +26,7 @@ import {
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { StickySaveButton } from '../StickySaveButton';
-import { TranslateShortcut } from '../TranslateShortcut';
+import { TranslateAdornment } from '../TranslateAdornment';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateEvents } from '../../../services/eventsService';
 import { useNotifications } from '../../../hooks/useNotifications';
@@ -132,9 +131,7 @@ export const EventsDesignEditor: React.FC = () => {
   }
 
   const translateAdornment = (i18nKey: string): React.ReactNode => (
-    <InputAdornment position="end">
-      <TranslateShortcut i18nKey={i18nKey} label={intl.formatMessage({ id: 'page.manage.events.translate' })} />
-    </InputAdornment>
+    <TranslateAdornment i18nKey={i18nKey} label={intl.formatMessage({ id: 'page.manage.events.translate' })} />
   );
 
   return (

@@ -10,10 +10,18 @@ import {
   type SiteEvent,
 } from "@simple-site/interfaces";
 import { Markdown } from "../../components";
+import { brandGradient } from "../../features/theme/muiTheme";
 import { EventDateSentence } from "./EventDateSentence";
 import { EventLocationLink } from "./EventLocationLink";
 import { useAppTheme } from "../../hooks/useAppTheme";
-import { eventHeaderImageUrl, eventRoute } from "./eventDisplay";
+import {
+  FEATURED_POSTER_SIZES,
+  eventBackdropImageUrl,
+  eventHeaderImageSrcSet,
+  eventHeaderImageUrl,
+  eventRoute,
+  markdownBodySx,
+} from "./eventDisplay";
 
 /**
  * The agenda's featured block — the next (or ongoing) event. The section's
@@ -37,12 +45,7 @@ export const NextEventSection: React.FC<{
 }> = ({ event, now, showBackdrop }) => {
   const theme = useTheme();
   const { siteThemeConfig } = useAppTheme();
-  const primary = theme.palette.primary.main;
-  const secondary = theme.palette.secondary.main;
-  const tertiary = theme.palette.tertiary?.main ?? primary;
-  const imageUrl = event.imageUrl
-    ? eventHeaderImageUrl(event.imageUrl)
-    : undefined;
+  const imageUrl = event.imageUrl;
 
   return (
     <Box sx={{ position: "relative", overflow: "hidden" }}>
@@ -57,14 +60,16 @@ export const NextEventSection: React.FC<{
             inset: 0,
             ...(imageUrl
               ? {
-                  backgroundImage: `url("${imageUrl}")`,
+                  // A tiny rendition on purpose — the blur erases any detail
+                  // a heavier download would carry.
+                  backgroundImage: `url("${eventBackdropImageUrl(imageUrl)}")`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   filter: "blur(24px)",
                   transform: "scale(1.15)",
                 }
               : {
-                  background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 50%, ${tertiary} 100%)`,
+                  background: brandGradient(theme),
                 }),
           }}
         />
@@ -85,8 +90,11 @@ export const NextEventSection: React.FC<{
             <Grid size={{ xs: 12, md: 4 }}>
               <Box
                 component="img"
-                src={imageUrl}
+                src={eventHeaderImageUrl(imageUrl)}
+                srcSet={eventHeaderImageSrcSet(imageUrl)}
+                sizes={FEATURED_POSTER_SIZES}
                 alt=""
+                decoding="async"
                 sx={{
                   display: "block",
                   width: "100%",
@@ -116,7 +124,7 @@ export const NextEventSection: React.FC<{
               <Typography variant="subtitle1" color="text.secondary">
                 <EventDateSentence event={event} now={now} />
               </Typography>
-              <Typography variant="h4" component="h3">
+              <Typography variant="h4" component="h2">
                 <Link
                   component={RouterLink}
                   to={eventRoute(event.slug)}
@@ -130,13 +138,7 @@ export const NextEventSection: React.FC<{
                 </Link>
               </Typography>
               {event.description?.trim() && (
-                <Box
-                  sx={{
-                    "& p": { typography: "body1" },
-                    "& > :first-of-type": { mt: 0 },
-                    "& > :last-child": { mb: 0 },
-                  }}
-                >
+                <Box sx={markdownBodySx}>
                   <FormattedMessage
                     id={eventDescriptionKey(event.slug)}
                     defaultMessage={event.description}

@@ -11,7 +11,15 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { EventDateSentence } from './EventDateSentence';
 import { EventLocationLink } from './EventLocationLink';
-import { aspectRatioCss, eventBySlug, eventHeaderImageUrl, resolveEventPageDesign } from './eventDisplay';
+import {
+  EVENT_PAGE_HEADER_SIZES,
+  aspectRatioCss,
+  eventBySlug,
+  eventHeaderImageSrcSet,
+  eventHeaderImageUrl,
+  markdownBodySx,
+  resolveEventPageDesign,
+} from './eventDisplay';
 
 /**
  * Public /events/<slug> detail page — the full fiche: header illustration
@@ -43,13 +51,16 @@ export const EventPage: React.FC = () => {
   const design = resolveEventPageDesign(config.events);
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
+    <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'md'} sx={{ py: { xs: 4, md: 6 } }}>
       {event.imageUrl && (
         <Box sx={{ aspectRatio: aspectRatioCss(design.imageAspectRatio), overflow: 'hidden', borderRadius: 3, mb: { xs: 3, md: 4 } }}>
           <Box
             component="img"
             src={eventHeaderImageUrl(event.imageUrl)}
+            srcSet={eventHeaderImageSrcSet(event.imageUrl)}
+            sizes={EVENT_PAGE_HEADER_SIZES}
             alt=""
+            decoding="async"
             sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         </Box>
@@ -82,7 +93,7 @@ export const EventPage: React.FC = () => {
       </Stack>
 
       {event.description?.trim() && (
-        <Box sx={{ '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 }, '& > :last-child': { mb: 0 } }}>
+        <Box sx={markdownBodySx}>
           <FormattedMessage id={eventDescriptionKey(event.slug)} defaultMessage={event.description}>
             {(message) => <Markdown>{String(message)}</Markdown>}
           </FormattedMessage>

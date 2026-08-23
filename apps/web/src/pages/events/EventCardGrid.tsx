@@ -16,6 +16,7 @@ export const EventCardGrid: React.FC<{ events: readonly SiteEvent[]; design: Res
         key={event.slug}
         event={event}
         aspectRatio={design.cardAspectRatio}
+        columns={design.columns}
         showLocation={design.showLocationOnCards}
       />
     ))}

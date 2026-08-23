@@ -197,6 +197,22 @@ export const MenuConfigSchema = z.object({
 
 export type MenuConfig = z.infer<typeof MenuConfigSchema>;
 
+/**
+ * Default value of a feature page's heading / nav label (`<feature>.menuTitle`):
+ * the menu entry's custom title when one is set — top level or inside a group —
+ * else the feature default. The same fallback chain the nav renders.
+ */
+export const featurePageTitle = (menu: MenuConfig | undefined, feature: FeaturePageId): string => {
+  for (const entry of menu?.entries ?? []) {
+    if (entry.type === "feature" && entry.feature === feature) return featureEntryLabel(entry);
+    if (entry.type === "group") {
+      const child = entry.children.find((c) => c.type === "feature" && c.feature === feature);
+      if (child?.type === "feature") return featureEntryLabel(child);
+    }
+  }
+  return FEATURE_PAGE_DEFAULT_LABELS[feature];
+};
+
 /** Stable identity of a menu entry, used for dedupe and reconciliation. */
 export const menuEntryId = (entry: MenuEntry): string => {
   switch (entry.type) {

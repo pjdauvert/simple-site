@@ -43,6 +43,15 @@
     "page.getStarted.steps.content.columns.1.title": "2. Activer Netlify Identity",
     "page.getStarted.steps.content.columns.1.paragraph": "Activez Netlify Identity dans les paramètres de votre projet pour sécuriser le panneau d'administration. Invitez-vous comme premier utilisateur administrateur — aucune configuration supplémentaire requise.",
     "page.getStarted.steps.content.columns.2.title": "3. Forker sur GitHub",
-    "page.getStarted.steps.content.columns.2.paragraph": "Forkez le dépôt Simple Site dans votre compte GitHub, puis connectez-le à Netlify en un clic. Chaque push sur votre branche principale est automatiquement déployé en production."
+    "page.getStarted.steps.content.columns.2.paragraph": "Forkez le dépôt Simple Site dans votre compte GitHub, puis connectez-le à Netlify en un clic. Chaque push sur votre branche principale est automatiquement déployé en production.",
+    "events.summer-festival.name": "Festival d'été",
+    "events.summer-festival.description": "Trois jours de concerts, d'ateliers et de cuisine de rue sur les quais.\n\n**Entrée libre** — venez comme vous êtes !",
+    "events.summer-festival.location": "Place de la Bourse, Bordeaux",
+    "events.winter-market.name": "Marché d'hiver",
+    "events.winter-market.description": "Créateurs locaux, vin chaud et illuminations — une seule soirée.",
+    "events.winter-market.location": "Halle des Douves, Bordeaux",
+    "events.spring-regatta.name": "Régate de printemps",
+    "events.spring-regatta.description": "L'ouverture de la saison sur le fleuve — résultats et photos à l'intérieur.",
+    "events.spring-regatta.location": "Quai des Chartrons, Bordeaux"
   }
 }
