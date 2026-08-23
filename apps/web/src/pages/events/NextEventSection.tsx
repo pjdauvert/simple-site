@@ -129,9 +129,6 @@ export const NextEventSection: React.FC<{
                   />
                 </Link>
               </Typography>
-              <Box sx={{ typography: "body1" }}>
-                <EventLocationLink event={event} />
-              </Box>
               {event.description?.trim() && (
                 <Box
                   sx={{
@@ -161,6 +158,9 @@ export const NextEventSection: React.FC<{
                   </Button>
                 </Box>
               )}
+              <Box sx={{ typography: "body1" }}>
+                <EventLocationLink event={event} />
+              </Box>
             </Stack>
           </Grid>
         </Grid>
