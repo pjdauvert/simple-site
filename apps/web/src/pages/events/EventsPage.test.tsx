@@ -113,7 +113,7 @@ describe('EventsPage (public /events)', () => {
     expect(screen.getByText(/^Until .+$/)).toBeInTheDocument();
   });
 
-  it('links each card to the event page and the location to Google Maps in a new tab', () => {
+  it('links each card to the event page — the card location is plain text, only the featured block links to Maps', () => {
     setConfig({
       events: [
         event('next-show', 'Next Show', inDays(5)),
@@ -124,8 +124,12 @@ describe('EventsPage (public /events)', () => {
 
     const card = screen.getByRole('heading', { level: 3, name: 'Later Show' }).closest('a') as HTMLElement;
     expect(card).toHaveAttribute('href', '/events/later-show');
+    // The card shows its location but nests no second interactive element…
+    expect(within(card).getByText('Later Show venue, Bordeaux')).toBeInTheDocument();
+    expect(within(card).queryByRole('link')).not.toBeInTheDocument();
 
-    const mapLink = screen.getAllByRole('link', { name: /venue, Bordeaux/ })[0];
+    // …the featured block keeps the Google Maps link.
+    const mapLink = screen.getByRole('link', { name: /Next Show venue/ });
     expect(mapLink).toHaveAttribute('target', '_blank');
     expect(mapLink).toHaveAttribute('rel', 'noopener noreferrer');
     expect(mapLink.getAttribute('href')).toContain('https://www.google.com/maps/search/?api=1&query=');
@@ -145,7 +149,7 @@ describe('EventsPage (public /events)', () => {
     renderPage();
     expect(screen.getByText('seven')).toBeInTheDocument(); // markdown rendered in the featured block
     expect(screen.queryByText(/Cards never show this/)).not.toBeInTheDocument();
-    const website = screen.getByRole('link', { name: 'Visit the event website' });
+    const website = screen.getByRole('link', { name: 'More info' });
     expect(website).toHaveAttribute('href', 'https://example.com/show');
     expect(website).toHaveAttribute('target', '_blank');
   });
@@ -168,8 +172,8 @@ describe('EventsPage (public /events)', () => {
     renderPage();
     // Featured block still shows its location link…
     expect(screen.getByRole('link', { name: /Next Show venue/ })).toBeInTheDocument();
-    // …the upcoming card does not.
-    expect(screen.queryByRole('link', { name: /Later Show venue/ })).not.toBeInTheDocument();
+    // …the upcoming card shows no location at all.
+    expect(screen.queryByText('Later Show venue, Bordeaux')).not.toBeInTheDocument();
   });
 
   it('renders card dates in the short 2-digit format, as a range for multi-day events', () => {

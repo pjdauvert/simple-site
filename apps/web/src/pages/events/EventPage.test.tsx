@@ -69,7 +69,7 @@ describe('EventPage (public /events/:slug)', () => {
     expect(mapLink).toHaveAttribute('rel', 'noopener noreferrer');
     expect(mapLink.getAttribute('href')).toContain(encodeURIComponent('Place de la Bourse, Bordeaux'));
 
-    const website = screen.getByRole('link', { name: 'Visit the event website' });
+    const website = screen.getByRole('link', { name: 'More info' });
     expect(website).toHaveAttribute('href', 'https://example.com/festival');
     expect(website).toHaveAttribute('target', '_blank');
 

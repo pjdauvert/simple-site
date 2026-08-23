@@ -608,7 +608,6 @@
     "page.events.date.until": "Until {endDate}",
     "page.events.card.range": "{startDate} – {endDate}",
     "page.events.openMap": "Open in Google Maps",
-    "page.events.website": "Visit the event website",
     "manage.events.menuTitle": "Events",
     "page.manage.events.title": "Events",
     "page.manage.events.publishNote": "Changes are saved to the configuration draft and go live when you publish it from the dashboard.",
@@ -672,7 +671,9 @@
     "page.manage.events.design.imageAspectRatio": "Header image ratio",
     "page.manage.events.design.aspect.16_9": "Wide (16:9)",
     "page.manage.events.design.aspect.4_3": "Classic (4:3)",
-    "page.manage.events.design.aspect.1_1": "Square (1:1)"
+    "page.manage.events.design.aspect.1_1": "Square (1:1)",
+    "page.events.moreInfo": "More info",
+    "page.manage.events.design.aspect.A4": "Poster (A4)"
   },
   "fr": {
     "language.switch": "Changer de Langue",
@@ -1283,7 +1284,6 @@
     "page.events.date.until": "Jusqu'au {endDate}",
     "page.events.card.range": "{startDate} – {endDate}",
     "page.events.openMap": "Ouvrir dans Google Maps",
-    "page.events.website": "Voir le site de l'événement",
     "manage.events.menuTitle": "Événements",
     "page.manage.events.title": "Événements",
     "page.manage.events.publishNote": "Les modifications sont enregistrées dans le brouillon de configuration et prennent effet à sa publication depuis le tableau de bord.",
@@ -1347,6 +1347,8 @@
     "page.manage.events.design.imageAspectRatio": "Ratio de l'image d'en-tête",
     "page.manage.events.design.aspect.16_9": "Large (16:9)",
     "page.manage.events.design.aspect.4_3": "Classique (4:3)",
-    "page.manage.events.design.aspect.1_1": "Carré (1:1)"
+    "page.manage.events.design.aspect.1_1": "Carré (1:1)",
+    "page.events.moreInfo": "Plus d'info",
+    "page.manage.events.design.aspect.A4": "Affiche (A4)"
   }
 }

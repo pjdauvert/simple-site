@@ -15,7 +15,7 @@ describe('design resolution (stored deviations over defaults)', () => {
     expect(resolveAgendaDesign(undefined)).toEqual({
       pastEventsMode: 'all',
       pastEventsFromDate: undefined,
-      cardAspectRatio: '16:9',
+      cardAspectRatio: 'A4',
       columns: 3,
       showLocationOnCards: true,
     });
@@ -33,7 +33,7 @@ describe('design resolution (stored deviations over defaults)', () => {
     expect(resolveAgendaDesign(events)).toMatchObject({
       pastEventsMode: 'from',
       pastEventsFromDate: '2026-01-01',
-      cardAspectRatio: '16:9', // untouched → default
+      cardAspectRatio: 'A4', // untouched → default
       columns: 2,
       showLocationOnCards: false,
     });
@@ -52,9 +52,10 @@ describe('URL helpers', () => {
     );
   });
 
-  it('maps ratios to CSS aspect-ratio values', () => {
+  it('maps ratios to CSS aspect-ratio values — A4 is the portrait poster', () => {
     expect(aspectRatioCss('16:9')).toBe('16 / 9');
     expect(aspectRatioCss('1:1')).toBe('1 / 1');
+    expect(aspectRatioCss('A4')).toBe('210 / 297');
   });
 
   it('right-sizes ImageKit URLs and leaves other URLs untouched', () => {

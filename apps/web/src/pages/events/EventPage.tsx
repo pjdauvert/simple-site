@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Link, Stack, Typography } from '@mui/material';
+import { Box, Button, Container, Stack, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { eventDescriptionKey, eventNameKey } from '@simple-site/interfaces';
@@ -67,14 +67,17 @@ export const EventPage: React.FC = () => {
           <EventLocationLink event={event} />
         </Box>
         {event.websiteUrl && (
-          <Link
-            href={event.websiteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
-          >
-            <FormattedMessage id="page.events.website" />
-          </Link>
+          <Box>
+            <Button
+              href={event.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="contained"
+              sx={{ minHeight: 44 }}
+            >
+              <FormattedMessage id="page.events.moreInfo" />
+            </Button>
+          </Box>
         )}
       </Stack>
 

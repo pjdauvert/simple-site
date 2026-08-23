@@ -1,21 +1,22 @@
 import React from 'react';
-import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
+import { Box, Card, CardActionArea, Stack, Typography } from '@mui/material';
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
-import { eventNameKey, type EventAspectRatio, type SiteEvent } from '@simple-site/interfaces';
+import { eventLocationKey, eventNameKey, type EventAspectRatio, type SiteEvent } from '@simple-site/interfaces';
 import { isMultiDay, eventEnd, eventStart } from './eventDates';
 import { aspectRatioCss, eventCardImageUrl, eventRoute } from './eventDisplay';
-import { EventLocationLink } from './EventLocationLink';
 
 const CARD_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
 
 /**
- * One agenda card: illustration (or a brand-gradient placeholder), name,
- * date(s) in short 2-digit format and — per the design — the location. The
- * whole card navigates to the event's page; the location is a Google Maps
- * link and therefore sits OUTSIDE the `CardActionArea` (nested interactive
- * elements are invalid HTML and break keyboard navigation).
+ * One agenda card (upcoming and past sections alike): an ELEVATED card whose
+ * whole surface navigates to the event's page. The illustration (a poster,
+ * A4 by default) fills the card; the name and date(s) sit ON it, over a
+ * frosted (blurred, darkened) strip so they read on any artwork; the
+ * location — plain text, per the design toggle — sits under the
+ * illustration. No illustration → the brand gradient placeholder.
  */
 export const EventCard: React.FC<{
   event: SiteEvent;
@@ -36,9 +37,9 @@ export const EventCard: React.FC<{
     : intl.formatDate(eventStart(event), CARD_DATE);
 
   return (
-    <Card variant="outlined" sx={{ borderRadius: 3, display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea component={RouterLink} to={eventRoute(event.slug)} sx={{ flexGrow: 1, alignItems: 'stretch' }}>
-        <Box sx={{ aspectRatio: aspectRatioCss(aspectRatio), overflow: 'hidden' }}>
+    <Card elevation={4} sx={{ borderRadius: 3 }}>
+      <CardActionArea component={RouterLink} to={eventRoute(event.slug)}>
+        <Box sx={{ position: 'relative', aspectRatio: aspectRatioCss(aspectRatio), overflow: 'hidden' }}>
           {event.imageUrl ? (
             <Box
               component="img"
@@ -56,21 +57,37 @@ export const EventCard: React.FC<{
               }}
             />
           )}
+          {/* Frosted strip: name + date over the artwork, readable on anything. */}
+          <Box
+            sx={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              px: 2,
+              py: 1.5,
+              backdropFilter: 'blur(10px)',
+              backgroundColor: 'rgba(15, 15, 15, 0.45)',
+              color: '#fff',
+            }}
+          >
+            <Typography variant="h6" component="h3" sx={{ lineHeight: 1.25 }}>
+              <FormattedMessage id={eventNameKey(event.slug)} defaultMessage={event.name} />
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.85 }}>
+              {dates}
+            </Typography>
+          </Box>
         </Box>
-        <CardContent sx={{ pb: showLocation ? 1 : 2 }}>
-          <Typography variant="h6" component="h3" sx={{ mb: 0.5 }}>
-            <FormattedMessage id={eventNameKey(event.slug)} defaultMessage={event.name} />
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {dates}
-          </Typography>
-        </CardContent>
+        {showLocation && (
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ px: 2, py: 1.5, color: 'text.secondary', minWidth: 0 }}>
+            <PlaceOutlinedIcon fontSize="small" aria-hidden />
+            <Typography variant="body2" noWrap>
+              <FormattedMessage id={eventLocationKey(event.slug)} defaultMessage={event.location} />
+            </Typography>
+          </Stack>
+        )}
       </CardActionArea>
-      {showLocation && (
-        <Box sx={{ px: 2, pb: 1.5, color: 'text.secondary', typography: 'body2' }}>
-          <EventLocationLink event={event} />
-        </Box>
-      )}
     </Card>
   );
 };

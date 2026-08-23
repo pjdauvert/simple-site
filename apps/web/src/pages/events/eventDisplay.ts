@@ -51,8 +51,9 @@ export const eventRoute = (slug: string): string => `${FEATURE_PAGE_ROUTES.event
 export const googleMapsSearchUrl = (address: string): string =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
-/** CSS `aspect-ratio` value of a design ratio. */
-export const aspectRatioCss = (ratio: EventAspectRatio): string => ratio.replace(':', ' / ');
+/** CSS `aspect-ratio` value of a design ratio (`A4` = portrait 210 × 297). */
+export const aspectRatioCss = (ratio: EventAspectRatio): string =>
+  ratio === 'A4' ? '210 / 297' : ratio.replace(':', ' / ');
 
 /**
  * Responsive column track of the card grids: phones stack, tablets show two,

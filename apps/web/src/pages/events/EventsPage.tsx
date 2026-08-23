@@ -88,12 +88,8 @@ export const EventsPage: React.FC = () => {
 
   return (
     <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'lg'} sx={{ py: { xs: 4, md: 6 } }}>
-      <Typography variant="h3" component="h1" gutterBottom>
-        <FormattedMessage id={menuTitleKey(FeaturePagesEnum.EVENTS)} defaultMessage={eventsPageTitle(config)} />
-      </Typography>
-
       {next && (
-        <Box component="section" sx={{ mt: { xs: 3, md: 5 } }}>
+        <Box component="section">
           <SectionHeading
             titleKey={EVENTS_NEXT_TITLE_KEY}
             storedTitle={events?.nextTitle}

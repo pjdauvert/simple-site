@@ -36,11 +36,15 @@ export const EVENT_SLUG_MAX_LENGTH = 64;
  */
 const UtcDateTimeSchema = z.iso.datetime();
 
-/** Aspect ratios offered for event imagery (cards and detail header). */
-export const EVENT_ASPECT_RATIOS = ['16:9', '4:3', '1:1'] as const;
+/**
+ * Aspect ratios offered for event imagery (cards and detail header). `A4` is
+ * the portrait print-poster ratio (210 × 297) — event illustrations are
+ * mostly digital versions of printed posters, so it is the card default.
+ */
+export const EVENT_ASPECT_RATIOS = ['A4', '16:9', '4:3', '1:1'] as const;
 export const EventAspectRatioSchema = z.enum(EVENT_ASPECT_RATIOS);
 export type EventAspectRatio = z.infer<typeof EventAspectRatioSchema>;
-export const DEFAULT_EVENT_CARD_ASPECT_RATIO: EventAspectRatio = '16:9';
+export const DEFAULT_EVENT_CARD_ASPECT_RATIO: EventAspectRatio = 'A4';
 export const DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO: EventAspectRatio = '16:9';
 
 /**
