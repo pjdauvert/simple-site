@@ -48,7 +48,13 @@ export const NextEventSection: React.FC<{ event: SiteEvent; now: Date }> = ({ ev
             : { background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 50%, ${tertiary} 100%)` }),
         }}
       />
-      <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center" sx={{ position: 'relative', p: { xs: 2, md: 4 } }}>
+      {/* Generous vertical padding INSIDE the backdrop — the breathing room belongs to the backgrounded surface. */}
+      <Grid
+        container
+        spacing={{ xs: 3, md: 5 }}
+        alignItems="center"
+        sx={{ position: 'relative', px: { xs: 2, md: 4 }, py: { xs: 5, md: 8 } }}
+      >
         {imageUrl && (
           <Grid size={{ xs: 12, md: 4 }}>
             <Box

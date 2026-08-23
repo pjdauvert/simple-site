@@ -88,7 +88,7 @@ export const EventsPage: React.FC = () => {
   return (
     <Container maxWidth={siteThemeConfig.containerMaxWidth ?? 'lg'} sx={{ py: { xs: 4, md: 6 } }}>
       {next && (
-        <Box component="section" sx={{ my: { xs: 4, md: 6 } }}>
+        <Box component="section">
           {/* The featured section carries no heading — only its optional markdown intro. */}
           {events?.nextHeader?.trim() && (
             <Box sx={{ mb: 2, '& p': { typography: 'body1' }, '& > :first-of-type': { mt: 0 } }}>
