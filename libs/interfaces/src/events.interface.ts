@@ -20,7 +20,7 @@ import type { I18nEntry } from './sections/section.interface.js';
  * the event's public URL segment (`/events/<slug>`) AND its i18n-key segment
  * (`events.<slug>.*`), so changing it would break both bookmarks and stored
  * translations. No underscores/uppercase, so a slug can never collide with
- * the fixed `events.*` keys (`menuTitle`, `nextTitle`…), which all contain
+ * the fixed `events.*` keys (`menuTitle`, `upcomingTitle`…), which all contain
  * an uppercase letter or sit on a different depth.
  */
 export const EVENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -61,6 +61,10 @@ export const DEFAULT_PAST_EVENTS_MODE: PastEventsMode = 'all';
 export const EVENT_COLUMNS_MIN = 2;
 export const EVENT_COLUMNS_MAX = 4;
 export const DEFAULT_EVENT_COLUMNS = 3;
+
+/** Boolean design toggles: shown by default — only `false` is ever stored. */
+export const DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS = true;
+export const DEFAULT_EVENT_SHOW_FEATURED_BACKDROP = true;
 
 export const SiteEventSchema = z
   .object({

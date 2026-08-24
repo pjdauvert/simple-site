@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react';
 
 const sharedTypesRoot = fileURLToPath(new URL('../../libs/interfaces/src', import.meta.url));
 
+// Pin a NON-UTC timezone (unless the machine already has one): on a UTC
+// runner local == UTC, so a local/UTC confusion in date handling (the events
+// classification, the datetime-local converters) could never fail a test.
+process.env.TZ ??= 'Europe/Paris';
+
 export default defineConfig({
   plugins: [react()] as any,
   resolve: {

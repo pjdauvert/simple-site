@@ -450,9 +450,18 @@ describe('ConfigModule', () => {
       { events: [{ ...event, endDateTime: '2026-12-31T10:00:00.000Z' }] }, // ends before start
       { events: [{ ...event, slug: 'Bad_Slug' }] },
     ]) {
-      expect((await handle(jsonRequest('https://site.test/api/config/events', 'PUT', events))).status).toBe(500);
+      const res = await handle(jsonRequest('https://site.test/api/config/events', 'PUT', events));
+      expect(res.status).toBe(500);
+      expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
     }
     expect(data.has('config:draft')).toBe(false);
+  });
+
+  it('PUT /api/config/events rejects a non-JSON content type', async () => {
+    seedStore();
+    const res = await handle(jsonRequest('https://site.test/api/config/events', 'PUT', '{}', 'text/plain'));
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
   });
 
   it('PUT /api/config/gallery accepts the mosaic display mode', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { collectI18nEntries, SiteConfigSchema, TeamConfigSchema } from '@simple-site/interfaces';
+import { collectEventsI18nEntries, collectI18nEntries, SiteConfigSchema, TeamConfigSchema } from '@simple-site/interfaces';
 import i18nSeed from './i18n.json';
 import siteConfigSeed from './siteConfig.json';
 import teamSeed from './team.json';
@@ -13,7 +13,14 @@ import teamSeed from './team.json';
  */
 describe('seed siteConfig ↔ i18n parity', () => {
   const config = SiteConfigSchema.parse(siteConfigSeed);
-  const expected = collectI18nEntries(config).map((e) => e.key).sort();
+  // The config walk plus the events collector: events keys are flag-gated in
+  // the Translations page, but the seed ships events content — its override
+  // locales must translate those keys too, or a dev store with FEATURE_EVENTS
+  // on flags them missing.
+  const expected = [
+    ...collectI18nEntries(config).map((e) => e.key),
+    ...(config.events ? collectEventsI18nEntries(config.events).map((e) => e.key) : []),
+  ].sort();
 
   it('has no dictionary for the default language (its text lives in the config)', () => {
     expect(Object.keys(i18nSeed)).not.toContain(config.site.defaultLanguage);

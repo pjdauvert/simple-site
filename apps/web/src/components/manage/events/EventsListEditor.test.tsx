@@ -16,19 +16,27 @@ vi.mock('../../../hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
 const draft = (events?: Partial<EventsConfig>): SiteConfig =>
   ({ site: { siteName: 'S' }, themes: [], pages: [], events }) as unknown as SiteConfig;
 
+/** Relative instants — fixed dates would rot into the past and flip the Past chip. */
+const inDays = (days: number, hour = 15): string => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(hour, 0, 0, 0);
+  return date.toISOString();
+};
+
 const seeded: Partial<EventsConfig> = {
   events: [
     {
       slug: 'spring-regatta',
       name: 'Spring Regatta',
-      startDateTime: '2025-05-10T08:00:00.000Z',
+      startDateTime: inDays(-400, 8),
       location: 'Quai des Chartrons',
     },
     {
       slug: 'summer-festival',
       name: 'Summer Festival',
-      startDateTime: '2027-06-18T15:00:00.000Z',
-      endDateTime: '2027-06-20T20:00:00.000Z',
+      startDateTime: inDays(300),
+      endDateTime: inDays(302),
       location: 'Place de la Bourse',
     },
   ],

@@ -62,19 +62,30 @@ describe('EventsPage (public /events)', () => {
     });
     renderPage();
 
-    // Bundled section titles (no stored overrides) — the featured section has no heading.
-    expect(screen.queryByRole('heading', { level: 2, name: 'Next event' })).not.toBeInTheDocument();
+    // The page title is a visually-hidden h1 (no visible page heading by design).
+    expect(screen.getByRole('heading', { level: 1, name: 'Events' })).toBeInTheDocument();
+
+    // Bundled section titles (no stored overrides) — the featured section has no heading of its own.
+    expect(screen.queryByRole('heading', { name: 'Next event' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Upcoming events' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Past events' })).toBeInTheDocument();
 
-    // The soonest future event is featured; the later one is an upcoming card.
-    expect(screen.getByRole('heading', { level: 3, name: 'Next Show' })).toBeInTheDocument();
+    // The soonest future event is featured (its name IS the section's h2); the later one is an upcoming card.
+    expect(screen.getByRole('heading', { level: 2, name: 'Next Show' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Later Show' })).toBeInTheDocument();
 
     // Past events under their year headings, most recent year first.
     const years = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
     expect(years.indexOf('2024')).toBeLessThan(years.indexOf('2023'));
     expect(screen.getByRole('heading', { level: 3, name: 'Older Expo' })).toBeInTheDocument();
+  });
+
+  it('announces a featured event happening today with the `today` sentence', () => {
+    // Whatever the run's wall-clock, a same-local-day event stays `today`
+    // (the rule compares local days, and it is not past before next midnight).
+    setConfig({ events: [event('today-show', 'Today Show', inDays(0, 23))] });
+    renderPage();
+    expect(screen.getByText(/^Today, .+ from .+$/)).toBeInTheDocument();
   });
 
   it('renders stored section titles and markdown intros as translation defaults', () => {
@@ -166,7 +177,7 @@ describe('EventsPage (public /events)', () => {
     });
     renderPage();
     // The section still renders — only the blurred layer is gone.
-    expect(screen.getByRole('heading', { level: 3, name: 'Next Show' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Next Show' })).toBeInTheDocument();
     expect(screen.queryByTestId('featured-backdrop')).not.toBeInTheDocument();
   });
 

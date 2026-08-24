@@ -5,8 +5,9 @@ import { Link as RouterLink } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { eventLocationKey, eventNameKey, type EventAspectRatio, type SiteEvent } from '@simple-site/interfaces';
+import { brandGradient } from '../../features/theme/muiTheme';
 import { isMultiDay, eventEnd, eventStart } from './eventDates';
-import { aspectRatioCss, eventCardImageUrl, eventRoute } from './eventDisplay';
+import { aspectRatioCss, eventCardImageSrcSet, eventCardImageUrl, eventCardSizes, eventRoute } from './eventDisplay';
 
 const CARD_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
 
@@ -21,13 +22,11 @@ const CARD_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit'
 export const EventCard: React.FC<{
   event: SiteEvent;
   aspectRatio: EventAspectRatio;
+  columns: number;
   showLocation: boolean;
-}> = ({ event, aspectRatio, showLocation }) => {
+}> = ({ event, aspectRatio, columns, showLocation }) => {
   const intl = useIntl();
   const theme = useTheme();
-  const primary = theme.palette.primary.main;
-  const secondary = theme.palette.secondary.main;
-  const tertiary = theme.palette.tertiary?.main ?? primary;
 
   const dates = isMultiDay(event)
     ? intl.formatMessage(
@@ -44,8 +43,11 @@ export const EventCard: React.FC<{
             <Box
               component="img"
               src={eventCardImageUrl(event.imageUrl)}
+              srcSet={eventCardImageSrcSet(event.imageUrl)}
+              sizes={eventCardSizes(columns)}
               alt=""
               loading="lazy"
+              decoding="async"
               sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           ) : (
@@ -53,7 +55,7 @@ export const EventCard: React.FC<{
               sx={{
                 width: '100%',
                 height: '100%',
-                background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 50%, ${tertiary} 100%)`,
+                background: brandGradient(theme),
               }}
             />
           )}
@@ -67,16 +69,16 @@ export const EventCard: React.FC<{
               px: 2,
               py: 1.5,
               backdropFilter: 'blur(10px)',
-              backgroundColor: 'rgba(15, 15, 15, 0.45)',
-              color: '#fff',
+              // Dark enough for AA contrast with plain white text on any artwork,
+              // light posters included (the blur softens but never darkens).
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              color: 'common.white',
             }}
           >
             <Typography variant="h6" component="h3" sx={{ lineHeight: 1.25 }}>
               <FormattedMessage id={eventNameKey(event.slug)} defaultMessage={event.name} />
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.85 }}>
-              {dates}
-            </Typography>
+            <Typography variant="body2">{dates}</Typography>
           </Box>
         </Box>
         {showLocation && (

@@ -5,14 +5,13 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  InputAdornment,
   TextField,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { eventDescriptionKey, eventLocationKey, eventNameKey } from '@simple-site/interfaces';
 import { MediaUrlField } from '../../media';
-import { TranslateShortcut } from '../TranslateShortcut';
+import { TranslateAdornment } from '../TranslateAdornment';
 import { slugify } from '../slugify';
 import { localInputToUtc, utcToLocalInput, type EventDraft, type EventFieldErrors } from './eventsDraft';
 
@@ -81,15 +80,14 @@ export const EventFormDialog: React.FC<EventFormDialogProps> = ({
   /** End adornment linking a translation-default field to its per-language key. */
   const translateAdornment = (i18nKey: string): React.ReactNode =>
     slugLocked ? (
-      <InputAdornment position="end">
-        <TranslateShortcut i18nKey={i18nKey} label={intl.formatMessage({ id: 'page.manage.events.translate' })} />
-      </InputAdornment>
+      <TranslateAdornment i18nKey={i18nKey} label={intl.formatMessage({ id: 'page.manage.events.translate' })} />
     ) : undefined;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>
-        <FormattedMessage id="page.manage.events.edit" />
+        {/* The same dialog serves both flows — `persisted` tells them apart. */}
+        <FormattedMessage id={event.persisted ? 'page.manage.events.dialog.editTitle' : 'page.manage.events.dialog.addTitle'} />
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: 'grid', gap: 2 }}>

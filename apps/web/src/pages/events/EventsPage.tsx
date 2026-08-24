@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Container, Stack, Typography } from "@mui/material";
+import { visuallyHidden } from "@mui/utils";
 import { FormattedMessage, useIntl } from "react-intl";
 import {
   EVENTS_NEXT_HEADER_KEY,
@@ -17,7 +18,7 @@ import { useSiteConfig } from "../../hooks/useSiteConfig";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { classifyEvents, filterVisiblePast } from "./eventDates";
-import { eventsPageTitle, resolveAgendaDesign } from "./eventDisplay";
+import { eventsPageTitle, markdownBodySx, resolveAgendaDesign } from "./eventDisplay";
 import { NextEventSection } from "./NextEventSection";
 import { EventCardGrid } from "./EventCardGrid";
 
@@ -42,13 +43,7 @@ const SectionHeading: React.FC<{
       )}
     </Typography>
     {storedHeader?.trim() && (
-      <Box
-        sx={{
-          mb: 2,
-          "& p": { typography: "body1" },
-          "& > :first-of-type": { mt: 0 },
-        }}
-      >
+      <Box sx={{ mb: 2, ...markdownBodySx }}>
         <FormattedMessage id={headerKey} defaultMessage={storedHeader}>
           {(message) => <Markdown>{String(message)}</Markdown>}
         </FormattedMessage>
@@ -100,21 +95,22 @@ export const EventsPage: React.FC = () => {
 
   return (
     <>
+      {/* The page deliberately shows no heading of its own (the featured hero
+          opens it visually) — this hidden h1 keeps the document outline and
+          assistive tech anchored on the page title. */}
+      <Typography component="h1" sx={visuallyHidden}>
+        <FormattedMessage
+          id={menuTitleKey(FeaturePagesEnum.EVENTS)}
+          defaultMessage={eventsPageTitle(config)}
+        />
+      </Typography>
       {/* The featured section sits OUTSIDE the container: its blurred backdrop
           bleeds across the viewport while its content keeps the max width. */}
       {next && (
         <Box component="section">
           {/* The featured section carries no heading — only its optional markdown intro. */}
           {events?.nextHeader?.trim() && (
-            <Container
-              maxWidth={maxWidth}
-              sx={{
-                pt: { xs: 4, md: 6 },
-                mb: 2,
-                "& p": { typography: "body1" },
-                "& > :first-of-type": { mt: 0 },
-              }}
-            >
+            <Container maxWidth={maxWidth} sx={{ pt: { xs: 4, md: 6 }, mb: 2, ...markdownBodySx }}>
               <FormattedMessage
                 id={EVENTS_NEXT_HEADER_KEY}
                 defaultMessage={events.nextHeader}
