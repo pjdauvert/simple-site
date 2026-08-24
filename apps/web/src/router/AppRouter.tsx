@@ -12,6 +12,8 @@ import { TeamMemberPage } from '../pages/team/TeamMemberPage';
 import { ContactPage } from '../pages/contact/ContactPage';
 import { GalleryPage } from '../pages/gallery/GalleryPage';
 import { GalleryTagPage } from '../pages/gallery/GalleryTagPage';
+import { EventsPage } from '../pages/events/EventsPage';
+import { EventPage } from '../pages/events/EventPage';
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
@@ -39,6 +41,8 @@ export const AppRouter: React.FC = () => {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/gallery/tag/:tag" element={<GalleryTagPage />} />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/events/:slug" element={<EventPage />} />
         <Route path="*" Component={NotFoundPage} />
       </Routes>
     </MainLayout>

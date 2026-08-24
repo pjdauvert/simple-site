@@ -11,8 +11,7 @@ import {
   DEFAULT_GALLERY_WATERMARK_POSITION,
   FEATURE_PAGE_ROUTES,
   FeaturePagesEnum,
-  featureEntryLabel,
-  FEATURE_PAGE_DEFAULT_LABELS,
+  featurePageTitle,
   type GalleryCaptionPosition,
   type GalleryConfig,
   type GalleryDisplayMode,
@@ -182,18 +181,6 @@ export const itemWidthCapSx = (itemMaxWidthPercent: number | undefined): Record<
       }
     : {};
 
-/**
- * Default value of the gallery page heading / nav label (`gallery.menuTitle`):
- * the menu entry's custom title when one is set, else the feature default —
- * the same fallback chain the nav renders.
- */
-export const galleryPageTitle = (config: SiteConfig): string => {
-  for (const entry of config.menu?.entries ?? []) {
-    if (entry.type === 'feature' && entry.feature === FeaturePagesEnum.GALLERY) return featureEntryLabel(entry);
-    if (entry.type === 'group') {
-      const child = entry.children.find((c) => c.type === 'feature' && c.feature === FeaturePagesEnum.GALLERY);
-      if (child?.type === 'feature') return featureEntryLabel(child);
-    }
-  }
-  return FEATURE_PAGE_DEFAULT_LABELS[FeaturePagesEnum.GALLERY];
-};
+/** Default value of the gallery page heading / nav label (`gallery.menuTitle`). */
+export const galleryPageTitle = (config: SiteConfig): string =>
+  featurePageTitle(config.menu, FeaturePagesEnum.GALLERY);

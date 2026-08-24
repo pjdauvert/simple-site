@@ -15,6 +15,7 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 | PUT | `/api/config/themes` | Replace the `themes` array of the **draft** (admin) |
 | PUT | `/api/config/menu` | Replace the `menu` of the **draft** (admin) |
 | PUT | `/api/config/gallery` | Replace the `gallery` of the **draft** (admin, flag-gated) |
+| PUT | `/api/config/events` | Replace the `events` of the **draft** (admin, flag-gated) |
 | POST | `/api/config/publish` | Publish the draft — promote it live, archive the previous (admin) |
 | POST | `/api/config/import` | Upload a configuration as the new named draft (admin) |
 | GET | `/api/config/versions` | List versions: published, draft, archives (admin) |
@@ -145,6 +146,32 @@ Replaces the `gallery` of the **draft** — the tagged image gallery (see [confi
 
 // 200 OK
 { "ok": true, "data": { "message": "Gallery updated successfully" } }
+```
+
+### `PUT /api/config/events`
+
+Replaces the `events` of the **draft** — the agenda's event list, section texts and design (see [configuration.md](configuration.md#events)). Gated by the **`FEATURE_EVENTS`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `events` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `events` — rejecting duplicate or charset-invalid slugs (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, ≤ 64 chars), non-UTC instants (timezone-less, offset or date-only strings), an end before its start, and out-of-range design values — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/events` editor.
+
+```json
+// Request body — an EventsConfig object
+{ "events": [ { "slug": "summer-festival", "name": "Summer Festival",
+                "description": "Three days of **concerts**.", "imageUrl": "https://…/festival.jpg",
+                "startDateTime": "2027-06-18T15:00:00.000Z", "endDateTime": "2027-06-20T20:00:00.000Z",
+                "location": "Place de la Bourse, Bordeaux", "websiteUrl": "https://example.com/festival" } ],
+  "upcomingTitle": "Bientôt",
+  "design": { "agendaPage": { "pastEventsMode": "from", "pastEventsFromDate": "2026-01-01" } } }
+// slugs are immutable public identities (URL + i18n keys); instants are UTC ISO strings
+// (rendered in the visitor's timezone); upcomingTitle/pastTitle and
+// nextHeader/upcomingHeader/pastHeader (markdown) are optional translation defaults
+// (the featured section has no heading of its own);
+// design.agendaPage: pastEventsMode (all — default — | none | from) + pastEventsFromDate
+// (YYYY-MM-DD, kept across mode switches), cardAspectRatio (A4 — portrait poster, default — | 16:9 | 4:3 | 1:1),
+// columns (2-4; default 3), showLocationOnCards / showFeaturedBackdrop (absent = shown);
+// design.eventPage: imageAspectRatio (same ratios; default 16:9)
+
+
+// 200 OK
+{ "ok": true, "data": { "message": "Events updated successfully" } }
 ```
 
 ### `POST /api/config/publish`
@@ -301,7 +328,7 @@ Public. Reports which optional features the server currently has enabled, so the
 
 ```json
 // 200 OK
-{ "ok": true, "data": { "media": true, "team": false, "contact": false, "gallery": false } }
+{ "ok": true, "data": { "media": true, "team": false, "contact": false, "gallery": false, "events": false } }
 ```
 
 ---
@@ -516,6 +543,7 @@ The following endpoints require a valid Netlify Identity JWT in the `Authorizati
 | POST | `/api/config` | ✓ |
 | PUT | `/api/config/site` | ✓ |
 | PUT | `/api/config/gallery` | ✓ (and flag-gated — 404 before auth) |
+| PUT | `/api/config/events` | ✓ (and flag-gated — 404 before auth) |
 | POST | `/api/config/publish` | ✓ |
 | POST | `/api/config/import` | ✓ |
 | GET | `/api/config/versions` | ✓ |
@@ -575,6 +603,7 @@ FEATURE_MEDIA            # "true" enables the media library (admin page + /api/m
 FEATURE_TEAM             # "true" enables the team feature (admin page, /team pages, /api/team)
 FEATURE_CONTACT          # "true" enables the contact feature (admin page, /contact page, /api/contact)
 FEATURE_GALLERY          # "true" enables the gallery (admin page, /gallery pages, menu entries, PUT /api/config/gallery)
+FEATURE_EVENTS           # "true" enables the events (admin page, /events pages, menu entry, PUT /api/config/events)
 IMAGEKIT_PRIVATE_KEY
 IMAGEKIT_PUBLIC_KEY
 IMAGEKIT_URL_ENDPOINT

@@ -116,7 +116,7 @@ npm run dev
 
 - [ ] Assets management
 - [ ] Configuration caching with cache invalidation
-- [ ] Additional section types (gallery, calendar, event, bibliography, …)
+- [ ] Additional section types (calendar, bibliography, …) — the gallery and events shipped as flag-gated feature pages instead, not as section types
 - [ ] Advanced responsive images with `srcset`
 - [ ] Configuration edition mechanism
 - [ ] Modules management (payment, authentication, external API access)
