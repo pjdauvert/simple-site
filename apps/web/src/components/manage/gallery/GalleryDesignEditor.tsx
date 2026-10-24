@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -46,10 +46,10 @@ import {
   type GalleryWatermarkPosition,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
+import { DraftSaveStatus } from '../DraftSaveStatus';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
-import { useNotifications } from '../../../hooks/useNotifications';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { ColorField } from '../themes/ColorField';
 import {
   emptyGallery,
@@ -77,6 +77,30 @@ const COLUMN_CHOICES = Array.from(
 );
 
 /**
+ * The design options this tab owns, as one value: what the auto-save compares
+ * and what `save` merges over the freshest draft.
+ */
+interface DesignDraft {
+  captionPosition: GalleryCaptionPosition;
+  displayMode: GalleryDisplayMode;
+  showTitle: boolean;
+  showSubtitle: boolean;
+  itemMaxWidthPercent: number | undefined;
+  itemElevation: number;
+  itemBorder: boolean;
+  itemBorderColor: string;
+  itemCornerRadius: number;
+  itemColumns: number;
+  itemAspectRatio: GalleryItemAspectRatio;
+  itemFit: GalleryItemFit;
+  itemSpacing: GalleryItemSpacing;
+  watermarkText: string;
+  watermarkPosition: GalleryWatermarkPosition;
+  watermarkColor: string;
+  watermarkOpacity: number;
+}
+
+/**
  * Design tab of /manage/gallery: how visitors browse the items. Follows the
  * platform's ergonomic principle (docs/contributing.md): only the options
  * APPLICABLE to the selected display mode are shown — caption position in
@@ -85,14 +109,14 @@ const COLUMN_CHOICES = Array.from(
  * symbolic skeleton preview (right half, desktop only) illustrates the picked
  * design live, with a landscape/portrait toggle simulating the visitor's
  * screen — a viewing aid that hides no design option, since orientation is
- * the visitor's context, not a design parameter. Saves via
- * `PUT /api/config/gallery`, re-reading the draft first so the Themes tab's
- * items are never clobbered; defaults are stored as "no design" to keep
- * configs minimal.
+ * the visitor's context, not a design parameter. Every settled change
+ * AUTO-SAVES via `PUT /api/config/gallery` — there is no save button, the
+ * indicator reports where the write stands — re-reading the draft first so the
+ * Themes tab's items are never clobbered; defaults are stored as "no design" to
+ * keep configs minimal. An out-of-range width cap holds the write back.
  */
 export const GalleryDesignEditor: React.FC = () => {
   const intl = useIntl();
-  const notify = useNotifications();
 
   const [captionPosition, setCaption] = useState<GalleryCaptionPosition | null>(null);
   const [displayMode, setMode] = useState<GalleryDisplayMode>(DEFAULT_GALLERY_DISPLAY_MODE);
@@ -115,7 +139,6 @@ export const GalleryDesignEditor: React.FC = () => {
   const [watermarkColor, setWatermarkColor] = useState(DEFAULT_GALLERY_WATERMARK_COLOR);
   const [watermarkOpacity, setWatermarkOpacity] = useState(DEFAULT_GALLERY_WATERMARK_OPACITY);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   // Preview-only: simulates the visitor's screen, never persisted.
   const [previewOrientation, setPreviewOrientation] = useState<PreviewOrientation>('landscape');
 
@@ -154,39 +177,76 @@ export const GalleryDesignEditor: React.FC = () => {
       itemMaxWidthPercent < GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN ||
       itemMaxWidthPercent > GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX);
 
-  const handleSave = async (): Promise<void> => {
-    if (captionPosition === null || widthInvalid) return;
-    setSubmitting(true);
-    try {
-      // Merge over the freshest draft so the Themes tab's items survive.
-      const fresh = (await loadDraftConfig()).gallery ?? emptyGallery();
-      let merged = setItemMaxWidthPercent(
-        setDisplayMode(setCaptionPosition(fresh, captionPosition), displayMode),
-        itemMaxWidthPercent,
-      );
-      merged = setItemShowSubtitle(setItemShowTitle(merged, showTitle), showSubtitle);
-      merged = setItemCornerRadius(
-        setItemBorderColor(setItemBorder(setItemElevation(merged, itemElevation), itemBorder), itemBorderColor),
-        itemCornerRadius,
-      );
-      merged = setItemSpacing(
-        setItemFit(setItemAspectRatio(setItemColumns(merged, itemColumns), itemAspectRatio), itemFit),
-        itemSpacing,
-      );
-      merged = setWatermark(merged, {
-        text: watermarkText,
-        position: watermarkPosition,
-        color: watermarkColor,
-        opacity: watermarkOpacity,
-      });
-      await updateGallery(merged);
-      notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const design = useMemo<DesignDraft | null>(
+    () =>
+      captionPosition === null
+        ? null
+        : {
+            captionPosition,
+            displayMode,
+            showTitle,
+            showSubtitle,
+            itemMaxWidthPercent,
+            itemElevation,
+            itemBorder,
+            itemBorderColor,
+            itemCornerRadius,
+            itemColumns,
+            itemAspectRatio,
+            itemFit,
+            itemSpacing,
+            watermarkText,
+            watermarkPosition,
+            watermarkColor,
+            watermarkOpacity,
+          },
+    [
+      captionPosition,
+      displayMode,
+      showTitle,
+      showSubtitle,
+      itemMaxWidthPercent,
+      itemElevation,
+      itemBorder,
+      itemBorderColor,
+      itemCornerRadius,
+      itemColumns,
+      itemAspectRatio,
+      itemFit,
+      itemSpacing,
+      watermarkText,
+      watermarkPosition,
+      watermarkColor,
+      watermarkOpacity,
+    ],
+  );
+
+  const save = useCallback(async (next: DesignDraft): Promise<void> => {
+    // Merge over the freshest draft so the Themes tab's items survive.
+    const fresh = (await loadDraftConfig()).gallery ?? emptyGallery();
+    let merged = setItemMaxWidthPercent(
+      setDisplayMode(setCaptionPosition(fresh, next.captionPosition), next.displayMode),
+      next.itemMaxWidthPercent,
+    );
+    merged = setItemShowSubtitle(setItemShowTitle(merged, next.showTitle), next.showSubtitle);
+    merged = setItemCornerRadius(
+      setItemBorderColor(setItemBorder(setItemElevation(merged, next.itemElevation), next.itemBorder), next.itemBorderColor),
+      next.itemCornerRadius,
+    );
+    merged = setItemSpacing(
+      setItemFit(setItemAspectRatio(setItemColumns(merged, next.itemColumns), next.itemAspectRatio), next.itemFit),
+      next.itemSpacing,
+    );
+    merged = setWatermark(merged, {
+      text: next.watermarkText,
+      position: next.watermarkPosition,
+      color: next.watermarkColor,
+      opacity: next.watermarkOpacity,
+    });
+    await updateGallery(merged);
+  }, []);
+
+  const saveState = useDraftAutoSave({ value: design, save, enabled: !widthInvalid });
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -496,7 +556,7 @@ export const GalleryDesignEditor: React.FC = () => {
           </Stack>
         </Box>
 
-        <StickySaveButton onClick={handleSave} disabled={submitting || widthInvalid} submitting={submitting} />
+        <DraftSaveStatus {...saveState} />
       </Stack>
 
       {/* Symbolic preview of the picked design — right half, desktop only.

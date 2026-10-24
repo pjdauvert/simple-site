@@ -76,6 +76,20 @@ describe('EventsConfigSchema', () => {
     expect(EventsConfigSchema.safeParse(design({ pastEventsMode: 'from', pastEventsFromDate: '2026-01-01' })).success).toBe(true);
     expect(EventsConfigSchema.safeParse(design({ pastEventsFromDate: '01/01/2026' })).success).toBe(false);
   });
+
+  it('accepts the event page design, full background included', () => {
+    const eventPage = (page: object) => ({ events: [], design: { eventPage: page } });
+    expect(EventsConfigSchema.safeParse(eventPage({ imageAspectRatio: 'A4', fullBackgroundImage: true })).success).toBe(
+      true,
+    );
+    expect(EventsConfigSchema.safeParse(eventPage({ fullBackgroundImage: 'yes' })).success).toBe(false);
+    expect(EventsConfigSchema.safeParse(eventPage({ imageAspectRatio: 'A5' })).success).toBe(false);
+  });
+
+  it('drops the removed featured-section introduction', () => {
+    const parsed = EventsConfigSchema.parse({ events: [], nextHeader: 'Ne manquez pas.' });
+    expect('nextHeader' in parsed).toBe(false);
+  });
 });
 
 describe('site config integration', () => {
@@ -117,6 +131,15 @@ describe('collectEventsI18nEntries', () => {
     expect(keys).toContain(EVENTS_UPCOMING_TITLE_KEY);
     expect(keys).toContain(EVENTS_PAST_HEADER_KEY);
     expect(keys).toHaveLength(2);
+  });
+
+  it('collects no key for the removed featured-section introduction', () => {
+    // A legacy config may still carry it; the schema strips it and the
+    // collector must not resurrect `events.nextHeader` in the editor.
+    const entries = collectEventsI18nEntries(
+      EventsConfigSchema.parse({ events: [], nextHeader: 'Ne manquez pas.' }),
+    );
+    expect(entries).toHaveLength(0);
   });
 
   it('produces keys the translation dictionary accepts (hyphenated slugs)', () => {

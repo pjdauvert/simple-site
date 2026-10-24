@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -34,12 +34,13 @@ import {
 import { loadDraftConfig, saveDraftConfig } from '../../../services/configVersionService';
 import { reconcileMenu } from '../../../router/publicMenu';
 import { useNotifications } from '../../../hooks/useNotifications';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { ScopedAppTheme } from '../../../features/theme/ScopedAppTheme';
 import { PageSelector } from './PageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { SectionPreview } from './SectionPreview';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
+import { DraftSaveStatus } from '../DraftSaveStatus';
 import { PageSettingsDialog } from './PageSettingsDialog';
 import { createPage, createSection, isHomePage, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
@@ -49,10 +50,12 @@ import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } fr
  * draft (`GET /api/config/draft`); a left-aligned page picker sits alongside
  * import/export/save, the preview fills the width, and page settings / the
  * section editor live in a foldable right drawer. Navigation ordering/visibility
- * lives on the Menu tab. Saves the whole draft (`POST /api/config`) — re-fetching
- * first so concurrent edits to `site`/`themes` are preserved, and reconciling the
- * draft's menu with the new pages set. Changes go live only when published from
- * the Config Versions panel.
+ * lives on the Menu tab. Every settled change AUTO-SAVES the whole draft
+ * (`POST /api/config`) — re-fetching first so concurrent edits to `site`/`themes`
+ * are preserved, and reconciling the draft's menu with the new pages set. There
+ * is no save button: the indicator reports where the write stands, and a page
+ * whose route or name is invalid holds the write back (the offending fields are
+ * flagged). Changes go live only when published from the Config Versions panel.
  */
 export const PagesEditor: React.FC = () => {
   const intl = useIntl();
@@ -70,8 +73,6 @@ export const PagesEditor: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [showErrors, setShowErrors] = useState(false);
   const [deletePageIndex, setDeletePageIndex] = useState<number | null>(null);
   const [exportAnchor, setExportAnchor] = useState<null | HTMLElement>(null);
   const [importAnchor, setImportAnchor] = useState<null | HTMLElement>(null);
@@ -99,6 +100,34 @@ export const PagesEditor: React.FC = () => {
   }, [intl]);
 
   const errors = useMemo(() => validatePages(pages), [pages]);
+  // Normalize identity fields so stored routes/pageNames are clean and
+  // uniqueness holds; this normalized set is the auto-saved value, so a
+  // re-render (or whitespace that trims away) is never a change.
+  const normalizedPages = useMemo<PageConfiguration[] | null>(
+    () => (loading ? null : pages.map((p) => ({ ...p, route: p.route.trim(), pageName: p.pageName.trim() }))),
+    [loading, pages],
+  );
+
+  const save = useCallback(
+    async (next: PageConfiguration[]) => {
+      // Re-fetch so a concurrent edit to site/themes on the draft isn't clobbered.
+      const current = await loadDraftConfig();
+      // Keep the draft's menu consistent with the new pages set (deleted/renamed
+      // pages are pruned, new ones appended); feature entries are left untouched.
+      const menu = current.menu ? reconcileMenu(current.menu, next, []) : undefined;
+      const parsed = SiteConfigSchema.safeParse({ ...current, pages: next, menu });
+      if (!parsed.success) throw new Error(intl.formatMessage({ id: 'page.manage.pages.error.invalid' }));
+      await saveDraftConfig(parsed.data);
+    },
+    [intl],
+  );
+
+  const saveState = useDraftAutoSave({
+    value: normalizedPages,
+    save,
+    enabled: pagesAreValid(errors),
+  });
+
   const currentPage: PageConfiguration | undefined = pages[selectedPage];
   const isHome = currentPage ? isHomePage(currentPage) : false;
   const previewTheme = useMemo(
@@ -187,7 +216,6 @@ export const PagesEditor: React.FC = () => {
     setSelectedPage(0);
     setSelectedSection(null);
     setSettingsOpen(false);
-    setShowErrors(false);
     setReplacePages(null);
     notify.success(intl.formatMessage({ id: 'page.manage.pages.import.success' }));
   };
@@ -205,35 +233,6 @@ export const PagesEditor: React.FC = () => {
     setSelectedSection(null);
     setSettingsOpen(true);
     notify.success(intl.formatMessage({ id: 'page.manage.pages.import.pageSuccess' }));
-  };
-
-  const handleSave = async () => {
-    setShowErrors(true);
-    if (!pagesAreValid(errors)) {
-      notify.error(intl.formatMessage({ id: 'page.manage.pages.error.invalid' }));
-      return;
-    }
-    // Normalize identity fields so stored routes/pageNames are clean and uniqueness holds.
-    const normalized = pages.map((p) => ({ ...p, route: p.route.trim(), pageName: p.pageName.trim() }));
-    setSubmitting(true);
-    try {
-      // Re-fetch so a concurrent edit to site/themes on the draft isn't clobbered.
-      const current = await loadDraftConfig();
-      // Keep the draft's menu consistent with the new pages set (deleted/renamed
-      // pages are pruned, new ones appended); feature entries are left untouched.
-      const menu = current.menu ? reconcileMenu(current.menu, normalized, []) : undefined;
-      const parsed = SiteConfigSchema.safeParse({ ...current, pages: normalized, menu });
-      if (!parsed.success) {
-        notify.error(intl.formatMessage({ id: 'page.manage.pages.error.invalid' }));
-        return;
-      }
-      await saveDraftConfig(parsed.data);
-      notify.success(intl.formatMessage({ id: 'page.manage.pages.saved' }));
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.pages.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -262,7 +261,7 @@ export const PagesEditor: React.FC = () => {
         <PageSelector
           pages={pages}
           errors={errors}
-          showErrors={showErrors}
+          showErrors
           selectedIndex={selectedPage}
           onSelect={selectPage}
           onAdd={addPage}
@@ -332,7 +331,7 @@ export const PagesEditor: React.FC = () => {
           open={settingsOpen}
           page={currentPage}
           errors={errors[selectedPage] ?? {}}
-          showErrors={showErrors}
+          showErrors
           isHome={isHome}
           onChange={(next) => updatePage(selectedPage, next)}
           onDelete={() => { setSettingsOpen(false); setDeletePageIndex(selectedPage); }}
@@ -377,7 +376,7 @@ export const PagesEditor: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
+      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

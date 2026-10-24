@@ -30,7 +30,7 @@ export const EVENT_SLUG_MAX_LENGTH = 64;
  * Instants are stored as UTC ISO strings (`2026-08-16T17:00:00.000Z` — the
  * exact `Date.prototype.toISOString()` shape). Rendering and day-level
  * classification happen in the VIEWER's timezone; the admin edits through
- * `<input type="datetime-local">` in their own timezone, converted on save.
+ * separate date and time pickers in their own timezone, converted on save.
  * Timezone-less or offset strings are rejected: a single canonical form keeps
  * string comparison and parsing unambiguous.
  */
@@ -39,13 +39,15 @@ const UtcDateTimeSchema = z.iso.datetime();
 /**
  * Aspect ratios offered for event imagery (cards and detail header). `A4` is
  * the portrait print-poster ratio (210 × 297) — event illustrations are
- * mostly digital versions of printed posters, so it is the card default.
+ * mostly digital versions of printed posters, so it is the default on BOTH
+ * surfaces (cards and detail header): a poster shown in its own ratio is
+ * never cropped.
  */
 export const EVENT_ASPECT_RATIOS = ['A4', '16:9', '4:3', '1:1'] as const;
 export const EventAspectRatioSchema = z.enum(EVENT_ASPECT_RATIOS);
 export type EventAspectRatio = z.infer<typeof EventAspectRatioSchema>;
 export const DEFAULT_EVENT_CARD_ASPECT_RATIO: EventAspectRatio = 'A4';
-export const DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO: EventAspectRatio = '16:9';
+export const DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO: EventAspectRatio = 'A4';
 
 /**
  * Visibility of the agenda's past-events section: `all` shows every past
@@ -65,6 +67,9 @@ export const DEFAULT_EVENT_COLUMNS = 3;
 /** Boolean design toggles: shown by default — only `false` is ever stored. */
 export const DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS = true;
 export const DEFAULT_EVENT_SHOW_FEATURED_BACKDROP = true;
+
+/** Opt-IN design toggles: off by default — only `true` is ever stored. */
+export const DEFAULT_EVENT_FULL_BACKGROUND_IMAGE = false;
 
 export const SiteEventSchema = z
   .object({
@@ -127,6 +132,14 @@ export type EventsAgendaDesign = z.infer<typeof EventsAgendaDesignSchema>;
 export const EventsPageDesignSchema = z.object({
   /** Ratio of the detail page's header illustration. Absent → {@link DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO}. */
   imageAspectRatio: EventAspectRatioSchema.optional(),
+  /**
+   * Whether the detail page paints the illustration as a blurred full
+   * background behind its content (the featured block's treatment: a blurred
+   * cover with the text on a contrasted, slightly transparent panel). Absent →
+   * off (only `true` is stored); an event without an illustration never gets
+   * a background.
+   */
+  fullBackgroundImage: z.boolean().optional(),
 });
 
 export type EventsPageDesign = z.infer<typeof EventsPageDesignSchema>;
@@ -144,10 +157,11 @@ export const EventsConfigSchema = z
     pastTitle: z.string().optional(),
     /**
      * Optional introduction (markdown) rendered under each section heading —
-     * translation DEFAULTS (keys `events.nextHeader|upcomingHeader|pastHeader`);
-     * absent/empty → nothing rendered.
+     * translation DEFAULTS (keys `events.upcomingHeader|pastHeader`);
+     * absent/empty → nothing rendered. The featured block has neither a
+     * heading nor an introduction: it opens the page visually, and any text
+     * above it would push the hero below the fold.
      */
-    nextHeader: z.string().optional(),
     upcomingHeader: z.string().optional(),
     pastHeader: z.string().optional(),
     design: z
@@ -180,8 +194,8 @@ export type EventsConfig = z.infer<typeof EventsConfigSchema>;
 // collector (not `collectI18nEntries`) so the Translations editor can merge
 // them only while the feature flag is on — mirroring the gallery collector.
 // Key layout:
-//  - `events.upcomingTitle|pastTitle`              the agenda section headings
-//  - `events.nextHeader|upcomingHeader|pastHeader` the section introductions
+//  - `events.upcomingTitle|pastTitle`             the agenda section headings
+//  - `events.upcomingHeader|pastHeader`           the section introductions
 //  - `events.<slug>.name|description|location`    per-event texts (slug-scoped,
 //    so reordering the list never re-maps translations — the positional-key
 //    tradeoff the gallery items accepted does not apply here)
@@ -195,7 +209,6 @@ export const EVENTS_SCOPE = 'events';
 
 export const EVENTS_UPCOMING_TITLE_KEY = `${EVENTS_SCOPE}.upcomingTitle`;
 export const EVENTS_PAST_TITLE_KEY = `${EVENTS_SCOPE}.pastTitle`;
-export const EVENTS_NEXT_HEADER_KEY = `${EVENTS_SCOPE}.nextHeader`;
 export const EVENTS_UPCOMING_HEADER_KEY = `${EVENTS_SCOPE}.upcomingHeader`;
 export const EVENTS_PAST_HEADER_KEY = `${EVENTS_SCOPE}.pastHeader`;
 
@@ -223,7 +236,6 @@ export const collectEventsI18nEntries = (config: EventsConfig): I18nEntry[] => {
   };
   add(EVENTS_UPCOMING_TITLE_KEY, config.upcomingTitle);
   add(EVENTS_PAST_TITLE_KEY, config.pastTitle);
-  add(EVENTS_NEXT_HEADER_KEY, config.nextHeader);
   add(EVENTS_UPCOMING_HEADER_KEY, config.upcomingHeader);
   add(EVENTS_PAST_HEADER_KEY, config.pastHeader);
   for (const event of config.events) {

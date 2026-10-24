@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -28,16 +28,17 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   type GalleryTag,
+  type MenuConfig,
   type MenuEntry,
   type MenuGroupDisplay,
   type PageConfiguration,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
+import { DraftSaveStatus } from '../DraftSaveStatus';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
-import { useNotifications } from '../../../hooks/useNotifications';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { enabledFeaturePages, reconcileMenu } from '../../../router/publicMenu';
 import {
@@ -71,13 +72,15 @@ import {
  * the per-row overflow menu moves entries into or out of groups, toggles a
  * group's mobile "always expanded" mode, and deletes a group (its children
  * return to the top level, in place). An empty group is kept in the draft but
- * omitted from the public nav. Saves via `PUT /api/config/menu`, which writes
- * the draft — changes go live only when published from the Config Versions
- * panel.
+ * omitted from the public nav. Every settled change AUTO-SAVES via
+ * `PUT /api/config/menu`, which writes the draft — there is no save button, the
+ * indicator reports where the write stands. Loading reconciles without writing:
+ * the reconciliation is derived, re-applied on every load and by the public nav,
+ * so it only reaches the draft once the admin actually changes something.
+ * Changes go live only when published from the Config Versions panel.
  */
 export const MenuEditor: React.FC = () => {
   const intl = useIntl();
-  const notify = useNotifications();
   const flags = useFeatureFlags();
 
   const [pages, setPages] = useState<PageConfiguration[] | null>(null);
@@ -85,7 +88,6 @@ export const MenuEditor: React.FC = () => {
   const [storedEntries, setStoredEntries] = useState<MenuEntry[]>([]);
   const [entries, setEntries] = useState<MenuEntry[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [groupDisplay, setGroupDisplay] = useState<MenuGroupDisplay>('popover');
@@ -120,6 +122,22 @@ export const MenuEditor: React.FC = () => {
     );
   }, [entries, pages, storedEntries, flags, galleryTags]);
 
+  // The payload itself is the auto-saved value: "popover" is the default —
+  // omitted to keep stored configs minimal.
+  const menuConfig = useMemo<MenuConfig | null>(
+    () => (entries === null ? null : { entries, ...(groupDisplay === 'bar' ? { groupDisplay } : {}) }),
+    [entries, groupDisplay],
+  );
+
+  // Every mutation of the draft yields a schema-valid menu (group ids are
+  // derived and validated on creation, a group label can never be emptied), so
+  // the write is never held back.
+  const save = useCallback(async (next: MenuConfig) => {
+    await updateMenu(next);
+  }, []);
+
+  const saveState = useDraftAutoSave({ value: menuConfig, save });
+
   const apply = (mutate: (prev: MenuEntry[]) => MenuEntry[]) => {
     setEntries((prev) => (prev ? mutate(prev) : prev));
   };
@@ -150,20 +168,6 @@ export const MenuEditor: React.FC = () => {
     apply((prev) => addGroup(prev, label));
     setAddingGroup(false);
     setGroupLabel('');
-  };
-
-  const handleSave = async () => {
-    if (!entries) return;
-    setSubmitting(true);
-    try {
-      // "popover" is the default — omitted to keep stored configs minimal.
-      await updateMenu({ entries, ...(groupDisplay === 'bar' ? { groupDisplay } : {}) });
-      notify.success(intl.formatMessage({ id: 'page.manage.menu.saved' }));
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.menu.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (loadError) {
@@ -445,7 +449,7 @@ export const MenuEditor: React.FC = () => {
           ))}
       </Menu>
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
+      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

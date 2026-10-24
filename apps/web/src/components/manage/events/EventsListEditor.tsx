@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -10,23 +10,32 @@ import {
   DialogContentText,
   DialogTitle,
   IconButton,
+  InputAdornment,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
+  MenuItem,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, HideImageOutlined as MissingImageIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  Close as ClearIcon,
+  Delete as DeleteIcon,
+  HideImageOutlined as MissingImageIcon,
+  Search as SearchIcon,
+} from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { EventsConfigSchema } from '@simple-site/interfaces';
+import { EventsConfigSchema, type SiteEvent } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
+import { DraftSaveStatus } from '../DraftSaveStatus';
 import { ikTransform } from '../../../utils/imagekit';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateEvents } from '../../../services/eventsService';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
-import { useNotifications } from '../../../hooks/useNotifications';
 import { isPastEvent } from '../../../pages/events/eventDates';
 import {
   createEvent,
@@ -35,28 +44,56 @@ import {
   sortForEditor,
   validateEvents,
   type EventDraft,
+  type EventFieldErrors,
 } from './eventsDraft';
+import {
+  DEFAULT_EVENT_SORT,
+  EVENT_SORT_CRITERIA,
+  filterEvents,
+  sortEvents,
+  type EventSortCriterion,
+} from './eventsSearch';
 import { EventFormDialog } from './EventFormDialog';
 
+/** Minimum size of anything the admin taps on a phone. */
+const TOUCH_TARGET = 44;
+
 /**
- * List tab of /manage/events — every event sorted by start date (newest
- * first; the public placement is automatic, so there is no manual reorder).
- * A row opens the edit dialog; deletion asks for confirmation. Saves via
- * `PUT /api/config/events`, merging over a fresh draft read so the Design
- * tab is never clobbered; changes go live only when published from the
- * Config Versions panel.
+ * The event being edited in the dialog — a WORKING COPY. `index` is its
+ * position in the list state, or `null` for an event that has not been added
+ * yet: cancelling then simply forgets it, and nothing reaches the draft before
+ * the admin confirms.
+ */
+interface DialogState {
+  index: number | null;
+  draft: EventDraft;
+}
+
+/**
+ * List tab of /manage/events — one row per event, a row opens the edit dialog,
+ * deletion asks for confirmation.
+ *
+ * There is no save button: every settled change is written to the configuration
+ * DRAFT on its own (`useDraftAutoSave` + `<DraftSaveStatus/>`), merged over a
+ * fresh draft read so the Design tab is never clobbered, and goes live only
+ * when the draft is published. A list holding an incomplete event is NOT
+ * written — the write waits, the row's fields are flagged, and it goes out as
+ * soon as the event is complete.
+ *
+ * The sort selector and the search field are DISPLAY-ONLY (see
+ * `eventsSearch.ts`): the stored order is always start-date descending, which
+ * is also what the public agenda derives its placement from.
  */
 export const EventsListEditor: React.FC = () => {
   const intl = useIntl();
-  const notify = useNotifications();
   const flags = useFeatureFlags();
 
   const [events, setEvents] = useState<EventDraft[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [showErrors, setShowErrors] = useState(false);
-  const [dialogIndex, setDialogIndex] = useState<number | null>(null);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [query, setQuery] = useState('');
+  const [criterion, setCriterion] = useState<EventSortCriterion>(DEFAULT_EVENT_SORT);
 
   useEffect(() => {
     let active = true;
@@ -72,62 +109,57 @@ export const EventsListEditor: React.FC = () => {
     };
   }, [intl]);
 
-  const errors = validateEvents(events ?? []);
+  const errors = useMemo(() => validateEvents(events ?? []), [events]);
+  const valid = eventsAreValid(errors);
 
-  const updateAt = (index: number, next: EventDraft): void => {
-    setEvents((prev) => (prev ? prev.map((event, i) => (i === index ? next : event)) : prev));
-  };
+  /**
+   * What the draft would hold: stored order, editor-only state stripped. The
+   * auto-save compares successive values structurally, so deriving the payload
+   * here keeps editor noise (the `persisted` flag, untrimmed whitespace) from
+   * triggering a redundant write.
+   */
+  const payload = useMemo(
+    () => (events ? sortForEditor(events).map(normalizeEvent) : null),
+    [events],
+  );
 
-  const addEvent = (): void => {
-    setEvents((prev) => (prev ? [...prev, createEvent()] : prev));
-    setDialogIndex(events?.length ?? 0);
-  };
+  const persist = useCallback(
+    async (list: SiteEvent[]): Promise<void> => {
+      // Merge over the freshest draft so the Design tab's fields survive.
+      const fresh = (await loadDraftConfig()).events;
+      const parsed = EventsConfigSchema.safeParse({ ...(fresh ?? {}), events: list });
+      if (!parsed.success) throw new Error(intl.formatMessage({ id: 'page.manage.events.error.invalid' }));
+      await updateEvents(parsed.data);
+      // Every row now exists in the stored draft: its slug is locked for good.
+      setEvents((prev) => (prev ? prev.map((event) => (event.persisted ? event : { ...event, persisted: true })) : prev));
+    },
+    [intl],
+  );
 
-  const closeDialog = (): void => {
-    // Discard a blank just-added row abandoned without any input.
+  const autoSave = useDraftAutoSave({ value: payload, save: persist, enabled: valid });
+
+  /** Display order and filter — never the stored order (see `eventsSearch.ts`). */
+  const rows = useMemo(
+    () => sortEvents(filterEvents((events ?? []).map((event, index) => ({ ...event, index })), query), criterion, intl.locale),
+    [events, query, criterion, intl.locale],
+  );
+
+  const addEvent = (): void => setDialog({ index: null, draft: createEvent() });
+
+  /** Commits the working copy to the list state — which auto-saves it. */
+  const confirmDialog = (): void => {
+    if (!dialog) return;
+    const { index, draft } = dialog;
     setEvents((prev) => {
-      if (!prev || dialogIndex === null) return prev;
-      const edited = prev[dialogIndex];
-      const blank = edited && !edited.persisted && !edited.name && !edited.slug && !edited.startDateTime && !edited.location;
-      return blank ? prev.filter((_, i) => i !== dialogIndex) : sortForEditor(prev);
+      if (!prev) return prev;
+      return index === null ? [...prev, draft] : prev.map((event, i) => (i === index ? draft : event));
     });
-    setDialogIndex(null);
+    setDialog(null);
   };
 
   const confirmDelete = (): void => {
     if (deleteIndex !== null) setEvents((prev) => (prev ? prev.filter((_, i) => i !== deleteIndex) : prev));
     setDeleteIndex(null);
-  };
-
-  const handleSave = async (): Promise<void> => {
-    if (!events) return;
-    if (!eventsAreValid(validateEvents(events))) {
-      setShowErrors(true);
-      notify.error(intl.formatMessage({ id: 'page.manage.events.error.invalid' }));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      // Merge over the freshest draft so the Design tab's fields survive.
-      const fresh = (await loadDraftConfig()).events;
-      const parsed = EventsConfigSchema.safeParse({
-        ...(fresh ?? {}),
-        events: sortForEditor(events).map(normalizeEvent),
-      });
-      if (!parsed.success) {
-        setShowErrors(true);
-        notify.error(intl.formatMessage({ id: 'page.manage.events.error.invalid' }));
-        return;
-      }
-      await updateEvents(parsed.data);
-      setEvents((prev) => (prev ? sortForEditor(prev).map((event) => ({ ...event, persisted: true })) : prev));
-      setShowErrors(false);
-      notify.success(intl.formatMessage({ id: 'page.manage.events.saved' }));
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.events.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (loadError) {
@@ -142,7 +174,20 @@ export const EventsListEditor: React.FC = () => {
   }
 
   const now = new Date();
-  const dialogEvent = dialogIndex !== null ? (events[dialogIndex] ?? null) : null;
+
+  /**
+   * The working copy's own field errors: validated inside the list it is about
+   * to join, so a slug clashing with another event is caught while editing.
+   */
+  const dialogErrors = (): EventFieldErrors => {
+    if (!dialog) return {};
+    const list = dialog.index === null ? [...events, dialog.draft] : events.map((event, i) => (i === dialog.index ? dialog.draft : event));
+    return validateEvents(list)[dialog.index ?? list.length - 1] ?? {};
+  };
+
+  // Fields are flagged once a save is actually held back — never while the
+  // admin is still filling in a row that has not joined the list yet.
+  const showErrors = !valid && dialog !== null && dialog.index !== null;
 
   const rowDates = (event: EventDraft): string => {
     if (!event.startDateTime) return '—';
@@ -158,34 +203,107 @@ export const EventsListEditor: React.FC = () => {
         <FormattedMessage id="page.manage.events.hint" />
       </Typography>
 
+      {events.length > 0 && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) minmax(0, 18rem)' },
+            gap: { xs: 1, sm: 2 },
+            mt: 2,
+          }}
+        >
+          <TextField
+            label={intl.formatMessage({ id: 'page.manage.events.search' })}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            size="small"
+            fullWidth
+            helperText={intl.formatMessage({ id: 'page.manage.events.search.help' })}
+            slotProps={{
+              input: {
+                sx: { minHeight: TOUCH_TARGET },
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" color="disabled" />
+                  </InputAdornment>
+                ),
+                endAdornment: query ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      aria-label={intl.formatMessage({ id: 'page.manage.events.search.clear' })}
+                      onClick={() => setQuery('')}
+                      sx={{ minWidth: TOUCH_TARGET, minHeight: TOUCH_TARGET }}
+                    >
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : undefined,
+              },
+            }}
+          />
+          <TextField
+            select
+            label={intl.formatMessage({ id: 'page.manage.events.sortBy' })}
+            value={criterion}
+            onChange={(e) => setCriterion(e.target.value as EventSortCriterion)}
+            size="small"
+            fullWidth
+            // Keeps both fields' baselines aligned next to the search helper.
+            helperText=" "
+            slotProps={{ input: { sx: { minHeight: TOUCH_TARGET } } }}
+          >
+            {EVENT_SORT_CRITERIA.map((option) => (
+              <MenuItem key={option} value={option} sx={{ minHeight: TOUCH_TARGET }}>
+                {intl.formatMessage({ id: `page.manage.events.sort.${option}` })}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Box>
+      )}
+
+      {!valid && (
+        <Alert severity="warning" sx={{ mt: 1 }}>
+          <FormattedMessage id="page.manage.events.error.invalid" />
+        </Alert>
+      )}
+
       {events.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
           <FormattedMessage id="page.manage.events.empty" />
         </Typography>
+      ) : rows.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          <FormattedMessage id="page.manage.events.search.empty" />
+        </Typography>
       ) : (
         <List sx={{ mt: 1 }}>
-          {events.map((event, index) => (
+          {rows.map((row) => (
             <ListItem
-              key={event.persisted ? event.slug : `new-${index}`}
+              key={`${row.index}-${row.slug}`}
               disablePadding
               divider
               secondaryAction={
                 <Tooltip title={intl.formatMessage({ id: 'page.manage.events.delete' })}>
                   <IconButton
                     edge="end"
-                    onClick={() => setDeleteIndex(index)}
+                    onClick={() => setDeleteIndex(row.index)}
                     aria-label={intl.formatMessage({ id: 'page.manage.events.delete' })}
+                    sx={{ minWidth: TOUCH_TARGET, minHeight: TOUCH_TARGET }}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               }
             >
-              <ListItemButton onClick={() => setDialogIndex(index)} sx={{ minHeight: 56, gap: 1.5 }}>
-                {event.imageUrl?.trim() ? (
+              <ListItemButton
+                onClick={() => setDialog({ index: row.index, draft: events[row.index] })}
+                sx={{ minHeight: 56, gap: 1.5 }}
+              >
+                {row.imageUrl?.trim() ? (
                   <Box
                     component="img"
-                    src={ikTransform(event.imageUrl, 'w-96,h-96,q-75,f-auto')}
+                    src={ikTransform(row.imageUrl, 'w-96,h-96,q-75,f-auto')}
                     alt=""
                     loading="lazy"
                     sx={{ width: 48, height: 48, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }}
@@ -208,11 +326,11 @@ export const EventsListEditor: React.FC = () => {
                   </Box>
                 )}
                 <ListItemText
-                  primary={event.name || intl.formatMessage({ id: 'page.manage.events.untitled' })}
-                  secondary={`${rowDates(event)} · ${event.location || '—'}`}
+                  primary={row.name || intl.formatMessage({ id: 'page.manage.events.untitled' })}
+                  secondary={`${rowDates(row)} · ${row.location || '—'}`}
                   slotProps={{ primary: { noWrap: true }, secondary: { noWrap: true } }}
                 />
-                {event.startDateTime && isPastEvent(event, now) && (
+                {row.startDateTime && isPastEvent(row, now) && (
                   <Chip size="small" label={intl.formatMessage({ id: 'page.manage.events.badge.past' })} />
                 )}
               </ListItemButton>
@@ -221,19 +339,20 @@ export const EventsListEditor: React.FC = () => {
         </List>
       )}
 
-      <Button size="small" startIcon={<AddIcon />} onClick={addEvent} sx={{ mt: 1 }}>
+      <Button size="small" startIcon={<AddIcon />} onClick={addEvent} sx={{ mt: 1, minHeight: TOUCH_TARGET }}>
         <FormattedMessage id="page.manage.events.add" />
       </Button>
 
-      {dialogEvent !== null && dialogIndex !== null && (
+      {dialog !== null && (
         <EventFormDialog
           open
-          event={dialogEvent}
-          errors={errors[dialogIndex] ?? {}}
+          event={dialog.draft}
+          errors={dialogErrors()}
           showErrors={showErrors}
           enablePicker={Boolean(flags?.media)}
-          onChange={(next) => updateAt(dialogIndex, next)}
-          onClose={closeDialog}
+          onChange={(next) => setDialog((prev) => (prev ? { ...prev, draft: next } : prev))}
+          onCancel={() => setDialog(null)}
+          onConfirm={confirmDialog}
         />
       )}
 
@@ -259,7 +378,7 @@ export const EventsListEditor: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
+      <DraftSaveStatus {...autoSave} />
     </Box>
   );
 };

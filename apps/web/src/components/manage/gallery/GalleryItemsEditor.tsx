@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -19,11 +19,11 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import { type GalleryConfig, type GalleryItem } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
+import { DraftSaveStatus } from '../DraftSaveStatus';
 import { ikTransform } from '../../../utils/imagekit';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
-import { useNotifications } from '../../../hooks/useNotifications';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { addItem, emptyGallery, moveItemInList, pruneItemTags, removeItem, updateItem } from './galleryDraft';
 import { GalleryItemDialog } from './GalleryItemDialog';
 
@@ -35,19 +35,18 @@ type DialogState = { itemIndex: number | null };
  * taggable with any number of the declared tags from its dialog (tags
  * themselves live on the Tags tab); an added item appears as a thumbnail
  * whose click opens its attributes. Items without an image are flagged: they
- * are not displayed publicly at all. Saves via `PUT /api/config/gallery`,
- * re-reading the draft first so the Tags and Design tabs are never clobbered
- * (item references are pruned against the draft's tags in case one was
- * deleted meanwhile); changes go live only when published from the Config
- * Versions panel.
+ * are not displayed publicly at all. Every settled change AUTO-SAVES via
+ * `PUT /api/config/gallery` — there is no save button, the indicator reports
+ * where the write stands — re-reading the draft first so the Tags and Design
+ * tabs are never clobbered (item references are pruned against the draft's
+ * tags in case one was deleted meanwhile); changes go live only when published
+ * from the Config Versions panel.
  */
 export const GalleryItemsEditor: React.FC = () => {
   const intl = useIntl();
-  const notify = useNotifications();
 
   const [gallery, setGallery] = useState<GalleryConfig | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [dialog, setDialog] = useState<DialogState | null>(null);
 
   useEffect(() => {
@@ -81,25 +80,19 @@ export const GalleryItemsEditor: React.FC = () => {
     setDialog(null);
   };
 
-  const handleSave = async (): Promise<void> => {
-    if (!gallery) return;
-    setSubmitting(true);
-    try {
-      // Merge over the freshest draft so the Tags and Design tabs survive —
-      // pruning references to any tag deleted since this tab loaded.
-      const fresh = (await loadDraftConfig()).gallery;
-      await updateGallery({
-        items: pruneItemTags(gallery.items, fresh?.tags ?? []),
-        tags: fresh?.tags ?? [],
-        ...(fresh?.design ? { design: fresh.design } : {}),
-      });
-      notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // This tab owns the items alone — they are the auto-saved value.
+  const save = useCallback(async (items: GalleryItem[]): Promise<void> => {
+    // Merge over the freshest draft so the Tags and Design tabs survive —
+    // pruning references to any tag deleted since this tab loaded.
+    const fresh = (await loadDraftConfig()).gallery;
+    await updateGallery({
+      items: pruneItemTags(items, fresh?.tags ?? []),
+      tags: fresh?.tags ?? [],
+      ...(fresh?.design ? { design: fresh.design } : {}),
+    });
+  }, []);
+
+  const saveState = useDraftAutoSave({ value: gallery?.items ?? null, save });
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -229,7 +222,7 @@ export const GalleryItemsEditor: React.FC = () => {
         onDelete={dialog?.itemIndex != null ? deleteDialogItem : undefined}
       />
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
+      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

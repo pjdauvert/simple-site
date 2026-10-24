@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { screen, act } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import type { SiteConfig, SiteThemeConfig } from '@simple-site/interfaces';
@@ -10,6 +10,7 @@ import { PagesTab } from './PagesTab';
 import { MenuTab } from './MenuTab';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { updateSiteSettings } from '../../services/siteConfigService';
+import { DRAFT_AUTO_SAVE_DELAY } from '../../hooks/useDraftAutoSave';
 import { mockFeatures } from '../../test/featureFlags';
 import { renderWithProviders } from '../../test/renderWithProviders';
 
@@ -48,13 +49,24 @@ const renderSiteConfig = (initialPath = '/manage/site/general') =>
     { route: initialPath, notifications: true },
   );
 
+/** Advances past the auto-save debounce and lets the write settle. */
+const settleAutoSave = async () => {
+  await act(async () => {
+    vi.advanceTimersByTime(DRAFT_AUTO_SAVE_DELAY + 50);
+  });
+};
+
 describe('SiteConfigPage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // The clock keeps running on its own (so `findBy*` still settles) while
+    // tests jump the auto-save debounce explicitly.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(loadDraftConfig).mockResolvedValue(siteConfig());
     vi.mocked(updateSiteSettings).mockResolvedValue(undefined);
     mockFeatures('media');
   });
+  afterEach(() => vi.useRealTimers());
 
   it('renders the General / Themes / Pages / Menu tabs', async () => {
     renderSiteConfig();
@@ -88,8 +100,8 @@ describe('SiteConfigPage', () => {
       pages: [{ menuTitle: 'Home', pageName: 'page.home', route: '/home', sections: [] }],
     } as SiteConfig);
     renderSiteConfig('/manage/site/menu');
-    // The save button reads "Save" on every tab now, so anchor on the Menu
-    // editor's own controls instead.
+    // Draft-backed tabs own no save button any more — anchor on the Menu
+    // editor's own controls.
     expect(await screen.findByRole('button', { name: /add group/i })).toBeInTheDocument();
     expect(screen.getByText('Home')).toBeInTheDocument();
   });
@@ -101,22 +113,21 @@ describe('SiteConfigPage', () => {
     expect(screen.getByDisplayValue('/favicon.ico')).toBeInTheDocument();
   });
 
-  it('keeps Save disabled until a field changes', async () => {
+  it('offers no save button and writes nothing for the draft it just loaded', async () => {
     renderSiteConfig();
     await screen.findByDisplayValue('My Site');
-    const saveButton = screen.getByRole('button', { name: /save/i });
-    expect(saveButton).toBeDisabled();
-    fireEvent.change(screen.getByLabelText(/site name/i), { target: { value: 'My Site 2' } });
-    expect(saveButton).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
+    await settleAutoSave();
+    expect(updateSiteSettings).not.toHaveBeenCalled();
   });
 
-  it('saves the edited site settings via updateSiteSettings', async () => {
+  it('auto-saves an edited field via updateSiteSettings, reporting it on the indicator', async () => {
     renderSiteConfig();
     const nameInput = await screen.findByLabelText(/site name/i);
     fireEvent.change(nameInput, { target: { value: 'New Name' } });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save/i }));
-    });
+
+    await settleAutoSave();
+    expect(updateSiteSettings).toHaveBeenCalledTimes(1);
     expect(updateSiteSettings).toHaveBeenCalledWith({
       siteName: 'New Name',
       defaultLanguage: 'en',
@@ -124,18 +135,45 @@ describe('SiteConfigPage', () => {
       faviconUrl: '/favicon.ico',
       containerMaxWidth: 'lg',
     });
-    await waitFor(() => expect(screen.getByText('Site settings saved')).toBeInTheDocument());
+    expect(screen.getByRole('status')).toHaveTextContent('Saved to draft');
   });
 
-  it('blocks submit and flags the field when the site name is empty', async () => {
+  it('debounces a burst of keystrokes into a single write', async () => {
+    renderSiteConfig();
+    const nameInput = await screen.findByLabelText(/site name/i);
+    for (const value of ['A', 'AB', 'ABC']) {
+      fireEvent.change(nameInput, { target: { value } });
+    }
+    expect(updateSiteSettings).not.toHaveBeenCalled();
+
+    await settleAutoSave();
+    expect(updateSiteSettings).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(updateSiteSettings).mock.calls[0][0].siteName).toBe('ABC');
+  });
+
+  it('holds the write and flags the field when the site name is empty', async () => {
     renderSiteConfig();
     const nameInput = await screen.findByLabelText(/site name/i);
     fireEvent.change(nameInput, { target: { value: '   ' } });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /save/i }));
-    });
-    expect(updateSiteSettings).not.toHaveBeenCalled();
     expect(screen.getByText('Site name is required')).toBeInTheDocument();
+
+    await settleAutoSave();
+    expect(updateSiteSettings).not.toHaveBeenCalled();
+
+    // Typing a name releases the held edit.
+    fireEvent.change(nameInput, { target: { value: 'Named again' } });
+    await settleAutoSave();
+    expect(vi.mocked(updateSiteSettings).mock.calls[0][0].siteName).toBe('Named again');
+  });
+
+  it('holds the write and flags the field when a URL is malformed', async () => {
+    renderSiteConfig();
+    await screen.findByDisplayValue('My Site');
+    fireEvent.change(screen.getByLabelText(/logo url/i), { target: { value: 'not a url' } });
+    expect(screen.getByText(/Enter a valid URL or path/)).toBeInTheDocument();
+
+    await settleAutoSave();
+    expect(updateSiteSettings).not.toHaveBeenCalled();
   });
 
   it('hides the library picker button when the media feature is disabled', async () => {

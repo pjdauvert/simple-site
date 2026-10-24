@@ -3,20 +3,20 @@ import { Box, Button, Container, Link, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { Link as RouterLink } from "react-router-dom";
 import { FormattedMessage } from "react-intl";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import {
   eventDescriptionKey,
   eventNameKey,
   type SiteEvent,
 } from "@simple-site/interfaces";
 import { Markdown } from "../../components";
-import { brandGradient } from "../../features/theme/muiTheme";
 import { EventDateSentence } from "./EventDateSentence";
 import { EventLocationLink } from "./EventLocationLink";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import {
   FEATURED_POSTER_SIZES,
-  eventBackdropImageUrl,
+  eventBackdropLayerSx,
+  eventContrastPanelSx,
   eventHeaderImageSrcSet,
   eventHeaderImageUrl,
   eventRoute,
@@ -55,23 +55,7 @@ export const NextEventSection: React.FC<{
         <Box
           aria-hidden
           data-testid="featured-backdrop"
-          sx={{
-            position: "absolute",
-            inset: 0,
-            ...(imageUrl
-              ? {
-                  // A tiny rendition on purpose — the blur erases any detail
-                  // a heavier download would carry.
-                  backgroundImage: `url("${eventBackdropImageUrl(imageUrl)}")`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  filter: "blur(24px)",
-                  transform: "scale(1.15)",
-                }
-              : {
-                  background: brandGradient(theme),
-                }),
-          }}
+          sx={eventBackdropLayerSx(theme, imageUrl)}
         />
       )}
       {/* The backdrop bleeds across the viewport; the CONTENT stays on the site's max width,
@@ -115,10 +99,8 @@ export const NextEventSection: React.FC<{
               spacing={1.5}
               sx={{
                 minWidth: 0,
-                borderRadius: 2,
                 p: { xs: 2, md: 3 },
-                bgcolor: alpha(theme.palette.background.paper, 0.85),
-                backdropFilter: "blur(8px)",
+                ...eventContrastPanelSx(theme),
               }}
             >
               <Typography variant="subtitle1" color="text.secondary">

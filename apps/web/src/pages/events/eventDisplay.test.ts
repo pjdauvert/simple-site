@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
+import { createTheme } from '@mui/material/styles';
 import type { EventsConfig, SiteConfig } from '@simple-site/interfaces';
 import {
   aspectRatioCss,
+  eventBackdropLayerSx,
   eventCardImageSrcSet,
   eventCardImageUrl,
   eventCardSizes,
   eventColumnsSx,
+  eventContrastPanelSx,
   eventRoute,
   eventsPageTitle,
   googleMapsSearchUrl,
@@ -23,7 +26,8 @@ describe('design resolution (stored deviations over defaults)', () => {
       showLocationOnCards: true,
       showFeaturedBackdrop: true,
     });
-    expect(resolveEventPageDesign(undefined)).toEqual({ imageAspectRatio: '16:9' });
+    // Both surfaces default to the A4 poster; the full background is opt-in.
+    expect(resolveEventPageDesign(undefined)).toEqual({ imageAspectRatio: 'A4', fullBackgroundImage: false });
   });
 
   it('honours stored deviations', () => {
@@ -31,7 +35,7 @@ describe('design resolution (stored deviations over defaults)', () => {
       events: [],
       design: {
         agendaPage: { pastEventsMode: 'from', pastEventsFromDate: '2026-01-01', columns: 2, showLocationOnCards: false, showFeaturedBackdrop: false },
-        eventPage: { imageAspectRatio: '4:3' },
+        eventPage: { imageAspectRatio: '4:3', fullBackgroundImage: true },
       },
     } as unknown as EventsConfig;
     expect(resolveAgendaDesign(events)).toMatchObject({
@@ -42,7 +46,38 @@ describe('design resolution (stored deviations over defaults)', () => {
       showLocationOnCards: false,
       showFeaturedBackdrop: false,
     });
-    expect(resolveEventPageDesign(events)).toEqual({ imageAspectRatio: '4:3' });
+    expect(resolveEventPageDesign(events)).toEqual({ imageAspectRatio: '4:3', fullBackgroundImage: true });
+  });
+});
+
+describe('blurred backdrop treatment (featured block + full-background event page)', () => {
+  const theme = createTheme();
+
+  it('covers the surface with a cheap blurred rendition of the illustration', () => {
+    const layer = eventBackdropLayerSx(theme, 'https://ik.imagekit.io/demo/poster.jpg');
+    expect(layer).toMatchObject({
+      position: 'absolute',
+      inset: 0,
+      backgroundSize: 'cover',
+      filter: 'blur(24px)',
+      // Scaled past its own edges, so the blur never shows a fringe.
+      transform: 'scale(1.15)',
+    });
+    // A deliberately tiny rendition — the blur erases any detail.
+    expect(layer.backgroundImage).toBe('url("https://ik.imagekit.io/demo/poster.jpg?tr=w-480,q-50,f-auto")');
+  });
+
+  it('falls back to the brand gradient without an illustration', () => {
+    const layer = eventBackdropLayerSx(theme, undefined);
+    expect(layer.backgroundImage).toBeUndefined();
+    expect(layer.background).toContain('linear-gradient');
+  });
+
+  it('keeps the text panel opaque enough to stay readable over any artwork', () => {
+    const panel = eventContrastPanelSx(theme);
+    expect(panel).toMatchObject({ backdropFilter: 'blur(8px)' });
+    // 85 % of `background.paper` — the contrast the review settled on.
+    expect(panel.bgcolor).toContain('0.85');
   });
 });
 

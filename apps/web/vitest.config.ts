@@ -23,6 +23,9 @@ export default defineConfig({
     // .netlify/functions-serve — never pick those artifacts up as web tests.
     exclude: [...configDefaults.exclude, '**/.netlify/**'],
     setupFiles: './src/test/setup.ts',
+    // The date pickers ship an ESM build that directory-imports from
+    // @mui/material; Vite must process it instead of handing it to Node.
+    server: { deps: { inline: [/@mui\/x-date-pickers/] } },
     env: {
       VITE_AUTH_BYPASS: 'false',
     },

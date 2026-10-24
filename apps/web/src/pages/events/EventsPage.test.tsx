@@ -92,12 +92,24 @@ describe('EventsPage (public /events)', () => {
     setConfig({
       events: [event('next-show', 'Next Show', inDays(5)), event('later-show', 'Later Show', inDays(60))],
       upcomingTitle: 'Bientôt',
-      nextHeader: 'Ne manquez **pas** ceci.',
+      upcomingHeader: 'Ne manquez **pas** ceci.',
     });
     renderPage();
     expect(screen.getByRole('heading', { level: 2, name: 'Bientôt' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 2, name: 'Upcoming events' })).not.toBeInTheDocument();
-    expect(screen.getByText('pas')).toBeInTheDocument(); // featured markdown intro rendered
+    expect(screen.getByText('pas')).toBeInTheDocument(); // section markdown intro rendered
+  });
+
+  it('opens with the featured block itself — it carries neither heading nor introduction', () => {
+    // A legacy config may still hold the removed `nextHeader`: it is dropped by
+    // the schema and must never reach the page.
+    setConfig({
+      events: [event('next-show', 'Next Show', inDays(5))],
+      ...({ nextHeader: 'Ne manquez **pas** ceci.' } as Partial<EventsConfig>),
+    });
+    renderPage();
+    expect(screen.getByRole('heading', { level: 2, name: 'Next Show' })).toBeInTheDocument();
+    expect(screen.queryByText('pas')).not.toBeInTheDocument();
   });
 
   it('hides the past section entirely when the design says none', () => {

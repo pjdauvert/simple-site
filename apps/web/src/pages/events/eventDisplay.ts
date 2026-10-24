@@ -1,6 +1,8 @@
+import { alpha, type Theme } from '@mui/material/styles';
 import {
   DEFAULT_EVENT_CARD_ASPECT_RATIO,
   DEFAULT_EVENT_COLUMNS,
+  DEFAULT_EVENT_FULL_BACKGROUND_IMAGE,
   DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO,
   DEFAULT_EVENT_SHOW_FEATURED_BACKDROP,
   DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS,
@@ -14,6 +16,7 @@ import {
   type SiteConfig,
   type SiteEvent,
 } from '@simple-site/interfaces';
+import { brandGradient } from '../../features/theme/muiTheme';
 import { ikSrcSet, ikTransform } from '../../utils/imagekit';
 
 /**
@@ -41,10 +44,12 @@ export const resolveAgendaDesign = (events: EventsConfig | undefined): ResolvedA
 
 export interface ResolvedEventPageDesign {
   imageAspectRatio: EventAspectRatio;
+  fullBackgroundImage: boolean;
 }
 
 export const resolveEventPageDesign = (events: EventsConfig | undefined): ResolvedEventPageDesign => ({
   imageAspectRatio: events?.design?.eventPage?.imageAspectRatio ?? DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO,
+  fullBackgroundImage: events?.design?.eventPage?.fullBackgroundImage ?? DEFAULT_EVENT_FULL_BACKGROUND_IMAGE,
 });
 
 /** Public route of an event's detail page, nested under the reserved route. */
@@ -106,6 +111,42 @@ export const FEATURED_POSTER_SIZES = '(min-width: 900px) 33vw, 100vw';
  * rendition — the CSS blur erases any resolution the bytes would buy.
  */
 export const eventBackdropImageUrl = (url: string): string => ikTransform(url, 'w-480,q-50,f-auto');
+
+/**
+ * The blurred-cover backdrop LAYER, shared by the agenda's featured block and
+ * the detail page's optional full background: the illustration abstracted
+ * full-bleed, scaled past its edges so the blur never shows a fringe. Without
+ * an illustration it falls back to the brand gradient — the caller decides
+ * whether a gradient makes sense on its surface. Absolutely positioned: the
+ * caller owns a `position: relative`, `overflow: hidden` wrapper.
+ */
+export const eventBackdropLayerSx = (theme: Theme, imageUrl: string | undefined): Record<string, unknown> => ({
+  position: 'absolute',
+  inset: 0,
+  ...(imageUrl
+    ? {
+        // A tiny rendition on purpose — the blur erases any detail a heavier
+        // download would carry.
+        backgroundImage: `url("${eventBackdropImageUrl(imageUrl)}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'blur(24px)',
+        transform: 'scale(1.15)',
+      }
+    : { background: brandGradient(theme) }),
+});
+
+/**
+ * The contrasted, slightly transparent panel that carries text over a blurred
+ * backdrop — opaque enough (85 %) to keep `text.primary`/`text.secondary` at
+ * their normal contrast against `background.paper`, whatever the artwork
+ * behind. Used by the featured block and the full-background detail page.
+ */
+export const eventContrastPanelSx = (theme: Theme): Record<string, unknown> => ({
+  borderRadius: 2,
+  bgcolor: alpha(theme.palette.background.paper, 0.85),
+  backdropFilter: 'blur(8px)',
+});
 
 /** The events with a slugged detail page, keyed for lookup. */
 export const eventBySlug = (events: EventsConfig | undefined, slug: string): SiteEvent | undefined =>

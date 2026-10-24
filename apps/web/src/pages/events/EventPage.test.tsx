@@ -81,6 +81,40 @@ describe('EventPage (public /events/:slug)', () => {
     );
   });
 
+  it('frames the header illustration as an A4 poster by default, and honours a stored ratio', () => {
+    const plain = renderAt('/events/summer-festival');
+    expect(screen.getByTestId('event-header-image')).toHaveAttribute('data-aspect-ratio', 'A4');
+    plain.unmount();
+
+    setConfig({ events: [festival], design: { eventPage: { imageAspectRatio: '16:9' } } });
+    renderAt('/events/summer-festival');
+    expect(screen.getByTestId('event-header-image')).toHaveAttribute('data-aspect-ratio', '16:9');
+  });
+
+  it('paints the illustration as a blurred full background only when the design asks for it', () => {
+    const plain = renderAt('/events/summer-festival');
+    expect(screen.queryByTestId('event-full-background')).not.toBeInTheDocument();
+    plain.unmount();
+
+    setConfig({ events: [festival], design: { eventPage: { fullBackgroundImage: true } } });
+    renderAt('/events/summer-festival');
+    // Decorative layer (the rendition it loads is covered by `eventDisplay`).
+    expect(screen.getByTestId('event-full-background')).toHaveAttribute('aria-hidden');
+    // The fiche still reads in full over it.
+    expect(screen.getByRole('heading', { level: 1, name: 'Summer Festival' })).toBeInTheDocument();
+    expect(screen.getByText('concerts')).toBeInTheDocument();
+  });
+
+  it('skips the full background for an event without an illustration', () => {
+    setConfig({
+      events: [{ ...festival, imageUrl: undefined }],
+      design: { eventPage: { fullBackgroundImage: true } },
+    });
+    renderAt('/events/summer-festival');
+    expect(screen.queryByTestId('event-full-background')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Summer Festival' })).toBeInTheDocument();
+  });
+
   it('names the browser tab after the event', () => {
     renderAt('/events/summer-festival');
     expect(document.title).toBe('Summer Festival – Test Site');

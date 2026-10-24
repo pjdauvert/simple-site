@@ -1,2 +1,3 @@
 export { EventsListEditor } from './EventsListEditor';
-export { EventsDesignEditor } from './EventsDesignEditor';
+export { AgendaDesignEditor } from './AgendaDesignEditor';
+export { EventPageDesignEditor } from './EventPageDesignEditor';

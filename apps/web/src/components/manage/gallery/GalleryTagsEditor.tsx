@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -17,13 +17,18 @@ import {
   EditOutlined as EditIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { galleryTagDescriptionKey, galleryTagNameKey, type GalleryConfig } from '@simple-site/interfaces';
+import {
+  galleryTagDescriptionKey,
+  galleryTagNameKey,
+  type GalleryConfig,
+  type GalleryTag,
+} from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
+import { DraftSaveStatus } from '../DraftSaveStatus';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
-import { useNotifications } from '../../../hooks/useNotifications';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import {
   addTag,
   emptyGallery,
@@ -48,11 +53,9 @@ import {
  */
 export const GalleryTagsEditor: React.FC = () => {
   const intl = useIntl();
-  const notify = useNotifications();
 
   const [gallery, setGallery] = useState<GalleryConfig | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [addingTag, setAddingTag] = useState(false);
   const [tagId, setTagId] = useState('');
   const [tagName, setTagName] = useState('');
@@ -92,25 +95,22 @@ export const GalleryTagsEditor: React.FC = () => {
     setRenamingTag(null);
   };
 
-  const handleSave = async (): Promise<void> => {
-    if (!gallery) return;
-    setSubmitting(true);
-    try {
-      // Merge over the freshest draft so the Items and Design tabs survive —
-      // the delete cascade prunes the fresh items against the saved tag set.
-      const fresh = (await loadDraftConfig()).gallery;
-      await updateGallery({
-        items: pruneItemTags(fresh?.items ?? [], gallery.tags),
-        tags: gallery.tags,
-        ...(fresh?.design ? { design: fresh.design } : {}),
-      });
-      notify.success(intl.formatMessage({ id: 'page.manage.gallery.saved' }));
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.gallery.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // This tab owns the tags alone — they are the auto-saved value. Every
+  // mutation keeps them schema-valid (a new id is validated before it is
+  // declared, a displayName can never be emptied), so the write is never held
+  // back.
+  const save = useCallback(async (tags: GalleryTag[]): Promise<void> => {
+    // Merge over the freshest draft so the Items and Design tabs survive —
+    // the delete cascade prunes the fresh items against the saved tag set.
+    const fresh = (await loadDraftConfig()).gallery;
+    await updateGallery({
+      items: pruneItemTags(fresh?.items ?? [], tags),
+      tags,
+      ...(fresh?.design ? { design: fresh.design } : {}),
+    });
+  }, []);
+
+  const saveState = useDraftAutoSave({ value: gallery?.tags ?? null, save });
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -265,7 +265,7 @@ export const GalleryTagsEditor: React.FC = () => {
         </Button>
       )}
 
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
+      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

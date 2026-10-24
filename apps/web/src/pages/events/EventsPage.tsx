@@ -3,7 +3,6 @@ import { Box, Container, Stack, Typography } from "@mui/material";
 import { visuallyHidden } from "@mui/utils";
 import { FormattedMessage, useIntl } from "react-intl";
 import {
-  EVENTS_NEXT_HEADER_KEY,
   EVENTS_PAST_HEADER_KEY,
   EVENTS_PAST_TITLE_KEY,
   EVENTS_UPCOMING_HEADER_KEY,
@@ -106,19 +105,10 @@ export const EventsPage: React.FC = () => {
       </Typography>
       {/* The featured section sits OUTSIDE the container: its blurred backdrop
           bleeds across the viewport while its content keeps the max width. */}
+      {/* The featured block carries neither heading nor introduction: it opens
+          the page visually, and any text above it would push the hero down. */}
       {next && (
         <Box component="section">
-          {/* The featured section carries no heading — only its optional markdown intro. */}
-          {events?.nextHeader?.trim() && (
-            <Container maxWidth={maxWidth} sx={{ pt: { xs: 4, md: 6 }, mb: 2, ...markdownBodySx }}>
-              <FormattedMessage
-                id={EVENTS_NEXT_HEADER_KEY}
-                defaultMessage={events.nextHeader}
-              >
-                {(message) => <Markdown>{String(message)}</Markdown>}
-              </FormattedMessage>
-            </Container>
-          )}
           <NextEventSection event={next} now={now} showBackdrop={design.showFeaturedBackdrop} />
         </Box>
       )}

@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import type { SiteConfig, GalleryConfig } from '@simple-site/interfaces';
 import { GalleryItemsEditor } from './GalleryItemsEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
+import { DRAFT_AUTO_SAVE_DELAY } from '../../../hooks/useDraftAutoSave';
 import { mockFeatures } from '../../../test/featureFlags';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 
@@ -24,15 +25,26 @@ const seeded: GalleryConfig = {
   tags: [{ tag: 'nature', displayName: 'Nature' }],
 };
 
-const renderEditor = () => renderWithProviders(<GalleryItemsEditor />, { notifications: true });
+const renderEditor = () => renderWithProviders(<GalleryItemsEditor />);
+
+/** Advances past the auto-save debounce and lets the write settle. */
+const settleAutoSave = async () => {
+  await act(async () => {
+    vi.advanceTimersByTime(DRAFT_AUTO_SAVE_DELAY + 50);
+  });
+};
 
 describe('GalleryItemsEditor (Items tab)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // The clock keeps running on its own (so `findBy*` still settles) while
+    // tests jump the auto-save debounce explicitly.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     mockFeatures('gallery');
     vi.mocked(loadDraftConfig).mockResolvedValue(draft(seeded));
     vi.mocked(updateGallery).mockResolvedValue(undefined);
   });
+  afterEach(() => vi.useRealTimers());
 
   it('shows the draft as thumbnails and opens the attributes dialog from one', async () => {
     renderEditor();
@@ -60,7 +72,14 @@ describe('GalleryItemsEditor (Items tab)', () => {
     expect(screen.getByText('Not displayed — image missing')).toBeInTheDocument();
   });
 
-  it('tags an item from the dialog and saves over the fresh draft design', async () => {
+  it('writes nothing for the draft it just loaded', async () => {
+    renderEditor();
+    await screen.findByRole('button', { name: 'Shot A' });
+    await settleAutoSave();
+    expect(updateGallery).not.toHaveBeenCalled();
+  });
+
+  it('tags an item from the dialog and auto-saves over the fresh draft design', async () => {
     // The save-time re-read returns a draft whose Design tab set a grid mode.
     vi.mocked(loadDraftConfig)
       .mockResolvedValueOnce(draft(seeded))
@@ -76,9 +95,7 @@ describe('GalleryItemsEditor (Items tab)', () => {
     // The background stays aria-hidden until the dialog fully exits.
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: [
@@ -97,16 +114,20 @@ describe('GalleryItemsEditor (Items tab)', () => {
       .mockResolvedValueOnce(draft(seeded))
       .mockResolvedValue(draft({ ...seeded, tags: [] }));
     renderEditor();
-    await screen.findByRole('button', { name: 'Shot A' });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+
+    // Any edit triggers the write; the pruning rides with it.
+    fireEvent.click(await screen.findByRole('button', { name: 'Tree' }));
+    fireEvent.change(await screen.findByLabelText(/^title/i), { target: { value: 'Tall tree' } });
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     // The schema rejects dangling references — the save prunes them instead of failing.
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: [
         { imageUrl: '/a.jpg', title: 'Shot A', subtitle: 'Sub A', tags: [] },
-        { imageUrl: '/n.jpg', title: 'Tree', tags: [] },
+        { imageUrl: '/n.jpg', title: 'Tall tree', tags: [] },
       ],
       tags: [],
     });

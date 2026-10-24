@@ -19,7 +19,8 @@ import { GalleryTagsTab } from "../pages/admin/GalleryTagsTab";
 import { GalleryDesignTab } from "../pages/admin/GalleryDesignTab";
 import { EventsPage } from "../pages/admin/EventsPage";
 import { EventsListTab } from "../pages/admin/EventsListTab";
-import { EventsDesignTab } from "../pages/admin/EventsDesignTab";
+import { EventsAgendaDesignTab } from "../pages/admin/EventsAgendaDesignTab";
+import { EventsEventDesignTab } from "../pages/admin/EventsEventDesignTab";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { ManageLayout } from "../layouts/ManageLayout";
 import { Loading } from "../components";
@@ -87,7 +88,10 @@ const ManageArea: React.FC = () => {
           <Route path="events" element={<EventsPage />}>
             <Route index element={<Navigate to="list" replace />} />
             <Route path="list" element={<EventsListTab />} />
-            <Route path="design" element={<EventsDesignTab />} />
+            <Route path="agenda-design" element={<EventsAgendaDesignTab />} />
+            <Route path="event-design" element={<EventsEventDesignTab />} />
+            {/* The single Design tab became two — keep old bookmarks working. */}
+            <Route path="design" element={<Navigate to="../agenda-design" replace />} />
           </Route>
         )}
         <Route path="translations" element={<TranslationsPage />} />
