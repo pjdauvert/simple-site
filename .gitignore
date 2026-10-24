@@ -41,3 +41,4 @@ deno.lock
 .playwright
 .playwright-cli
 .claude/worktrees
+.claude/settings.local.json
