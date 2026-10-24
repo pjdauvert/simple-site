@@ -107,7 +107,7 @@ npm install -g npm@latest
 ifconfig        # macOS / Linux
 ipconfig        # Windows
 
-# 2. Start the dev server
+# 2. Start the dev server (app + emulated API on one port)
 npm run dev
 
 # 3. Open http://YOUR_IP:5173 on the device (must be on the same network)

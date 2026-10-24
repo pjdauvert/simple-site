@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -5,6 +6,42 @@ import netlify from '@netlify/vite-plugin';
 
 const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
 const sharedTypesRoot = fileURLToPath(new URL('../../libs/interfaces/src', import.meta.url));
+
+/** Where `netlify.toml` tells the emulator to find the API (a BUILD, not sources). */
+const functionsDir = fileURLToPath(new URL('../../dist/apps/functions', import.meta.url));
+
+/**
+ * The dev server emulates `/api/*` from the functions BUILD, so a missing or
+ * stale `dist/apps/functions` makes every API call 404 and the app render
+ * nothing but "Error Loading Configuration" — with no hint as to why. The
+ * banner therefore states where the API comes from, and says what to run when
+ * it is not there. `npm run dev` builds the functions first (see
+ * `apps/web/project.json`), so the warning only shows for a bare `vite`.
+ */
+const netlifyFunctionsNotice = (): import('vite').Plugin => ({
+  name: 'netlify-functions-notice',
+  apply: 'serve',
+  configureServer(server) {
+    const printUrls = server.printUrls.bind(server);
+    server.printUrls = () => {
+      printUrls();
+      const built = existsSync(functionsDir)
+        ? readdirSync(functionsDir).filter((entry) => entry.endsWith('.mjs'))
+        : [];
+      if (built.length > 0) {
+        server.config.logger.info(
+          `  \u279c  API:     /api/* emulated from dist/apps/functions (${built.length} functions)\n`,
+        );
+      } else {
+        server.config.logger.warn(
+          '\n  !  No functions build found in dist/apps/functions — every /api/* call will 404\n' +
+            '     and the app will only show "Error Loading Configuration".\n' +
+            '     Run `npm run build:functions` (or just `npm run dev`, which builds them).\n',
+        );
+      }
+    };
+  },
+});
 
 const netlifyRedirectsPlugin = (): import('vite').Plugin => ({
   name: 'netlify-spa-redirects',
@@ -19,7 +56,7 @@ const netlifyRedirectsPlugin = (): import('vite').Plugin => ({
 });
 
 export default defineConfig({
-  plugins: [react(), netlify(), netlifyRedirectsPlugin()],
+  plugins: [react(), netlify(), netlifyFunctionsNotice(), netlifyRedirectsPlugin()],
   resolve: {
     alias: {
       '@simple-site/interfaces': sharedTypesRoot,
