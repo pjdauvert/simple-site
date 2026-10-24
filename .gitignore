@@ -40,3 +40,4 @@ deno.lock
 # Playwright
 .playwright
 .playwright-cli
+.claude/worktrees
