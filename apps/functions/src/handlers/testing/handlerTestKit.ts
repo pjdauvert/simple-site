@@ -28,7 +28,7 @@ export const stubEnv = (env: Record<string, string | undefined> = BASE_ENV): voi
 
 /** Replaces global `fetch` with a spy running `impl`; returns it for assertions. */
 export const stubFetch = (impl: (url: string, init?: RequestInit) => unknown) => {
-  const fetchMock = vi.fn(impl as never);
+  const fetchMock = vi.fn(impl);
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 };

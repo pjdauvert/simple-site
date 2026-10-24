@@ -56,6 +56,8 @@ Before concluding any task or pushing:
 npm test             # unit tests across all workspaces
 npm run lint         # lint
 npm run typecheck    # type checks across all workspaces
+npm run audit        # dependency advisories — no high/critical anywhere,
+                     # nothing above low in the runtime tree
 ```
 
 Git pre-commit hooks run lint + typecheck — **never bypass with `--no-verify`**.

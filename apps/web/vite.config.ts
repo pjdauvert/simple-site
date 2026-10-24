@@ -11,12 +11,13 @@ const sharedTypesRoot = fileURLToPath(new URL('../../libs/interfaces/src', impor
 const functionsDir = fileURLToPath(new URL('../../dist/apps/functions', import.meta.url));
 
 /**
- * The dev server emulates `/api/*` from the functions BUILD, so a missing or
- * stale `dist/apps/functions` makes every API call 404 and the app render
- * nothing but "Error Loading Configuration" — with no hint as to why. The
- * banner therefore states where the API comes from, and says what to run when
- * it is not there. `npm run dev` builds the functions first (see
- * `apps/web/project.json`), so the warning only shows for a bare `vite`.
+ * `/api/*` is served by the serverless FUNCTIONS BUILD, and a missing
+ * `dist/apps/functions` makes every API call fall through to the SPA — the app
+ * then renders nothing but "Error Loading Configuration", with no hint as to
+ * why. `npm run dev` builds them first (see `apps/web/project.json`), so this
+ * only fires for a bare `vite`, which it also warns is the wrong entry point:
+ * Vite alone cannot route `/api/*` (the Netlify config lives at the workspace
+ * root, outside Vite's root), so the API needs `npm run dev`.
  */
 const netlifyFunctionsNotice = (): import('vite').Plugin => ({
   name: 'netlify-functions-notice',
@@ -28,15 +29,16 @@ const netlifyFunctionsNotice = (): import('vite').Plugin => ({
       const built = existsSync(functionsDir)
         ? readdirSync(functionsDir).filter((entry) => entry.endsWith('.mjs'))
         : [];
-      if (built.length > 0) {
-        server.config.logger.info(
-          `  \u279c  API:     /api/* emulated from dist/apps/functions (${built.length} functions)\n`,
-        );
-      } else {
+      if (built.length === 0) {
         server.config.logger.warn(
-          '\n  !  No functions build found in dist/apps/functions — every /api/* call will 404\n' +
-            '     and the app will only show "Error Loading Configuration".\n' +
-            '     Run `npm run build:functions` (or just `npm run dev`, which builds them).\n',
+          '\n  !  No functions build in dist/apps/functions — /api/* will fall through to the\n' +
+            '     SPA and the app will only show "Error Loading Configuration".\n' +
+            '     Run `npm run dev` (it builds them and serves the API through Netlify).\n',
+        );
+      } else if (!process.env.NETLIFY_DEV) {
+        server.config.logger.warn(
+          '\n  !  Vite alone does not route /api/* — the Netlify config lives at the workspace\n' +
+            '     root, outside Vite\'s root. Use `npm run dev` for the app AND the API.\n',
         );
       }
     };

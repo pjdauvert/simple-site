@@ -55,13 +55,31 @@ npm test             # Vitest unit tests
 npm run test:ui      # Vitest with browser UI
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit across all projects
+npm run audit        # dependency vulnerabilities (see below)
 ```
 
 Pre-commit hooks (Lefthook) run `lint` and `typecheck` automatically. Do not bypass them with `--no-verify`.
 
+### Dependency vulnerabilities
+
+`npm run audit` is a merge gate, not a report: **no `high` or `critical` advisory is
+allowed anywhere**, and the runtime tree (`--omit=dev`) must also be free of
+`moderate` ones — what ships to visitors is held to the stricter bar.
+
+When it fails:
+
+1. `npm audit fix` first — it only moves within the declared ranges.
+2. Still failing? Upgrade the offending tool to its fixed major and re-run every
+   gate; the test runner and build toolchain are dev-only, but a broken toolchain
+   is still a broken build.
+3. If the only upgrade npm proposes is a **downgrade** (it does suggest those),
+   pin the patched transitive version in `overrides` in `package.json` instead,
+   with a comment-worthy entry in the PR description saying which advisory it
+   closes. Never silence an advisory by lowering the gate.
+
 ## Continuous Integration
 
-Every pull request runs the same gates in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) on each pushed commit: install, lint, typecheck, tests, and build. A superseded run is cancelled when new commits arrive. All checks must pass before merge — fix the underlying issue rather than re-running.
+Every pull request runs the same gates in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) on each pushed commit: install, dependency audit, lint, typecheck, tests, and build. A superseded run is cancelled when new commits arrive. All checks must pass before merge — fix the underlying issue rather than re-running.
 
 ## Browser Support
 
@@ -107,10 +125,10 @@ npm install -g npm@latest
 ifconfig        # macOS / Linux
 ipconfig        # Windows
 
-# 2. Start the dev server (app + emulated API on one port)
+# 2. Start the dev server (app + API on one port)
 npm run dev
 
-# 3. Open http://YOUR_IP:5173 on the device (must be on the same network)
+# 3. Open http://YOUR_IP:3080 on the device (must be on the same network)
 ```
 
 ## Roadmap
