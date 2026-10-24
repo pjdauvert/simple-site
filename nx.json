@@ -42,5 +42,8 @@
     "web": "apps/web",
     "functions": "apps/functions",
     "interfaces": "libs/interfaces"
+  },
+  "affected": {
+    "legacy": true
   }
 }
