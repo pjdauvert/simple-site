@@ -60,6 +60,15 @@ npm run audit        # dependency vulnerabilities (see below)
 
 Pre-commit hooks (Lefthook) run `lint` and `typecheck` automatically. Do not bypass them with `--no-verify`.
 
+### Suppressed runtime warnings
+
+`npm run dev` / `npm run preview` set `NODE_OPTIONS=--disable-warning=DEP0060`.
+The local proxy of the Netlify CLI still depends on `http-proxy@1`, unmaintained
+since 2020, which calls the deprecated `util._extend` on **every** proxied
+request — one warning per API call, drowning the dev log. The flag silences that
+one deprecation code, never warnings at large; drop it when the CLI moves off
+`http-proxy`.
+
 ### Dependency vulnerabilities
 
 `npm run audit` is a merge gate, not a report: **no `high` or `critical` advisory is
