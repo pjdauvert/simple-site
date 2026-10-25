@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import netlify from '@netlify/vite-plugin';
 
@@ -57,7 +57,20 @@ const netlifyRedirectsPlugin = (): import('vite').Plugin => ({
   },
 });
 
-export default defineConfig({
+/**
+ * Hostnames a reverse proxy may front the dev server with, comma-separated in
+ * `DEV_ALLOWED_HOSTS` (workspace `.env`). Vite rejects any `Host` it was not
+ * told about, so serving `npm run dev` behind nginx (or a tunnel) answers
+ * "Blocked request" until its hostname is listed. Empty — the default — keeps
+ * Vite's own strict behaviour, which is what a laptop on a café network wants.
+ */
+const allowedHosts = (mode: string): string[] =>
+  (loadEnv(mode, workspaceRoot, '').DEV_ALLOWED_HOSTS ?? '')
+    .split(',')
+    .map((host) => host.trim())
+    .filter(Boolean);
+
+export default defineConfig(({ mode }) => ({
   plugins: [react(), netlify(), netlifyFunctionsNotice(), netlifyRedirectsPlugin()],
   resolve: {
     alias: {
@@ -65,6 +78,7 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: allowedHosts(mode),
     fs: {
       allow: [workspaceRoot],
     },
@@ -145,4 +159,4 @@ export default defineConfig({
       polyfill: true,
     },
   },
-});
+}));

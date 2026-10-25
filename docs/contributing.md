@@ -60,6 +60,24 @@ npm run audit        # dependency vulnerabilities (see below)
 
 Pre-commit hooks (Lefthook) run `lint` and `typecheck` automatically. Do not bypass them with `--no-verify`.
 
+### Reaching the dev server from another machine
+
+`npm run dev` already listens on every interface at port 3080, so a reverse
+proxy or another device on the network can reach it. Vite, however, rejects
+`Host` headers it was not told about (*"Blocked request"*), so list the
+hostnames the proxy uses in `DEV_ALLOWED_HOSTS` (comma-separated) in the
+workspace `.env` — see `.env.example`.
+
+Hot module reload rides a WebSocket on the same origin: the proxy must forward
+the upgrade, otherwise the page loads fine but stops updating on save. For
+nginx:
+
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Upgrade    $http_upgrade;
+proxy_set_header Connection "upgrade";
+```
+
 ### Suppressed runtime warnings
 
 `npm run dev` / `npm run preview` set `NODE_OPTIONS=--disable-warning=DEP0060`.
