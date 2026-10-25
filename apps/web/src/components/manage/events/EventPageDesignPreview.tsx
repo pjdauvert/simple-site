@@ -7,12 +7,13 @@ import { spotlightSx } from './designSpotlight';
 import type { EventPageDesignDraft } from './eventsDesign';
 
 /** The event-page preview elements a field can ring — see `useDesignSpotlight`. */
-export type EventPagePreviewTarget = 'imageRatio' | 'fullBackground';
+export type EventPagePreviewTarget = 'imageRatio' | 'imagePlacement' | 'fullBackground';
 
 /**
- * Symbolic skeleton of a public event page under the picked design: the header
- * illustration in its ratio, then the name, the date/location/website lines
- * and the description as bars. With the full-background option on, the canvas
+ * Symbolic skeleton of a public event page under the picked design: the
+ * illustration in its ratio — above the texts or beside them, as the
+ * placement says — with the name, the date/location/website lines and the
+ * description as bars. With the full-background option on, the canvas
  * is painted with the (blurred) illustration and the texts move onto the same
  * contrasted panel the public page uses — the preview reads the real
  * treatment, not an approximation of it.
@@ -23,6 +24,7 @@ export const EventPageDesignPreview: React.FC<{
 }> = ({ design, highlight }) => {
   const theme = useTheme();
   const { fullBackgroundImage } = design;
+  const beside = design.imagePlacement === 'beside';
   /**
    * Props of a ringable skeleton element: its own styles plus the ring, and
    * `data-highlighted` so the state is readable (and testable) without
@@ -58,16 +60,27 @@ export const EventPageDesignPreview: React.FC<{
           }}
         />
       )}
-      <Box sx={{ position: 'relative' }}>
+      <Box
+        data-testid="event-preview-layout"
+        data-image-placement={design.imagePlacement}
+        {...ringed('imagePlacement', {
+          position: 'relative',
+          display: 'grid',
+          gap: 1.5,
+          // Beside: the illustration takes one column of two, as on the real
+          // page. Above: one column, the texts under the illustration.
+          ...(beside ? { gridTemplateColumns: '1fr 1fr', alignItems: 'start' } : {}),
+        })}
+      >
         <Box
           data-testid="event-preview-header-image"
           {...ringed('imageRatio', {
             aspectRatio: aspectRatioCss(design.imageAspectRatio),
-            // The real header spans the container; keep the skeleton compact
-            // enough that a portrait ratio still shows the texts below it.
-            width: '55%',
+            // Beside the texts the illustration fills its column; above them
+            // the skeleton stays compact enough that a portrait ratio still
+            // leaves the texts visible — the half-screen cap of the real page.
+            width: beside ? '100%' : '55%',
             mx: 'auto',
-            mb: 1.5,
             borderRadius: 1.5,
             bgcolor: 'action.selected',
           })}
@@ -76,6 +89,7 @@ export const EventPageDesignPreview: React.FC<{
           sx={{
             display: 'grid',
             gap: 0.75,
+            alignContent: 'start',
             ...(fullBackgroundImage ? { p: 1, ...eventContrastPanelSx(theme) } : {}),
           }}
         >

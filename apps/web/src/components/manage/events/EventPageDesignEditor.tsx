@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Box, FormControlLabel, Switch, Typography } from '@mui/material';
+import { Alert, Box, FormControlLabel, Switch, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { EventsConfigSchema, type EventAspectRatio } from '@simple-site/interfaces';
+import {
+  EVENT_IMAGE_PLACEMENTS,
+  EventsConfigSchema,
+  type EventAspectRatio,
+  type EventImagePlacement,
+} from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateEvents } from '../../../services/eventsService';
@@ -11,13 +16,17 @@ import { AspectRatioChoice } from './AspectRatioChoice';
 import { DesignTabLayout } from './DesignPreviewShell';
 import { EventPageDesignPreview, type EventPagePreviewTarget } from './EventPageDesignPreview';
 import { useDesignSpotlight } from './designSpotlight';
-import { mergeEventPageDraft, toEventPageDraft, type EventPageDesignDraft } from './eventsDesign';
+import { mergeEventPageDraft, placementLabelKey, toEventPageDraft, type EventPageDesignDraft } from './eventsDesign';
+
+/** The placement group is labelled by its own rendered label element. */
+const PLACEMENT_LABEL_ID = 'events-page-image-placement-label';
 
 /**
  * Event page design tab of /manage/events (`/manage/events/event-design`):
- * how one event's detail page looks — the header illustration's ratio (A4
- * poster by default, like the cards) and whether the illustration is painted
- * as a blurred full background behind the page.
+ * how one event's detail page looks — where the illustration sits (above the
+ * descriptive panel or beside it, capped at half the screen either way), its
+ * ratio (A4 poster by default, like the cards) and whether it is painted as a
+ * blurred full background behind the page.
  *
  * Every settled change AUTO-SAVES to the draft (no save button — see
  * `useDraftAutoSave`), merging over a fresh draft read so neither the event
@@ -77,6 +86,32 @@ export const EventPageDesignEditor: React.FC = () => {
     <DesignTabLayout
       form={
         <>
+          <Box {...spotlight('imagePlacement')}>
+            <Typography variant="subtitle2" gutterBottom id={PLACEMENT_LABEL_ID}>
+              <FormattedMessage id="page.manage.events.design.imagePlacement" />
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={design.imagePlacement}
+              onChange={(_, imagePlacement: EventImagePlacement | null) => {
+                if (imagePlacement) setDesign({ ...design, imagePlacement });
+              }}
+              aria-labelledby={PLACEMENT_LABEL_ID}
+              // Touch targets stay at 44 px, and the two labels wrap on a phone.
+              sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: 44, px: 2 } }}
+            >
+              {EVENT_IMAGE_PLACEMENTS.map((placement) => (
+                <ToggleButton key={placement} value={placement}>
+                  <FormattedMessage id={placementLabelKey(placement)} />
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Typography variant="body2" color="text.secondary" component="p" sx={{ mt: 1 }}>
+              <FormattedMessage id="page.manage.events.design.imagePlacement.help" />
+            </Typography>
+          </Box>
+
           <Box {...spotlight('imageRatio')}>
             <AspectRatioChoice
               id="events-page-aspect-ratio-label"

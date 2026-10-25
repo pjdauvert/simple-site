@@ -84,6 +84,10 @@ describe('EventsConfigSchema', () => {
     );
     expect(EventsConfigSchema.safeParse(eventPage({ fullBackgroundImage: 'yes' })).success).toBe(false);
     expect(EventsConfigSchema.safeParse(eventPage({ imageAspectRatio: 'A5' })).success).toBe(false);
+    // Illustration placement: only the two documented values.
+    expect(EventsConfigSchema.safeParse(eventPage({ imagePlacement: 'beside' })).success).toBe(true);
+    expect(EventsConfigSchema.safeParse(eventPage({ imagePlacement: 'above' })).success).toBe(true);
+    expect(EventsConfigSchema.safeParse(eventPage({ imagePlacement: 'left' })).success).toBe(false);
   });
 
   it('drops the removed featured-section introduction', () => {

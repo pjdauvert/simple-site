@@ -91,6 +91,23 @@ describe('EventPage (public /events/:slug)', () => {
     expect(screen.getByTestId('event-header-image')).toHaveAttribute('data-aspect-ratio', '16:9');
   });
 
+  it('puts the illustration above the description by default, beside it when the design says so', () => {
+    const above = renderAt('/events/summer-festival');
+    expect(screen.getByTestId('event-header-image').parentElement).toHaveAttribute('data-image-placement', 'above');
+    above.unmount();
+
+    setConfig({ events: [festival], design: { eventPage: { imagePlacement: 'beside' } } });
+    renderAt('/events/summer-festival');
+    const layout = screen.getByTestId('event-header-image').parentElement;
+    expect(layout).toHaveAttribute('data-image-placement', 'beside');
+    // The illustration and the description are the layout's two children —
+    // side by side from `md`, stacked below it.
+    expect(layout?.children).toHaveLength(2);
+    expect(screen.getByRole('heading', { level: 1, name: 'Summer Festival' })).toBeInTheDocument();
+    // A column image is delivered at a column's width, not the page's.
+    expect(document.querySelector('img')).toHaveAttribute('sizes', '(min-width: 900px) 450px, 100vw');
+  });
+
   it('paints the illustration as a blurred full background only when the design asks for it', () => {
     const plain = renderAt('/events/summer-festival');
     expect(screen.queryByTestId('event-full-background')).not.toBeInTheDocument();

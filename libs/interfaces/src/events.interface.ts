@@ -50,6 +50,21 @@ export const DEFAULT_EVENT_CARD_ASPECT_RATIO: EventAspectRatio = 'A4';
 export const DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO: EventAspectRatio = 'A4';
 
 /**
+ * Where the detail page puts the illustration relative to the descriptive
+ * panel: `above` it (the default — the illustration opens the page, texts
+ * underneath) or `beside` it (illustration and texts side by side on a wide
+ * screen, stacked on a narrow one, which has no room for two columns).
+ *
+ * Either way the illustration is capped at HALF the viewer's screen — half
+ * its height when above (a portrait poster must not push the description out
+ * of sight), half its width when beside.
+ */
+export const EVENT_IMAGE_PLACEMENTS = ['above', 'beside'] as const;
+export const EventImagePlacementSchema = z.enum(EVENT_IMAGE_PLACEMENTS);
+export type EventImagePlacement = z.infer<typeof EventImagePlacementSchema>;
+export const DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT: EventImagePlacement = 'above';
+
+/**
  * Visibility of the agenda's past-events section: `all` shows every past
  * event, `none` hides the section entirely, `from` only keeps events starting
  * on/after `pastEventsFromDate` (e.g. January 1st to show the current year).
@@ -132,6 +147,11 @@ export type EventsAgendaDesign = z.infer<typeof EventsAgendaDesignSchema>;
 export const EventsPageDesignSchema = z.object({
   /** Ratio of the detail page's header illustration. Absent → {@link DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO}. */
   imageAspectRatio: EventAspectRatioSchema.optional(),
+  /**
+   * Where the illustration sits relative to the descriptive panel. Absent →
+   * {@link DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT}.
+   */
+  imagePlacement: EventImagePlacementSchema.optional(),
   /**
    * Whether the detail page paints the illustration as a blurred full
    * background behind its content (the featured block's treatment: a blurred

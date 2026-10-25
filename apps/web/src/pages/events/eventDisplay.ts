@@ -4,6 +4,7 @@ import {
   DEFAULT_EVENT_COLUMNS,
   DEFAULT_EVENT_FULL_BACKGROUND_IMAGE,
   DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO,
+  DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT,
   DEFAULT_EVENT_SHOW_FEATURED_BACKDROP,
   DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS,
   DEFAULT_PAST_EVENTS_MODE,
@@ -11,6 +12,7 @@ import {
   FeaturePagesEnum,
   featurePageTitle,
   type EventAspectRatio,
+  type EventImagePlacement,
   type EventsConfig,
   type PastEventsMode,
   type SiteConfig,
@@ -44,11 +46,13 @@ export const resolveAgendaDesign = (events: EventsConfig | undefined): ResolvedA
 
 export interface ResolvedEventPageDesign {
   imageAspectRatio: EventAspectRatio;
+  imagePlacement: EventImagePlacement;
   fullBackgroundImage: boolean;
 }
 
 export const resolveEventPageDesign = (events: EventsConfig | undefined): ResolvedEventPageDesign => ({
   imageAspectRatio: events?.design?.eventPage?.imageAspectRatio ?? DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO,
+  imagePlacement: events?.design?.eventPage?.imagePlacement ?? DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT,
   fullBackgroundImage: events?.design?.eventPage?.fullBackgroundImage ?? DEFAULT_EVENT_FULL_BACKGROUND_IMAGE,
 });
 
@@ -70,9 +74,40 @@ export const markdownBodySx = {
 export const googleMapsSearchUrl = (address: string): string =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
+/** Width and height of a design ratio (`A4` = the print poster's 210 × 297). */
+export const aspectRatioParts = (ratio: EventAspectRatio): readonly [number, number] => {
+  if (ratio === 'A4') return [210, 297];
+  const [width, height] = ratio.split(':').map(Number);
+  return [width, height];
+};
+
 /** CSS `aspect-ratio` value of a design ratio (`A4` = portrait 210 × 297). */
-export const aspectRatioCss = (ratio: EventAspectRatio): string =>
-  ratio === 'A4' ? '210 / 297' : ratio.replace(':', ' / ');
+export const aspectRatioCss = (ratio: EventAspectRatio): string => aspectRatioParts(ratio).join(' / ');
+
+/**
+ * The detail page's illustration frame, capped at HALF THE SCREEN whichever
+ * placement the design picked. The frame always fills the width it is given
+ * and derives its height from the ratio, so the cap is expressed as a
+ * `max-width`:
+ * - `above` — half the screen HEIGHT, i.e. `50vh × ratio` of width, so a
+ *   portrait poster can never fill the fold and bury the description;
+ * - `beside` — half the screen WIDTH from the breakpoint where the two
+ *   columns actually sit side by side. Below it the layout stacks, which is
+ *   the `above` situation, so the height cap applies there instead.
+ */
+export const eventPageImageFrameSx = (
+  ratio: EventAspectRatio,
+  placement: EventImagePlacement,
+): Record<string, unknown> => {
+  const [width, height] = aspectRatioParts(ratio);
+  const halfHeight = `calc(50vh * ${width} / ${height})`;
+  return {
+    aspectRatio: aspectRatioCss(ratio),
+    width: '100%',
+    maxWidth: placement === 'beside' ? { xs: halfHeight, md: '50vw' } : halfHeight,
+    mx: 'auto',
+  };
+};
 
 /**
  * Responsive column track of the card grids: phones stack, tablets show two,
@@ -104,6 +139,8 @@ export const eventHeaderImageUrl = (url: string): string => ikTransform(url, 'w-
 export const eventHeaderImageSrcSet = (url: string): string | undefined => ikSrcSet(url, EVENT_HEADER_WIDTHS);
 /** The detail header spans its container; the featured poster its left third. */
 export const EVENT_PAGE_HEADER_SIZES = '(min-width: 900px) 900px, 100vw';
+/** Beside the texts the detail illustration only takes a column of the page. */
+export const EVENT_PAGE_SIDE_IMAGE_SIZES = '(min-width: 900px) 450px, 100vw';
 export const FEATURED_POSTER_SIZES = '(min-width: 900px) 33vw, 100vw';
 
 /**

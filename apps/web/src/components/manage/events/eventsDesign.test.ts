@@ -67,30 +67,42 @@ describe('agenda design draft', () => {
 describe('event page design draft', () => {
   it('defaults to the A4 poster with no background and persists nothing when pristine', () => {
     const pristine = toEventPageDraft(undefined);
-    expect(pristine).toEqual({ imageAspectRatio: 'A4', fullBackgroundImage: false });
+    expect(pristine).toEqual({ imageAspectRatio: 'A4', imagePlacement: 'above', fullBackgroundImage: false });
     expect(fromEventPageDraft(pristine)).toBeUndefined();
   });
 
   it('stores a ratio deviation alone', () => {
-    expect(fromEventPageDraft({ imageAspectRatio: '16:9', fullBackgroundImage: false })).toEqual({
-      imageAspectRatio: '16:9',
-    });
+    expect(
+      fromEventPageDraft({ imageAspectRatio: '16:9', imagePlacement: 'above', fullBackgroundImage: false }),
+    ).toEqual({ imageAspectRatio: '16:9' });
   });
 
   it('stores the full background as `true` only, A4 staying implicit', () => {
-    expect(fromEventPageDraft({ imageAspectRatio: 'A4', fullBackgroundImage: true })).toEqual({
-      fullBackgroundImage: true,
-    });
-    expect(fromEventPageDraft({ imageAspectRatio: '4:3', fullBackgroundImage: true })).toEqual({
-      imageAspectRatio: '4:3',
-      fullBackgroundImage: true,
-    });
+    expect(
+      fromEventPageDraft({ imageAspectRatio: 'A4', imagePlacement: 'above', fullBackgroundImage: true }),
+    ).toEqual({ fullBackgroundImage: true });
+    expect(
+      fromEventPageDraft({ imageAspectRatio: '4:3', imagePlacement: 'above', fullBackgroundImage: true }),
+    ).toEqual({ imageAspectRatio: '4:3', fullBackgroundImage: true });
+  });
+
+  it('stores a placement deviation alone — `above` stays implicit', () => {
+    expect(
+      fromEventPageDraft({ imageAspectRatio: 'A4', imagePlacement: 'beside', fullBackgroundImage: false }),
+    ).toEqual({ imagePlacement: 'beside' });
+    expect(
+      fromEventPageDraft({ imageAspectRatio: 'A4', imagePlacement: 'above', fullBackgroundImage: false }),
+    ).toBeUndefined();
   });
 
   it('reads a stored event-page design back into the form', () => {
     expect(toEventPageDraft(config({ design: { eventPage: { fullBackgroundImage: true } } }))).toEqual({
       imageAspectRatio: 'A4',
+      imagePlacement: 'above',
       fullBackgroundImage: true,
+    });
+    expect(toEventPageDraft(config({ design: { eventPage: { imagePlacement: 'beside' } } }))).toMatchObject({
+      imagePlacement: 'beside',
     });
   });
 });
@@ -147,7 +159,8 @@ describe('mergeAgendaDraft (what the Agenda design tab writes)', () => {
 describe('mergeEventPageDraft (what the Event page design tab writes)', () => {
   it('keeps the list, the texts and the agenda design, and writes its own slice', () => {
     const fresh = config({ pastTitle: 'Archives', design: { agendaPage: { columns: 2 } } });
-    expect(mergeEventPageDraft(fresh, { imageAspectRatio: 'A4', fullBackgroundImage: true })).toEqual({
+    const draft = { imageAspectRatio: 'A4', imagePlacement: 'above', fullBackgroundImage: true } as const;
+    expect(mergeEventPageDraft(fresh, draft)).toEqual({
       events: [festival],
       pastTitle: 'Archives',
       design: { agendaPage: { columns: 2 }, eventPage: { fullBackgroundImage: true } },

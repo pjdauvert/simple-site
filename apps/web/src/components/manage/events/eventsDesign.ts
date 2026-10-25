@@ -3,10 +3,12 @@ import {
   DEFAULT_EVENT_COLUMNS,
   DEFAULT_EVENT_FULL_BACKGROUND_IMAGE,
   DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO,
+  DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT,
   DEFAULT_EVENT_SHOW_FEATURED_BACKDROP,
   DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS,
   DEFAULT_PAST_EVENTS_MODE,
   type EventAspectRatio,
+  type EventImagePlacement,
   type EventsAgendaDesign,
   type EventsConfig,
   type EventsPageDesign,
@@ -42,6 +44,10 @@ import {
  */
 export const aspectLabelKey = (ratio: EventAspectRatio): string =>
   `page.manage.events.design.aspect.${ratio.replace(':', '_')}`;
+
+/** i18n label of an illustration placement (`beside` → `…imagePlacement.beside`). */
+export const placementLabelKey = (placement: EventImagePlacement): string =>
+  `page.manage.events.design.imagePlacement.${placement}`;
 
 export interface AgendaDesignDraft extends Omit<ResolvedAgendaDesign, 'pastEventsFromDate'> {
   /** Kept whatever the mode — switching away and back never loses the date ('' ↔ absent). */
@@ -89,6 +95,7 @@ export const fromEventPageDraft = (draft: EventPageDesignDraft): EventsPageDesig
   if (draft.imageAspectRatio !== DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO) {
     design.imageAspectRatio = draft.imageAspectRatio;
   }
+  if (draft.imagePlacement !== DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT) design.imagePlacement = draft.imagePlacement;
   // Opt-in toggle: only `true` is ever stored.
   if (draft.fullBackgroundImage !== DEFAULT_EVENT_FULL_BACKGROUND_IMAGE) design.fullBackgroundImage = true;
   return Object.keys(design).length > 0 ? design : undefined;

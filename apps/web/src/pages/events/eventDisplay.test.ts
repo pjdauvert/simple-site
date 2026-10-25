@@ -3,12 +3,14 @@ import { createTheme } from '@mui/material/styles';
 import type { EventsConfig, SiteConfig } from '@simple-site/interfaces';
 import {
   aspectRatioCss,
+  aspectRatioParts,
   eventBackdropLayerSx,
   eventCardImageSrcSet,
   eventCardImageUrl,
   eventCardSizes,
   eventColumnsSx,
   eventContrastPanelSx,
+  eventPageImageFrameSx,
   eventRoute,
   eventsPageTitle,
   googleMapsSearchUrl,
@@ -27,7 +29,11 @@ describe('design resolution (stored deviations over defaults)', () => {
       showFeaturedBackdrop: true,
     });
     // Both surfaces default to the A4 poster; the full background is opt-in.
-    expect(resolveEventPageDesign(undefined)).toEqual({ imageAspectRatio: 'A4', fullBackgroundImage: false });
+    expect(resolveEventPageDesign(undefined)).toEqual({
+      imageAspectRatio: 'A4',
+      imagePlacement: 'above',
+      fullBackgroundImage: false,
+    });
   });
 
   it('honours stored deviations', () => {
@@ -35,7 +41,7 @@ describe('design resolution (stored deviations over defaults)', () => {
       events: [],
       design: {
         agendaPage: { pastEventsMode: 'from', pastEventsFromDate: '2026-01-01', columns: 2, showLocationOnCards: false, showFeaturedBackdrop: false },
-        eventPage: { imageAspectRatio: '4:3', fullBackgroundImage: true },
+        eventPage: { imageAspectRatio: '4:3', imagePlacement: 'beside', fullBackgroundImage: true },
       },
     } as unknown as EventsConfig;
     expect(resolveAgendaDesign(events)).toMatchObject({
@@ -46,7 +52,44 @@ describe('design resolution (stored deviations over defaults)', () => {
       showLocationOnCards: false,
       showFeaturedBackdrop: false,
     });
-    expect(resolveEventPageDesign(events)).toEqual({ imageAspectRatio: '4:3', fullBackgroundImage: true });
+    expect(resolveEventPageDesign(events)).toEqual({
+      imageAspectRatio: '4:3',
+      imagePlacement: 'beside',
+      fullBackgroundImage: true,
+    });
+  });
+});
+
+describe('detail-page illustration frame (half-screen cap)', () => {
+  it('states the ratio as CSS and as its two parts', () => {
+    expect(aspectRatioParts('A4')).toEqual([210, 297]); // the print poster
+    expect(aspectRatioParts('16:9')).toEqual([16, 9]);
+    expect(aspectRatioCss('A4')).toBe('210 / 297');
+    expect(aspectRatioCss('4:3')).toBe('4 / 3');
+  });
+
+  it('caps the illustration above the texts at half the screen HEIGHT', () => {
+    // A frame filling its width derives its height from the ratio, so half the
+    // height is a max-width of `50vh × ratio`.
+    expect(eventPageImageFrameSx('A4', 'above')).toEqual({
+      aspectRatio: '210 / 297',
+      width: '100%',
+      maxWidth: 'calc(50vh * 210 / 297)',
+      mx: 'auto',
+    });
+    expect(eventPageImageFrameSx('16:9', 'above')).toMatchObject({
+      maxWidth: 'calc(50vh * 16 / 9)',
+    });
+  });
+
+  it('caps the illustration beside the texts at half the screen WIDTH, by height while stacked', () => {
+    expect(eventPageImageFrameSx('A4', 'beside')).toEqual({
+      aspectRatio: '210 / 297',
+      width: '100%',
+      // Below `md` the layout stacks — that is the `above` situation.
+      maxWidth: { xs: 'calc(50vh * 210 / 297)', md: '50vw' },
+      mx: 'auto',
+    });
   });
 });
 

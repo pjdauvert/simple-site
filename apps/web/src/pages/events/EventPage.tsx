@@ -14,22 +14,28 @@ import { EventDateSentence } from './EventDateSentence';
 import { EventLocationLink } from './EventLocationLink';
 import {
   EVENT_PAGE_HEADER_SIZES,
-  aspectRatioCss,
+  EVENT_PAGE_SIDE_IMAGE_SIZES,
   eventBackdropLayerSx,
   eventBySlug,
   eventContrastPanelSx,
   eventHeaderImageSrcSet,
   eventHeaderImageUrl,
+  eventPageImageFrameSx,
   markdownBodySx,
   resolveEventPageDesign,
 } from './eventDisplay';
 
 /**
- * Public /events/<slug> detail page — the full fiche: header illustration
+ * Public /events/<slug> detail page — the full fiche: the illustration
  * (design-controlled ratio, A4 poster by default), name, the long-format date
  * sentence (same rules as the agenda's featured block), the Google Maps
  * location link, the website link, then the markdown description. Same
  * self-gating as the agenda; an unknown slug 404s.
+ *
+ * The design places the illustration ABOVE the descriptive panel (the
+ * default) or BESIDE it — side by side from `md`, stacked below, where a
+ * phone has no room for two columns. In both cases it is capped at half the
+ * screen, by height above and by width beside (`eventPageImageFrameSx`).
  *
  * The design can paint the illustration as a blurred FULL BACKGROUND behind
  * the page (the featured block's treatment: a blurred cover bleeding across
@@ -60,8 +66,10 @@ export const EventPage: React.FC = () => {
   if (!event) return <NotFoundPage />;
 
   const design = resolveEventPageDesign(config.events);
-  // No illustration → nothing to abstract into a background.
+  // No illustration → nothing to abstract into a background, and nothing to
+  // place either: the texts simply own the page.
   const fullBackground = design.fullBackgroundImage && Boolean(event.imageUrl);
+  const beside = design.imagePlacement === 'beside' && Boolean(event.imageUrl);
 
   return (
     // The background bleeds across the FULL viewport width (outside the
@@ -76,67 +84,83 @@ export const EventPage: React.FC = () => {
         // `relative` keeps the content above the absolutely-placed backdrop.
         sx={{ py: { xs: 4, md: 6 }, position: 'relative' }}
       >
-        {event.imageUrl && (
-          <Box
-            data-testid="event-header-image"
-            // The design's ratio, stated in the DOM: `aspect-ratio` lives in a
-            // generated class, so this is the only honest handle on it.
-            data-aspect-ratio={design.imageAspectRatio}
-            sx={{
-              aspectRatio: aspectRatioCss(design.imageAspectRatio),
-              overflow: 'hidden',
-              borderRadius: 3,
-              mb: { xs: 3, md: 4 },
-            }}
-          >
+        {/* Illustration above the texts (one column) or beside them (two from
+            `md`, stacked below it — a phone has no room for a side column).
+            The gap is the only spacing between the two, so neither carries a
+            margin of its own. */}
+        <Box
+          // The resolved placement, stated in the DOM: the layout lives in a
+          // generated class, so this is the only honest handle on it.
+          data-image-placement={design.imagePlacement}
+          sx={{
+            display: 'grid',
+            gap: { xs: 3, md: 4 },
+            ...(beside
+              ? { gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' }, alignItems: 'start' }
+              : {}),
+          }}
+        >
+          {event.imageUrl && (
             <Box
-              component="img"
-              src={eventHeaderImageUrl(event.imageUrl)}
-              srcSet={eventHeaderImageSrcSet(event.imageUrl)}
-              sizes={EVENT_PAGE_HEADER_SIZES}
-              alt=""
-              decoding="async"
-              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          </Box>
-        )}
-
-        {/* Over a blurred backdrop the texts move onto a contrasted panel; on a
-            plain page background they need none. */}
-        <Box sx={fullBackground ? { p: { xs: 2, md: 3 }, ...eventContrastPanelSx(theme) } : undefined}>
-          <Typography variant="h3" component="h1" gutterBottom>
-            <FormattedMessage id={eventNameKey(event.slug)} defaultMessage={event.name} />
-          </Typography>
-
-          <Stack spacing={1} sx={{ mb: { xs: 3, md: 4 } }}>
-            <Typography variant="subtitle1" color="text.secondary">
-              <EventDateSentence event={event} now={new Date()} />
-            </Typography>
-            <Box sx={{ typography: 'body1' }}>
-              <EventLocationLink event={event} />
-            </Box>
-            {event.websiteUrl && (
-              <Box>
-                <Button
-                  href={event.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="contained"
-                  sx={{ minHeight: 44 }}
-                >
-                  <FormattedMessage id="page.events.moreInfo" />
-                </Button>
-              </Box>
-            )}
-          </Stack>
-
-          {event.description?.trim() && (
-            <Box sx={markdownBodySx}>
-              <FormattedMessage id={eventDescriptionKey(event.slug)} defaultMessage={event.description}>
-                {(message) => <Markdown>{String(message)}</Markdown>}
-              </FormattedMessage>
+              data-testid="event-header-image"
+              // The design's ratio, stated in the DOM: `aspect-ratio` lives in a
+              // generated class, so this is the only honest handle on it.
+              data-aspect-ratio={design.imageAspectRatio}
+              sx={{
+                ...eventPageImageFrameSx(design.imageAspectRatio, design.imagePlacement),
+                overflow: 'hidden',
+                borderRadius: 3,
+              }}
+            >
+              <Box
+                component="img"
+                src={eventHeaderImageUrl(event.imageUrl)}
+                srcSet={eventHeaderImageSrcSet(event.imageUrl)}
+                sizes={beside ? EVENT_PAGE_SIDE_IMAGE_SIZES : EVENT_PAGE_HEADER_SIZES}
+                alt=""
+                decoding="async"
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
             </Box>
           )}
+
+          {/* Over a blurred backdrop the texts move onto a contrasted panel; on a
+              plain page background they need none. */}
+          <Box sx={fullBackground ? { p: { xs: 2, md: 3 }, ...eventContrastPanelSx(theme) } : undefined}>
+            <Typography variant="h3" component="h1" gutterBottom>
+              <FormattedMessage id={eventNameKey(event.slug)} defaultMessage={event.name} />
+            </Typography>
+
+            <Stack spacing={1} sx={{ mb: { xs: 3, md: 4 } }}>
+              <Typography variant="subtitle1" color="text.secondary">
+                <EventDateSentence event={event} now={new Date()} />
+              </Typography>
+              <Box sx={{ typography: 'body1' }}>
+                <EventLocationLink event={event} />
+              </Box>
+              {event.websiteUrl && (
+                <Box>
+                  <Button
+                    href={event.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="contained"
+                    sx={{ minHeight: 44 }}
+                  >
+                    <FormattedMessage id="page.events.moreInfo" />
+                  </Button>
+                </Box>
+              )}
+            </Stack>
+
+            {event.description?.trim() && (
+              <Box sx={markdownBodySx}>
+                <FormattedMessage id={eventDescriptionKey(event.slug)} defaultMessage={event.description}>
+                  {(message) => <Markdown>{String(message)}</Markdown>}
+                </FormattedMessage>
+              </Box>
+            )}
+          </Box>
         </Box>
       </Container>
     </Box>

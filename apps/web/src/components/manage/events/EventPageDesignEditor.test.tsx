@@ -50,6 +50,39 @@ describe('EventPageDesignEditor (Event page design tab)', () => {
     expect(screen.queryByTestId('event-preview-full-background')).not.toBeInTheDocument();
   });
 
+  it('offers the two placements with the illustration above the description', async () => {
+    await renderEditor();
+    expect(screen.getByRole('button', { name: /above the description/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /beside the description/i })).toHaveAttribute('aria-pressed', 'false');
+    // The cap is stated in the form, not left to be discovered on the page.
+    expect(screen.getByText(/never takes more than half the screen/i)).toBeInTheDocument();
+  });
+
+  it('stores a placement deviation and drops it again on the way back', async () => {
+    await renderEditor();
+
+    fireEvent.click(screen.getByRole('button', { name: /beside the description/i }));
+    await settle();
+    expect(vi.mocked(updateEvents).mock.calls[0][0]).toEqual({
+      events: seededEvents,
+      design: { eventPage: { imagePlacement: 'beside' } },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /above the description/i }));
+    await settle();
+    // Back to the default → nothing stored at all.
+    expect(vi.mocked(updateEvents).mock.calls[1][0]).toEqual({ events: seededEvents });
+  });
+
+  it('mirrors the placement in the preview', async () => {
+    await renderEditor();
+    const layout = () => screen.getByTestId('event-preview-layout');
+    expect(layout()).toHaveAttribute('data-image-placement', 'above');
+
+    fireEvent.click(screen.getByRole('button', { name: /beside the description/i }));
+    expect(layout()).toHaveAttribute('data-image-placement', 'beside');
+  });
+
   it('writes nothing for a pristine tab', async () => {
     await renderEditor();
     await settle();
@@ -102,10 +135,16 @@ describe('EventPageDesignEditor (Event page design tab)', () => {
     expect(header()).toHaveAttribute('data-highlighted', 'true');
     expect(canvas()).not.toHaveAttribute('data-highlighted');
 
+    // The placement acts on the arrangement of illustration and texts.
+    fireEvent.focusIn(screen.getByRole('button', { name: /beside the description/i }));
+    expect(screen.getByTestId('event-preview-layout')).toHaveAttribute('data-highlighted', 'true');
+    expect(header()).not.toHaveAttribute('data-highlighted');
+
     // The background option acts on the whole page — ringed on or off.
     fireEvent.focusIn(screen.getByRole('checkbox', { name: /blurred full background/i }));
     expect(canvas()).toHaveAttribute('data-highlighted', 'true');
     expect(header()).not.toHaveAttribute('data-highlighted');
+    expect(screen.getByTestId('event-preview-layout')).not.toHaveAttribute('data-highlighted');
   });
 
   it('mirrors the picked ratio in the preview', async () => {
