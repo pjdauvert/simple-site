@@ -14,9 +14,9 @@ import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateSiteSettings } from '../../../services/siteConfigService';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { MediaUrlField } from '../../media';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 
 const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 /** Select value: '' = inherit/default, 'false' = full width, otherwise a breakpoint. */
@@ -112,6 +112,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
     save,
     enabled: !siteNameError && !logoError && !faviconError,
   });
+  useDraftSaveNotifications(saveState);
 
   if (loading) {
     return (
@@ -178,8 +179,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           ))}
           <MenuItem value="false"><FormattedMessage id="page.manage.site.containerMaxWidth.full" /></MenuItem>
         </TextField>
-
-        <DraftSaveStatus {...saveState} />
       </Stack>
     </Box>
   );

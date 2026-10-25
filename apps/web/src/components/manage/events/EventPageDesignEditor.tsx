@@ -3,10 +3,10 @@ import { Alert, Box, FormControlLabel, Switch, Typography } from '@mui/material'
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EventsConfigSchema, type EventAspectRatio } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateEvents } from '../../../services/eventsService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { AspectRatioChoice } from './AspectRatioChoice';
 import { DesignTabLayout } from './DesignPreviewShell';
 import { EventPageDesignPreview, type EventPagePreviewTarget } from './EventPageDesignPreview';
@@ -60,6 +60,7 @@ export const EventPageDesignEditor: React.FC = () => {
   );
 
   const saveState = useDraftAutoSave({ value: design, save });
+  useDraftSaveNotifications(saveState);
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -104,8 +105,6 @@ export const EventPageDesignEditor: React.FC = () => {
               <FormattedMessage id="page.manage.events.design.fullBackgroundImage.help" />
             </Typography>
           </Box>
-
-          <DraftSaveStatus {...saveState} />
         </>
       }
       preview={<EventPageDesignPreview design={design} highlight={highlight} />}

@@ -25,11 +25,11 @@ import {
   type PastEventsMode,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { TranslateAdornment } from '../TranslateAdornment';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateEvents } from '../../../services/eventsService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { AgendaDesignPreview, type AgendaPreviewTarget } from './AgendaDesignPreview';
 import { AspectRatioChoice } from './AspectRatioChoice';
 import { DesignTabLayout } from './DesignPreviewShell';
@@ -137,6 +137,7 @@ export const AgendaDesignEditor: React.FC = () => {
   // value waits for the next edit" into an endless retry loop.
   const value = useMemo(() => (agenda && texts ? { agenda, texts } : null), [agenda, texts]);
   const saveState = useDraftAutoSave({ value, save });
+  useDraftSaveNotifications(saveState);
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -273,8 +274,6 @@ export const AgendaDesignEditor: React.FC = () => {
               />
             </Box>
           ))}
-
-          <DraftSaveStatus {...saveState} />
         </>
       }
       preview={<AgendaDesignPreview design={agenda} texts={texts} highlight={highlight} />}

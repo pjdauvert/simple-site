@@ -35,12 +35,12 @@ import { loadDraftConfig, saveDraftConfig } from '../../../services/configVersio
 import { reconcileMenu } from '../../../router/publicMenu';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { ScopedAppTheme } from '../../../features/theme/ScopedAppTheme';
 import { PageSelector } from './PageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { SectionPreview } from './SectionPreview';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { PageSettingsDialog } from './PageSettingsDialog';
 import { createPage, createSection, isHomePage, moveItem, pagesAreValid, validatePages } from './pagesDraft';
 import { downloadPageJson, downloadPagesJson, parsePageFile, parsePagesFile } from './pagesImportExport';
@@ -127,6 +127,7 @@ export const PagesEditor: React.FC = () => {
     save,
     enabled: pagesAreValid(errors),
   });
+  useDraftSaveNotifications(saveState);
 
   const currentPage: PageConfiguration | undefined = pages[selectedPage];
   const isHome = currentPage ? isHomePage(currentPage) : false;
@@ -375,8 +376,6 @@ export const PagesEditor: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

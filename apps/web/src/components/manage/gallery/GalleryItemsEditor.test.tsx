@@ -25,7 +25,7 @@ const seeded: GalleryConfig = {
   tags: [{ tag: 'nature', displayName: 'Nature' }],
 };
 
-const renderEditor = () => renderWithProviders(<GalleryItemsEditor />);
+const renderEditor = () => renderWithProviders(<GalleryItemsEditor />, { notifications: true });
 
 /** Advances past the auto-save debounce and lets the write settle. */
 const settleAutoSave = async () => {

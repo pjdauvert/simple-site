@@ -26,7 +26,7 @@ const lightTheme = {
 const config = (themes: unknown[]): SiteConfig =>
   ({ site: { siteName: 'S' }, themes, pages: [] }) as unknown as SiteConfig;
 
-const renderTab = () => renderWithProviders(<ThemesTab />);
+const renderTab = () => renderWithProviders(<ThemesTab />, { notifications: true });
 
 /** Advances past the auto-save debounce and lets the write settle. */
 const settleAutoSave = async () => {
@@ -115,13 +115,13 @@ describe('ThemesTab', () => {
     expect(updateThemes).toHaveBeenCalledWith([]);
   });
 
-  it('reports a failed write on the indicator instead of a toast', async () => {
+  it('reports a failed write as a toast that stays', async () => {
     vi.mocked(updateThemes).mockRejectedValue(new Error('Failed to save themes'));
     renderTab();
     await screen.findByText('Light');
     fireEvent.change(screen.getByRole('textbox', { name: /^primary/i }), { target: { value: '#abcdef' } });
 
     await settleAutoSave();
-    expect(await screen.findByRole('status')).toHaveTextContent('Could not save: Failed to save themes');
+    expect(await screen.findByText('Could not save: Failed to save themes')).toBeInTheDocument();
   });
 });

@@ -19,8 +19,8 @@ import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateThemes } from '../../../services/themesService';
 import { ThemeEditor } from './ThemeEditor';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { draftToTheme, isDraftValid, newThemeDraft, themeToDraft, type ThemeDraft } from './themeFields';
 
 /**
@@ -67,6 +67,7 @@ export const ThemesEditor: React.FC = () => {
   }, []);
 
   const saveState = useDraftAutoSave({ value: themes, save, enabled: complete && !hasDuplicate });
+  useDraftSaveNotifications(saveState);
 
   const updateDraft = (index: number, draft: ThemeDraft) => {
     setDrafts((prev) => prev.map((d, i) => (i === index ? draft : d)));
@@ -133,8 +134,6 @@ export const ThemesEditor: React.FC = () => {
           <FormattedMessage id="page.manage.themes.add" />
         </Button>
       </Box>
-
-      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

@@ -34,11 +34,11 @@ import {
   type PageConfiguration,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { enabledFeaturePages, reconcileMenu } from '../../../router/publicMenu';
 import {
@@ -137,6 +137,7 @@ export const MenuEditor: React.FC = () => {
   }, []);
 
   const saveState = useDraftAutoSave({ value: menuConfig, save });
+  useDraftSaveNotifications(saveState);
 
   const apply = (mutate: (prev: MenuEntry[]) => MenuEntry[]) => {
     setEntries((prev) => (prev ? mutate(prev) : prev));
@@ -448,8 +449,6 @@ export const MenuEditor: React.FC = () => {
             </MenuItem>
           ))}
       </Menu>
-
-      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

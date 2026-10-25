@@ -19,7 +19,7 @@ const page = (pageName: string, route: string, menuTitle: string) =>
 const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteConfig =>
   ({ site: { siteName: 'Test' }, themes: [], pages, menu }) as unknown as SiteConfig;
 
-const renderEditor = () => renderWithProviders(<MenuEditor />);
+const renderEditor = () => renderWithProviders(<MenuEditor />, { notifications: true });
 
 /** Advances past the auto-save debounce and lets the write settle. */
 const settleAutoSave = async () => {

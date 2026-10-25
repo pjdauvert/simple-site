@@ -19,7 +19,7 @@ const seeded: GalleryConfig = {
   tags: [],
 };
 
-const renderEditor = () => renderWithProviders(<GalleryDesignEditor />);
+const renderEditor = () => renderWithProviders(<GalleryDesignEditor />, { notifications: true });
 
 /** Advances past the auto-save debounce and lets the write settle. */
 const settleAutoSave = async () => {

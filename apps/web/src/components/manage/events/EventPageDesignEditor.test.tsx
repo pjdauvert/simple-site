@@ -18,7 +18,7 @@ const draft = (events?: Partial<EventsConfig>): SiteConfig =>
   ({ site: { siteName: 'S' }, themes: [], pages: [], events }) as unknown as SiteConfig;
 
 const renderEditor = async () => {
-  const utils = renderWithProviders(<EventPageDesignEditor />, { theme: true });
+  const utils = renderWithProviders(<EventPageDesignEditor />, { theme: true, notifications: true });
   await act(async () => {});
   return utils;
 };

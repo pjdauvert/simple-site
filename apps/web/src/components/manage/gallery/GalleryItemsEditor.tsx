@@ -19,11 +19,11 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import { type GalleryConfig, type GalleryItem } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { ikTransform } from '../../../utils/imagekit';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { addItem, emptyGallery, moveItemInList, pruneItemTags, removeItem, updateItem } from './galleryDraft';
 import { GalleryItemDialog } from './GalleryItemDialog';
 
@@ -93,6 +93,7 @@ export const GalleryItemsEditor: React.FC = () => {
   }, []);
 
   const saveState = useDraftAutoSave({ value: gallery?.items ?? null, save });
+  useDraftSaveNotifications(saveState);
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -221,8 +222,6 @@ export const GalleryItemsEditor: React.FC = () => {
         onConfirm={confirmDialog}
         onDelete={dialog?.itemIndex != null ? deleteDialogItem : undefined}
       />
-
-      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

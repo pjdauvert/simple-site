@@ -24,11 +24,11 @@ import {
   type GalleryTag,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { TranslateShortcut } from '../TranslateShortcut';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import {
   addTag,
   emptyGallery,
@@ -111,6 +111,7 @@ export const GalleryTagsEditor: React.FC = () => {
   }, []);
 
   const saveState = useDraftAutoSave({ value: gallery?.tags ?? null, save });
+  useDraftSaveNotifications(saveState);
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -264,8 +265,6 @@ export const GalleryTagsEditor: React.FC = () => {
           <FormattedMessage id="page.manage.gallery.addTag" />
         </Button>
       )}
-
-      <DraftSaveStatus {...saveState} />
     </Box>
   );
 };

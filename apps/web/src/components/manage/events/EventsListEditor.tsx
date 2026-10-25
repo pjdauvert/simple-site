@@ -30,11 +30,11 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EventsConfigSchema, type SiteEvent } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { ikTransform } from '../../../utils/imagekit';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateEvents } from '../../../services/eventsService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
 import { isPastEvent } from '../../../pages/events/eventDates';
 import {
@@ -74,11 +74,11 @@ interface DialogState {
  * deletion asks for confirmation.
  *
  * There is no save button: every settled change is written to the configuration
- * DRAFT on its own (`useDraftAutoSave` + `<DraftSaveStatus/>`), merged over a
- * fresh draft read so the Design tab is never clobbered, and goes live only
- * when the draft is published. A list holding an incomplete event is NOT
- * written — the write waits, the row's fields are flagged, and it goes out as
- * soon as the event is complete.
+ * DRAFT on its own (`useDraftAutoSave`, reported by the admin notifications),
+ * merged over a fresh draft read so the Design tab is never clobbered, and goes
+ * live only when the draft is published. A list holding an incomplete event is
+ * NOT written — the write waits, the row's fields are flagged, and it goes out
+ * as soon as the event is complete.
  *
  * The sort selector and the search field are DISPLAY-ONLY (see
  * `eventsSearch.ts`): the stored order is always start-date descending, which
@@ -137,6 +137,7 @@ export const EventsListEditor: React.FC = () => {
   );
 
   const autoSave = useDraftAutoSave({ value: payload, save: persist, enabled: valid });
+  useDraftSaveNotifications(autoSave);
 
   /** Display order and filter — never the stored order (see `eventsSearch.ts`). */
   const rows = useMemo(
@@ -377,8 +378,6 @@ export const EventsListEditor: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <DraftSaveStatus {...autoSave} />
     </Box>
   );
 };

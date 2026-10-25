@@ -135,7 +135,7 @@ describe('SiteConfigPage', () => {
       faviconUrl: '/favicon.ico',
       containerMaxWidth: 'lg',
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Saved to draft');
+    expect(screen.getByText('Saved to draft')).toBeInTheDocument(); // reported as a toast
   });
 
   it('debounces a burst of keystrokes into a single write', async () => {

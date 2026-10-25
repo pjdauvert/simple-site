@@ -46,10 +46,10 @@ import {
   type GalleryWatermarkPosition,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
-import { DraftSaveStatus } from '../DraftSaveStatus';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { ColorField } from '../themes/ColorField';
 import {
   emptyGallery,
@@ -247,6 +247,7 @@ export const GalleryDesignEditor: React.FC = () => {
   }, []);
 
   const saveState = useDraftAutoSave({ value: design, save, enabled: !widthInvalid });
+  useDraftSaveNotifications(saveState);
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>;
@@ -555,8 +556,6 @@ export const GalleryDesignEditor: React.FC = () => {
             )}
           </Stack>
         </Box>
-
-        <DraftSaveStatus {...saveState} />
       </Stack>
 
       {/* Symbolic preview of the picked design — right half, desktop only.

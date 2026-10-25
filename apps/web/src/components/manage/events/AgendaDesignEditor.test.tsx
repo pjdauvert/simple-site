@@ -19,7 +19,7 @@ const draft = (events?: Partial<EventsConfig>): SiteConfig =>
 
 /** Mounts the editor and lets the draft load settle. */
 const renderEditor = async () => {
-  const utils = renderWithProviders(<AgendaDesignEditor />, { theme: true });
+  const utils = renderWithProviders(<AgendaDesignEditor />, { theme: true, notifications: true });
   await act(async () => {});
   return utils;
 };
@@ -95,7 +95,7 @@ describe('AgendaDesignEditor (Agenda design tab)', () => {
       // …and the other design tab's slice survives untouched.
       design: { agendaPage: { columns: 2 }, eventPage: { fullBackgroundImage: true } },
     });
-    expect(screen.getByRole('status')).toHaveTextContent(/saved to draft/i);
+    expect(screen.getByText(/saved to draft/i)).toBeInTheDocument(); // reported as a toast
   });
 
   it('stores only `false` for a toggle turned off, and nothing for the defaults', async () => {
@@ -114,7 +114,7 @@ describe('AgendaDesignEditor (Agenda design tab)', () => {
     await renderEditor();
     fireEvent.click(screen.getByRole('button', { name: '4' })); // 4 columns
     await settle();
-    expect(screen.getByRole('status')).toHaveTextContent(/offline/i);
+    expect(screen.getByText(/could not save: offline/i)).toBeInTheDocument();
   });
 
   it('highlights the preview element the focused field acts on', async () => {
