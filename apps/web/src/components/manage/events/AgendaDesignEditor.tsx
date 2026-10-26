@@ -19,9 +19,11 @@ import {
   EVENTS_PAST_TITLE_KEY,
   EVENTS_UPCOMING_HEADER_KEY,
   EVENTS_UPCOMING_TITLE_KEY,
+  EVENT_WEEK_STARTS,
   EventsConfigSchema,
   PAST_EVENTS_MODES,
   type EventAspectRatio,
+  type EventWeekStart,
   type PastEventsMode,
 } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
@@ -247,6 +249,38 @@ export const AgendaDesignEditor: React.FC = () => {
                 </Typography>
               }
             />
+          </Box>
+
+          <Divider />
+          <Typography variant="subtitle1">
+            <FormattedMessage id="page.manage.events.design.searchPage" />
+          </Typography>
+
+          {/* Drives the search page's calendar panel, which the agenda
+              skeleton does not show — hence no preview element to ring. */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom id="events-week-start-label">
+              <FormattedMessage id="page.manage.events.design.weekStart" />
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={agenda.weekStartsOn}
+              onChange={(_, weekStartsOn: EventWeekStart | null) => {
+                if (weekStartsOn) setAgenda({ ...agenda, weekStartsOn });
+              }}
+              aria-labelledby="events-week-start-label"
+              sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: 44, px: 2 } }}
+            >
+              {EVENT_WEEK_STARTS.map((day) => (
+                <ToggleButton key={day} value={day}>
+                  {intl.formatMessage({ id: `page.manage.events.design.weekStart.${day}` })}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Typography variant="body2" color="text.secondary" component="p" sx={{ mt: 1 }}>
+              <FormattedMessage id="page.manage.events.design.weekStart.help" />
+            </Typography>
           </Box>
 
           <Divider />

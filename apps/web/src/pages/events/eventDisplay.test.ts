@@ -27,6 +27,7 @@ describe('design resolution (stored deviations over defaults)', () => {
       columns: 3,
       showLocationOnCards: true,
       showFeaturedBackdrop: true,
+      weekStartsOn: 'monday',
     });
     // Both surfaces default to the A4 poster; the full background is opt-in.
     expect(resolveEventPageDesign(undefined)).toEqual({

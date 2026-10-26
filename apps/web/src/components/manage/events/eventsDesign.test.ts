@@ -32,6 +32,7 @@ describe('agenda design draft', () => {
       columns: 3,
       showLocationOnCards: true,
       showFeaturedBackdrop: true,
+      weekStartsOn: 'monday',
     });
     expect(fromAgendaDraft(pristine)).toBeUndefined();
   });
@@ -45,6 +46,7 @@ describe('agenda design draft', () => {
         columns: 2,
         showLocationOnCards: false,
         showFeaturedBackdrop: false,
+        weekStartsOn: 'sunday',
       }),
     ).toEqual({
       pastEventsMode: 'none',
@@ -52,7 +54,16 @@ describe('agenda design draft', () => {
       columns: 2,
       showLocationOnCards: false,
       showFeaturedBackdrop: false,
+      weekStartsOn: 'sunday',
     });
+  });
+
+  it('stores the week start only when it leaves Monday', () => {
+    const draft = toAgendaDraft(undefined);
+    expect(draft.weekStartsOn).toBe('monday');
+    expect(fromAgendaDraft({ ...draft, weekStartsOn: 'sunday' })).toEqual({ weekStartsOn: 'sunday' });
+    expect(fromAgendaDraft({ ...draft, weekStartsOn: 'monday' })).toBeUndefined();
+    expect(toAgendaDraft(config({ design: { agendaPage: { weekStartsOn: 'sunday' } } })).weekStartsOn).toBe('sunday');
   });
 
   it('keeps the from-date whatever the mode — switching away never loses it', () => {

@@ -27,6 +27,12 @@ export const EVENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const EVENT_SLUG_MAX_LENGTH = 64;
 
 /**
+ * Slugs the events routes own themselves: `/events/search` is the agenda's
+ * exploration page, so no event may claim that URL segment.
+ */
+export const EVENT_RESERVED_SLUGS = ['search'] as const;
+
+/**
  * Instants are stored as UTC ISO strings (`2026-08-16T17:00:00.000Z` — the
  * exact `Date.prototype.toISOString()` shape). Rendering and day-level
  * classification happen in the VIEWER's timezone; the admin edits through
@@ -86,6 +92,16 @@ export const DEFAULT_EVENT_SHOW_FEATURED_BACKDROP = true;
 /** Opt-IN design toggles: off by default — only `true` is ever stored. */
 export const DEFAULT_EVENT_FULL_BACKGROUND_IMAGE = false;
 
+/**
+ * First column of the search page's calendar panel. A calendar week starts on
+ * Monday in most of the world and on Sunday in others; neither is derivable
+ * from the content, so the site owner says which.
+ */
+export const EVENT_WEEK_STARTS = ['monday', 'sunday'] as const;
+export const EventWeekStartSchema = z.enum(EVENT_WEEK_STARTS);
+export type EventWeekStart = z.infer<typeof EventWeekStartSchema>;
+export const DEFAULT_EVENT_WEEK_START: EventWeekStart = 'monday';
+
 export const SiteEventSchema = z
   .object({
     /** The immutable id — see {@link EVENT_SLUG_PATTERN}. */
@@ -110,6 +126,10 @@ export const SiteEventSchema = z
     location: z.string().min(1),
     /** The event's own website, opened in a new tab; absent → no link shown. */
     websiteUrl: UrlOrPathSchema.optional(),
+  })
+  .refine((event) => !(EVENT_RESERVED_SLUGS as readonly string[]).includes(event.slug), {
+    message: `Reserved slug — the events routes own it (${EVENT_RESERVED_SLUGS.join(', ')})`,
+    path: ['slug'],
   })
   .refine(
     (event) =>
@@ -140,6 +160,11 @@ export const EventsAgendaDesignSchema = z.object({
    * (only `false` is stored) — off, the section sits on the page background.
    */
   showFeaturedBackdrop: z.boolean().optional(),
+  /**
+   * First day of the week in the search page's calendar panel. Absent →
+   * {@link DEFAULT_EVENT_WEEK_START}.
+   */
+  weekStartsOn: EventWeekStartSchema.optional(),
 });
 
 export type EventsAgendaDesign = z.infer<typeof EventsAgendaDesignSchema>;

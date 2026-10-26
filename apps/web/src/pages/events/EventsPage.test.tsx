@@ -227,4 +227,10 @@ describe('EventsPage (public /events)', () => {
     const card = screen.getByRole('heading', { level: 3, name: 'Fair' }).closest('a') as HTMLElement;
     expect(within(card).getByText('03/02/2024 – 03/04/2024')).toBeInTheDocument();
   });
+
+  it('offers the way into the search page', () => {
+    setConfig({ events: [event('next-show', 'Next Show', inDays(5))] });
+    renderPage();
+    expect(screen.getByRole('link', { name: /search the calendar/i })).toHaveAttribute('href', '/events/search');
+  });
 });

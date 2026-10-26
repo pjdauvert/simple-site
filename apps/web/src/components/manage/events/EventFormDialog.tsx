@@ -42,6 +42,7 @@ const SLUG_ERROR: Record<NonNullable<EventFieldErrors['slug']>, string> = {
   empty: 'page.manage.events.error.slugEmpty',
   duplicate: 'page.manage.events.error.slugDuplicate',
   pattern: 'page.manage.events.error.slugPattern',
+  reserved: 'page.manage.events.error.slugReserved',
 };
 
 /**

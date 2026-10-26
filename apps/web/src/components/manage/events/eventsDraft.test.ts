@@ -178,6 +178,13 @@ describe('validateEvents', () => {
     const [errors] = validateEvents([createEvent()]);
     expect(errors).toEqual({ name: 'empty', slug: 'empty', start: 'required', location: 'empty' });
   });
+
+  it('flags a slug the events routes own, before the save is refused', () => {
+    const [errors] = validateEvents([
+      { slug: 'search', name: 'Search', startDateTime: '2027-06-18T15:00:00.000Z', location: 'Bordeaux' },
+    ]);
+    expect(errors.slug).toBe('reserved');
+  });
 });
 
 describe('normalizeEvent', () => {

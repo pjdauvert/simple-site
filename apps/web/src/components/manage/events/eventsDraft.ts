@@ -1,5 +1,10 @@
 import dayjs, { type Dayjs } from 'dayjs';
-import { EVENT_SLUG_PATTERN, UrlOrPathSchema, type SiteEvent } from '@simple-site/interfaces';
+import {
+  EVENT_RESERVED_SLUGS,
+  EVENT_SLUG_PATTERN,
+  UrlOrPathSchema,
+  type SiteEvent,
+} from '@simple-site/interfaces';
 
 /**
  * Pure editor-state helpers of the events list tab. Instants are STORED as UTC
@@ -121,7 +126,7 @@ export const applyWhen = (event: EventDraft, patch: EventWhenPatch): EventDraft 
 /** Field-level problems on a single event, used to flag inputs after a failed save. */
 export interface EventFieldErrors {
   name?: 'empty';
-  slug?: 'empty' | 'duplicate' | 'pattern';
+  slug?: 'empty' | 'duplicate' | 'pattern' | 'reserved';
   start?: 'required';
   end?: 'beforeStart';
   location?: 'empty';
@@ -141,6 +146,8 @@ export const validateEvents = (events: readonly EventDraft[]): EventFieldErrors[
     if (!event.name.trim()) errors.name = 'empty';
     if (!slug) errors.slug = 'empty';
     else if (!EVENT_SLUG_PATTERN.test(slug)) errors.slug = 'pattern';
+    // The events routes own a few segments themselves (`/events/search`).
+    else if ((EVENT_RESERVED_SLUGS as readonly string[]).includes(slug)) errors.slug = 'reserved';
     else if ((slugCounts.get(slug) ?? 0) > 1) errors.slug = 'duplicate';
     if (!event.startDateTime) errors.start = 'required';
     else if (event.endDateTime && new Date(event.endDateTime).getTime() < new Date(event.startDateTime).getTime()) {

@@ -7,12 +7,15 @@ import {
   DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT,
   DEFAULT_EVENT_SHOW_FEATURED_BACKDROP,
   DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS,
+  DEFAULT_EVENT_WEEK_START,
   DEFAULT_PAST_EVENTS_MODE,
+  EVENT_RESERVED_SLUGS,
   FEATURE_PAGE_ROUTES,
   FeaturePagesEnum,
   featurePageTitle,
   type EventAspectRatio,
   type EventImagePlacement,
+  type EventWeekStart,
   type EventsConfig,
   type PastEventsMode,
   type SiteConfig,
@@ -33,6 +36,8 @@ export interface ResolvedAgendaDesign {
   columns: number;
   showLocationOnCards: boolean;
   showFeaturedBackdrop: boolean;
+  /** First column of the search page's calendar panel. */
+  weekStartsOn: EventWeekStart;
 }
 
 export const resolveAgendaDesign = (events: EventsConfig | undefined): ResolvedAgendaDesign => ({
@@ -42,6 +47,7 @@ export const resolveAgendaDesign = (events: EventsConfig | undefined): ResolvedA
   columns: events?.design?.agendaPage?.columns ?? DEFAULT_EVENT_COLUMNS,
   showLocationOnCards: events?.design?.agendaPage?.showLocationOnCards ?? DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS,
   showFeaturedBackdrop: events?.design?.agendaPage?.showFeaturedBackdrop ?? DEFAULT_EVENT_SHOW_FEATURED_BACKDROP,
+  weekStartsOn: events?.design?.agendaPage?.weekStartsOn ?? DEFAULT_EVENT_WEEK_START,
 });
 
 export interface ResolvedEventPageDesign {
@@ -58,6 +64,12 @@ export const resolveEventPageDesign = (events: EventsConfig | undefined): Resolv
 
 /** Public route of an event's detail page, nested under the reserved route. */
 export const eventRoute = (slug: string): string => `${FEATURE_PAGE_ROUTES.events}/${slug}`;
+
+/**
+ * Public route of the agenda's search page. It sits on a RESERVED slug
+ * (`EVENT_RESERVED_SLUGS`), so it can never be shadowed by an event's own page.
+ */
+export const eventsSearchRoute = (): string => `${FEATURE_PAGE_ROUTES.events}/${EVENT_RESERVED_SLUGS[0]}`;
 
 /**
  * Body-copy markdown blocks (descriptions, section intros): paragraphs render

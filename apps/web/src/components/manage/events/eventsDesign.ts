@@ -6,6 +6,7 @@ import {
   DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT,
   DEFAULT_EVENT_SHOW_FEATURED_BACKDROP,
   DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS,
+  DEFAULT_EVENT_WEEK_START,
   DEFAULT_PAST_EVENTS_MODE,
   type EventAspectRatio,
   type EventImagePlacement,
@@ -83,6 +84,7 @@ export const fromAgendaDraft = (draft: AgendaDesignDraft): EventsAgendaDesign | 
   if (draft.columns !== DEFAULT_EVENT_COLUMNS) design.columns = draft.columns;
   if (draft.showLocationOnCards !== DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS) design.showLocationOnCards = false;
   if (draft.showFeaturedBackdrop !== DEFAULT_EVENT_SHOW_FEATURED_BACKDROP) design.showFeaturedBackdrop = false;
+  if (draft.weekStartsOn !== DEFAULT_EVENT_WEEK_START) design.weekStartsOn = draft.weekStartsOn;
   return Object.keys(design).length > 0 ? design : undefined;
 };
 

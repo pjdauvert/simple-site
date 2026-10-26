@@ -90,6 +90,22 @@ describe('EventsConfigSchema', () => {
     expect(EventsConfigSchema.safeParse(eventPage({ imagePlacement: 'left' })).success).toBe(false);
   });
 
+  it('refuses a slug the events routes own', () => {
+    const event = (slug: string) => ({
+      events: [{ slug, name: 'N', startDateTime: '2027-06-18T15:00:00.000Z', location: 'L' }],
+    });
+    // `/events/search` is the agenda's own page.
+    expect(EventsConfigSchema.safeParse(event('search')).success).toBe(false);
+    expect(EventsConfigSchema.safeParse(event('search-party')).success).toBe(true);
+  });
+
+  it('accepts the search page’s week start on the agenda design', () => {
+    const agenda = (page: object) => ({ events: [], design: { agendaPage: page } });
+    expect(EventsConfigSchema.safeParse(agenda({ weekStartsOn: 'sunday' })).success).toBe(true);
+    expect(EventsConfigSchema.safeParse(agenda({ weekStartsOn: 'monday' })).success).toBe(true);
+    expect(EventsConfigSchema.safeParse(agenda({ weekStartsOn: 'tuesday' })).success).toBe(false);
+  });
+
   it('drops the removed featured-section introduction', () => {
     const parsed = EventsConfigSchema.parse({ events: [], nextHeader: 'Ne manquez pas.' });
     expect('nextHeader' in parsed).toBe(false);

@@ -1,5 +1,7 @@
 import React from "react";
-import { Box, Container, Stack, Typography } from "@mui/material";
+import { Box, Button, Container, Stack, Typography } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { Link as RouterLink } from "react-router-dom";
 import { visuallyHidden } from "@mui/utils";
 import { FormattedMessage, useIntl } from "react-intl";
 import {
@@ -17,7 +19,7 @@ import { useSiteConfig } from "../../hooks/useSiteConfig";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { classifyEvents, filterVisiblePast } from "./eventDates";
-import { eventsPageTitle, markdownBodySx, resolveAgendaDesign } from "./eventDisplay";
+import { eventsPageTitle, eventsSearchRoute, markdownBodySx, resolveAgendaDesign } from "./eventDisplay";
 import { NextEventSection } from "./NextEventSection";
 import { EventCardGrid } from "./EventCardGrid";
 
@@ -117,6 +119,19 @@ export const EventsPage: React.FC = () => {
           sections BETWEEN each other, so padding and margins never add up. */}
       <Container maxWidth={maxWidth} sx={{ py: { xs: 4, md: 6 } }}>
         <Stack spacing={{ xs: 5, md: 7 }}>
+          {/* The way out of reading and into searching: the same events, with
+              filters and a calendar (see EventsSearchPage). */}
+          <Box sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" } }}>
+            <Button
+              component={RouterLink}
+              to={eventsSearchRoute()}
+              variant="outlined"
+              startIcon={<SearchIcon />}
+              sx={{ minHeight: 44, width: { xs: "100%", sm: "auto" } }}
+            >
+              <FormattedMessage id="page.events.search.link" />
+            </Button>
+          </Box>
           {upcoming.length > 0 && (
             <Box component="section">
               <SectionHeading

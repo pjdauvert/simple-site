@@ -173,4 +173,19 @@ describe('AgendaDesignEditor (Agenda design tab)', () => {
       design: { agendaPage: { columns: 4 } },
     });
   });
+  it('stores the search page’s first day of the week, and drops it back on Monday', async () => {
+    await renderEditor();
+    expect(screen.getByRole('button', { name: /^monday$/i })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: /^sunday$/i }));
+    await settle();
+    expect(vi.mocked(updateEvents).mock.calls[0][0]).toMatchObject({
+      design: { agendaPage: { weekStartsOn: 'sunday' } },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^monday$/i }));
+    await settle();
+    // Back to the default → the deviation disappears from the payload.
+    expect(vi.mocked(updateEvents).mock.calls[1][0]).not.toHaveProperty('design.agendaPage.weekStartsOn');
+  });
 });

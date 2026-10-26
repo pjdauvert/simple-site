@@ -10,9 +10,13 @@ import type { ResolvedAgendaDesign } from './eventDisplay';
  * shift near midnight) — day comparisons go through {@link localDateISO}.
  */
 
-/** The event's dates as instants (stored UTC, rendered/classified locally). */
-export const eventStart = (event: SiteEvent): Date => new Date(event.startDateTime);
-export const eventEnd = (event: SiteEvent): Date => new Date(event.endDateTime ?? event.startDateTime);
+/**
+ * The event's dates as instants (stored UTC, rendered/classified locally).
+ * Only the two date fields are read, so a half-filled draft row works too.
+ */
+export const eventStart = (event: Pick<SiteEvent, 'startDateTime'>): Date => new Date(event.startDateTime);
+export const eventEnd = (event: Pick<SiteEvent, 'startDateTime' | 'endDateTime'>): Date =>
+  new Date(event.endDateTime ?? event.startDateTime);
 
 /** The `YYYY-MM-DD` of an instant in the viewer's local timezone. */
 export const localDateISO = (instant: Date): string => {
