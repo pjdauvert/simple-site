@@ -90,6 +90,31 @@ const search = (text: string): void => {
   fireEvent.change(screen.getByLabelText(/^search$/i), { target: { value: text } });
 };
 
+/** Local year and month of an instant — what the date filter's bounds mean. */
+const monthOf = (iso: string): { year: string; month: string } => {
+  const date = new Date(iso);
+  return {
+    year: String(date.getFullYear()),
+    month: date.toLocaleString('en-US', { month: 'long' }),
+  };
+};
+
+/** The two date-filter bounds, by the label their picker and calendar carry. */
+const BOUND_FIELD = { first: /events from/i, last: /events until/i } as const;
+
+/**
+ * Picks a bound of the date filter through its picker: a year, then a month.
+ * Both calendars stay mounted once opened, so each one is reached through the
+ * field that labels it.
+ */
+const pickMonth = (bound: keyof typeof BOUND_FIELD, when: string | { year: string; month: string }): void => {
+  const { year, month } = typeof when === 'string' ? monthOf(when) : when;
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`choose the ${bound} month`, 'i') }));
+  const calendar = within(screen.getByRole('dialog', { name: BOUND_FIELD[bound] }));
+  fireEvent.click(calendar.getByRole('radio', { name: year }));
+  fireEvent.click(calendar.getByRole('radio', { name: month }));
+};
+
 describe('EventsListEditor (List tab)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -183,7 +208,7 @@ describe('EventsListEditor (List tab)', () => {
 
       // A word start only: "gatta" is inside "Regatta", not at its start.
       search('gatta');
-      expect(screen.getByText(/no event matches this search/i)).toBeInTheDocument();
+      expect(screen.getByText(/no event matches these filters/i)).toBeInTheDocument();
 
       search('ete');
       expect(rowNames()).toEqual(['Été Musical']);
@@ -205,6 +230,74 @@ describe('EventsListEditor (List tab)', () => {
 
       search('summer');
       sortBy(/A to Z/);
+      await waitOutTheDebounce();
+      expect(updateEvents).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('date filter (display-only)', () => {
+    it('keeps the events whose months fall inside the bounds', async () => {
+      renderEditor();
+      await screen.findByRole('button', { name: /Summer Festival/ });
+
+      // Lower bound only: the long-past regatta drops out.
+      pickMonth('first', inDays(0));
+      expect(rowNames()).toEqual(['Summer Festival', 'Été Musical']);
+
+      // Upper bound too: only the event in between survives.
+      pickMonth('last', inDays(150));
+      expect(rowNames()).toEqual(['Été Musical']);
+    });
+
+    it('includes a bound month whole, and says so when nothing is left', async () => {
+      renderEditor();
+      await screen.findByRole('button', { name: /Summer Festival/ });
+
+      // The very month of an event, on both sides: that event stays.
+      pickMonth('first', inDays(100));
+      pickMonth('last', inDays(100));
+      expect(rowNames()).toEqual(['Été Musical']);
+
+      // A month holding no event at all empties the list. The upper bound
+      // moves first — each bound caps the other, so the range stays ordered.
+      pickMonth('last', inDays(200));
+      pickMonth('first', inDays(200));
+      expect(screen.getByText(/no event matches these filters/i)).toBeInTheDocument();
+    });
+
+    it('refuses an inverted range: the months before the lower bound are out of reach', async () => {
+      renderEditor();
+      await screen.findByRole('button', { name: /Summer Festival/ });
+
+      // A month picked outright, so the assertion never depends on today.
+      pickMonth('first', { year: '2030', month: 'July' });
+
+      fireEvent.click(screen.getByRole('button', { name: /choose the last month/i }));
+      const calendar = within(screen.getByRole('dialog', { name: BOUND_FIELD.last }));
+      fireEvent.click(calendar.getByRole('radio', { name: '2030' }));
+      // The lower bound's own month is reachable; the one before it is not.
+      expect(calendar.getByRole('radio', { name: 'July' })).toBeEnabled();
+      expect(calendar.getByRole('radio', { name: 'June' })).toBeDisabled();
+    });
+
+    it('clears a bound and brings the events back', async () => {
+      renderEditor();
+      await screen.findByRole('button', { name: /Summer Festival/ });
+
+      pickMonth('first', inDays(0));
+      expect(rowNames()).toEqual(['Summer Festival', 'Été Musical']);
+
+      fireEvent.click(screen.getByRole('button', { name: /clear the first month/i }));
+      expect(rowNames()).toEqual(['Summer Festival', 'Été Musical', 'Spring Regatta']);
+    });
+
+    it('combines with the search and never touches the draft', async () => {
+      renderEditor();
+      await screen.findByRole('button', { name: /Summer Festival/ });
+
+      pickMonth('first', inDays(0));
+      search('summer');
+      expect(rowNames()).toEqual(['Summer Festival']);
       await waitOutTheDebounce();
       expect(updateEvents).not.toHaveBeenCalled();
     });

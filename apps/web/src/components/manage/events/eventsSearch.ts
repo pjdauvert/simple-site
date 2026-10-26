@@ -7,8 +7,8 @@ import type { SiteEvent } from '@simple-site/interfaces';
  * which order the editor paints them.
  */
 
-/** The event fields search and sort read — derived from the shared contract. */
-export type SearchableEvent = Pick<SiteEvent, 'name' | 'description' | 'startDateTime'>;
+/** The event fields search, sort and the date filter read — from the shared contract. */
+export type SearchableEvent = Pick<SiteEvent, 'name' | 'description' | 'startDateTime' | 'endDateTime'>;
 
 /** Sort options, in the order the selector lists them (first one is the default). */
 export const EVENT_SORT_CRITERIA = ['startDesc', 'startAsc', 'nameAsc', 'nameDesc'] as const;
@@ -92,6 +92,68 @@ const startedAt = (event: SearchableEvent): number => {
   const time = new Date(event.startDateTime || 0).getTime();
   return Number.isNaN(time) ? 0 : time;
 };
+
+/**
+ * Bounds of the list's DATE FILTER, each a month the admin typed as a year and
+ * a month (`'YYYY-MM'`), or `''` for an open side. Both are INCLUSIVE whole
+ * months: `from: '2026-03'` opens on March 1st, `to: '2026-03'` closes with
+ * the last instant of March.
+ *
+ * Months are read in the ADMIN's timezone — the one the event dialog edits
+ * dates in — so "March" is their March, not UTC's.
+ */
+export interface EventMonthRange {
+  from: string;
+  to: string;
+}
+
+/** No bound on either side: every event passes. */
+export const EMPTY_EVENT_MONTH_RANGE: EventMonthRange = { from: '', to: '' };
+
+/** `'YYYY-MM'` as a year and a month index, or null when the bound is open or unreadable. */
+const readMonth = (month: string): { year: number; monthIndex: number } | null => {
+  const match = /^(\d{4})-(\d{2})$/.exec(month.trim());
+  if (!match) return null;
+  const monthIndex = Number(match[2]) - 1;
+  if (monthIndex < 0 || monthIndex > 11) return null;
+  return { year: Number(match[1]), monthIndex };
+};
+
+/** First local instant of a bound month (`offset: 1` → first instant of the NEXT one). */
+const monthInstant = (month: string, offset = 0): number | null => {
+  const parsed = readMonth(month);
+  return parsed === null ? null : new Date(parsed.year, parsed.monthIndex + offset, 1).getTime();
+};
+
+/** True when NEITHER bound is usable — the filter then lets every event through. */
+export const isEmptyMonthRange = (range: EventMonthRange): boolean =>
+  monthInstant(range.from) === null && monthInstant(range.to) === null;
+
+/**
+ * True when the event's own span overlaps the filtered months — the useful
+ * reading of a date filter on a list of intervals: an event running from
+ * December to January shows up under either month. An event with no start
+ * date yet is ALWAYS kept: it has no date to compare, and it is the one row
+ * the admin has to reach (it is what holds the save back).
+ */
+export const matchesEventMonthRange = (event: SearchableEvent, range: EventMonthRange): boolean => {
+  if (!event.startDateTime) return true;
+  const from = monthInstant(range.from);
+  // The upper bound is inclusive, so compare against the start of the month AFTER it.
+  const toExclusive = monthInstant(range.to, 1);
+  const start = startedAt(event);
+  const end = event.endDateTime ? startedAt({ ...event, startDateTime: event.endDateTime }) : start;
+  if (from !== null && end < from) return false;
+  if (toExclusive !== null && start >= toExclusive) return false;
+  return true;
+};
+
+/** The events overlapping `range`, in their input order. */
+export const filterEventsByMonthRange = <T extends SearchableEvent>(
+  events: readonly T[],
+  range: EventMonthRange,
+): T[] =>
+  isEmptyMonthRange(range) ? [...events] : events.filter((event) => matchesEventMonthRange(event, range));
 
 /**
  * A copy of `events` in the admin's chosen order. Names compare through

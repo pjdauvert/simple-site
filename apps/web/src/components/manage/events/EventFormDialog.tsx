@@ -11,14 +11,13 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { eventDescriptionKey, eventLocationKey, eventNameKey } from '@simple-site/interfaces';
 import { MediaUrlField } from '../../media';
 import { TranslateAdornment } from '../TranslateAdornment';
 import { slugify } from '../slugify';
+import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from './datePickers';
 import { applyWhen, readWhen, type EventDraft, type EventFieldErrors, type EventWhenPatch } from './eventsDraft';
 
 interface EventFormDialogProps {
@@ -43,26 +42,6 @@ const SLUG_ERROR: Record<NonNullable<EventFieldErrors['slug']>, string> = {
   empty: 'page.manage.events.error.slugEmpty',
   duplicate: 'page.manage.events.error.slugDuplicate',
   pattern: 'page.manage.events.error.slugPattern',
-};
-
-/** Mobile-first: the admin's dense `small` fields, with a 44px minimum tap height. */
-const PICKER_FIELD_SX = {
-  '& .MuiPickersInputBase-root, & .MuiInputBase-root': { minHeight: 44 },
-} as const;
-const PICKER_BUTTON_SX = { width: 44, height: 44 } as const;
-
-/**
- * The dayjs locale driving the picker chrome (month names, 12h/24h, field
- * order). Only the bundled platform-chrome languages are available — `en` is
- * dayjs's built-in locale, `fr` is imported above; an admin-added language
- * with no bundled dayjs locale falls back to the adapter default instead of
- * pulling in all ~140 locale files.
- */
-const pickerLocale = (uiLocale: string): string | undefined => {
-  const code = uiLocale.toLowerCase();
-  if (dayjs.Ls[code]) return code;
-  const language = code.split('-')[0];
-  return dayjs.Ls[language] ? language : undefined;
 };
 
 /**

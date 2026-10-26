@@ -27,6 +27,10 @@ import {
   HideImageOutlined as MissingImageIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import type { Dayjs } from 'dayjs';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EventsConfigSchema, type SiteEvent } from '@simple-site/interfaces';
 import { Loader } from '../../Loader';
@@ -50,13 +54,43 @@ import {
   DEFAULT_EVENT_SORT,
   EVENT_SORT_CRITERIA,
   filterEvents,
+  filterEventsByMonthRange,
   sortEvents,
+  type EventMonthRange,
   type EventSortCriterion,
 } from './eventsSearch';
+import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from './datePickers';
 import { EventFormDialog } from './EventFormDialog';
 
 /** Minimum size of anything the admin taps on a phone. */
 const TOUCH_TARGET = 44;
+
+/** The date filter asks for a year and a month — never a day. */
+const MONTH_VIEWS = ['year', 'month'] as const;
+
+/** The two bounds as the pickers hold them; `null` is an open side. */
+interface MonthBounds {
+  from: Dayjs | null;
+  to: Dayjs | null;
+}
+
+/**
+ * The two pickers, in the order they are shown. Only the first one carries the
+ * filter's help text — it reads as one sentence about the pair, and repeating
+ * it under both would say the same thing twice.
+ */
+const MONTH_BOUNDS: readonly { bound: keyof MonthBounds; helperText?: string }[] = [
+  { bound: 'from', helperText: 'page.manage.events.filter.help' },
+  { bound: 'to' },
+];
+
+const NO_BOUNDS: MonthBounds = { from: null, to: null };
+
+/** The bounds in the form the pure filter reads (`'YYYY-MM'`, '' when open). */
+const monthRange = ({ from, to }: MonthBounds): EventMonthRange => ({
+  from: from?.isValid() ? from.format('YYYY-MM') : '',
+  to: to?.isValid() ? to.format('YYYY-MM') : '',
+});
 
 /**
  * The event being edited in the dialog — a WORKING COPY. `index` is its
@@ -80,9 +114,12 @@ interface DialogState {
  * NOT written — the write waits, the row's fields are flagged, and it goes out
  * as soon as the event is complete.
  *
- * The sort selector and the search field are DISPLAY-ONLY (see
- * `eventsSearch.ts`): the stored order is always start-date descending, which
- * is also what the public agenda derives its placement from.
+ * The sort selector, the search field and the date filter are DISPLAY-ONLY
+ * (see `eventsSearch.ts`): the stored order is always start-date descending,
+ * which is also what the public agenda derives its placement from. The date
+ * filter takes a year and a month on each side and keeps the events whose own
+ * span overlaps those months — an event with no start date yet always shows,
+ * since it is the row holding the save back.
  */
 export const EventsListEditor: React.FC = () => {
   const intl = useIntl();
@@ -94,6 +131,9 @@ export const EventsListEditor: React.FC = () => {
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [criterion, setCriterion] = useState<EventSortCriterion>(DEFAULT_EVENT_SORT);
+  const [months, setMonths] = useState<MonthBounds>(NO_BOUNDS);
+  const setBound = (bound: keyof MonthBounds, value: Dayjs | null): void =>
+    setMonths((prev) => ({ ...prev, [bound]: value }));
 
   useEffect(() => {
     let active = true;
@@ -139,10 +179,20 @@ export const EventsListEditor: React.FC = () => {
   const autoSave = useDraftAutoSave({ value: payload, save: persist, enabled: valid });
   useDraftSaveNotifications(autoSave);
 
-  /** Display order and filter — never the stored order (see `eventsSearch.ts`). */
+  /** Display order and filters — never the stored order (see `eventsSearch.ts`). */
+  const range = monthRange(months);
   const rows = useMemo(
-    () => sortEvents(filterEvents((events ?? []).map((event, index) => ({ ...event, index })), query), criterion, intl.locale),
-    [events, query, criterion, intl.locale],
+    () =>
+      sortEvents(
+        filterEventsByMonthRange(
+          filterEvents((events ?? []).map((event, index) => ({ ...event, index })), query),
+          range,
+        ),
+        criterion,
+        intl.locale,
+      ),
+    // The bounds are compared by value: the pickers rebuild their Dayjs objects.
+    [events, query, range.from, range.to, criterion, intl.locale],
   );
 
   const addEvent = (): void => setDialog({ index: null, draft: createEvent() });
@@ -260,6 +310,52 @@ export const EventsListEditor: React.FC = () => {
               </MenuItem>
             ))}
           </TextField>
+
+          {/* Date filter: a month on each side, year and month only — a day
+              would be false precision on a list of multi-day events. Each
+              picker caps the other, so the range can never be inverted. */}
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={pickerLocale(intl.locale)}>
+            <Box
+              sx={{
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 14rem))' },
+                gap: { xs: 1, sm: 2 },
+              }}
+            >
+              {MONTH_BOUNDS.map(({ bound, helperText }) => (
+                <DatePicker
+                  key={bound}
+                  label={intl.formatMessage({ id: `page.manage.events.filter.${bound}` })}
+                  views={MONTH_VIEWS}
+                  openTo="year"
+                  value={months[bound]}
+                  // Each bound caps the other, so the range can never invert.
+                  minDate={bound === 'to' ? (months.from ?? undefined) : undefined}
+                  maxDate={bound === 'from' ? (months.to ?? undefined) : undefined}
+                  // Whole months only: the day the picker carries over is noise.
+                  onChange={(value) => setBound(bound, value?.startOf('month') ?? null)}
+                  slotProps={{
+                    field: { clearable: true, onClear: () => setBound(bound, null) },
+                    textField: {
+                      size: 'small',
+                      fullWidth: true,
+                      helperText: helperText ? intl.formatMessage({ id: helperText }) : ' ',
+                      sx: PICKER_FIELD_SX,
+                    },
+                    openPickerButton: {
+                      sx: PICKER_BUTTON_SX,
+                      'aria-label': intl.formatMessage({ id: `page.manage.events.filter.${bound}.choose` }),
+                    },
+                    clearButton: {
+                      sx: { width: TOUCH_TARGET, height: TOUCH_TARGET },
+                      'aria-label': intl.formatMessage({ id: `page.manage.events.filter.${bound}.clear` }),
+                    },
+                  }}
+                />
+              ))}
+            </Box>
+          </LocalizationProvider>
         </Box>
       )}
 

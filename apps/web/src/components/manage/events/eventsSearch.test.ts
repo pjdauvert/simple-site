@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_EVENT_SORT,
+  EMPTY_EVENT_MONTH_RANGE,
   EVENT_SORT_CRITERIA,
   filterEvents,
+  filterEventsByMonthRange,
+  isEmptyMonthRange,
+  matchesEventMonthRange,
   matchesEventSearch,
   normalizeForSearch,
   sortEvents,
@@ -213,5 +217,49 @@ describe('sortEvents', () => {
 
   it('exposes every criterion the selector offers', () => {
     expect([...EVENT_SORT_CRITERIA]).toEqual(['startDesc', 'startAsc', 'nameAsc', 'nameDesc']);
+  });
+});
+
+describe('date filter (year + month bounds)', () => {
+  /** An event spanning two instants, as the dialog would have stored them. */
+  const spanning = (start: string, end?: string): SearchableEvent => ({
+    name: 'Event',
+    startDateTime: start,
+    ...(end === undefined ? {} : { endDateTime: end }),
+  });
+
+  const march = spanning('2026-03-14T09:00:00.000Z');
+  const may = spanning('2026-05-02T09:00:00.000Z');
+  const newYear = spanning('2026-12-28T09:00:00.000Z', '2027-01-03T22:59:00.000Z');
+
+  it('lets everything through while neither bound is set', () => {
+    expect(isEmptyMonthRange(EMPTY_EVENT_MONTH_RANGE)).toBe(true);
+    expect(filterEventsByMonthRange([march, may], EMPTY_EVENT_MONTH_RANGE)).toEqual([march, may]);
+    // An unreadable bound is no bound at all.
+    expect(isEmptyMonthRange({ from: '2026', to: 'nope' })).toBe(true);
+  });
+
+  it('includes both bound months whole', () => {
+    expect(matchesEventMonthRange(march, { from: '2026-03', to: '2026-03' })).toBe(true);
+    expect(matchesEventMonthRange(march, { from: '2026-04', to: '' })).toBe(false);
+    expect(matchesEventMonthRange(march, { from: '', to: '2026-02' })).toBe(false);
+    // The last instant of the upper month still counts.
+    expect(matchesEventMonthRange(spanning('2026-03-31T21:00:00.000Z'), { from: '', to: '2026-03' })).toBe(true);
+  });
+
+  it('keeps an event whose span overlaps the months, on either side of the turn', () => {
+    expect(matchesEventMonthRange(newYear, { from: '2026-12', to: '2026-12' })).toBe(true);
+    expect(matchesEventMonthRange(newYear, { from: '2027-01', to: '2027-01' })).toBe(true);
+    expect(matchesEventMonthRange(newYear, { from: '2027-02', to: '' })).toBe(false);
+  });
+
+  it('always keeps a row with no start date — it is the one holding the save back', () => {
+    const incomplete: SearchableEvent = { name: 'Draft', startDateTime: '' };
+    expect(matchesEventMonthRange(incomplete, { from: '2026-03', to: '2026-03' })).toBe(true);
+  });
+
+  it('filters a list on one open side', () => {
+    expect(filterEventsByMonthRange([march, may, newYear], { from: '2026-05', to: '' })).toEqual([may, newYear]);
+    expect(filterEventsByMonthRange([march, may, newYear], { from: '', to: '2026-04' })).toEqual([march]);
   });
 });
