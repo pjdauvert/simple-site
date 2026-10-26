@@ -52,14 +52,16 @@ export const EventSearchRow: React.FC<{
 
   return (
     <Card
-      elevation={highlighted ? 8 : 2}
+      elevation={2}
       onMouseEnter={() => onHover(event.slug)}
       onMouseLeave={() => onHover(null)}
       sx={{
         borderRadius: 3,
-        ...(highlighted
-          ? { outline: '2px solid', outlineColor: 'secondary.main', outlineOffset: 2 }
-          : {}),
+        // The ring is a BORDER, always present and only recoloured: an outline
+        // is drawn outside the box, where the scroll container clips it on the
+        // edges, and adding one on hover would shift every row by two pixels.
+        border: '2px solid',
+        borderColor: highlighted ? 'secondary.main' : 'transparent',
       }}
     >
       <CardActionArea

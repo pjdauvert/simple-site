@@ -181,7 +181,11 @@ export const EventsSearchPage: React.FC = () => {
               // it is the page that scrolls, which is what a search should feel like.
               maxHeight: { md: 'calc(100vh - 16rem)' },
               overflowY: { md: 'auto' },
-              pr: { md: 1 },
+              // Room on every side for the cards' own elevation and for the
+              // ring the calendar puts on one of them — a scroll container
+              // clips whatever its content paints on the edge.
+              p: { md: 1 },
+              m: { md: -1 },
             }}
           >
             {rows.map((event) => (

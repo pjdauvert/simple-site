@@ -59,14 +59,11 @@ import {
   type EventMonthRange,
   type EventSortCriterion,
 } from './eventsSearch';
-import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from './datePickers';
+import { MONTH_VIEWS, PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../pages/events/datePickers';
 import { EventFormDialog } from './EventFormDialog';
 
 /** Minimum size of anything the admin taps on a phone. */
 const TOUCH_TARGET = 44;
-
-/** The date filter asks for a year and a month — never a day. */
-const MONTH_VIEWS = ['year', 'month'] as const;
 
 /** The two bounds as the pickers hold them; `null` is an open side. */
 interface MonthBounds {
@@ -314,7 +311,14 @@ export const EventsListEditor: React.FC = () => {
           {/* Date filter: a month on each side, year and month only — a day
               would be false precision on a list of multi-day events. Each
               picker caps the other, so the range can never be inverted. */}
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={pickerLocale(intl.locale)}>
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            adapterLocale={pickerLocale(intl.locale)}
+            localeText={{
+              clearButtonLabel: intl.formatMessage({ id: 'page.manage.events.filter.clear' }),
+              todayButtonLabel: intl.formatMessage({ id: 'page.manage.events.filter.thisMonth' }),
+            }}
+          >
             <Box
               sx={{
                 gridColumn: '1 / -1',
@@ -337,6 +341,9 @@ export const EventsListEditor: React.FC = () => {
                   onChange={(value) => setBound(bound, value?.startOf('month') ?? null)}
                   slotProps={{
                     field: { clearable: true, onClear: () => setBound(bound, null) },
+                    // Clearing and "this month" are reachable from the
+                    // calendar too, not only from the field.
+                    actionBar: { actions: ['clear', 'today'] },
                     textField: {
                       size: 'small',
                       fullWidth: true,

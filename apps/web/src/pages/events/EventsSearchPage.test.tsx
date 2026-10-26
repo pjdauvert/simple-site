@@ -22,10 +22,14 @@ const inDays = (days: number, hour = 10): string => {
   return date.toISOString();
 };
 
-const monthValue = (iso: string): string => {
+/** The year and month of an instant, as the pickers name them. */
+const monthOf = (iso: string): { year: string; month: string } => {
   const date = new Date(iso);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  return { year: String(date.getFullYear()), month: date.toLocaleString('en-US', { month: 'long' }) };
 };
+
+/** The bound fields, by the label their picker and its calendar carry. */
+const BOUND_FIELD = { first: /^from$/i, last: /^until$/i } as const;
 
 const regatta: SiteEvent = {
   slug: 'spring-regatta',
@@ -57,12 +61,12 @@ const setConfig = (events?: Partial<EventsConfig>) =>
     config: { site: { siteName: 'Test' }, themes: [], pages: [], events } as unknown as SiteConfig,
   } as unknown as ReturnType<typeof useSiteConfig>);
 
-const renderPage = (messages?: Record<string, string>) =>
+const renderPage = (messages?: Record<string, string>, locale: 'en' | 'fr' = 'en') =>
   renderWithProviders(
     <Routes>
       <Route path="/events/search" element={<EventsSearchPage />} />
     </Routes>,
-    { route: '/events/search', theme: true, messages },
+    { route: '/events/search', theme: true, messages, locale },
   );
 
 /** The listed events, in the order the page paints them (the calendar’s month
@@ -75,8 +79,17 @@ const rowNames = (): string[] => {
     .map((heading) => heading.textContent ?? '');
 };
 
-const setMonth = (label: RegExp, value: string): void => {
-  fireEvent.change(screen.getByLabelText(label), { target: { value } });
+/**
+ * Picks a bound through its Material picker: a year, then a month. Each
+ * calendar stays mounted once opened, so it is reached through its field's
+ * label.
+ */
+const pickMonth = (bound: keyof typeof BOUND_FIELD, when: string | { year: string; month: string }): void => {
+  const { year, month } = typeof when === 'string' ? monthOf(when) : when;
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`choose the ${bound} month`, 'i') }));
+  const calendar = within(screen.getByRole('dialog', { name: BOUND_FIELD[bound] }));
+  fireEvent.click(calendar.getByRole('radio', { name: year }));
+  fireEvent.click(calendar.getByRole('radio', { name: month }));
 };
 
 describe('EventsSearchPage (public /events/search)', () => {
@@ -132,12 +145,42 @@ describe('EventsSearchPage (public /events/search)', () => {
 
   it('reaches past events through the date bounds', () => {
     renderPage();
-    setMonth(/^from$/i, monthValue(oldFair.startDateTime));
+    pickMonth('first', oldFair.startDateTime);
     expect(rowNames()).toContain('Old Fair');
 
     // An upper bound cuts the list the other way.
-    setMonth(/^until$/i, monthValue(oldFair.startDateTime));
+    pickMonth('last', oldFair.startDateTime);
     expect(rowNames()).toEqual(['Old Fair']);
+  });
+
+  it('clears a bound from its field, and offers the current month back', () => {
+    renderPage();
+    pickMonth('first', oldFair.startDateTime);
+    expect(rowNames()).toContain('Old Fair');
+
+    // The field's own clear button empties the bound: the whole list is back.
+    fireEvent.click(screen.getByRole('button', { name: /clear the first month/i }));
+    expect(rowNames()).toContain('Old Fair'); // no lower bound at all now
+    expect(rowNames()).toContain('Spring Regatta');
+
+    // "This month" from the calendar brings the visitor back to from-now-on.
+    pickMonth('first', oldFair.startDateTime);
+    fireEvent.click(screen.getByRole('button', { name: /choose the first month/i }));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: BOUND_FIELD.first })).getByRole('button', { name: /this month/i }),
+    );
+    expect(rowNames()).toEqual(['Spring Regatta', 'Summer Festival']);
+  });
+
+  it('speaks the interface locale in the pickers', () => {
+    renderPage(undefined, 'fr');
+    fireEvent.click(screen.getByRole('button', { name: /choisir le premier mois/i }));
+    const calendar = within(screen.getByRole('dialog', { name: /à partir de/i }));
+    // dayjs' French locale drives the month names, our labels the actions.
+    fireEvent.click(calendar.getByRole('radio', { name: '2027' }));
+    expect(calendar.getByRole('radio', { name: /^mai$/i })).toBeInTheDocument();
+    expect(calendar.getByRole('button', { name: /ce mois/i })).toBeInTheDocument();
+    expect(calendar.getByRole('button', { name: /effacer les dates/i })).toBeInTheDocument();
   });
 
   it('shows the whole list on the calendar, one grid per occupied month', () => {
@@ -192,7 +235,11 @@ describe('EventsSearchPage (public /events/search)', () => {
     setConfig({ events: [oldFair] });
     renderPage();
     expect(rowNames()).toEqual(['Old Fair']);
-    expect(screen.getByLabelText(/^from$/i)).toHaveValue(monthValue(oldFair.startDateTime));
+    const { year, month } = monthOf(oldFair.startDateTime);
+    // The field opens on that event's month, not on today's.
+    expect(document.querySelector('.MuiPickersSectionList-root')).toHaveTextContent(
+      new RegExp(`${month.slice(0, 3)}.*${year}`, 'i'),
+    );
   });
 
   it('links each row to the event’s page', () => {
@@ -207,7 +254,7 @@ describe('EventsSearchPage (public /events/search)', () => {
     const onlyMay: SiteEvent = { ...regatta, startDateTime: local(2027, 5, 10) };
     setConfig({ events: [onlyMay], design: { agendaPage: { weekStartsOn: 'sunday' } } });
     renderPage();
-    setMonth(/^from$/i, '2027-05');
+    pickMonth('first', { year: '2027', month: 'May' });
     // Sunday first: the narrow labels start with S (Sunday), not M (Monday).
     const [firstColumn] = within(screen.getByTestId('event-calendar')).getAllByText(/^[A-Z]$/);
     expect(firstColumn).toHaveTextContent('S');
@@ -216,9 +263,7 @@ describe('EventsSearchPage (public /events/search)', () => {
   it('keeps the dates filter in a sheet, with the applied bounds as chips', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /^dates$/i }));
-    const sheet = within(screen.getByRole('presentation'));
-    fireEvent.change(sheet.getByLabelText(/^until$/i), { target: { value: monthValue(festival.startDateTime) } });
-    fireEvent.click(sheet.getByRole('button', { name: /clear the dates/i }));
+    fireEvent.click(within(screen.getByRole('presentation')).getByRole('button', { name: /clear the dates/i }));
 
     // Cleared from the sheet: the whole list is back, past events included.
     expect(rowNames()).toContain('Old Fair');

@@ -1,27 +1,39 @@
 import React from 'react';
 import { Box, Chip, IconButton, InputAdornment, Stack, TextField } from '@mui/material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import dayjs, { type Dayjs } from 'dayjs';
 import ClearIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import { useIntl } from 'react-intl';
+import { MONTH_VIEWS, PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from './datePickers';
 import { monthFirstDay, monthLastDay, monthOfDay, type EventSearchCriteria } from './eventSearch';
 
 /** Minimum size of anything the visitor taps. */
 const TOUCH_TARGET = 44;
 
-/** The two date bounds, each a month the visitor types or picks. */
+/**
+ * The two date bounds. Each is a whole MONTH — a visitor explores "next
+ * spring", not "the 14th" — so the picker opens on the years and stops at the
+ * months; the day it carries is only there to name one.
+ */
 const BOUNDS = [
   { bound: 'from', label: 'page.events.search.from', toDay: monthFirstDay },
   { bound: 'to', label: 'page.events.search.to', toDay: monthLastDay },
 ] as const;
 
+/** A bound as the picker holds it: the first day of its month, or nothing. */
+const boundValue = (day: string): Dayjs | null => {
+  const month = monthOfDay(day);
+  return month ? dayjs(`${month}-01`) : null;
+};
+
 /**
- * The search page's filters. Every field is DISPLAY-ONLY and lives in the URL
- * of nothing — the page holds them in state.
- *
- * The bounds are months, not days: a visitor explores "next spring", not "the
- * 14th". They are native month inputs on purpose — a phone opens its own
- * month wheel, a desktop types `2027-05`, and the public bundle carries no
- * date-picker library for a field used twice.
+ * The search page's filters, all DISPLAY-ONLY — the page holds them in state.
+ * The bounds use the same Material pickers as the admin, in the interface
+ * locale in use, each clearable and each offering the current month, so a
+ * visitor can always come back to "from now on".
  */
 export const EventSearchQueryField: React.FC<{
   value: string;
@@ -68,29 +80,48 @@ export const EventSearchMonthFields: React.FC<{
   onChange: (next: Partial<EventSearchCriteria>) => void;
 }> = ({ criteria, onChange }) => {
   const intl = useIntl();
+
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: { xs: 2, sm: 2 } }}>
-      {BOUNDS.map(({ bound, label, toDay }) => (
-        <TextField
-          key={bound}
-          type="month"
-          label={intl.formatMessage({ id: label })}
-          value={monthOfDay(criteria[bound])}
-          onChange={(e) => onChange({ [bound]: toDay(e.target.value) })}
-          size="small"
-          fullWidth
-          // Each bound caps the other, so the range can never be inverted.
-          slotProps={{
-            htmlInput: {
-              min: bound === 'to' ? monthOfDay(criteria.from) : undefined,
-              max: bound === 'from' ? monthOfDay(criteria.to) : undefined,
-            },
-            inputLabel: { shrink: true },
-            input: { sx: { minHeight: TOUCH_TARGET } },
-          }}
-        />
-      ))}
-    </Box>
+    <LocalizationProvider
+      dateAdapter={AdapterDayjs}
+      adapterLocale={pickerLocale(intl.locale)}
+      // The picker's own chrome speaks the interface language too.
+      localeText={{
+        clearButtonLabel: intl.formatMessage({ id: 'page.events.search.dates.clear' }),
+        todayButtonLabel: intl.formatMessage({ id: 'page.events.search.dates.thisMonth' }),
+      }}
+    >
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+        {BOUNDS.map(({ bound, label, toDay }) => (
+          <DatePicker
+            key={bound}
+            label={intl.formatMessage({ id: label })}
+            views={MONTH_VIEWS}
+            openTo="year"
+            value={boundValue(criteria[bound])}
+            // Each bound caps the other, so the range can never be inverted.
+            minDate={bound === 'to' ? boundValue(criteria.from) ?? undefined : undefined}
+            maxDate={bound === 'from' ? boundValue(criteria.to) ?? undefined : undefined}
+            onChange={(value) => onChange({ [bound]: value?.isValid() ? toDay(value.format('YYYY-MM')) : '' })}
+            slotProps={{
+              field: { clearable: true, onClear: () => onChange({ [bound]: '' }) },
+              // Clearing and "this month" are reachable from the calendar too,
+              // not only from the field.
+              actionBar: { actions: ['clear', 'today'] },
+              textField: { size: 'small', fullWidth: true, sx: PICKER_FIELD_SX },
+              openPickerButton: {
+                sx: PICKER_BUTTON_SX,
+                'aria-label': intl.formatMessage({ id: `page.events.search.${bound}.choose` }),
+              },
+              clearButton: {
+                sx: { width: TOUCH_TARGET, height: TOUCH_TARGET },
+                'aria-label': intl.formatMessage({ id: `page.events.search.${bound}.clear` }),
+              },
+            }}
+          />
+        ))}
+      </Box>
+    </LocalizationProvider>
   );
 };
 

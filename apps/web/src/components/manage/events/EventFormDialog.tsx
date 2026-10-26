@@ -17,7 +17,7 @@ import { eventDescriptionKey, eventLocationKey, eventNameKey } from '@simple-sit
 import { MediaUrlField } from '../../media';
 import { TranslateAdornment } from '../TranslateAdornment';
 import { slugify } from '../slugify';
-import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from './datePickers';
+import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../pages/events/datePickers';
 import { applyWhen, readWhen, type EventDraft, type EventFieldErrors, type EventWhenPatch } from './eventsDraft';
 
 interface EventFormDialogProps {
