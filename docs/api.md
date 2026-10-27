@@ -48,6 +48,8 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 
 Configuration uses a **draft → publish** model with a linear archive history (see [configuration.md](configuration.md#versioning-draft--publish--archive)). The live site reads the **published** config via `GET /api/config`; admins edit a **draft** and publish it to go live. Publishing archives the previously-published config with a reverse-chronological, second-precision timestamp so it can be restored. At most **10 versions** (published + archives; the draft is uncounted) are retained — creating a new archive beyond that erases the archive with the oldest `createdAt`.
 
+Every config write validates its body against the shared schema. A rejection is the **caller's**: `400 VALIDATION_FAILED`, whose `details.errors` lists `{ field, message }` per offending path (`events.0.slug`, `menu.entries.2`) — including the cross-section rules the whole-`SiteConfig` re-validation enforces, such as a menu entry pointing at an unknown page. Malformed JSON is `400 INVALID_REQUEST`. A `500 CONFIGURATION_ERROR` means the **stored** config failed to parse, which no change to the request can fix.
+
 ### `GET /api/config`
 
 Returns the **published** `SiteConfig` from Netlify Blobs (key `config`). This is the live configuration the site renders. On the first request in a dev environment the blob is seeded automatically from the bundled `siteConfig.json`. **Public** — the only public config route.
@@ -520,12 +522,12 @@ All responses — success and error — share the same top-level shape:
 
 | Status | When |
 |--------|------|
-| `400` | Missing / invalid body, invalid locale, wrong Content-Type on POST |
+| `400` | Missing / malformed / schema-invalid body, invalid locale, wrong Content-Type on POST |
 | `401` | Missing or invalid Netlify Identity JWT on a protected endpoint |
 | `404` | Blob store key not found |
 | `405` | HTTP method not allowed for this endpoint |
 | `409` | Conflict — e.g. publish with no draft, or a translations mutation targeting the default language / last override |
-| `500` | Internal error, Zod schema violation in stored data |
+| `500` | Internal error, Zod schema violation in **stored** data (never in a request body — that is a `400`) |
 
 ---
 

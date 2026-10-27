@@ -1,5 +1,5 @@
 import type { ApiResponseErrorPayload, ApiResponseSuccessPayload } from '@simple-site/interfaces';
-import { ApiErrorResponse, ErrorResponses } from '../errors/error';
+import { ApiErrorResponse, ErrorResponses, validationDetails } from '../errors/error';
 import type { RequestHandler } from '../types/server-types';
 import { z, ZodError } from "zod";
 
@@ -49,6 +49,29 @@ export abstract class BaseHandler {
             status,
             headers: responseHeaders,
         });
+    }
+
+    /**
+     * Validates a REQUEST payload. A rejection is the caller's fault, so it
+     * answers `400 VALIDATION_FAILED` naming the offending fields — never the
+     * `500 CONFIGURATION_ERROR` that an uncaught ZodError would produce, which
+     * is reserved for a schema violation in data we STORED (see `handleError`).
+     */
+    protected parseRequest = <Output>(schema: z.ZodType<Output>, payload: unknown, path?: string): Output => {
+        const parsed = schema.safeParse(payload);
+        if (!parsed.success) {
+            throw ErrorResponses.validationFailed(validationDetails(parsed.error), path);
+        }
+        return parsed.data;
+    }
+
+    /** Body text → JSON; malformed JSON is an invalid request, not a crash. */
+    protected parseJsonBody = (body: string, path?: string): unknown => {
+        try {
+            return JSON.parse(body);
+        } catch {
+            throw ErrorResponses.invalidRequest('Invalid JSON body', path);
+        }
     }
 
     protected handleError(error: unknown, path?: string): Response {
