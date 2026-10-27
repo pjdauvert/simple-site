@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { lazy, Suspense, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { Page } from '../pages/dynamic/Page';
@@ -13,8 +13,15 @@ import { ContactPage } from '../pages/contact/ContactPage';
 import { GalleryPage } from '../pages/gallery/GalleryPage';
 import { GalleryTagPage } from '../pages/gallery/GalleryTagPage';
 import { EventsPage } from '../pages/events/EventsPage';
-import { EventsSearchPage } from '../pages/events/EventsSearchPage';
 import { EventPage } from '../pages/events/EventPage';
+import { Loading } from '../components';
+
+// The only public page pulling `@mui/x-date-pickers` (its search filters). Eager,
+// it drags the `date-pickers-vendor` chunk into every first paint; lazy, only
+// `/events/search` fetches it.
+const EventsSearchPage = lazy(() =>
+  import('../pages/events/EventsSearchPage').then((m) => ({ default: m.EventsSearchPage }))
+);
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
@@ -45,7 +52,10 @@ export const AppRouter: React.FC = () => {
         <Route path="/events" element={<EventsPage />} />
         {/* Static before dynamic: `search` is a reserved event slug
             (EVENT_RESERVED_SLUGS), so no event can ever claim this URL. */}
-        <Route path="/events/search" element={<EventsSearchPage />} />
+        <Route
+          path="/events/search"
+          element={<Suspense fallback={<Loading message="Loading…" />}><EventsSearchPage /></Suspense>}
+        />
         <Route path="/events/:slug" element={<EventPage />} />
         <Route path="*" Component={NotFoundPage} />
       </Routes>

@@ -104,6 +104,15 @@ export default defineConfig(({ mode }) => ({
             return 'react-router-vendor';
           }
           
+          // Date pickers + dayjs — only the lazy admin dialogs and the lazy
+          // `/events/search` filters use them. MUST stay BEFORE the `@mui` rule:
+          // merged into `mui-vendor` (which the public entry imports) the lazy
+          // routers would buy nothing.
+          if (id.includes('node_modules/@mui/x-date-pickers') ||
+              id.includes('node_modules/dayjs')) {
+            return 'date-pickers-vendor';
+          }
+
           // Material-UI - large UI library, separate chunk
           if (id.includes('node_modules/@mui') || 
               id.includes('node_modules/@emotion')) {
