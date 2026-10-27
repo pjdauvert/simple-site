@@ -1,10 +1,49 @@
+import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import netlify from '@netlify/vite-plugin';
 
 const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
 const sharedTypesRoot = fileURLToPath(new URL('../../libs/interfaces/src', import.meta.url));
+
+/** Where `netlify.toml` tells the emulator to find the API (a BUILD, not sources). */
+const functionsDir = fileURLToPath(new URL('../../dist/apps/functions', import.meta.url));
+
+/**
+ * `/api/*` is served by the serverless FUNCTIONS BUILD, and a missing
+ * `dist/apps/functions` makes every API call fall through to the SPA — the app
+ * then renders nothing but "Error Loading Configuration", with no hint as to
+ * why. `npm run dev` builds them first (see `apps/web/project.json`), so this
+ * only fires for a bare `vite`, which it also warns is the wrong entry point:
+ * Vite alone cannot route `/api/*` (the Netlify config lives at the workspace
+ * root, outside Vite's root), so the API needs `npm run dev`.
+ */
+const netlifyFunctionsNotice = (): import('vite').Plugin => ({
+  name: 'netlify-functions-notice',
+  apply: 'serve',
+  configureServer(server) {
+    const printUrls = server.printUrls.bind(server);
+    server.printUrls = () => {
+      printUrls();
+      const built = existsSync(functionsDir)
+        ? readdirSync(functionsDir).filter((entry) => entry.endsWith('.mjs'))
+        : [];
+      if (built.length === 0) {
+        server.config.logger.warn(
+          '\n  !  No functions build in dist/apps/functions — /api/* will fall through to the\n' +
+            '     SPA and the app will only show "Error Loading Configuration".\n' +
+            '     Run `npm run dev` (it builds them and serves the API through Netlify).\n',
+        );
+      } else if (!process.env.NETLIFY_DEV) {
+        server.config.logger.warn(
+          '\n  !  Vite alone does not route /api/* — the Netlify config lives at the workspace\n' +
+            '     root, outside Vite\'s root. Use `npm run dev` for the app AND the API.\n',
+        );
+      }
+    };
+  },
+});
 
 const netlifyRedirectsPlugin = (): import('vite').Plugin => ({
   name: 'netlify-spa-redirects',
@@ -18,14 +57,28 @@ const netlifyRedirectsPlugin = (): import('vite').Plugin => ({
   },
 });
 
-export default defineConfig({
-  plugins: [react(), netlify(), netlifyRedirectsPlugin()],
+/**
+ * Hostnames a reverse proxy may front the dev server with, comma-separated in
+ * `DEV_ALLOWED_HOSTS` (workspace `.env`). Vite rejects any `Host` it was not
+ * told about, so serving `npm run dev` behind nginx (or a tunnel) answers
+ * "Blocked request" until its hostname is listed. Empty — the default — keeps
+ * Vite's own strict behaviour, which is what a laptop on a café network wants.
+ */
+const allowedHosts = (mode: string): string[] =>
+  (loadEnv(mode, workspaceRoot, '').DEV_ALLOWED_HOSTS ?? '')
+    .split(',')
+    .map((host) => host.trim())
+    .filter(Boolean);
+
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), netlify(), netlifyFunctionsNotice(), netlifyRedirectsPlugin()],
   resolve: {
     alias: {
       '@simple-site/interfaces': sharedTypesRoot,
     },
   },
   server: {
+    allowedHosts: allowedHosts(mode),
     fs: {
       allow: [workspaceRoot],
     },
@@ -106,4 +159,4 @@ export default defineConfig({
       polyfill: true,
     },
   },
-});
+}));

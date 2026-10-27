@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Alert, Slide, Stack } from '@mui/material';
-import { NotificationsContext, type NotificationSeverity } from './NotificationsContext';
+import { NotificationsContext, type NotificationSeverity, type NotifyOptions } from './NotificationsContext';
 
-type Notification = { id: number; severity: NotificationSeverity; message: string };
+type Notification = { id: number; severity: NotificationSeverity; message: string; key?: string };
 
 /** Success/info toasts auto-dismiss; errors/warnings persist until the user closes them. */
 const AUTO_HIDE_MS = 5000;
@@ -13,12 +13,18 @@ const autoHides = (severity: NotificationSeverity) => severity === 'success' || 
  * MUI Alerts that slide up from the bottom-right. Newer messages stack on top of older
  * ones (oldest at the bottom); success auto-dismisses, errors stay until closed.
  *
+ * A notification posted with a `key` owns a single slot: posting that key again
+ * rewrites the toast already on screen (same position, auto-hide re-armed) instead
+ * of stacking another one, so a status that repeats — the draft auto-save reporting
+ * every write — reads as one line that changes.
+ *
  * Scoped to the admin area (wrapped in `ManageRouter`), so the public site is unaffected.
  */
 export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<Notification[]>([]);
   const idRef = useRef(0);
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+  const keyedIds = useRef(new Map<string, number>());
 
   const dismiss = useCallback((id: number) => {
     setItems((prev) => prev.filter((n) => n.id !== id));
@@ -27,11 +33,28 @@ export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({ child
       clearTimeout(timer);
       timers.current.delete(id);
     }
+    keyedIds.current.forEach((keyed, key) => {
+      if (keyed === id) keyedIds.current.delete(key);
+    });
   }, []);
 
-  const notify = useCallback((severity: NotificationSeverity, message: string) => {
-    const id = (idRef.current += 1);
-    setItems((prev) => [...prev, { id, severity, message }]); // chronological: oldest first
+  const notify = useCallback((severity: NotificationSeverity, message: string, options?: NotifyOptions) => {
+    const { key } = options ?? {};
+    // A keyed notification reuses its own id, so the Alert updates in place
+    // instead of unmounting and sliding in again.
+    const existingId = key ? keyedIds.current.get(key) : undefined;
+    const id = existingId ?? (idRef.current += 1);
+    const timer = timers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timers.current.delete(id);
+    }
+    if (key) keyedIds.current.set(key, id);
+    setItems((prev) =>
+      prev.some((n) => n.id === id)
+        ? prev.map((n) => (n.id === id ? { ...n, severity, message } : n))
+        : [...prev, { id, severity, message, key }], // chronological: oldest first
+    );
     if (autoHides(severity)) {
       timers.current.set(id, setTimeout(() => dismiss(id), AUTO_HIDE_MS));
     }
@@ -39,8 +62,8 @@ export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({ child
 
   const value = useMemo(() => ({
     notify,
-    success: (message: string) => notify('success', message),
-    error: (message: string) => notify('error', message),
+    success: (message: string, options?: NotifyOptions) => notify('success', message, options),
+    error: (message: string, options?: NotifyOptions) => notify('error', message, options),
     dismiss,
   }), [notify, dismiss]);
 

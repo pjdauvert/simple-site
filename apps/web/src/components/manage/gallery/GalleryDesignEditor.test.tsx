@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import type { SiteConfig, GalleryConfig } from '@simple-site/interfaces';
 import { GalleryDesignEditor } from './GalleryDesignEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateGallery } from '../../../services/galleryService';
+import { DRAFT_AUTO_SAVE_DELAY } from '../../../hooks/useDraftAutoSave';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 
 vi.mock('../../../services/configVersionService', () => ({ loadDraftConfig: vi.fn() }));
@@ -20,19 +21,35 @@ const seeded: GalleryConfig = {
 
 const renderEditor = () => renderWithProviders(<GalleryDesignEditor />, { notifications: true });
 
+/** Advances past the auto-save debounce and lets the write settle. */
+const settleAutoSave = async () => {
+  await act(async () => {
+    vi.advanceTimersByTime(DRAFT_AUTO_SAVE_DELAY + 50);
+  });
+};
+
 describe('GalleryDesignEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // The clock keeps running on its own (so `findBy*` still settles) while
+    // tests jump the auto-save debounce explicitly.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(loadDraftConfig).mockResolvedValue(draft(seeded));
     vi.mocked(updateGallery).mockResolvedValue(undefined);
   });
+  afterEach(() => vi.useRealTimers());
 
-  it('saves a picked display mode over the fresh draft items (never clobbered)', async () => {
+  it('writes nothing for the draft it just loaded', async () => {
+    renderEditor();
+    await screen.findByTestId('gallery-preview-list');
+    await settleAutoSave();
+    expect(updateGallery).not.toHaveBeenCalled();
+  });
+
+  it('auto-saves a picked display mode over the fresh draft items (never clobbered)', async () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /grid/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
@@ -48,9 +65,7 @@ describe('GalleryDesignEditor', () => {
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /list/i }));
     fireEvent.click(screen.getByRole('button', { name: /below/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({ items: seeded.items, tags: [] });
   });
@@ -70,9 +85,7 @@ describe('GalleryDesignEditor', () => {
     vi.mocked(loadDraftConfig).mockResolvedValue(draft({ ...seeded, design: { captionPosition: 'left' } }));
     renderEditor();
     fireEvent.click(await screen.findByRole('button', { name: /mosaic/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
@@ -86,9 +99,7 @@ describe('GalleryDesignEditor', () => {
     fireEvent.change(await screen.findByRole('spinbutton', { name: /maximum item width/i }), {
       target: { value: '60' },
     });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
@@ -97,16 +108,20 @@ describe('GalleryDesignEditor', () => {
     });
   });
 
-  it('flags an out-of-range width and blocks the save', async () => {
+  it('flags an out-of-range width and holds the write back', async () => {
     renderEditor();
-    fireEvent.change(await screen.findByRole('spinbutton', { name: /maximum item width/i }), {
-      target: { value: '5' },
-    });
+    const width = await screen.findByRole('spinbutton', { name: /maximum item width/i });
+    fireEvent.change(width, { target: { value: '5' } });
     expect(screen.getByText('Enter a value between 10 and 100 %.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled();
-    // Emptying the field returns to "no cap" and unblocks the save.
-    fireEvent.change(screen.getByRole('spinbutton', { name: /maximum item width/i }), { target: { value: '' } });
-    expect(screen.getByRole('button', { name: /^save$/i })).not.toBeDisabled();
+
+    await settleAutoSave();
+    expect(updateGallery).not.toHaveBeenCalled();
+
+    // An in-range value releases the held edit.
+    fireEvent.change(width, { target: { value: '50' } });
+    await settleAutoSave();
+    await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(updateGallery).mock.calls[0][0].design).toEqual({ itemMaxWidthPercent: 50 });
   });
 
   it('saves the frame options — elevation and radius sliders, border switch and its color', async () => {
@@ -127,9 +142,7 @@ describe('GalleryDesignEditor', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /^border$/i }));
     fireEvent.change(screen.getByRole('textbox', { name: /border color/i }), { target: { value: '#123456' } });
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({
       items: seeded.items,
@@ -181,9 +194,7 @@ describe('GalleryDesignEditor', () => {
     // Nothing left to position — the option hides (never disabled).
     expect(screen.queryByRole('button', { name: /above/i })).not.toBeInTheDocument();
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     await waitFor(() => expect(updateGallery).toHaveBeenCalledTimes(1));
     // Only the hidden states are stored — shown is the default.
     expect(vi.mocked(updateGallery).mock.calls[0][0]).toEqual({

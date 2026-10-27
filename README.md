@@ -29,14 +29,21 @@ npx lefthook install
 ### Develop
 
 ```bash
-npm run dev          # http://localhost:5173
+npm run dev          # app + API on http://localhost:3080
 ```
+
+`npm run dev` runs the Netlify dev stack: it builds the serverless functions,
+starts Vite behind it, and serves the SPA **and** `/api/*` from the one port its
+banner prints. Running `vite` on its own is not enough — the Netlify
+configuration lives at the workspace root, outside Vite's root, so `/api/*`
+falls through to the SPA and the app shows only *Error Loading Configuration*;
+the Vite banner says so if you start it that way.
 
 ### Build & preview
 
 ```bash
 npm run build
-npm run preview
+npm run preview      # the production BUILD behind the same stack, http://localhost:3080
 ```
 
 ### Test & lint

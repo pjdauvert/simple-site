@@ -11,6 +11,8 @@ export interface FeatureFlags {
   contact: boolean;
   /** Gallery feature (admin /manage/gallery, public /gallery pages, menu entries, `PUT /api/config/gallery`). */
   gallery: boolean;
+  /** Events feature (admin /manage/events, public /events pages, menu entry, `PUT /api/config/events`). */
+  events: boolean;
 }
 
 /**
@@ -20,7 +22,7 @@ export interface FeatureFlags {
  * the interface above updates every caller (and every test) through this
  * constant; it is the single place the full set is spelled out.
  */
-export const ALL_DISABLED: FeatureFlags = { media: false, team: false, contact: false, gallery: false };
+export const ALL_DISABLED: FeatureFlags = { media: false, team: false, contact: false, gallery: false, events: false };
 
 /** Fetches the feature flags the server currently has enabled. */
 export const getFeatureFlags = async (): Promise<FeatureFlags> => {

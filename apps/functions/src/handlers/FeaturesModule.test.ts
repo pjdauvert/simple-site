@@ -25,17 +25,17 @@ describe('FeaturesModule', () => {
   it('reports team from FEATURE_TEAM, independently of media', async () => {
     stubEnv({ FEATURE_TEAM: 'true' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
-      .toEqual({ media: false, team: true, contact: false, gallery: false });
+      .toEqual({ media: false, team: true, contact: false, gallery: false, events: false });
 
     stubEnv({ FEATURE_MEDIA: 'true', FEATURE_TEAM: 'yes' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
-      .toEqual({ media: true, team: false, contact: false, gallery: false });
+      .toEqual({ media: true, team: false, contact: false, gallery: false, events: false });
   });
 
   it('reports contact from FEATURE_CONTACT, independently of the other flags', async () => {
     stubEnv({ FEATURE_CONTACT: 'true' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
-      .toEqual({ media: false, team: false, contact: true, gallery: false });
+      .toEqual({ media: false, team: false, contact: true, gallery: false, events: false });
 
     stubEnv({ FEATURE_CONTACT: 'yes' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.contact).toBe(false);
@@ -44,9 +44,18 @@ describe('FeaturesModule', () => {
   it('reports gallery from FEATURE_GALLERY, independently of the other flags', async () => {
     stubEnv({ FEATURE_GALLERY: 'true' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
-      .toEqual({ media: false, team: false, contact: false, gallery: true });
+      .toEqual({ media: false, team: false, contact: false, gallery: true, events: false });
 
     stubEnv({ FEATURE_GALLERY: 'yes' });
     expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.gallery).toBe(false);
+  });
+
+  it('reports events from FEATURE_EVENTS, independently of the other flags', async () => {
+    stubEnv({ FEATURE_EVENTS: 'true' });
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data)
+      .toEqual({ media: false, team: false, contact: false, gallery: false, events: true });
+
+    stubEnv({ FEATURE_EVENTS: 'yes' });
+    expect((await readJson(await new FeaturesModule().handle(makeRequest(), makeContext()))).data.events).toBe(false);
   });
 });

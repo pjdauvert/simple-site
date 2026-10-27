@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -14,29 +14,31 @@ import {
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
+import type { ThemeConfig } from '@simple-site/interfaces';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateThemes } from '../../../services/themesService';
-import { useNotifications } from '../../../hooks/useNotifications';
 import { ThemeEditor } from './ThemeEditor';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { draftToTheme, isDraftValid, newThemeDraft, themeToDraft, type ThemeDraft } from './themeFields';
 
 /**
  * Themes editor for /manage/site: full-CRUD editor for the config `themes` array
  * (add / edit / delete, saved together). Prefills from the working draft
- * (`GET /api/config/draft`) and saves via `PUT /api/config/themes`, which writes
- * the draft. Changes go live only when published from the Config Versions panel.
+ * (`GET /api/config/draft`) and AUTO-SAVES every settled change via
+ * `PUT /api/config/themes`, which writes the draft — there is no save button, the
+ * indicator reports where the write stands. A theme missing its name or one of its
+ * required colors (and a duplicate name) holds the write back instead of sending a
+ * payload the schema would reject. Changes go live only when published from the
+ * Config Versions panel.
  */
 export const ThemesEditor: React.FC = () => {
   const intl = useIntl();
-  const notify = useNotifications();
   const [drafts, setDrafts] = useState<ThemeDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | false>(0);
-  const [showErrors, setShowErrors] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -49,6 +51,24 @@ export const ThemesEditor: React.FC = () => {
     return () => { active = false; };
   }, [intl]);
 
+  // The payload itself is the auto-saved value: the drafts' trailing whitespace
+  // is not a change worth a write.
+  const themes = useMemo<ThemeConfig[] | null>(
+    () => (loading ? null : drafts.map(draftToTheme)),
+    [loading, drafts],
+  );
+
+  const names = themes?.map((theme) => theme.themeName) ?? [];
+  const hasDuplicate = new Set(names).size !== names.length;
+  const complete = drafts.every(isDraftValid);
+
+  const save = useCallback(async (next: ThemeConfig[]) => {
+    await updateThemes(next);
+  }, []);
+
+  const saveState = useDraftAutoSave({ value: themes, save, enabled: complete && !hasDuplicate });
+  useDraftSaveNotifications(saveState);
+
   const updateDraft = (index: number, draft: ThemeDraft) => {
     setDrafts((prev) => prev.map((d, i) => (i === index ? draft : d)));
   };
@@ -60,27 +80,6 @@ export const ThemesEditor: React.FC = () => {
 
   const removeTheme = (index: number) => {
     setDrafts((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSave = async () => {
-    setShowErrors(true);
-    const names = drafts.map((d) => d.themeName.trim());
-    const hasDuplicate = new Set(names).size !== names.length;
-    if (!drafts.every(isDraftValid) || hasDuplicate) {
-      notify.error(intl.formatMessage({
-        id: hasDuplicate ? 'page.manage.themes.error.duplicate' : 'page.manage.themes.error.invalid',
-      }));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await updateThemes(drafts.map(draftToTheme));
-      notify.success(intl.formatMessage({ id: 'page.manage.themes.success' }));
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.themes.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -98,6 +97,14 @@ export const ThemesEditor: React.FC = () => {
         </Typography>
       )}
 
+      {/* Duplicate names have no field of their own to flag — without this the
+          write would just sit pending with nothing explaining why. */}
+      {hasDuplicate && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <FormattedMessage id="page.manage.themes.error.duplicate" />
+        </Alert>
+      )}
+
       {drafts.map((draft, index) => (
         <Accordion
           key={index}
@@ -110,7 +117,9 @@ export const ThemesEditor: React.FC = () => {
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <ThemeEditor draft={draft} showErrors={showErrors} onChange={(d) => updateDraft(index, d)} />
+            {/* Auto-save: a missing required field is flagged as soon as it is
+                missing — it is what is holding the write back. */}
+            <ThemeEditor draft={draft} showErrors onChange={(d) => updateDraft(index, d)} />
             <Box sx={{ mt: 2 }}>
               <Button color="error" startIcon={<DeleteIcon />} onClick={() => removeTheme(index)}>
                 <FormattedMessage id="page.manage.themes.delete" />
@@ -125,8 +134,6 @@ export const ThemesEditor: React.FC = () => {
           <FormattedMessage id="page.manage.themes.add" />
         </Button>
       </Box>
-
-      <StickySaveButton onClick={handleSave} disabled={submitting} submitting={submitting} />
     </Box>
   );
 };

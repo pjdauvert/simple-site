@@ -6,15 +6,16 @@
   "license": "AGPL-3.0",
   "scripts": {
     "nx": "nx",
-    "dev": "nx run web:dev",
+    "dev": "NODE_OPTIONS=--disable-warning=DEP0060 netlify dev --filter web",
     "build": "nx run-many -t build --projects=web,functions",
     "build:web": "nx run web:build",
     "build:functions": "nx run functions:build",
     "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck --projects=web,functions",
     "test": "nx run-many -t test --projects=web,functions",
+    "audit": "npm audit --audit-level=high && npm audit --omit=dev --audit-level=moderate",
     "test:ui": "nx run web:test-ui",
-    "preview": "nx run-many -t build --projects=web,functions && netlify dev",
+    "preview": "nx run-many -t build --projects=web,functions && NODE_OPTIONS=--disable-warning=DEP0060 netlify dev",
     "clear:blobs": "rm -rf apps/functions/.netlify/blobs-serve .netlify/blobs-serve",
     "clear:functions": "rm -rf apps/functions/.netlify/functions-serve apps/functions/.netlify/functions-internal apps/functions/.netlify/v1 .netlify/functions-serve .netlify/functions-internal .netlify/v1"
   },
@@ -29,9 +30,11 @@
     "@lexical/rich-text": "^0.47.0",
     "@mui/icons-material": "^6.1.10",
     "@mui/material": "^6.1.10",
+    "@mui/x-date-pickers": "^8.29.5",
     "@netlify/blobs": "^10.7.4",
     "@netlify/functions": "^5.2.0",
     "@netlify/identity": "^1.2.0",
+    "dayjs": "^1.11.23",
     "lexical": "^0.47.0",
     "node-fetch": "^3.3.2",
     "react": "^19.2.5",
@@ -44,8 +47,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "@netlify/vite-plugin": "^2.7.16",
-    "@nx/workspace": "^20.8.4",
+    "@netlify/vite-plugin": "^3.0.1",
+    "@nx/workspace": "24.0.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.2",
@@ -53,18 +56,22 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/ui": "^2.1.8",
+    "@vitest/ui": "^5.0.5",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^16.5.0",
     "jsdom": "^26.0.0",
     "lefthook": "^1.9.5",
-    "netlify-cli": "26.0.2",
-    "nx": "^20.8.4",
+    "netlify-cli": "^27.14.2",
+    "nx": "24.0.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.59.2",
     "vite": "^7.3.2",
-    "vitest": "^2.1.8"
+    "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "undici": "^7.30.1",
+    "toml": "^5.0.1"
   }
 }

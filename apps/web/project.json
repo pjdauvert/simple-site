@@ -5,6 +5,8 @@
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
+      "continuous": true,
+      "dependsOn": [{ "projects": ["functions"], "target": "build" }],
       "options": {
         "command": "vite",
         "cwd": "apps/web"

@@ -33,7 +33,7 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { I18n, I18nDictionary, Locale } from '@simple-site/interfaces';
-import { I18nSchema, collectContactI18nEntries, collectGalleryI18nEntries, collectI18nEntries, collectTeamI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
+import { I18nSchema, collectContactI18nEntries, collectEventsI18nEntries, collectGalleryI18nEntries, collectI18nEntries, collectTeamI18nEntries, toCanonicalLocale } from '@simple-site/interfaces';
 import { loadDraftConfig } from '../../services/configVersionService';
 import { loadTeam } from '../../services/teamService';
 import { loadContactConfig } from '../../services/contactService';
@@ -121,6 +121,7 @@ export const TranslationsPage: React.FC = () => {
           ...(team ? collectTeamI18nEntries(team) : []),
           ...(contact ? collectContactI18nEntries(contact) : []),
           ...(flags?.gallery && config.gallery ? collectGalleryI18nEntries(config.gallery) : []),
+          ...(flags?.events && config.events ? collectEventsI18nEntries(config.events) : []),
         ]);
         const langs = (Object.keys(payload.translations) as Locale[]).sort();
         setLanguage(langs[0] ?? '');

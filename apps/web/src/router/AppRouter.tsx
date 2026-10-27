@@ -12,6 +12,9 @@ import { TeamMemberPage } from '../pages/team/TeamMemberPage';
 import { ContactPage } from '../pages/contact/ContactPage';
 import { GalleryPage } from '../pages/gallery/GalleryPage';
 import { GalleryTagPage } from '../pages/gallery/GalleryTagPage';
+import { EventsPage } from '../pages/events/EventsPage';
+import { EventsSearchPage } from '../pages/events/EventsSearchPage';
+import { EventPage } from '../pages/events/EventPage';
 
 export const AppRouter: React.FC = () => {
   const siteContext = useSiteConfig();
@@ -39,6 +42,11 @@ export const AppRouter: React.FC = () => {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/gallery/tag/:tag" element={<GalleryTagPage />} />
+        <Route path="/events" element={<EventsPage />} />
+        {/* Static before dynamic: `search` is a reserved event slug
+            (EVENT_RESERVED_SLUGS), so no event can ever claim this URL. */}
+        <Route path="/events/search" element={<EventsSearchPage />} />
+        <Route path="/events/:slug" element={<EventPage />} />
         <Route path="*" Component={NotFoundPage} />
       </Routes>
     </MainLayout>

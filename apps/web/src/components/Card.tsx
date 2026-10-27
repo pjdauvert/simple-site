@@ -7,6 +7,7 @@ import {
   Box,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { brandGradient } from '../features/theme/muiTheme';
 
 interface CardProps {
   media?: ReactNode;
@@ -24,9 +25,6 @@ export const Card: React.FC<CardProps> = ({
   elevation = 1,
 }) => {
   const theme = useTheme();
-  const primary = theme.palette.primary.main;
-  const secondary = theme.palette.secondary.main;
-  const tertiary = theme.palette.tertiary?.main ?? primary;
 
   return (
     <MuiCard
@@ -63,7 +61,7 @@ export const Card: React.FC<CardProps> = ({
             sx={{
               position: 'absolute',
               inset: 0,
-              background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 50%, ${tertiary} 100%)`,
+              background: brandGradient(theme),
             }}
           />
         )}

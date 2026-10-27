@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, act, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import type { MenuConfig, SiteConfig } from '@simple-site/interfaces';
 import { MenuEditor } from './MenuEditor';
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateMenu } from '../../../services/menuService';
+import { DRAFT_AUTO_SAVE_DELAY } from '../../../hooks/useDraftAutoSave';
 import { mockFeatures } from '../../../test/featureFlags';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 
@@ -20,14 +21,25 @@ const configWith = (pages: ReturnType<typeof page>[], menu?: MenuConfig): SiteCo
 
 const renderEditor = () => renderWithProviders(<MenuEditor />, { notifications: true });
 
+/** Advances past the auto-save debounce and lets the write settle. */
+const settleAutoSave = async () => {
+  await act(async () => {
+    vi.advanceTimersByTime(DRAFT_AUTO_SAVE_DELAY + 50);
+  });
+};
+
 describe('MenuEditor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // The clock keeps running on its own (so `findBy*` still settles) while
+    // tests jump the auto-save debounce explicitly.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     mockFeatures();
     vi.mocked(updateMenu).mockResolvedValue(undefined);
   });
+  afterEach(() => vi.useRealTimers());
 
-  it('seeds the list from the pages order when the draft has no menu yet', async () => {
+  it('seeds the list from the pages order when the draft has no menu yet, without writing', async () => {
     vi.mocked(loadDraftConfig).mockResolvedValue(
       configWith([page('page.home', '/home', 'Home'), page('page.about', '/about', 'About')]),
     );
@@ -36,13 +48,18 @@ describe('MenuEditor', () => {
     expect(await screen.findByText('Home')).toBeInTheDocument();
     expect(screen.getByText('About')).toBeInTheDocument();
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    // The seeded list is what the editor loaded, not an edit: the
+    // reconciliation is derived on every load (and by the public nav), so it
+    // reaches the draft only once the admin changes something.
+    await settleAutoSave();
+    expect(updateMenu).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole('checkbox', { name: /visible in menu/i })[1]);
+    await settleAutoSave();
     expect(updateMenu).toHaveBeenCalledWith({
       entries: [
         { type: 'page', pageName: 'page.home', visible: true },
-        { type: 'page', pageName: 'page.about', visible: true },
+        { type: 'page', pageName: 'page.about', visible: false },
       ],
     });
   });
@@ -61,9 +78,7 @@ describe('MenuEditor', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(await screen.findByText('Who we are')).toBeInTheDocument();
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[1]).toEqual({ type: 'page', pageName: 'page.about', visible: true, menuTitle: 'Who we are' });
   });
@@ -106,9 +121,7 @@ describe('MenuEditor', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(await screen.findByText('Home')).toBeInTheDocument(); // reverted to the page title
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[0]).toEqual({ type: 'page', pageName: 'page.home', visible: true });
   });
@@ -123,9 +136,7 @@ describe('MenuEditor', () => {
     const upButtons = screen.getAllByRole('button', { name: /move up/i });
     fireEvent.click(upButtons[1]);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries.map((e) => (e.type === 'page' ? e.pageName : e.type === 'feature' ? e.feature : e.type === 'galleryTag' ? e.tag : e.groupId))).toEqual([
       'page.about',
@@ -143,9 +154,7 @@ describe('MenuEditor', () => {
     const switches = screen.getAllByRole('checkbox', { name: /visible in menu/i });
     fireEvent.click(switches[1]);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toContainEqual({ type: 'page', pageName: 'page.about', visible: false });
   });
@@ -167,10 +176,10 @@ describe('MenuEditor', () => {
     const switches = screen.getAllByRole('checkbox', { name: /visible in menu/i });
     expect(switches[0]).toBeDisabled();
 
-    // The entry still saves — flag flips must not lose ordering.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    // The entry still rides along on the next write — flag flips must not lose
+    // ordering — so edit the page below it.
+    fireEvent.click(switches[1]);
+    await settleAutoSave();
     await waitFor(() => expect(updateMenu).toHaveBeenCalled());
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[0]).toEqual({ type: 'feature', feature: 'team', visible: false });
@@ -192,9 +201,7 @@ describe('MenuEditor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[1]);
     fireEvent.click(await screen.findByRole('menuitem', { name: /move to "More links"/i }));
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     expect(updateMenu).toHaveBeenCalledWith({
       entries: [
         { type: 'page', pageName: 'page.home', visible: true },
@@ -224,9 +231,7 @@ describe('MenuEditor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[2]);
     fireEvent.click(await screen.findByRole('menuitem', { name: /move out of group/i }));
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toEqual([
       { type: 'page', pageName: 'page.home', visible: true },
@@ -253,9 +258,7 @@ describe('MenuEditor', () => {
     // Rows: group, Home (child), About (child) — move the last child up.
     fireEvent.click(screen.getAllByRole('button', { name: /move up/i })[2]);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toEqual([
       { type: 'group', groupId: 'more', menuTitle: 'More', visible: true, children: [
@@ -283,9 +286,7 @@ describe('MenuEditor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[0]);
     fireEvent.click(await screen.findByRole('menuitem', { name: /delete group/i }));
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries).toEqual([
       { type: 'page', pageName: 'page.about', visible: true },
@@ -309,9 +310,7 @@ describe('MenuEditor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /more actions/i })[1]);
     fireEvent.click(await screen.findByRole('menuitem', { name: /always expanded on mobile/i }));
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[1]).toEqual({
       type: 'group', groupId: 'more', menuTitle: 'More', visible: true, alwaysExpanded: true, children: [],
@@ -332,15 +331,11 @@ describe('MenuEditor', () => {
     await screen.findByText('More');
 
     fireEvent.click(screen.getByRole('button', { name: /secondary bar/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     expect(vi.mocked(updateMenu).mock.calls[0][0].groupDisplay).toBe('bar');
 
     fireEvent.click(screen.getByRole('button', { name: /pop-over/i }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     expect(vi.mocked(updateMenu).mock.calls[1][0].groupDisplay).toBeUndefined();
   });
 
@@ -383,9 +378,7 @@ describe('MenuEditor', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(await screen.findByText('Extra')).toBeInTheDocument();
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    });
+    await settleAutoSave();
     const saved = vi.mocked(updateMenu).mock.calls[0][0];
     expect(saved.entries[0]).toEqual({ type: 'group', groupId: 'more', menuTitle: 'Extra', visible: true, children: [] });
   });

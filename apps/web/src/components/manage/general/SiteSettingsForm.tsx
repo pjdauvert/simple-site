@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -13,10 +13,10 @@ import { SiteThemeConfigSchema, UrlOrPathSchema } from '@simple-site/interfaces'
 import { loadDraftConfig } from '../../../services/configVersionService';
 import { updateSiteSettings } from '../../../services/siteConfigService';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
-import { useNotifications } from '../../../hooks/useNotifications';
+import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
+import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { MediaUrlField } from '../../media';
 import { Loader } from '../../Loader';
-import { StickySaveButton } from '../StickySaveButton';
 
 const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 /** Select value: '' = inherit/default, 'false' = full width, otherwise a breakpoint. */
@@ -30,14 +30,16 @@ const isValidUrl = (value: string) => UrlOrPathSchema.safeParse(value).success;
 /**
  * Edits the `site` section of the config (name, logo, favicon, container width).
  * Prefills from the working draft (`GET /api/config/draft`) — the admin shell has
- * no SiteConfigProvider — and saves via `PUT /api/config/site`, which writes the
- * draft. Changes go live only when published from the Config Versions panel.
+ * no SiteConfigProvider — and AUTO-SAVES every settled change via
+ * `PUT /api/config/site`, which writes the draft: there is no save button, the
+ * indicator reports where the write stands. An empty name or a malformed URL is
+ * flagged and holds the write back rather than sending what the schema rejects.
+ * Changes go live only when published from the Config Versions panel.
  */
 /** `onSaved` fires after a successful draft save so a parent can refresh siblings. */
 export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }) => {
   const intl = useIntl();
   const flags = useFeatureFlags();
-  const notify = useNotifications();
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -50,32 +52,16 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   // schema default can't silently reset it.
   const [defaultLanguage, setDefaultLanguage] = useState('en');
 
-  // Snapshot of the loaded (or last-saved) values, to enable Save only when dirty.
-  const [initial, setInitial] = useState({ siteName: '', logoUrl: '', faviconUrl: '', container: '' as ContainerChoice });
-
-  const [siteNameError, setSiteNameError] = useState(false);
-  const [logoError, setLogoError] = useState(false);
-  const [faviconError, setFaviconError] = useState(false);
-
-  const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
     let active = true;
     loadDraftConfig()
       .then((config) => {
         if (!active) return;
-        const loaded = {
-          siteName: config.site.siteName,
-          logoUrl: config.site.logoUrl ?? '',
-          faviconUrl: config.site.faviconUrl ?? '',
-          container: toChoice(config.site.containerMaxWidth),
-        };
-        setSiteName(loaded.siteName);
-        setLogoUrl(loaded.logoUrl);
-        setFaviconUrl(loaded.faviconUrl);
-        setContainer(loaded.container);
+        setSiteName(config.site.siteName);
+        setLogoUrl(config.site.logoUrl ?? '');
+        setFaviconUrl(config.site.faviconUrl ?? '');
+        setContainer(toChoice(config.site.containerMaxWidth));
         setDefaultLanguage(config.site.defaultLanguage);
-        setInitial(loaded);
       })
       .catch((err) => {
         if (active) {
@@ -86,46 +72,47 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
     return () => { active = false; };
   }, [intl]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const name = siteName.trim();
-    const logo = logoUrl.trim();
-    const favicon = faviconUrl.trim();
+  const name = siteName.trim();
+  const logo = logoUrl.trim();
+  const favicon = faviconUrl.trim();
 
-    const nameInvalid = name.length === 0;
-    const logoInvalid = logo.length > 0 && !isValidUrl(logo);
-    const faviconInvalid = favicon.length > 0 && !isValidUrl(favicon);
-    setSiteNameError(nameInvalid);
-    setLogoError(logoInvalid);
-    setFaviconError(faviconInvalid);
-    if (nameInvalid || logoInvalid || faviconInvalid) return;
+  // Flagged live: these are exactly what holds the auto-save back.
+  const siteNameError = !loading && name.length === 0;
+  const logoError = logo.length > 0 && !isValidUrl(logo);
+  const faviconError = favicon.length > 0 && !isValidUrl(favicon);
 
-    const site: SiteThemeConfig = {
-      siteName: name,
-      defaultLanguage,
-      ...(logo ? { logoUrl: logo } : {}),
-      ...(favicon ? { faviconUrl: favicon } : {}),
-      ...(container === '' ? {} : { containerMaxWidth: container === 'false' ? false : container }),
-    };
+  // The payload itself is the auto-saved value, so untrimmed whitespace and a
+  // re-render never count as a change.
+  const site = useMemo<SiteThemeConfig | null>(
+    () =>
+      loading
+        ? null
+        : {
+            siteName: name,
+            defaultLanguage,
+            ...(logo ? { logoUrl: logo } : {}),
+            ...(favicon ? { faviconUrl: favicon } : {}),
+            ...(container === '' ? {} : { containerMaxWidth: container === 'false' ? false : container }),
+          },
+    [loading, name, logo, favicon, container, defaultLanguage],
+  );
 
-    const parsed = SiteThemeConfigSchema.safeParse(site);
-    if (!parsed.success) {
-      notify.error(intl.formatMessage({ id: 'page.manage.site.error.invalid' }));
-      return;
-    }
-
-    setSubmitting(true);
-    try {
+  const save = useCallback(
+    async (next: SiteThemeConfig) => {
+      const parsed = SiteThemeConfigSchema.safeParse(next);
+      if (!parsed.success) throw new Error(intl.formatMessage({ id: 'page.manage.site.error.invalid' }));
       await updateSiteSettings(parsed.data);
-      setInitial({ siteName, logoUrl, faviconUrl, container }); // saved values are the new baseline
-      notify.success(intl.formatMessage({ id: 'page.manage.site.success' }));
       onSaved?.();
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : intl.formatMessage({ id: 'page.manage.site.error.save' }));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    [intl, onSaved],
+  );
+
+  const saveState = useDraftAutoSave({
+    value: site,
+    save,
+    enabled: !siteNameError && !logoError && !faviconError,
+  });
+  useDraftSaveNotifications(saveState);
 
   if (loading) {
     return (
@@ -140,14 +127,9 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
   }
 
   const showPicker = Boolean(flags?.media);
-  const isDirty =
-    siteName !== initial.siteName ||
-    logoUrl !== initial.logoUrl ||
-    faviconUrl !== initial.faviconUrl ||
-    container !== initial.container;
 
   return (
-    <Box component="form" onSubmit={handleSubmit} noValidate>
+    <Box>
       <Typography variant="h6" sx={{ mb: 2 }}>
         <FormattedMessage id="page.manage.site.title" />
       </Typography>
@@ -156,7 +138,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
         <TextField
           label={intl.formatMessage({ id: 'page.manage.site.siteName' })}
           value={siteName}
-          onChange={(e) => { setSiteName(e.target.value); setSiteNameError(false); }}
+          onChange={(e) => setSiteName(e.target.value)}
           error={siteNameError}
           helperText={siteNameError ? <FormattedMessage id="page.manage.site.siteName.required" /> : ' '}
           required
@@ -166,7 +148,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
         <MediaUrlField
           label={intl.formatMessage({ id: 'page.manage.site.logoUrl' })}
           value={logoUrl}
-          onChange={(v) => { setLogoUrl(v); setLogoError(false); }}
+          onChange={setLogoUrl}
           error={logoError}
           helperText={logoError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
           enablePicker={showPicker}
@@ -176,7 +158,7 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
         <MediaUrlField
           label={intl.formatMessage({ id: 'page.manage.site.faviconUrl' })}
           value={faviconUrl}
-          onChange={(v) => { setFaviconUrl(v); setFaviconError(false); }}
+          onChange={setFaviconUrl}
           error={faviconError}
           helperText={faviconError ? <FormattedMessage id="page.manage.site.url.invalid" /> : ' '}
           enablePicker={showPicker}
@@ -197,8 +179,6 @@ export const SiteSettingsForm: React.FC<{ onSaved?: () => void }> = ({ onSaved }
           ))}
           <MenuItem value="false"><FormattedMessage id="page.manage.site.containerMaxWidth.full" /></MenuItem>
         </TextField>
-
-        <StickySaveButton type="submit" disabled={submitting || !isDirty} submitting={submitting} />
       </Stack>
     </Box>
   );

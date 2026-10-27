@@ -8,7 +8,8 @@
 4. Test on multiple screen sizes
 5. Keep documentation in sync — update the relevant file(s) under `docs/` whenever a PR changes a user-visible capability, API endpoint, configuration schema, or architectural decision
 6. **Show only applicable options** — in admin forms, an option that does not apply to the current context (e.g. a setting irrelevant to the selected display mode) is **hidden, not disabled**; its stored value survives the context switch and resurfaces with it. Disabled states are reserved for *temporary* conditions (invalid input, in-flight save). Preview aids — such as an orientation toggle — never hide design options: they simulate a different **user experience of the same parameters**, not a different design (first applied by the gallery Design tab)
-7. **The draft-save action is always visible, and always the same control** — every admin page/tab renders its save button through the shared `StickySaveButton` (`apps/web/src/components/manage/StickySaveButton.tsx`). It has two shapes and picks between them itself: a round icon-only floating button while the form still scrolls (covering as little as possible of the content it hovers over), and the ordinary labelled button once the end of the form is reached, sitting in the flow where a form is expected to end. Both shapes carry the same icon and the same `page.manage.save` label — **one** save wording across the whole admin, never a per-editor one ("Save menu", "Save team"…), so the control reads identically everywhere. The component takes only `onClick`, `type`, `disabled` and `submitting`: new admin editors pass those and nothing else — never a plain in-flow save button, never a bespoke label
+7. **A form that edits the configuration DRAFT auto-saves — and owns no save button** — it writes on its own through the shared `useDraftAutoSave` hook (`apps/web/src/hooks/useDraftAutoSave.ts`): the value the editor loads is the baseline (loading never writes), an edit settles for 800 ms, then the editor's own save body runs — re-read the fresh draft, merge **only** this editor's own fields, validate, `PUT`/`POST` — so concurrent tabs can never clobber each other. Writes are serialised (an edit landing mid-write goes out right after it), a still-pending edit is flushed on unmount — unless the form holds it back (`enabled: false` below), in which case it is dropped rather than written behind the admin's back — and a failed write waits for the next edit instead of retrying in a loop. Such a form renders **no** status widget of its own: it reports through the admin notification host, by calling the shared `useDraftSaveNotifications(state)` hook (`apps/web/src/hooks/useDraftSaveNotifications.ts`) next to the auto-save one. Every draft write across the admin shares **one keyed toast slot** (`notify(severity, message, { key })` rewrites the toast already on screen instead of stacking another), so an editing session reads as a single line that changes — *saving* then *saved*, auto-dismissed; a failure with its reason, kept until the admin closes it; nothing at all while an edit only waits out the debounce. A form whose current state the schema would reject passes `enabled: false` (empty theme name, duplicate name, out-of-range width, invalid route…) so the edit stays *pending* instead of hammering the API, and flags the offending field **on the spot** rather than after a failed save
+8. **Direct-save forms keep the one shared save button** — the editors that write live, outside the draft → publish cycle (team, contact, translations), render their save action through the shared `StickySaveButton` (`apps/web/src/components/manage/StickySaveButton.tsx`). It has two shapes and picks between them itself: a round icon-only floating button while the form still scrolls (covering as little as possible of the content it hovers over), and the ordinary labelled button once the end of the form is reached, sitting in the flow where a form is expected to end. Both shapes carry the same icon and the same `page.manage.save` label — **one** save wording across the whole admin, never a per-editor one ("Save team", "Save contact"…). The component takes only `onClick`, `type`, `disabled` and `submitting`: pass those and nothing else — never a plain in-flow save button, never a bespoke label
 
 ## Tests — where they live
 
@@ -54,13 +55,58 @@ npm test             # Vitest unit tests
 npm run test:ui      # Vitest with browser UI
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit across all projects
+npm run audit        # dependency vulnerabilities (see below)
 ```
 
 Pre-commit hooks (Lefthook) run `lint` and `typecheck` automatically. Do not bypass them with `--no-verify`.
 
+### Reaching the dev server from another machine
+
+`npm run dev` already listens on every interface at port 3080, so a reverse
+proxy or another device on the network can reach it. Vite, however, rejects
+`Host` headers it was not told about (*"Blocked request"*), so list the
+hostnames the proxy uses in `DEV_ALLOWED_HOSTS` (comma-separated) in the
+workspace `.env` — see `.env.example`.
+
+Hot module reload rides a WebSocket on the same origin: the proxy must forward
+the upgrade, otherwise the page loads fine but stops updating on save. For
+nginx:
+
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Upgrade    $http_upgrade;
+proxy_set_header Connection "upgrade";
+```
+
+### Suppressed runtime warnings
+
+`npm run dev` / `npm run preview` set `NODE_OPTIONS=--disable-warning=DEP0060`.
+The local proxy of the Netlify CLI still depends on `http-proxy@1`, unmaintained
+since 2020, which calls the deprecated `util._extend` on **every** proxied
+request — one warning per API call, drowning the dev log. The flag silences that
+one deprecation code, never warnings at large; drop it when the CLI moves off
+`http-proxy`.
+
+### Dependency vulnerabilities
+
+`npm run audit` is a merge gate, not a report: **no `high` or `critical` advisory is
+allowed anywhere**, and the runtime tree (`--omit=dev`) must also be free of
+`moderate` ones — what ships to visitors is held to the stricter bar.
+
+When it fails:
+
+1. `npm audit fix` first — it only moves within the declared ranges.
+2. Still failing? Upgrade the offending tool to its fixed major and re-run every
+   gate; the test runner and build toolchain are dev-only, but a broken toolchain
+   is still a broken build.
+3. If the only upgrade npm proposes is a **downgrade** (it does suggest those),
+   pin the patched transitive version in `overrides` in `package.json` instead,
+   with a comment-worthy entry in the PR description saying which advisory it
+   closes. Never silence an advisory by lowering the gate.
+
 ## Continuous Integration
 
-Every pull request runs the same gates in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) on each pushed commit: install, lint, typecheck, tests, and build. A superseded run is cancelled when new commits arrive. All checks must pass before merge — fix the underlying issue rather than re-running.
+Every pull request runs the same gates in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) on each pushed commit: install, dependency audit, lint, typecheck, tests, and build. A superseded run is cancelled when new commits arrive. All checks must pass before merge — fix the underlying issue rather than re-running.
 
 ## Browser Support
 
@@ -106,17 +152,17 @@ npm install -g npm@latest
 ifconfig        # macOS / Linux
 ipconfig        # Windows
 
-# 2. Start the dev server
+# 2. Start the dev server (app + API on one port)
 npm run dev
 
-# 3. Open http://YOUR_IP:5173 on the device (must be on the same network)
+# 3. Open http://YOUR_IP:3080 on the device (must be on the same network)
 ```
 
 ## Roadmap
 
 - [ ] Assets management
 - [ ] Configuration caching with cache invalidation
-- [ ] Additional section types (gallery, calendar, event, bibliography, …)
+- [ ] Additional section types (calendar, bibliography, …) — the gallery and events shipped as flag-gated feature pages instead, not as section types
 - [ ] Advanced responsive images with `srcset`
 - [ ] Configuration edition mechanism
 - [ ] Modules management (payment, authentication, external API access)

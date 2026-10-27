@@ -1,7 +1,7 @@
 import { Paper } from '@mui/material';
 import { SiteSettingsForm } from '../../components/manage';
 
-/** General tab of /manage/site — the site-settings form (self-notifies on save). */
+/** General tab of /manage/site — the site-settings form (auto-saves to the draft). */
 export const GeneralTab: React.FC = () => (
   <Paper sx={{ p: { xs: 2, sm: 3 } }}>
     <SiteSettingsForm />

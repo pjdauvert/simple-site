@@ -22,6 +22,17 @@ function buildShadowsArray(): Theme['shadows'] {
   return shadows;
 }
 
+/**
+ * The brand gradient — the theme's primary → secondary → tertiary sweep used as
+ * the placeholder background wherever an image is expected but absent (cards,
+ * event posters…). Tertiary falls back to primary on two-color themes.
+ */
+export const brandGradient = (theme: Theme): string => {
+  const primary = theme.palette.primary.main;
+  const tertiary = theme.palette.tertiary?.main ?? primary;
+  return `linear-gradient(135deg, ${primary} 0%, ${theme.palette.secondary.main} 50%, ${tertiary} 100%)`;
+};
+
 /** Builds a MUI theme from a site `ThemeConfig` (palette, shadows, component overrides). */
 export function buildMuiTheme(themeConfig: ThemeConfig): Theme {
   const isDark = themeConfig.backgroundColor.toLowerCase().includes('dark') ||

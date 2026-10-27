@@ -5,6 +5,7 @@ export const isMediaEnabled = (): boolean => Netlify.env.get('FEATURE_MEDIA') ==
 export const isTeamEnabled = (): boolean => Netlify.env.get('FEATURE_TEAM') === 'true';
 export const isContactEnabled = (): boolean => Netlify.env.get('FEATURE_CONTACT') === 'true';
 export const isGalleryEnabled = (): boolean => Netlify.env.get('FEATURE_GALLERY') === 'true';
+export const isEventsEnabled = (): boolean => Netlify.env.get('FEATURE_EVENTS') === 'true';
 
 /**
  * Reports which optional features are enabled so the client can gate its UI at
@@ -18,5 +19,6 @@ export class FeaturesModule extends BaseHandler {
       team: isTeamEnabled(),
       contact: isContactEnabled(),
       gallery: isGalleryEnabled(),
+      events: isEventsEnabled(),
     });
 }

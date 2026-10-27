@@ -67,11 +67,6 @@ export const validateMembers = (members: TeamMember[]): MemberFieldErrors[] => {
 export const membersAreValid = (errors: MemberFieldErrors[]): boolean =>
   errors.every((e) => !e.name && !e.slug);
 
-/** Default slug for a name: diacritics stripped, lowercased, kebab-cased. */
-export const slugify = (name: string): string =>
-  name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+// Slug derivation moved to the shared manage-level helper; re-exported so
+// existing imports (dialog, tests) keep working.
+export { slugify } from '../slugify';

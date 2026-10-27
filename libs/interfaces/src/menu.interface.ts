@@ -24,12 +24,14 @@ export const FeaturePagesEnum = {
   TEAM: 'team',
   CONTACT: 'contact',
   GALLERY: 'gallery',
+  EVENTS: 'events',
 } as const;
 
 export const FeaturePageIdSchema = z.enum([
   FeaturePagesEnum.TEAM,
   FeaturePagesEnum.CONTACT,
   FeaturePagesEnum.GALLERY,
+  FeaturePagesEnum.EVENTS,
 ]);
 export type FeaturePageId = z.infer<typeof FeaturePageIdSchema>;
 
@@ -41,6 +43,7 @@ export const FEATURE_PAGE_ROUTES: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: '/team',
   [FeaturePagesEnum.CONTACT]: '/contact',
   [FeaturePagesEnum.GALLERY]: '/gallery',
+  [FeaturePagesEnum.EVENTS]: '/events',
 };
 
 /**
@@ -52,6 +55,7 @@ export const FEATURE_PAGE_DEFAULT_LABELS: Record<FeaturePageId, string> = {
   [FeaturePagesEnum.TEAM]: 'Team',
   [FeaturePagesEnum.CONTACT]: 'Contact',
   [FeaturePagesEnum.GALLERY]: 'Gallery',
+  [FeaturePagesEnum.EVENTS]: 'Events',
 };
 
 /** True when `route` is a feature-owned route or nests under one (e.g. `/team/member/x`). */
@@ -192,6 +196,22 @@ export const MenuConfigSchema = z.object({
 });
 
 export type MenuConfig = z.infer<typeof MenuConfigSchema>;
+
+/**
+ * Default value of a feature page's heading / nav label (`<feature>.menuTitle`):
+ * the menu entry's custom title when one is set — top level or inside a group —
+ * else the feature default. The same fallback chain the nav renders.
+ */
+export const featurePageTitle = (menu: MenuConfig | undefined, feature: FeaturePageId): string => {
+  for (const entry of menu?.entries ?? []) {
+    if (entry.type === "feature" && entry.feature === feature) return featureEntryLabel(entry);
+    if (entry.type === "group") {
+      const child = entry.children.find((c) => c.type === "feature" && c.feature === feature);
+      if (child?.type === "feature") return featureEntryLabel(child);
+    }
+  }
+  return FEATURE_PAGE_DEFAULT_LABELS[feature];
+};
 
 /** Stable identity of a menu entry, used for dedupe and reconciliation. */
 export const menuEntryId = (entry: MenuEntry): string => {

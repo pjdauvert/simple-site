@@ -45,25 +45,50 @@
             "title": "Your Site, Your Rules",
             "subtitle": "A free, open-source no-code page builder. Customize everything from your admin panel — no developer needed.",
             "ctaButtons": [
-              { "label": "Start Customizing", "link": "/manage", "variant": "contained" },
-              { "label": "Learn More", "link": "/get-started", "variant": "outlined" }
+              {
+                "label": "Start Customizing",
+                "link": "/manage",
+                "variant": "contained"
+              },
+              {
+                "label": "Learn More",
+                "link": "/get-started",
+                "variant": "outlined"
+              }
             ],
             "featuringItems": [
-              { "label": "Hosting", "value": "Netlify" },
-              { "label": "Framework", "value": "React + MUI" },
-              { "label": "License", "value": "AGPL-3.0" }
+              {
+                "label": "Hosting",
+                "value": "Netlify"
+              },
+              {
+                "label": "Framework",
+                "value": "React + MUI"
+              },
+              {
+                "label": "License",
+                "value": "AGPL-3.0"
+              }
             ]
           },
           "design": {
             "layout": "split",
-            "columnLayout": [1.1, 1],
+            "columnLayout": [
+              1.1,
+              1
+            ],
             "artworkSide": "right",
             "artwork": {
               "imageUrl": "/logo.svg",
               "alt": "Simple Site logomark",
               "verticalAlign": "middle",
               "horizontalAlign": "center",
-              "imageStyle": { "style": { "width": "240px", "height": "240px" } }
+              "imageStyle": {
+                "style": {
+                  "width": "240px",
+                  "height": "240px"
+                }
+              }
             },
             "artworkStyle": {
               "style": {
@@ -95,7 +120,11 @@
           "sectionName": "featuresA",
           "type": "text",
           "design": {
-            "columnLayout": [1, 1, 1],
+            "columnLayout": [
+              1,
+              1,
+              1
+            ],
             "columnConfig": [
               {
                 "textVerticalAlign": "top",
@@ -155,7 +184,12 @@
           "design": {
             "backgroundColor": "#f5f5f5",
             "textColor": "#000000",
-            "columnLayout": [1, 1, 1, 1],
+            "columnLayout": [
+              1,
+              1,
+              1,
+              1
+            ],
             "columnConfig": [
               {
                 "textVerticalAlign": "top",
@@ -231,7 +265,11 @@
             "backgroundUrl": "/images/backgrounds/features-parallax.jpg",
             "parallax": true,
             "textColor": "#ffffff",
-            "columnLayout": [1, 1, 1],
+            "columnLayout": [
+              1,
+              1,
+              1
+            ],
             "columnConfig": [
               {
                 "textVerticalAlign": "top",
@@ -321,7 +359,11 @@
           "sectionName": "steps",
           "type": "text",
           "design": {
-            "columnLayout": [1, 1, 1],
+            "columnLayout": [
+              1,
+              1,
+              1
+            ],
             "columnConfig": [
               {
                 "textVerticalAlign": "top",
@@ -377,5 +419,33 @@
         }
       ]
     }
-  ]
+  ],
+  "events": {
+    "events": [
+      {
+        "slug": "summer-festival",
+        "name": "Summer Festival",
+        "description": "Three days of concerts, workshops and street food on the waterfront.\n\n**Free entrance** — come as you are!",
+        "startDateTime": "2027-06-18T15:00:00.000Z",
+        "endDateTime": "2027-06-20T20:00:00.000Z",
+        "location": "Place de la Bourse, Bordeaux",
+        "websiteUrl": "https://example.com/summer-festival"
+      },
+      {
+        "slug": "winter-market",
+        "name": "Winter Market",
+        "description": "Local makers, mulled wine and lights — one evening only.",
+        "startDateTime": "2026-12-05T17:00:00.000Z",
+        "location": "Halle des Douves, Bordeaux"
+      },
+      {
+        "slug": "spring-regatta",
+        "name": "Spring Regatta",
+        "description": "The season opener on the river — results and photos inside.",
+        "startDateTime": "2025-05-10T08:00:00.000Z",
+        "endDateTime": "2025-05-11T16:00:00.000Z",
+        "location": "Quai des Chartrons, Bordeaux"
+      }
+    ]
+  }
 }
