@@ -5,7 +5,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { eventDescriptionKey, eventNameKey } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
-import { Loading, Markdown } from '../../components';
+import { Loading, Markdown, NewTabHint } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -152,6 +152,7 @@ export const EventPage: React.FC = () => {
                     sx={{ minHeight: 44 }}
                   >
                     <FormattedMessage id="page.events.moreInfo" />
+                    <NewTabHint />
                   </Button>
                 </Box>
               )}

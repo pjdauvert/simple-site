@@ -9,7 +9,7 @@ import {
   eventNameKey,
   type SiteEvent,
 } from "@simple-site/interfaces";
-import { Markdown } from "../../components";
+import { Markdown, NewTabHint } from "../../components";
 import { EventDateSentence } from "./EventDateSentence";
 import { EventLocationLink } from "./EventLocationLink";
 import { useAppTheme } from "../../hooks/useAppTheme";
@@ -144,6 +144,7 @@ export const NextEventSection: React.FC<{
                     sx={{ minHeight: 44 }}
                   >
                     <FormattedMessage id="page.events.moreInfo" />
+                    <NewTabHint />
                   </Button>
                 </Box>
               )}

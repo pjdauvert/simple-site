@@ -69,7 +69,7 @@ describe('EventPage (public /events/:slug)', () => {
     expect(mapLink).toHaveAttribute('rel', 'noopener noreferrer');
     expect(mapLink.getAttribute('href')).toContain(encodeURIComponent('Place de la Bourse, Bordeaux'));
 
-    const website = screen.getByRole('link', { name: 'More info' });
+    const website = screen.getByRole('link', { name: /^More info/ });
     expect(website).toHaveAttribute('href', 'https://example.com/festival');
     expect(website).toHaveAttribute('target', '_blank');
 
@@ -155,6 +155,22 @@ describe('EventPage (public /events/:slug)', () => {
     const mapLink = screen.getByRole('link', { name: /traduite/ });
     // The DISPLAYED address is translated; the maps query keeps the canonical one.
     expect(mapLink.getAttribute('href')).toContain(encodeURIComponent('Place de la Bourse, Bordeaux'));
+  });
+
+  // A sighted visitor watches the new tab appear; a screen-reader user gets no
+  // warning and lands somewhere their back button will not return from.
+  it('warns assistive tech that the Maps link and More info open a new tab', () => {
+    renderAt('/events/summer-festival');
+
+    const mapLink = screen.getByRole('link', { name: /Place de la Bourse.*opens in a new tab/ });
+    expect(mapLink).toHaveAttribute('target', '_blank');
+    const website = screen.getByRole('link', { name: /^More info \(opens in a new tab\)$/ });
+    expect(website).toHaveAttribute('target', '_blank');
+
+    // The hint EXTENDS the visible label rather than replacing it: a
+    // speech-control user says what they read.
+    expect(website).toHaveTextContent(/^More info/);
+    expect(website).not.toHaveAttribute('aria-label');
   });
 
   describe('illustration alt text', () => {

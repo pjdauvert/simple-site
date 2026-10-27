@@ -172,7 +172,7 @@ describe('EventsPage (public /events)', () => {
     renderPage();
     expect(screen.getByText('seven')).toBeInTheDocument(); // markdown rendered in the featured block
     expect(screen.queryByText(/Cards never show this/)).not.toBeInTheDocument();
-    const website = screen.getByRole('link', { name: 'More info' });
+    const website = screen.getByRole('link', { name: /^More info/ });
     expect(website).toHaveAttribute('href', 'https://example.com/show');
     expect(website).toHaveAttribute('target', '_blank');
   });

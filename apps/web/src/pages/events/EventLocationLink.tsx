@@ -4,6 +4,7 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import { useIntl } from 'react-intl';
 import { FormattedMessage } from 'react-intl';
 import { eventLocationKey, type SiteEvent } from '@simple-site/interfaces';
+import { NewTabHint } from '../../components';
 import { googleMapsSearchUrl } from './eventDisplay';
 
 /**
@@ -26,6 +27,7 @@ export const EventLocationLink: React.FC<{ event: SiteEvent }> = ({ event }) => 
         sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, minWidth: 0 }}
       >
         <FormattedMessage id={eventLocationKey(event.slug)} defaultMessage={event.location} />
+        <NewTabHint />
       </Link>
     </Stack>
   );
