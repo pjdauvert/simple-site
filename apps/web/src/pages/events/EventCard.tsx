@@ -6,10 +6,8 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { eventLocationKey, eventNameKey, type EventAspectRatio, type SiteEvent } from '@simple-site/interfaces';
 import { brandGradient } from '../../features/theme/muiTheme';
-import { isMultiDay, eventEnd, eventStart } from './eventDates';
+import { formatEventDates } from './eventDates';
 import { aspectRatioCss, eventCardImageSrcSet, eventCardImageUrl, eventCardSizes, eventRoute } from './eventDisplay';
-
-const CARD_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
 
 /**
  * One agenda card (upcoming and past sections alike): an ELEVATED card whose
@@ -28,12 +26,7 @@ export const EventCard: React.FC<{
   const intl = useIntl();
   const theme = useTheme();
 
-  const dates = isMultiDay(event)
-    ? intl.formatMessage(
-        { id: 'page.events.card.range' },
-        { startDate: intl.formatDate(eventStart(event), CARD_DATE), endDate: intl.formatDate(eventEnd(event), CARD_DATE) },
-      )
-    : intl.formatDate(eventStart(event), CARD_DATE);
+  const dates = formatEventDates(intl, event);
 
   return (
     <Card elevation={4} sx={{ borderRadius: 3 }}>

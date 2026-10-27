@@ -40,7 +40,7 @@ import { updateEvents } from '../../../services/eventsService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { useFeatureFlags } from '../../../hooks/useFeatureFlags';
-import { isPastEvent } from '../../../pages/events/eventDates';
+import { formatEventDates, isPastEvent } from '../../../pages/events/eventDates';
 import {
   createEvent,
   eventsAreValid,
@@ -237,14 +237,6 @@ export const EventsListEditor: React.FC = () => {
   // admin is still filling in a row that has not joined the list yet.
   const showErrors = !valid && dialog !== null && dialog.index !== null;
 
-  const rowDates = (event: EventDraft): string => {
-    if (!event.startDateTime) return '—';
-    const start = intl.formatDate(event.startDateTime, { day: '2-digit', month: '2-digit', year: 'numeric' });
-    if (!event.endDateTime) return start;
-    const end = intl.formatDate(event.endDateTime, { day: '2-digit', month: '2-digit', year: 'numeric' });
-    return intl.formatMessage({ id: 'page.events.card.range' }, { startDate: start, endDate: end });
-  };
-
   return (
     <Box sx={{ maxWidth: 860 }}>
       <Typography variant="caption" color="text.secondary" component="div">
@@ -431,7 +423,7 @@ export const EventsListEditor: React.FC = () => {
                 )}
                 <ListItemText
                   primary={row.name || intl.formatMessage({ id: 'page.manage.events.untitled' })}
-                  secondary={`${rowDates(row)} · ${row.location || '—'}`}
+                  secondary={`${formatEventDates(intl, row)} · ${row.location || '—'}`}
                   slotProps={{ primary: { noWrap: true }, secondary: { noWrap: true } }}
                 />
                 {row.startDateTime && isPastEvent(row, now) && (

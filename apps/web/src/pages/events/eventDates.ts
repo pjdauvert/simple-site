@@ -1,3 +1,4 @@
+import type { IntlShape } from 'react-intl';
 import type { SiteEvent } from '@simple-site/interfaces';
 import type { ResolvedAgendaDesign } from './eventDisplay';
 
@@ -29,7 +30,7 @@ const startOfNextLocalDay = (instant: Date): Date =>
   new Date(instant.getFullYear(), instant.getMonth(), instant.getDate() + 1);
 
 /** True when start and end fall on different local days. */
-export const isMultiDay = (event: SiteEvent): boolean =>
+export const isMultiDay = (event: Pick<SiteEvent, 'startDateTime' | 'endDateTime'>): boolean =>
   localDateISO(eventStart(event)) !== localDateISO(eventEnd(event));
 
 /** Past once the last day is over — an event ending today is NOT yet past. */
@@ -50,6 +51,33 @@ export const featuredDateRule = (event: SiteEvent, now: Date): FeaturedDateRule 
     return localDateISO(eventStart(event)) === localDateISO(now) ? 'today' : 'single';
   }
   return now.getTime() >= eventStart(event).getTime() ? 'until' : 'range';
+};
+
+/** Dates in a list are plain and numeric — the long sentence is the featured event's. */
+const LIST_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+
+/** Shown instead of a date the admin has not filled in yet. */
+const NO_DATE = '—';
+
+/**
+ * The date sentence of an event in a LIST — the agenda's cards, the search
+ * page's rows AND the admin's own list, which must never disagree with them:
+ * the start day alone, or the range once the event spans several local days
+ * ({@link isMultiDay}, so a single day carrying an end TIME still reads as one
+ * date). An unfilled start — only reachable from a half-filled admin row —
+ * renders as a dash.
+ */
+export const formatEventDates = (
+  intl: IntlShape,
+  event: Pick<SiteEvent, 'startDateTime' | 'endDateTime'>,
+): string => {
+  if (!event.startDateTime) return NO_DATE;
+  const startDate = intl.formatDate(eventStart(event), LIST_DATE);
+  if (!isMultiDay(event)) return startDate;
+  return intl.formatMessage(
+    { id: 'page.events.card.range' },
+    { startDate, endDate: intl.formatDate(eventEnd(event), LIST_DATE) },
+  );
 };
 
 /** One agenda year section: its (viewer-local) year and events, most recent first. */

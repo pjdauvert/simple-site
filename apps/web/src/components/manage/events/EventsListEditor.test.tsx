@@ -50,6 +50,30 @@ const seeded: Partial<EventsConfig> = {
   upcomingTitle: 'Bientôt',
 };
 
+/** A fixed local instant stored as UTC — what the dialog's own pickers produce. */
+const localInstant = (year: number, month: number, day: number, hour: number): string =>
+  new Date(year, month - 1, day, hour, 0, 0, 0).toISOString();
+
+/** One event over a single local day WITH an end time, one over three days. */
+const fixedDates: Partial<EventsConfig> = {
+  events: [
+    {
+      slug: 'open-day',
+      name: 'Open Day',
+      startDateTime: localInstant(2024, 3, 2, 10),
+      endDateTime: localInstant(2024, 3, 2, 18),
+      location: 'Hangar',
+    },
+    {
+      slug: 'fair',
+      name: 'Fair',
+      startDateTime: localInstant(2024, 3, 2, 8),
+      endDateTime: localInstant(2024, 3, 4, 18),
+      location: 'Expo',
+    },
+  ],
+};
+
 /** An event the shared validator refuses (no location) — a save must wait for it. */
 const incomplete: Partial<EventsConfig> = {
   events: [
@@ -129,6 +153,15 @@ describe('EventsListEditor (List tab)', () => {
     expect(rowNames()).toEqual(['Summer Festival', 'Été Musical', 'Spring Regatta']);
     expect(screen.getByRole('button', { name: /Spring Regatta/ })).toHaveTextContent('Past');
     expect(screen.getByRole('button', { name: /Summer Festival/ })).not.toHaveTextContent('Past');
+  });
+
+  it('dates a row exactly like the public cards: one local day reads as ONE date', async () => {
+    vi.mocked(loadDraftConfig).mockResolvedValue(draft(fixedDates));
+    renderEditor();
+    const singleDay = await screen.findByRole('button', { name: /Open Day/ });
+    // An end TIME does not make the event span two days (the public rule).
+    expect(singleDay).toHaveTextContent('03/02/2024 · Hangar');
+    expect(screen.getByRole('button', { name: /Fair/ })).toHaveTextContent('03/02/2024 – 03/04/2024 · Expo');
   });
 
   it('owns no save button — the draft is written on its own', async () => {

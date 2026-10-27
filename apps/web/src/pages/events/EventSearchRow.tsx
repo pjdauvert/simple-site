@@ -6,10 +6,8 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { eventDescriptionKey, eventLocationKey, eventNameKey, type SiteEvent } from '@simple-site/interfaces';
 import { brandGradient } from '../../features/theme/muiTheme';
-import { eventEnd, eventStart, isMultiDay } from './eventDates';
+import { formatEventDates } from './eventDates';
 import { aspectRatioCss, eventCardImageSrcSet, eventCardImageUrl, eventRoute } from './eventDisplay';
-
-const ROW_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
 
 /** Fixed row height from `md` up — a list of equal rows reads as a list. */
 export const SEARCH_ROW_HEIGHT = 208;
@@ -40,15 +38,7 @@ export const EventSearchRow: React.FC<{
   const intl = useIntl();
   const theme = useTheme();
 
-  const dates = isMultiDay(event)
-    ? intl.formatMessage(
-        { id: 'page.events.card.range' },
-        {
-          startDate: intl.formatDate(eventStart(event), ROW_DATE),
-          endDate: intl.formatDate(eventEnd(event), ROW_DATE),
-        },
-      )
-    : intl.formatDate(eventStart(event), ROW_DATE);
+  const dates = formatEventDates(intl, event);
 
   return (
     <Card
