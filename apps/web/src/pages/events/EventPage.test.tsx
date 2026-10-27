@@ -156,4 +156,33 @@ describe('EventPage (public /events/:slug)', () => {
     // The DISPLAYED address is translated; the maps query keeps the canonical one.
     expect(mapLink.getAttribute('href')).toContain(encodeURIComponent('Place de la Bourse, Bordeaux'));
   });
+
+  describe('illustration alt text', () => {
+    it('leaves the header image unnamed when the event describes no illustration', () => {
+      renderAt('/events/summer-festival');
+      // Empty, not absent: a decorative image a screen reader should skip.
+      expect(document.querySelector('img')).toHaveAttribute('alt', '');
+    });
+
+    it('names the header image with the stored imageAlt', () => {
+      setConfig({ events: [{ ...festival, imageAlt: 'Crowd in front of the main stage' }] });
+      renderAt('/events/summer-festival');
+      expect(screen.getByRole('img', { name: 'Crowd in front of the main stage' })).toBeInTheDocument();
+    });
+
+    it('prefers the translation over the stored imageAlt', () => {
+      setConfig({ events: [{ ...festival, imageAlt: 'Crowd in front of the main stage' }] });
+      renderWithProviders(
+        <Routes>
+          <Route path="/events/:slug" element={<EventPage />} />
+        </Routes>,
+        {
+          route: '/events/summer-festival',
+          theme: true,
+          messages: { 'events.summer-festival.imageAlt': 'Foule devant la scène principale' },
+        },
+      );
+      expect(screen.getByRole('img', { name: 'Foule devant la scène principale' })).toBeInTheDocument();
+    });
+  });
 });

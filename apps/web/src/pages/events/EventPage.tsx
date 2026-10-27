@@ -20,6 +20,7 @@ import {
   eventContrastPanelSx,
   eventHeaderImageSrcSet,
   eventHeaderImageUrl,
+  eventImageAlt,
   eventPageImageFrameSx,
   markdownBodySx,
   resolveEventPageDesign,
@@ -117,7 +118,10 @@ export const EventPage: React.FC = () => {
                 src={eventHeaderImageUrl(event.imageUrl)}
                 srcSet={eventHeaderImageSrcSet(event.imageUrl)}
                 sizes={beside ? EVENT_PAGE_SIDE_IMAGE_SIZES : EVENT_PAGE_HEADER_SIZES}
-                alt=""
+                // Content, not decoration: the header illustration opens the
+                // page on its own, so it carries the owner's description when
+                // there is one (empty alt = skipped, never the file name).
+                alt={eventImageAlt(intl, event)}
                 decoding="async"
                 sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />

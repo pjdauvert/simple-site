@@ -158,6 +158,7 @@ Replaces the `events` of the **draft** — the agenda's event list, section text
 // Request body — an EventsConfig object
 { "events": [ { "slug": "summer-festival", "name": "Summer Festival",
                 "description": "Three days of **concerts**.", "imageUrl": "https://…/festival.jpg",
+                "imageAlt": "Crowd in front of the main stage at dusk",
                 "startDateTime": "2027-06-18T15:00:00.000Z", "endDateTime": "2027-06-20T20:00:00.000Z",
                 "location": "Place de la Bourse, Bordeaux", "websiteUrl": "https://example.com/festival" } ],
   "upcomingTitle": "Bientôt",

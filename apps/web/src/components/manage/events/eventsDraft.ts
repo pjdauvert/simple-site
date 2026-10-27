@@ -168,6 +168,7 @@ export const eventsAreValid = (errors: readonly EventFieldErrors[]): boolean =>
 export const normalizeEvent = (draft: EventDraft): SiteEvent => {
   const description = draft.description?.trim();
   const imageUrl = draft.imageUrl?.trim();
+  const imageAlt = draft.imageAlt?.trim();
   const websiteUrl = draft.websiteUrl?.trim();
   return {
     slug: draft.slug.trim(),
@@ -177,6 +178,9 @@ export const normalizeEvent = (draft: EventDraft): SiteEvent => {
     location: draft.location.trim(),
     ...(description ? { description } : {}),
     ...(imageUrl ? { imageUrl } : {}),
+    // An alt with no image describes nothing — it would only leak into the
+    // translation collector as an orphan key.
+    ...(imageUrl && imageAlt ? { imageAlt } : {}),
     ...(websiteUrl ? { websiteUrl } : {}),
   };
 };

@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Button, Container, Link, Stack, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { Link as RouterLink } from "react-router-dom";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useTheme } from "@mui/material/styles";
 import {
   eventDescriptionKey,
@@ -19,6 +19,7 @@ import {
   eventContrastPanelSx,
   eventHeaderImageSrcSet,
   eventHeaderImageUrl,
+  eventImageAlt,
   eventRoute,
   markdownBodySx,
 } from "./eventDisplay";
@@ -43,6 +44,7 @@ export const NextEventSection: React.FC<{
   now: Date;
   showBackdrop: boolean;
 }> = ({ event, now, showBackdrop }) => {
+  const intl = useIntl();
   const theme = useTheme();
   const { siteThemeConfig } = useAppTheme();
   const imageUrl = event.imageUrl;
@@ -77,7 +79,10 @@ export const NextEventSection: React.FC<{
                 src={eventHeaderImageUrl(imageUrl)}
                 srcSet={eventHeaderImageSrcSet(imageUrl)}
                 sizes={FEATURED_POSTER_SIZES}
-                alt=""
+                // Content, not decoration: the featured poster gets its own
+                // space here, so it carries the owner's description when
+                // there is one (empty alt = skipped, never the file name).
+                alt={eventImageAlt(intl, event)}
                 decoding="async"
                 sx={{
                   display: "block",

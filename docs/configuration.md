@@ -29,7 +29,8 @@ Configuration is versioned with a **draft → publish** model — admins edit a 
   "themes": [ /* one or more ThemeConfig objects — see Themes below */ ],
   "pages":  [ /* one or more PageConfiguration objects — see Pages below */ ],
   "menu":   { /* optional MenuConfig — see Menu below */ },
-  "gallery": { /* optional GalleryConfig, flag-gated — see Gallery below */ }
+  "gallery": { /* optional GalleryConfig, flag-gated — see Gallery below */ },
+  "events": { /* optional EventsConfig, flag-gated — see Events below */ }
 }
 ```
 
@@ -213,6 +214,11 @@ Examples:
 
 Keys are derived from the config by a single shared helper (`collectI18nEntries` / the `menuTitleKey` + `sectionContentKey` builders in `libs/interfaces/src/i18n.keys.ts`), which the public renderers and the admin editor both use — so they can't drift.
 
+**Charset** — a key matches `/^[a-zA-Z0-9_.-]+$/` (`I18nDictionarySchema`, `libs/interfaces/src/i18n.interface.ts`): letters, digits, `_`, `.` and `-`. **This is the canonical statement of the rule; everywhere else links here.** Two conventions sit inside that charset:
+
+- **Hand-written keys** — the platform's own labels and any key a developer types — stay dot-separated **camelCase**: `resetPassword.title`, never `reset-password.title`.
+- **`-` is for config-derived segments only**, where the id's own charset allows it: gallery tags (`GALLERY_TAG_PATTERN`) and event slugs (`EVENT_SLUG_PATTERN`, kebab-case by construction) become key segments as they are — `gallery.tag.street-art.displayName`, `events.summer-festival.name`. Rejecting `-` would make those features unrepresentable.
+
 ### Adding or updating translations
 
 **Default language** — its text is not managed here at all: edit it inline on the **Pages** tab (the config values *are* the default-language messages). The Translations page edits **overrides** only — the default language never appears in its language selector, though each key shows its config original alongside for reference.
@@ -335,6 +341,7 @@ Events live **inside the site configuration** under the optional `events` attrib
         "name": "Summer Festival",
         "description": "Three days of **concerts** on the waterfront.",
         "imageUrl": "https://ik.imagekit.io/…/festival.jpg",
+        "imageAlt": "Crowd in front of the main stage at dusk",
         "startDateTime": "2027-06-18T15:00:00.000Z",
         "endDateTime": "2027-06-20T20:00:00.000Z",
         "location": "Place de la Bourse, Bordeaux",
@@ -351,7 +358,7 @@ Events live **inside the site configuration** under the optional `events` attrib
 }
 ```
 
-- **Events** — one list in any order (public placement is automatic; the editor sorts by start date). Each event: an immutable kebab-case **`slug`** (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, ≤ 64 chars, unique — it is the detail page's URL segment `/events/<slug>` AND the i18n-key segment, so it locks after the first save), a required **`name`**, an optional **`description`** (markdown, shown on the detail page), an optional **`imageUrl`** (typically from the media library), **`startDateTime`** + optional **`endDateTime`**, a required **`location`**, and an optional **`websiteUrl`** (opened in a new tab). Name, description and location are translation **defaults**: per-language values live on the Translations page under `events.<slug>.name|description|location` (slug-scoped — reordering never re-maps translations; the editor lists the keys automatically while the flag is on — `collectEventsI18nEntries`).
+- **Events** — one list in any order (public placement is automatic; the editor sorts by start date). Each event: an immutable kebab-case **`slug`** (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, ≤ 64 chars, unique — it is the detail page's URL segment `/events/<slug>` AND the i18n-key segment, so it locks after the first save), a required **`name`**, an optional **`description`** (markdown, shown on the detail page), an optional **`imageUrl`** (typically from the media library) with its optional **`imageAlt`** (what the poster shows, for visitors who cannot see it), **`startDateTime`** + optional **`endDateTime`**, a required **`location`**, and an optional **`websiteUrl`** (opened in a new tab). Name, description, location and `imageAlt` are translation **defaults**: per-language values live on the Translations page under `events.<slug>.name|description|location|imageAlt` (slug-scoped — reordering never re-maps translations; the editor lists the keys automatically while the flag is on — `collectEventsI18nEntries`). `imageAlt` is only rendered where the poster is **content in its own right** — the detail page's header and the featured block; the card grids and the search rows keep an empty `alt`, since there the image sits inside a link already labelled by the event name. Absent, those two surfaces also fall back to an empty `alt`: an undescribed decorative image is better skipped by a screen reader than announced by its file name.
 - **Dates** — instants are stored as **UTC ISO strings** (`…Z` required; timezone-less, offset or date-only strings are rejected). Rendering and day-level classification happen in the **visitor's timezone**; the admin edits dates and times separately, with Material date/time pickers in their own timezone, converted on save. Times are offered only for an event sitting on a single local day — a multi-day event is stored from 00:00 local on its first day to 23:59 local on its last. `endDateTime` must not precede `startDateTime`; absent → single-day event.
 - **Automatic placement** (public `/events` agenda) — an event is **past** once the local midnight after its last day has passed (an event ending today is not yet past). The first non-past event by start date is **featured** (an ongoing one naturally wins); the later ones are **upcoming** cards; past events group by start year, years and events both descending. The featured date sentence follows four rules: single-day today → *"Today, {date} from {time}"*, single-day later → *"On {date} from {time}"*, multi-day not started → *"From {startDate} to {endDate}"*, multi-day started → *"Until {endDate}"* (long date format: weekday + day + month + year; cards use the short 2-digit format). The detail page reuses the same sentence rules.
 - **Section texts** — **`upcomingTitle`** / **`pastTitle`** (optional; absent/empty → the app's bundled labels) and **`upcomingHeader`** / **`pastHeader`** (optional markdown introductions rendered under their section heading; absent → nothing rendered). All four are translation defaults under `events.upcomingTitle` … `events.pastHeader`. The **featured block has neither heading nor introduction**: it opens the page visually, and any text above it would push the hero below the fold (a stored `nextHeader` from an earlier version is simply dropped on the next save).

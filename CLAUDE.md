@@ -41,7 +41,8 @@ relevant doc before implementing. This file only indexes and sets process.**
    ([docs/api.md](docs/api.md#response-envelope)).
 3. **i18n on every new page** — static labels in the web app's bundled label
    dictionary (every platform-chrome language), rendered through the i18n layer;
-   keys match `/^[a-zA-Z0-9_.]+$/` with camelCase segments.
+   hand-written keys use camelCase segments. Charset and the `-` rule:
+   [docs/configuration.md](docs/configuration.md#key-format).
 4. **Optional features ship flag-gated** — server-side `FEATURE_*` env var, reported
    by `GET /api/features`, routes 404 before auth when off, every UI surface hidden
    (see `.claude/agents/modules-engineer.md`).

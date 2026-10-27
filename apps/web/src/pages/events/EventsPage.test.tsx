@@ -233,4 +233,25 @@ describe('EventsPage (public /events)', () => {
     renderPage();
     expect(screen.getByRole('link', { name: /search the calendar/i })).toHaveAttribute('href', '/events/search');
   });
+
+  it('names the featured poster with imageAlt, and leaves the CARD posters unnamed', () => {
+    setConfig({
+      events: [
+        event('next-show', 'Next Show', inDays(5), {
+          imageUrl: '/posters/next.jpg',
+          imageAlt: 'Dancers mid-leap under a spotlight',
+        }),
+        event('later', 'Later', inDays(20), { imageUrl: '/posters/later.jpg', imageAlt: 'A quiet street' }),
+      ],
+    });
+    renderPage();
+
+    // Featured: the poster has its own space, so it carries the description.
+    expect(screen.getByRole('img', { name: 'Dancers mid-leap under a spotlight' })).toBeInTheDocument();
+    // Card: the image sits inside a link already labelled by the event name —
+    // naming it again would read the same event twice.
+    expect(screen.queryByRole('img', { name: 'A quiet street' })).not.toBeInTheDocument();
+    const card = screen.getByRole('heading', { level: 3, name: 'Later' }).closest('a') as HTMLElement;
+    expect(card.querySelector('img')).toHaveAttribute('alt', '');
+  });
 });

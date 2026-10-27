@@ -25,8 +25,10 @@ consistent, and clean.
     bundled with the web app's label dictionary in **every chrome language**
     (currently `en` and `fr`), rendered through the i18n layer's message component —
     never as raw strings.
-- **Key format**: `/^[a-zA-Z0-9_.]+$/`, camelCase for multi-word segments —
-  `resetPassword.title`, never `reset-password.title`.
+- **Key format**: hand-written keys use camelCase for multi-word segments —
+  `resetPassword.title`, never `reset-password.title`. The authoritative charset,
+  and when `-` is legitimate, live in the configuration doc's *Key format*
+  section — read it before judging a key.
 - **The default language lives in the config** (`site.defaultLanguage`): its text *is*
   the config's content values — it never has a dictionary in the blob, and API
   mutations targeting it return `409` (config wins). It is the fallback for unknown
@@ -99,7 +101,7 @@ Severities — **CRITICAL**: missing config/default-language text or invalid key
 | Anti-pattern | Correct approach |
 |---|---|
 | Hardcoded label in a component or page | i18n message component + key in the label dictionary (every chrome language) |
-| kebab-case or exotic characters in keys | `/^[a-zA-Z0-9_.]+$/`, camelCase segments |
+| kebab-case in a HAND-WRITTEN key, or a character the dictionary schema refuses | camelCase segments; `-` only where a config-derived id brings it (see the configuration doc's *Key format*) |
 | Compile-time locale list anywhere | Config default + blob override locales, discovered at runtime |
 | Editing default-language text via the Translations page/API | Edit inline on the Pages tab — config wins (the API answers 409) |
 | Deleting/renaming a key in one place | Migrate config, blob, seed, and label dictionary together |

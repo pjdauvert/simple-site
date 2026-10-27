@@ -104,6 +104,17 @@ When it fails:
    with a comment-worthy entry in the PR description saying which advisory it
    closes. Never silence an advisory by lowering the gate.
 
+Every override in force is listed here, with the advisory it closes and when it
+can go. Add a row when you add one; delete the row and the override together.
+
+| Override | Pulled in by | Closes | Drop it when |
+|---|---|---|---|
+| `undici: ^7.30.1` | `nx` | GHSA-4w7w-5xrc-9h26 (cache poisoning via cross-origin redirects), GHSA-2m5v-pch6-74hx (TLS certificate-validation bypass), GHSA-qrxm-fqhp-jwvm (DoS via TLS 1.2 renegotiation) — all `high`, patched in 7.30.1 | `nx` depends on `undici >= 7.30.1` itself |
+| `toml: ^5.0.1` | `netlify-cli` (directly and via `@netlify/zip-it-and-ship-it`) | GHSA-4qx8-w7c3-pj3p, GHSA-9j65-hcg3-gc64, GHSA-9qmh-m7c6-f92p — three `high` quadratic-complexity / unbounded-input DoS paths in `toml.parse()`, patched in 5.0.1 | `netlify-cli` and `zip-it-and-ship-it` both depend on `toml >= 5.0.1` |
+
+Both are **dev-only** tooling (the Nx task runner and the Netlify CLI); neither
+reaches the runtime tree, which `npm run audit` checks separately.
+
 ## Continuous Integration
 
 Every pull request runs the same gates in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) on each pushed commit: install, dependency audit, lint, typecheck, tests, and build. A superseded run is cancelled when new commits arrive. All checks must pass before merge — fix the underlying issue rather than re-running.

@@ -206,6 +206,16 @@ describe('normalizeEvent', () => {
     const cleared = applyWhen(draft({ endDateTime: '2027-06-20T21:59:00.000Z' }), { endDay: null, endTime: null });
     expect('endDateTime' in normalizeEvent(cleared)).toBe(false);
   });
+
+  it('keeps the illustration description with its image, and drops it without one', () => {
+    const described = normalizeEvent(draft({ imageUrl: ' /posters/fest.jpg ', imageAlt: '  Crowd at dusk  ' }));
+    expect(described.imageUrl).toBe('/posters/fest.jpg');
+    expect(described.imageAlt).toBe('Crowd at dusk');
+
+    // An alt with no image describes nothing — storing it would only leak an
+    // orphan key into the translation collector.
+    expect('imageAlt' in normalizeEvent(draft({ imageUrl: '', imageAlt: 'Crowd at dusk' }))).toBe(false);
+  });
 });
 
 describe('sortForEditor', () => {
