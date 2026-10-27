@@ -1,4 +1,5 @@
 import { alpha, type Theme } from '@mui/material/styles';
+import type { IntlShape } from 'react-intl';
 import {
   DEFAULT_EVENT_CARD_ASPECT_RATIO,
   DEFAULT_EVENT_COLUMNS,
@@ -10,6 +11,7 @@ import {
   DEFAULT_EVENT_WEEK_START,
   DEFAULT_PAST_EVENTS_MODE,
   EVENT_RESERVED_SLUGS,
+  eventImageAltKey,
   FEATURE_PAGE_ROUTES,
   FeaturePagesEnum,
   featurePageTitle,
@@ -82,6 +84,19 @@ export const markdownBodySx = {
   '& > :last-child': { mb: 0 },
 } as const;
 
+/**
+ * Accessible name of an event's illustration on the surfaces that give the
+ * poster its own space — the detail page's header and the featured block.
+ * Empty when the site owner has not described the image: an undescribed
+ * decorative poster is better skipped by a screen reader than announced by a
+ * placeholder. Translated like every other per-event text, the stored
+ * `imageAlt` being the default.
+ */
+export const eventImageAlt = (intl: IntlShape, event: Pick<SiteEvent, 'slug' | 'imageAlt'>): string =>
+  event.imageAlt
+    ? intl.formatMessage({ id: eventImageAltKey(event.slug), defaultMessage: event.imageAlt })
+    : '';
+
 /** Google Maps search on the event's address, opened in a new tab. */
 export const googleMapsSearchUrl = (address: string): string =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
@@ -131,11 +146,12 @@ export const eventColumnsSx = (columns: number): { xs: string; sm: string; md: s
   md: `repeat(${columns}, 1fr)`,
 });
 
-/**
- * Right-sized CDN renditions (no-ops on non-ImageKit URLs). Cards and headers
- * ship a responsive `srcSet` of width buckets (the gallery's pattern) with a
- * `sizes` hint, over a mid-bucket `src` fallback.
- */
+// ---------------------------------------------------------------------------
+// Right-sized CDN renditions (no-ops on non-ImageKit URLs). Cards and headers
+// ship a responsive `srcSet` of width buckets (the gallery's pattern) with a
+// `sizes` hint, over a mid-bucket `src` fallback.
+// ---------------------------------------------------------------------------
+
 /** Delivery buckets of the card illustrations — tiles scale with the column count. */
 export const EVENT_CARD_WIDTHS: readonly number[] = [320, 480, 640, 960];
 /** Delivery buckets of the featured poster and detail-page header. */

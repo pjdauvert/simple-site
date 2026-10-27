@@ -7,11 +7,11 @@ import dayjs, { type Dayjs } from 'dayjs';
 import ClearIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import { useIntl } from 'react-intl';
-import { MONTH_VIEWS, PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from './datePickers';
-import { monthFirstDay, monthLastDay, monthOfDay, type EventSearchCriteria } from './eventSearch';
+import { MONTH_VIEWS, PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../utils/datePickers';
+import { monthFirstDay, monthLastDay, monthOfDay, type EventSearchCriteria } from './eventSearchRules';
+import { TOUCH_TARGET } from '../../features/theme/muiTheme';
 
 /** Minimum size of anything the visitor taps. */
-const TOUCH_TARGET = 44;
 
 /**
  * The two date bounds. Each is a whole MONTH — a visitor explores "next

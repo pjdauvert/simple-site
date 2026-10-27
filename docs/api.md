@@ -48,6 +48,8 @@ POST / PUT / PATCH requests must include `Content-Type: application/json`. GET r
 
 Configuration uses a **draft → publish** model with a linear archive history (see [configuration.md](configuration.md#versioning-draft--publish--archive)). The live site reads the **published** config via `GET /api/config`; admins edit a **draft** and publish it to go live. Publishing archives the previously-published config with a reverse-chronological, second-precision timestamp so it can be restored. At most **10 versions** (published + archives; the draft is uncounted) are retained — creating a new archive beyond that erases the archive with the oldest `createdAt`.
 
+Every config write validates its body against the shared schema. A rejection is the **caller's**: `400 VALIDATION_FAILED`, whose `details.errors` lists `{ field, message }` per offending path (`events.0.slug`, `menu.entries.2`) — including the cross-section rules the whole-`SiteConfig` re-validation enforces, such as a menu entry pointing at an unknown page. Malformed JSON is `400 INVALID_REQUEST`. A `500 CONFIGURATION_ERROR` means the **stored** config failed to parse, which no change to the request can fix.
+
 ### `GET /api/config`
 
 Returns the **published** `SiteConfig` from Netlify Blobs (key `config`). This is the live configuration the site renders. On the first request in a dev environment the blob is seeded automatically from the bundled `siteConfig.json`. **Public** — the only public config route.
@@ -150,27 +152,21 @@ Replaces the `gallery` of the **draft** — the tagged image gallery (see [confi
 
 ### `PUT /api/config/events`
 
-Replaces the `events` of the **draft** — the agenda's event list, section texts and design (see [configuration.md](configuration.md#events)). Gated by the **`FEATURE_EVENTS`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `events` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `events` — rejecting duplicate, reserved (`search` — the agenda's own page) or charset-invalid slugs (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, ≤ 64 chars), non-UTC instants (timezone-less, offset or date-only strings), an end before its start, and out-of-range design values — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/events` editor.
+Replaces the `events` of the **draft** — the agenda's event list, section texts and design (see [configuration.md](configuration.md#events)). Gated by the **`FEATURE_EVENTS`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `events` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `events` — rejecting duplicate, reserved (`search` — the agenda's own page) or charset-invalid slugs (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, ≤ 64 chars), non-UTC instants (timezone-less, offset or date-only strings), an end before its start, a `websiteUrl` that is not an absolute `http(s)` URL, and out-of-range design values — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/events` editor.
 
 ```json
 // Request body — an EventsConfig object
 { "events": [ { "slug": "summer-festival", "name": "Summer Festival",
                 "description": "Three days of **concerts**.", "imageUrl": "https://…/festival.jpg",
+                "imageAlt": "Crowd in front of the main stage at dusk",
                 "startDateTime": "2027-06-18T15:00:00.000Z", "endDateTime": "2027-06-20T20:00:00.000Z",
                 "location": "Place de la Bourse, Bordeaux", "websiteUrl": "https://example.com/festival" } ],
   "upcomingTitle": "Bientôt",
   "design": { "agendaPage": { "pastEventsMode": "from", "pastEventsFromDate": "2026-01-01" },
               "eventPage": { "fullBackgroundImage": true } } }
 // slugs are immutable public identities (URL + i18n keys); instants are UTC ISO strings
-// (rendered in the visitor's timezone); upcomingTitle/pastTitle and
-// upcomingHeader/pastHeader (markdown) are optional translation defaults
-// (the featured block has neither heading nor introduction of its own);
-// design.agendaPage: pastEventsMode (all — default — | none | from) + pastEventsFromDate
-// (YYYY-MM-DD, kept across mode switches), cardAspectRatio (A4 — portrait poster, default — | 16:9 | 4:3 | 1:1),
-// columns (2-4; default 3), showLocationOnCards / showFeaturedBackdrop (absent = shown);
-// design.eventPage: imageAspectRatio (same ratios; default A4),
-// fullBackgroundImage (absent = off; true paints the illustration as a blurred full background);
-// each /manage/events tab PUTs the whole object, merging its own fields over a fresh draft read
+// (rendered in the visitor's timezone); every `design` value is listed in
+// configuration.md#events — the one place that stays complete
 
 
 // 200 OK
@@ -520,12 +516,12 @@ All responses — success and error — share the same top-level shape:
 
 | Status | When |
 |--------|------|
-| `400` | Missing / invalid body, invalid locale, wrong Content-Type on POST |
+| `400` | Missing / malformed / schema-invalid body, invalid locale, wrong Content-Type on POST |
 | `401` | Missing or invalid Netlify Identity JWT on a protected endpoint |
 | `404` | Blob store key not found |
 | `405` | HTTP method not allowed for this endpoint |
 | `409` | Conflict — e.g. publish with no draft, or a translations mutation targeting the default language / last override |
-| `500` | Internal error, Zod schema violation in stored data |
+| `500` | Internal error, Zod schema violation in **stored** data (never in a request body — that is a `400`) |
 
 ---
 

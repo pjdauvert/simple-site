@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
+import { TOUCH_TARGET } from '../features/theme/muiTheme';
 
 /**
  * What every events date picker shares — the admin's event dialog and month
@@ -13,9 +14,9 @@ export const MONTH_VIEWS = ['year', 'month'] as const;
 
 /** Mobile-first: dense `small` fields, with a 44px minimum tap height. */
 export const PICKER_FIELD_SX = {
-  '& .MuiPickersInputBase-root, & .MuiInputBase-root': { minHeight: 44 },
+  '& .MuiPickersInputBase-root, & .MuiInputBase-root': { minHeight: TOUCH_TARGET },
 } as const;
-export const PICKER_BUTTON_SX = { width: 44, height: 44 } as const;
+export const PICKER_BUTTON_SX = { width: TOUCH_TARGET, height: TOUCH_TARGET } as const;
 
 /**
  * The dayjs locale driving the picker chrome (month names, 12h/24h, field

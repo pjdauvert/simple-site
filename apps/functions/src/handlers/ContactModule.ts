@@ -72,14 +72,8 @@ export class ContactModule extends BaseHandler {
         if (!Number.isFinite(contentLength) || contentLength > ContactModule.MAX_MESSAGE_BODY_BYTES) {
             throw ErrorResponses.invalidRequest('Request body too large', path);
         }
-        const parsed = ContactRequestSchema.safeParse(await this.parseBody(request, path));
-        if (!parsed.success) {
-            throw ErrorResponses.validationFailed(
-                parsed.error.issues.map((issue) => ({ field: issue.path.join('.') || 'body', message: issue.message })),
-                path,
-            );
-        }
-        await sendContactEmail(parsed.data, getResendEnv(path), path);
+        const message = this.parseRequest(ContactRequestSchema, await this.parseBody(request, path), path);
+        await sendContactEmail(message, getResendEnv(path), path);
         return this.createSuccessResponse<ContactResponse>({ message: 'Message sent' });
     };
 

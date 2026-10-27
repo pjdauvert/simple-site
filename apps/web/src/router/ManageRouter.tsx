@@ -90,8 +90,6 @@ const ManageArea: React.FC = () => {
             <Route path="list" element={<EventsListTab />} />
             <Route path="agenda-design" element={<EventsAgendaDesignTab />} />
             <Route path="event-design" element={<EventsEventDesignTab />} />
-            {/* The single Design tab became two — keep old bookmarks working. */}
-            <Route path="design" element={<Navigate to="../agenda-design" replace />} />
           </Route>
         )}
         <Route path="translations" element={<TranslationsPage />} />

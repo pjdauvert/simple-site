@@ -68,27 +68,16 @@ and the saved section stays schema-clean.
 ## Dependency vulnerabilities (gate for every merge)
 
 A green test suite on a vulnerable dependency tree is not a pass. Run the project's
-audit gate with the other gates, on every batch that touches the lockfile and before
-declaring any work done:
+audit gate alongside the other gates on **every batch that touches the lockfile**, and
+before declaring any work done.
 
-- **No `high` or `critical` advisory anywhere** — dev tooling included. A test runner
-  or build tool with a known RCE is still running on developer machines and in CI.
-- **The runtime tree is held higher**: nothing at `moderate` or above in what ships to
-  visitors. Audit it separately (dev dependencies hide the shipped tree's state).
+The thresholds, the remediation order and the `overrides` rule are stated once in
+`docs/contributing.md` § Dependency vulnerabilities — follow it there rather than
+from memory. What this role adds:
 
-When the gate fails, in this order:
-
-1. Apply the fixes that stay inside the declared ranges, then re-run every gate — a
-   patch bump can still break a build.
-2. Otherwise upgrade the offending package to its fixed major and re-run every gate.
-   Expect toolchain upgrades to need small code changes (test-matcher typings,
-   removed globals); make them rather than pinning the old major.
-3. When the only "fix" offered is a **downgrade**, pin the patched transitive version
-   through `overrides` and say in the PR which advisory it closes.
-
-Never lower the threshold, never add a blanket ignore, and never report an audit as
-clean without naming the numbers. Report what remains, its severity, the dependency
-path, and why it cannot be fixed yet.
+- Never lower a threshold and never add a blanket ignore to make the gate pass.
+- Never report an audit as clean without naming the numbers. What remains gets
+  reported with its severity, its dependency path, and why it cannot be fixed yet.
 
 ## Mobile checklist (gate for UI merges)
 

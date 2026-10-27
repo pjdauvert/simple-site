@@ -5,7 +5,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from '@mui/material/styles';
 import { eventDescriptionKey, eventNameKey } from '@simple-site/interfaces';
 import { NotFoundPage } from '../error/NotFoundPage';
-import { Loading, Markdown } from '../../components';
+import { Loading, Markdown, NewTabHint } from '../../components';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -20,10 +20,12 @@ import {
   eventContrastPanelSx,
   eventHeaderImageSrcSet,
   eventHeaderImageUrl,
+  eventImageAlt,
   eventPageImageFrameSx,
   markdownBodySx,
   resolveEventPageDesign,
 } from './eventDisplay';
+import { TOUCH_TARGET } from '../../features/theme/muiTheme';
 
 /**
  * Public /events/<slug> detail page — the full fiche: the illustration
@@ -51,21 +53,24 @@ export const EventPage: React.FC = () => {
   const siteContext = useSiteConfig();
   const theme = useTheme();
   const { siteThemeConfig } = useAppTheme();
-  if (!siteContext) throw new Error('EventPage must be called within <SiteConfigProvider>');
-  const { config } = siteContext;
+  // The provider guard sits AFTER every hook (just below), the way the sibling
+  // feature pages place it: a conditional throw above a hook is what
+  // `react-hooks/rules-of-hooks` exists to catch.
+  const config = siteContext?.config;
 
-  const event = flags?.events && slug ? eventBySlug(config.events, slug) : undefined;
+  const event = flags?.events && slug ? eventBySlug(config?.events, slug) : undefined;
   useDocumentTitle(
     event
       ? `${intl.formatMessage({ id: eventNameKey(event.slug), defaultMessage: event.name })} – ${siteThemeConfig.siteName}`
       : undefined,
   );
 
+  if (!siteContext) throw new Error('EventPage must be called within <SiteConfigProvider>');
   if (flags === null) return <Loading />;
   if (!flags.events) return <NotFoundPage />;
   if (!event) return <NotFoundPage />;
 
-  const design = resolveEventPageDesign(config.events);
+  const design = resolveEventPageDesign(config?.events);
   // No illustration → nothing to abstract into a background, and nothing to
   // place either: the texts simply own the page.
   const fullBackground = design.fullBackgroundImage && Boolean(event.imageUrl);
@@ -117,7 +122,10 @@ export const EventPage: React.FC = () => {
                 src={eventHeaderImageUrl(event.imageUrl)}
                 srcSet={eventHeaderImageSrcSet(event.imageUrl)}
                 sizes={beside ? EVENT_PAGE_SIDE_IMAGE_SIZES : EVENT_PAGE_HEADER_SIZES}
-                alt=""
+                // Content, not decoration: the header illustration opens the
+                // page on its own, so it carries the owner's description when
+                // there is one (empty alt = skipped, never the file name).
+                alt={eventImageAlt(intl, event)}
                 decoding="async"
                 sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
@@ -145,9 +153,10 @@ export const EventPage: React.FC = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     variant="contained"
-                    sx={{ minHeight: 44 }}
+                    sx={{ minHeight: TOUCH_TARGET }}
                   >
                     <FormattedMessage id="page.events.moreInfo" />
+                    <NewTabHint />
                   </Button>
                 </Box>
               )}

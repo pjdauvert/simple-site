@@ -2,6 +2,7 @@ import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { CropLandscape as LandscapeIcon, CropPortrait as PortraitIcon } from '@mui/icons-material';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { SxProps, Theme } from '@mui/material/styles';
+import { PreviewBar } from '../DesignTabPanels';
 import type {
   GalleryCaptionPosition,
   GalleryDisplayMode,
@@ -94,10 +95,8 @@ export const GalleryDesignPreview: React.FC<GalleryDesignPreviewProps> = ({
     if (!itemShowTitle && !itemShowSubtitle) return null;
     return (
       <Box key="caption" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, ...sx }}>
-        {itemShowTitle && <Box sx={{ height: 7, width, borderRadius: 4, bgcolor: 'text.secondary' }} />}
-        {itemShowSubtitle && (
-          <Box sx={{ height: 5, width: Math.round(width * 0.6), borderRadius: 4, bgcolor: 'text.disabled' }} />
-        )}
+        {itemShowTitle && <PreviewBar width={width} strong height={7} />}
+        {itemShowSubtitle && <PreviewBar width={Math.round(width * 0.6)} />}
       </Box>
     );
   };

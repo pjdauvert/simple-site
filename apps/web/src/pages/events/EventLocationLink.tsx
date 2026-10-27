@@ -4,7 +4,9 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import { useIntl } from 'react-intl';
 import { FormattedMessage } from 'react-intl';
 import { eventLocationKey, type SiteEvent } from '@simple-site/interfaces';
+import { NewTabHint } from '../../components';
 import { googleMapsSearchUrl } from './eventDisplay';
+import { TOUCH_TARGET } from '../../features/theme/muiTheme';
 
 /**
  * The event's address as a Google Maps link (new tab). The DISPLAYED address
@@ -23,9 +25,10 @@ export const EventLocationLink: React.FC<{ event: SiteEvent }> = ({ event }) => 
         color="inherit"
         underline="hover"
         title={intl.formatMessage({ id: 'page.events.openMap' })}
-        sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, minWidth: 0 }}
+        sx={{ display: 'inline-flex', alignItems: 'center', minHeight: TOUCH_TARGET, minWidth: 0 }}
       >
         <FormattedMessage id={eventLocationKey(event.slug)} defaultMessage={event.location} />
+        <NewTabHint />
       </Link>
     </Stack>
   );

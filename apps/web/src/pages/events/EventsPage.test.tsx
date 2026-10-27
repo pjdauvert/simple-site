@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import type { EventsConfig, SiteConfig, SiteEvent } from '@simple-site/interfaces';
 import { EventsPage } from './EventsPage';
-import { mockFeatures } from '../../test/featureFlags';
+import { mockFeatures, mockFeaturesLoading } from '../../test/featureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { renderWithProviders } from '../../test/renderWithProviders';
 
@@ -172,7 +172,7 @@ describe('EventsPage (public /events)', () => {
     renderPage();
     expect(screen.getByText('seven')).toBeInTheDocument(); // markdown rendered in the featured block
     expect(screen.queryByText(/Cards never show this/)).not.toBeInTheDocument();
-    const website = screen.getByRole('link', { name: 'More info' });
+    const website = screen.getByRole('link', { name: /^More info/ });
     expect(website).toHaveAttribute('href', 'https://example.com/show');
     expect(website).toHaveAttribute('target', '_blank');
   });
@@ -232,5 +232,36 @@ describe('EventsPage (public /events)', () => {
     setConfig({ events: [event('next-show', 'Next Show', inDays(5))] });
     renderPage();
     expect(screen.getByRole('link', { name: /search the calendar/i })).toHaveAttribute('href', '/events/search');
+  });
+
+  it('names the featured poster with imageAlt, and leaves the CARD posters unnamed', () => {
+    setConfig({
+      events: [
+        event('next-show', 'Next Show', inDays(5), {
+          imageUrl: '/posters/next.jpg',
+          imageAlt: 'Dancers mid-leap under a spotlight',
+        }),
+        event('later', 'Later', inDays(20), { imageUrl: '/posters/later.jpg', imageAlt: 'A quiet street' }),
+      ],
+    });
+    renderPage();
+
+    // Featured: the poster has its own space, so it carries the description.
+    expect(screen.getByRole('img', { name: 'Dancers mid-leap under a spotlight' })).toBeInTheDocument();
+    // Card: the image sits inside a link already labelled by the event name —
+    // naming it again would read the same event twice.
+    expect(screen.queryByRole('img', { name: 'A quiet street' })).not.toBeInTheDocument();
+    const card = screen.getByRole('heading', { level: 3, name: 'Later' }).closest('a') as HTMLElement;
+    expect(card.querySelector('img')).toHaveAttribute('alt', '');
+  });
+
+  // While /api/features is in flight the flag is neither on nor off. Rendering
+  // the 404 there would flash "nothing here" on a perfectly good agenda.
+  it('waits instead of 404ing while the feature flags are still loading', () => {
+    mockFeaturesLoading();
+    setConfig({ events: [event('next-show', 'Next Show', inDays(5))] });
+    renderPage();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.queryByText('Oops — nothing here!')).not.toBeInTheDocument();
   });
 });

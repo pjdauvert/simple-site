@@ -59,8 +59,9 @@ must respect:
   the web app — structure comes from config, text comes from i18n.
 - **i18n on every new page**: static UI labels go into the bundled label dictionary
   (in every platform-chrome language), rendered through the i18n layer — see the
-  i18n-specialist agent. Keys match `/^[a-zA-Z0-9_.]+$/`, camelCase segments
-  (`resetPassword.title`). Config-derived keys come from the shared key collector —
+  i18n-specialist agent. Hand-written keys use camelCase segments
+  (`resetPassword.title`); the charset is stated in the configuration doc's
+  *Key format* section. Config-derived keys come from the shared key collector —
   never invent a parallel scheme.
 - **New section types**: follow the workflow in `docs/extending.md` completely —
   schema + i18n collector, discriminated union, collector dispatch, renderer with

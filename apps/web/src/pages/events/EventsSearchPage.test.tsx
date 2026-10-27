@@ -4,7 +4,7 @@ import { fireEvent } from '@testing-library/dom';
 import { Route, Routes } from 'react-router-dom';
 import type { EventsConfig, SiteConfig, SiteEvent } from '@simple-site/interfaces';
 import { EventsSearchPage } from './EventsSearchPage';
-import { mockFeatures } from '../../test/featureFlags';
+import { mockFeatures, mockFeaturesLoading } from '../../test/featureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { renderWithProviders } from '../../test/renderWithProviders';
 
@@ -268,5 +268,15 @@ describe('EventsSearchPage (public /events/search)', () => {
     // Cleared from the sheet: the whole list is back, past events included.
     expect(rowNames()).toContain('Old Fair');
     expect(screen.queryByRole('button', { name: /clear the dates/i })).not.toBeInTheDocument();
+  });
+
+  // While /api/features is in flight the flag is neither on nor off; 404ing
+  // there would flash "nothing here" on a perfectly good search page.
+  it('waits instead of 404ing while the feature flags are still loading', () => {
+    mockFeaturesLoading();
+    setConfig({ events: [regatta] });
+    renderPage();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.queryByText('Oops — nothing here!')).not.toBeInTheDocument();
   });
 });

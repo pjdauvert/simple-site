@@ -13,12 +13,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { eventDescriptionKey, eventLocationKey, eventNameKey } from '@simple-site/interfaces';
+import { eventDescriptionKey, eventImageAltKey, eventLocationKey, eventNameKey } from '@simple-site/interfaces';
 import { MediaUrlField } from '../../media';
 import { TranslateAdornment } from '../TranslateAdornment';
 import { slugify } from '../slugify';
-import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../pages/events/datePickers';
+import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../utils/datePickers';
 import { applyWhen, readWhen, type EventDraft, type EventFieldErrors, type EventWhenPatch } from './eventsDraft';
+import { TOUCH_TARGET } from '../../../features/theme/muiTheme';
 
 interface EventFormDialogProps {
   open: boolean;
@@ -52,8 +53,10 @@ const SLUG_ERROR: Record<NonNullable<EventFieldErrors['slug']>, string> = {
  * and edited in the ADMIN's own timezone — never shown, never chosen (see
  * `eventsDraft.readWhen` / `buildWhen`): the times only appear while the event
  * fits in a single local day, since one spanning several is stored (and
- * rendered) as whole days. Name, description and location are translation
- * defaults — a saved event links each to its translation key.
+ * rendered) as whole days. Name, description, location and the illustration's
+ * alt text are translation defaults — a saved event links each to its
+ * translation key. The alt field only appears once an illustration is set:
+ * there is nothing to describe before that.
  */
 export const EventFormDialog: React.FC<EventFormDialogProps> = ({
   open,
@@ -152,6 +155,18 @@ export const EventFormDialog: React.FC<EventFormDialogProps> = ({
               enablePicker={enablePicker}
               fullWidth
             />
+            {/* Only worth asking once there IS an illustration to describe. */}
+            {event.imageUrl?.trim() && (
+              <TextField
+                label={intl.formatMessage({ id: 'page.manage.events.field.imageAlt' })}
+                value={event.imageAlt ?? ''}
+                onChange={(e) => onChange({ ...event, imageAlt: e.target.value || undefined })}
+                size="small"
+                fullWidth
+                helperText={intl.formatMessage({ id: 'page.manage.events.field.imageAlt.help' })}
+                slotProps={{ input: { endAdornment: translateAdornment(eventImageAltKey(event.slug)) } }}
+              />
+            )}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
               <DatePicker
                 label={intl.formatMessage({ id: 'page.manage.events.field.startDate' })}
@@ -260,7 +275,7 @@ export const EventFormDialog: React.FC<EventFormDialogProps> = ({
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ '& .MuiButton-root': { minHeight: 44 } }}>
+        <DialogActions sx={{ '& .MuiButton-root': { minHeight: TOUCH_TARGET } }}>
           <Button onClick={onCancel}>
             <FormattedMessage id="page.manage.events.cancel" />
           </Button>

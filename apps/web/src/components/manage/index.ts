@@ -5,3 +5,4 @@ export { MenuEditor } from './menu';
 export { TeamPageSettings, TeamMembersEditor, TeamDesignEditor } from './team';
 export { EventsListEditor, AgendaDesignEditor, EventPageDesignEditor } from './events';
 export { ConfigVersionsPanel } from './ConfigVersionsPanel';
+export { ManageTabsShell, type ManageTab } from './ManageTabsShell';

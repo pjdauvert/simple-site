@@ -51,6 +51,7 @@ import { updateGallery } from '../../../services/galleryService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { ColorField } from '../themes/ColorField';
+import { DesignTabLayout } from '../DesignTabPanels';
 import {
   emptyGallery,
   setCaptionPosition,
@@ -260,320 +261,306 @@ export const GalleryDesignEditor: React.FC = () => {
   const tiledMode = displayMode === 'grid' || displayMode === 'mosaic';
 
   return (
-    <Box sx={{ display: 'flex', gap: { md: 4, lg: 6 }, alignItems: 'flex-start', maxWidth: 1100 }}>
-      <Stack spacing={4} sx={{ flex: 1, minWidth: 0 }}>
-        <Box>
-          <Typography variant="subtitle2" gutterBottom id="gallery-display-mode-label">
-            <FormattedMessage id="page.manage.gallery.displayMode" />
-          </Typography>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={displayMode}
-            onChange={(_, value: GalleryDisplayMode | null) => { if (value) setMode(value); }}
-            aria-labelledby="gallery-display-mode-label"
-          >
-            {GALLERY_DISPLAY_MODES.map((mode) => (
-              <ToggleButton key={mode} value={mode}>
-                <FormattedMessage id={`page.manage.gallery.displayMode.${mode}`} />
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-            <FormattedMessage id="page.manage.gallery.displayMode.hint" />
-          </Typography>
-        </Box>
+    <DesignTabLayout
+      form={
+        <>
+          <Box>
+            <Typography variant="subtitle2" gutterBottom id="gallery-display-mode-label">
+              <FormattedMessage id="page.manage.gallery.displayMode" />
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={displayMode}
+              onChange={(_, value: GalleryDisplayMode | null) => { if (value) setMode(value); }}
+              aria-labelledby="gallery-display-mode-label"
+            >
+              {GALLERY_DISPLAY_MODES.map((mode) => (
+                <ToggleButton key={mode} value={mode}>
+                  <FormattedMessage id={`page.manage.gallery.displayMode.${mode}`} />
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+              <FormattedMessage id="page.manage.gallery.displayMode.hint" />
+            </Typography>
+          </Box>
 
-        {/* Ergonomic principle (see docs/contributing.md): an option that does
-            not apply to the selected mode is HIDDEN, not disabled. The stored
-            values survive mode switches — hiding is presentation only. */}
-        {displayMode !== 'mosaic' && (
+          {/* Ergonomic principle (see docs/contributing.md): an option that does
+              not apply to the selected mode is HIDDEN, not disabled. The stored
+              values survive mode switches — hiding is presentation only. */}
+          {displayMode !== 'mosaic' && (
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                <FormattedMessage id="page.manage.gallery.captions" />
+              </Typography>
+              <Stack direction="row" spacing={3}>
+                <FormControlLabel
+                  control={<Switch checked={showTitle} onChange={(_, checked) => setShowTitle(checked)} />}
+                  label={<FormattedMessage id="page.manage.gallery.captions.title" />}
+                />
+                <FormControlLabel
+                  control={<Switch checked={showSubtitle} onChange={(_, checked) => setShowSubtitle(checked)} />}
+                  label={<FormattedMessage id="page.manage.gallery.captions.subtitle" />}
+                />
+              </Stack>
+              <Typography variant="caption" color="text.secondary" component="div">
+                <FormattedMessage id="page.manage.gallery.captions.hint" />
+              </Typography>
+            </Box>
+          )}
+
+          {displayMode === 'list' && (showTitle || showSubtitle) && (
+            <Box>
+              <Typography variant="subtitle2" gutterBottom id="gallery-caption-position-label">
+                <FormattedMessage id="page.manage.gallery.captionPosition" />
+              </Typography>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={captionPosition}
+                onChange={(_, value: GalleryCaptionPosition | null) => { if (value) setCaption(value); }}
+                aria-labelledby="gallery-caption-position-label"
+              >
+                {GALLERY_CAPTION_POSITIONS.map((position) => (
+                  <ToggleButton key={position} value={position}>
+                    <FormattedMessage id={`page.manage.gallery.captionPosition.${position}`} />
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
+          )}
+
           <Box>
             <Typography variant="subtitle2" gutterBottom>
-              <FormattedMessage id="page.manage.gallery.captions" />
+              <FormattedMessage id="page.manage.gallery.itemMaxWidth" />
             </Typography>
-            <Stack direction="row" spacing={3}>
-              <FormControlLabel
-                control={<Switch checked={showTitle} onChange={(_, checked) => setShowTitle(checked)} />}
-                label={<FormattedMessage id="page.manage.gallery.captions.title" />}
-              />
-              <FormControlLabel
-                control={<Switch checked={showSubtitle} onChange={(_, checked) => setShowSubtitle(checked)} />}
-                label={<FormattedMessage id="page.manage.gallery.captions.subtitle" />}
-              />
-            </Stack>
-            <Typography variant="caption" color="text.secondary" component="div">
-              <FormattedMessage id="page.manage.gallery.captions.hint" />
-            </Typography>
-          </Box>
-        )}
-
-        {displayMode === 'list' && (showTitle || showSubtitle) && (
-          <Box>
-            <Typography variant="subtitle2" gutterBottom id="gallery-caption-position-label">
-              <FormattedMessage id="page.manage.gallery.captionPosition" />
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={captionPosition}
-              onChange={(_, value: GalleryCaptionPosition | null) => { if (value) setCaption(value); }}
-              aria-labelledby="gallery-caption-position-label"
-            >
-              {GALLERY_CAPTION_POSITIONS.map((position) => (
-                <ToggleButton key={position} value={position}>
-                  <FormattedMessage id={`page.manage.gallery.captionPosition.${position}`} />
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Box>
-        )}
-
-        <Box>
-          <Typography variant="subtitle2" gutterBottom>
-            <FormattedMessage id="page.manage.gallery.itemMaxWidth" />
-          </Typography>
-          <TextField
-            size="small"
-            type="number"
-            value={itemMaxWidthPercent ?? ''}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setWidth(raw === '' ? undefined : Number(raw));
-            }}
-            error={widthInvalid}
-            helperText={
-              widthInvalid ? (
-                <FormattedMessage
-                  id="page.manage.gallery.itemMaxWidth.range"
-                  values={{ min: GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN, max: GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX }}
-                />
-              ) : undefined
-            }
-            slotProps={{
-              input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
-              htmlInput: {
-                min: GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN,
-                max: GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX,
-                step: 5,
-                'aria-label': intl.formatMessage({ id: 'page.manage.gallery.itemMaxWidth' }),
-              },
-            }}
-            sx={{ maxWidth: 220 }}
-          />
-          {/* Hint outside the field: the narrow input must not squeeze it —
-              it spans the settings column like every other option hint. */}
-          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-            <FormattedMessage id="page.manage.gallery.itemMaxWidth.hint" />
-          </Typography>
-        </Box>
-
-        {tiledMode && (
-          <Box>
-            <Typography variant="subtitle2" gutterBottom id="gallery-columns-label">
-              <FormattedMessage id="page.manage.gallery.columns" />
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={itemColumns}
-              onChange={(_, value: number | null) => { if (value) setColumns(value); }}
-              aria-labelledby="gallery-columns-label"
-            >
-              {COLUMN_CHOICES.map((count) => (
-                <ToggleButton key={count} value={count}>
-                  {count}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-              <FormattedMessage id="page.manage.gallery.columns.hint" />
-            </Typography>
-          </Box>
-        )}
-
-        {displayMode === 'grid' && (
-          <Box>
-            <Typography variant="subtitle2" gutterBottom id="gallery-aspect-ratio-label">
-              <FormattedMessage id="page.manage.gallery.aspectRatio" />
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={itemAspectRatio}
-              onChange={(_, value: GalleryItemAspectRatio | null) => { if (value) setAspectRatio(value); }}
-              aria-labelledby="gallery-aspect-ratio-label"
-            >
-              {GALLERY_ITEM_ASPECT_RATIOS.map((ratio) => (
-                <ToggleButton key={ratio} value={ratio}>
-                  {ratio === 'original' ? <FormattedMessage id="page.manage.gallery.aspectRatio.original" /> : ratio}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-            {itemAspectRatio !== 'original' && (
-              <Box sx={{ mt: 1 }}>
-                <ToggleButtonGroup
-                  size="small"
-                  exclusive
-                  value={itemFit}
-                  onChange={(_, value: GalleryItemFit | null) => { if (value) setFit(value); }}
-                  aria-label={intl.formatMessage({ id: 'page.manage.gallery.fit' })}
-                >
-                  {GALLERY_ITEM_FITS.map((fit) => (
-                    <ToggleButton key={fit} value={fit}>
-                      <FormattedMessage id={`page.manage.gallery.fit.${fit}`} />
-                    </ToggleButton>
-                  ))}
-                </ToggleButtonGroup>
-              </Box>
-            )}
-            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-              <FormattedMessage id="page.manage.gallery.aspectRatio.hint" />
-            </Typography>
-          </Box>
-        )}
-
-        <Box>
-          <Typography variant="subtitle2" gutterBottom id="gallery-spacing-label">
-            <FormattedMessage id="page.manage.gallery.spacing" />
-          </Typography>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={itemSpacing}
-            onChange={(_, value: GalleryItemSpacing | null) => { if (value) setSpacing(value); }}
-            aria-labelledby="gallery-spacing-label"
-          >
-            {GALLERY_ITEM_SPACINGS.map((spacing) => (
-              <ToggleButton key={spacing} value={spacing}>
-                <FormattedMessage id={`page.manage.gallery.spacing.${spacing}`} />
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </Box>
-
-        <Box>
-          <Typography variant="subtitle2" gutterBottom>
-            <FormattedMessage id="page.manage.gallery.frame" />
-          </Typography>
-          <Stack spacing={2} sx={{ maxWidth: 360 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary" id="gallery-item-elevation-label">
-                <FormattedMessage id="page.manage.gallery.frame.elevation" />
-              </Typography>
-              {/* Only the platform's real shadow steps are offered — every
-                  other index of its scale renders flat (see muiTheme). */}
-              <Slider
-                size="small"
-                value={itemElevation}
-                onChange={(_, value) => setElevation(value as number)}
-                min={0}
-                max={GALLERY_ITEM_ELEVATION_MAX}
-                step={null}
-                marks={GALLERY_ITEM_ELEVATION_STEPS.map((value) => ({ value }))}
-                valueLabelDisplay="auto"
-                aria-label={intl.formatMessage({ id: 'page.manage.gallery.frame.elevation' })}
-              />
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary" id="gallery-item-radius-label">
-                <FormattedMessage id="page.manage.gallery.frame.cornerRadius" />
-              </Typography>
-              <Slider
-                size="small"
-                value={itemCornerRadius}
-                onChange={(_, value) => setCornerRadius(value as number)}
-                min={0}
-                max={GALLERY_ITEM_CORNER_RADIUS_MAX}
-                valueLabelDisplay="auto"
-                aria-label={intl.formatMessage({ id: 'page.manage.gallery.frame.cornerRadius' })}
-              />
-            </Box>
-            <FormControlLabel
-              control={<Switch checked={itemBorder} onChange={(_, checked) => setBorderOn(checked)} />}
-              label={<FormattedMessage id="page.manage.gallery.frame.border" />}
-            />
-            {itemBorder && (
-              <ColorField
-                label={intl.formatMessage({ id: 'page.manage.gallery.frame.borderColor' })}
-                value={itemBorderColor}
-                onChange={setBorderColor}
-                helperText={<FormattedMessage id="page.manage.gallery.frame.borderColor.hint" />}
-              />
-            )}
-          </Stack>
-        </Box>
-
-        <Box>
-          <Typography variant="subtitle2" gutterBottom>
-            <FormattedMessage id="page.manage.gallery.watermark" />
-          </Typography>
-          <Stack spacing={2} sx={{ maxWidth: 360 }}>
             <TextField
               size="small"
-              value={watermarkText}
-              onChange={(e) => setWatermarkText(e.target.value)}
-              label={intl.formatMessage({ id: 'page.manage.gallery.watermark.text' })}
-              helperText={<FormattedMessage id="page.manage.gallery.watermark.hint" />}
-              slotProps={{ htmlInput: { maxLength: GALLERY_WATERMARK_TEXT_MAX_LENGTH } }}
-            />
-            {watermarkText.trim() && (
-              <>
-                <ToggleButtonGroup
-                  size="small"
-                  exclusive
-                  value={watermarkPosition}
-                  onChange={(_, value: GalleryWatermarkPosition | null) => { if (value) setWatermarkPosition(value); }}
-                  aria-label={intl.formatMessage({ id: 'page.manage.gallery.watermark.position' })}
-                >
-                  {GALLERY_WATERMARK_POSITIONS.map((position) => (
-                    <ToggleButton key={position} value={position}>
-                      <FormattedMessage id={`page.manage.gallery.watermark.position.${position}`} />
-                    </ToggleButton>
-                  ))}
-                </ToggleButtonGroup>
-                <ColorField
-                  label={intl.formatMessage({ id: 'page.manage.gallery.watermark.color' })}
-                  value={watermarkColor}
-                  onChange={setWatermarkColor}
-                />
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    <FormattedMessage id="page.manage.gallery.watermark.opacity" />
-                  </Typography>
-                  <Slider
-                    size="small"
-                    value={watermarkOpacity}
-                    onChange={(_, value) => setWatermarkOpacity(value as number)}
-                    min={10}
-                    max={100}
-                    step={5}
-                    valueLabelDisplay="auto"
-                    aria-label={intl.formatMessage({ id: 'page.manage.gallery.watermark.opacity' })}
+              type="number"
+              value={itemMaxWidthPercent ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setWidth(raw === '' ? undefined : Number(raw));
+              }}
+              error={widthInvalid}
+              helperText={
+                widthInvalid ? (
+                  <FormattedMessage
+                    id="page.manage.gallery.itemMaxWidth.range"
+                    values={{ min: GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN, max: GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX }}
                   />
-                </Box>
-              </>
-            )}
-          </Stack>
-        </Box>
-      </Stack>
+                ) : undefined
+              }
+              slotProps={{
+                input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                htmlInput: {
+                  min: GALLERY_ITEM_MAX_WIDTH_PERCENT_MIN,
+                  max: GALLERY_ITEM_MAX_WIDTH_PERCENT_MAX,
+                  step: 5,
+                  'aria-label': intl.formatMessage({ id: 'page.manage.gallery.itemMaxWidth' }),
+                },
+              }}
+              sx={{ maxWidth: 220 }}
+            />
+            {/* Hint outside the field: the narrow input must not squeeze it —
+                it spans the settings column like every other option hint. */}
+            <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+              <FormattedMessage id="page.manage.gallery.itemMaxWidth.hint" />
+            </Typography>
+          </Box>
 
-      {/* Symbolic preview of the picked design — right half, desktop only.
-          The settings column is long, so the preview sticks under the fixed
-          admin AppBar (64 px) and stays in view while the form scrolls; a
-          taller skeleton scrolls inside its own box rather than overflowing. */}
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          display: { xs: 'none', md: 'block' },
-          position: 'sticky',
-          top: 88,
-          alignSelf: 'flex-start',
-          maxHeight: 'calc(100vh - 112px)',
-          overflowY: 'auto',
-        }}
-      >
+          {tiledMode && (
+            <Box>
+              <Typography variant="subtitle2" gutterBottom id="gallery-columns-label">
+                <FormattedMessage id="page.manage.gallery.columns" />
+              </Typography>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={itemColumns}
+                onChange={(_, value: number | null) => { if (value) setColumns(value); }}
+                aria-labelledby="gallery-columns-label"
+              >
+                {COLUMN_CHOICES.map((count) => (
+                  <ToggleButton key={count} value={count}>
+                    {count}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+              <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+                <FormattedMessage id="page.manage.gallery.columns.hint" />
+              </Typography>
+            </Box>
+          )}
+
+          {displayMode === 'grid' && (
+            <Box>
+              <Typography variant="subtitle2" gutterBottom id="gallery-aspect-ratio-label">
+                <FormattedMessage id="page.manage.gallery.aspectRatio" />
+              </Typography>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={itemAspectRatio}
+                onChange={(_, value: GalleryItemAspectRatio | null) => { if (value) setAspectRatio(value); }}
+                aria-labelledby="gallery-aspect-ratio-label"
+              >
+                {GALLERY_ITEM_ASPECT_RATIOS.map((ratio) => (
+                  <ToggleButton key={ratio} value={ratio}>
+                    {ratio === 'original' ? <FormattedMessage id="page.manage.gallery.aspectRatio.original" /> : ratio}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+              {itemAspectRatio !== 'original' && (
+                <Box sx={{ mt: 1 }}>
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={itemFit}
+                    onChange={(_, value: GalleryItemFit | null) => { if (value) setFit(value); }}
+                    aria-label={intl.formatMessage({ id: 'page.manage.gallery.fit' })}
+                  >
+                    {GALLERY_ITEM_FITS.map((fit) => (
+                      <ToggleButton key={fit} value={fit}>
+                        <FormattedMessage id={`page.manage.gallery.fit.${fit}`} />
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                </Box>
+              )}
+              <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+                <FormattedMessage id="page.manage.gallery.aspectRatio.hint" />
+              </Typography>
+            </Box>
+          )}
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom id="gallery-spacing-label">
+              <FormattedMessage id="page.manage.gallery.spacing" />
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={itemSpacing}
+              onChange={(_, value: GalleryItemSpacing | null) => { if (value) setSpacing(value); }}
+              aria-labelledby="gallery-spacing-label"
+            >
+              {GALLERY_ITEM_SPACINGS.map((spacing) => (
+                <ToggleButton key={spacing} value={spacing}>
+                  <FormattedMessage id={`page.manage.gallery.spacing.${spacing}`} />
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              <FormattedMessage id="page.manage.gallery.frame" />
+            </Typography>
+            <Stack spacing={2} sx={{ maxWidth: 360 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" id="gallery-item-elevation-label">
+                  <FormattedMessage id="page.manage.gallery.frame.elevation" />
+                </Typography>
+                {/* Only the platform's real shadow steps are offered — every
+                    other index of its scale renders flat (see muiTheme). */}
+                <Slider
+                  size="small"
+                  value={itemElevation}
+                  onChange={(_, value) => setElevation(value as number)}
+                  min={0}
+                  max={GALLERY_ITEM_ELEVATION_MAX}
+                  step={null}
+                  marks={GALLERY_ITEM_ELEVATION_STEPS.map((value) => ({ value }))}
+                  valueLabelDisplay="auto"
+                  aria-label={intl.formatMessage({ id: 'page.manage.gallery.frame.elevation' })}
+                />
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" id="gallery-item-radius-label">
+                  <FormattedMessage id="page.manage.gallery.frame.cornerRadius" />
+                </Typography>
+                <Slider
+                  size="small"
+                  value={itemCornerRadius}
+                  onChange={(_, value) => setCornerRadius(value as number)}
+                  min={0}
+                  max={GALLERY_ITEM_CORNER_RADIUS_MAX}
+                  valueLabelDisplay="auto"
+                  aria-label={intl.formatMessage({ id: 'page.manage.gallery.frame.cornerRadius' })}
+                />
+              </Box>
+              <FormControlLabel
+                control={<Switch checked={itemBorder} onChange={(_, checked) => setBorderOn(checked)} />}
+                label={<FormattedMessage id="page.manage.gallery.frame.border" />}
+              />
+              {itemBorder && (
+                <ColorField
+                  label={intl.formatMessage({ id: 'page.manage.gallery.frame.borderColor' })}
+                  value={itemBorderColor}
+                  onChange={setBorderColor}
+                  helperText={<FormattedMessage id="page.manage.gallery.frame.borderColor.hint" />}
+                />
+              )}
+            </Stack>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              <FormattedMessage id="page.manage.gallery.watermark" />
+            </Typography>
+            <Stack spacing={2} sx={{ maxWidth: 360 }}>
+              <TextField
+                size="small"
+                value={watermarkText}
+                onChange={(e) => setWatermarkText(e.target.value)}
+                label={intl.formatMessage({ id: 'page.manage.gallery.watermark.text' })}
+                helperText={<FormattedMessage id="page.manage.gallery.watermark.hint" />}
+                slotProps={{ htmlInput: { maxLength: GALLERY_WATERMARK_TEXT_MAX_LENGTH } }}
+              />
+              {watermarkText.trim() && (
+                <>
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={watermarkPosition}
+                    onChange={(_, value: GalleryWatermarkPosition | null) => { if (value) setWatermarkPosition(value); }}
+                    aria-label={intl.formatMessage({ id: 'page.manage.gallery.watermark.position' })}
+                  >
+                    {GALLERY_WATERMARK_POSITIONS.map((position) => (
+                      <ToggleButton key={position} value={position}>
+                        <FormattedMessage id={`page.manage.gallery.watermark.position.${position}`} />
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                  <ColorField
+                    label={intl.formatMessage({ id: 'page.manage.gallery.watermark.color' })}
+                    value={watermarkColor}
+                    onChange={setWatermarkColor}
+                  />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      <FormattedMessage id="page.manage.gallery.watermark.opacity" />
+                    </Typography>
+                    <Slider
+                      size="small"
+                      value={watermarkOpacity}
+                      onChange={(_, value) => setWatermarkOpacity(value as number)}
+                      min={10}
+                      max={100}
+                      step={5}
+                      valueLabelDisplay="auto"
+                      aria-label={intl.formatMessage({ id: 'page.manage.gallery.watermark.opacity' })}
+                    />
+                  </Box>
+                </>
+              )}
+            </Stack>
+          </Box>
+        </>
+      }
+      preview={
         <GalleryDesignPreview
           displayMode={displayMode}
           captionPosition={captionPosition}
@@ -590,7 +577,7 @@ export const GalleryDesignEditor: React.FC = () => {
           orientation={previewOrientation}
           onOrientationChange={setPreviewOrientation}
         />
-      </Box>
-    </Box>
+      }
+    />
   );
 };

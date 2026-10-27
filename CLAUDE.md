@@ -12,10 +12,16 @@ relevant doc before implementing. This file only indexes and sets process.**
 |-------|------|
 | Tech stack, monorepo layout, runtime config / i18n / auth flows | [docs/architecture.md](docs/architecture.md) |
 | API reference — endpoints, response envelope, auth matrix, env vars | [docs/api.md](docs/api.md) |
-| Configuration — site schema, themes, pages, draft → publish → archive, translations | [docs/configuration.md](docs/configuration.md) |
-| Extending — new section types (step-by-step workflow), mobile-first patterns | [docs/extending.md](docs/extending.md) |
+| Configuration — site schema, themes, pages, draft → publish → archive, translations, **and every config-resident module** (gallery, events) | [docs/configuration.md](docs/configuration.md) |
+| Extending — new section types, new feature pages (step-by-step workflows), mobile-first patterns | [docs/extending.md](docs/extending.md) |
 | Media — upload pipeline, feature flag, code map | [docs/media.md](docs/media.md) |
-| Contributing — quality gates, mobile checklist, roadmap | [docs/contributing.md](docs/contributing.md) |
+| Contributing — quality gates, test layout, mobile checklist, roadmap | [docs/contributing.md](docs/contributing.md) |
+
+**Where a feature is documented follows where its data lives.** A module stored
+inside the site config (gallery, events, and the next one) is a section of
+`configuration.md`; a module with a blob and a service of its own (media) gets
+its own file. Keep that split — do not start a `docs/<feature>.md` for a
+config-resident module.
 
 ## Specialized agents
 
@@ -41,7 +47,8 @@ relevant doc before implementing. This file only indexes and sets process.**
    ([docs/api.md](docs/api.md#response-envelope)).
 3. **i18n on every new page** — static labels in the web app's bundled label
    dictionary (every platform-chrome language), rendered through the i18n layer;
-   keys match `/^[a-zA-Z0-9_.]+$/` with camelCase segments.
+   hand-written keys use camelCase segments. Charset and the `-` rule:
+   [docs/configuration.md](docs/configuration.md#key-format).
 4. **Optional features ship flag-gated** — server-side `FEATURE_*` env var, reported
    by `GET /api/features`, routes 404 before auth when off, every UI surface hidden
    (see `.claude/agents/modules-engineer.md`).

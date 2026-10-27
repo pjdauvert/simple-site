@@ -1,10 +1,20 @@
 import { ErrorCode, type ApiError } from "@simple-site/interfaces";
-  
+  import type { ZodError } from "zod";
+
   export interface ValidationErrorDetail {
     field: string;
     message: string;
   }
-  
+
+  /**
+   * A Zod rejection as the `errors` detail of a 400: one entry per issue, the
+   * dotted field path it sits on (`events.0.slug`), `body` for an issue carried
+   * by the payload itself. Only ever applied to a REQUEST body — a schema
+   * violation in STORED data is a 500, not the caller's fault.
+   */
+  export const validationDetails = (error: ZodError): ValidationErrorDetail[] =>
+    error.issues.map((issue) => ({ field: issue.path.join('.') || 'body', message: issue.message }));
+
   export class ApiErrorResponse extends Error {
     public statusCode: number;
     public errorCode: ErrorCode;

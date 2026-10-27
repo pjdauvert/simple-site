@@ -13,7 +13,7 @@ import {
   monthOfDay,
   normalizeForSearch,
   searchEvents,
-} from './eventSearch';
+} from './eventSearchRules';
 
 /** A local instant — the search model works on the viewer's calendar days. */
 const local = (year: number, month: number, day: number, hour = 10): string =>

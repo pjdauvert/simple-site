@@ -22,7 +22,7 @@ import {
   type SocialNetworkId,
   type TeamMember,
 } from '@simple-site/interfaces';
-import { slugify } from './teamDraft';
+import { slugify } from '../slugify';
 import { MediaUrlField } from '../../media';
 import type { MemberFieldErrors } from './teamDraft';
 

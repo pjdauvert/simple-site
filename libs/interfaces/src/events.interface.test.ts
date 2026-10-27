@@ -1,18 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import type { SiteConfig } from '@simple-site/interfaces';
+import type { SiteConfig } from './index.js';
 import {
   EventsConfigSchema,
   I18nDictionarySchema,
   SiteEventSchema,
   StoredSiteConfigSchema,
   collectEventsI18nEntries,
+  eventImageAltKey,
   collectI18nEntries,
   eventDescriptionKey,
   eventLocationKey,
   eventNameKey,
   EVENTS_UPCOMING_TITLE_KEY,
   EVENTS_PAST_HEADER_KEY,
-} from '@simple-site/interfaces';
+} from './index.js';
 
 const validEvent = {
   slug: 'fete-du-port',
@@ -164,5 +165,19 @@ describe('collectEventsI18nEntries', () => {
 
   it('produces keys the translation dictionary accepts (hyphenated slugs)', () => {
     expect(I18nDictionarySchema.safeParse({ [eventNameKey('fete-du-port')]: 'Harbour festival' }).success).toBe(true);
+  });
+
+  it('emits the illustration description only when the event carries one', () => {
+    const entries = collectEventsI18nEntries(
+      EventsConfigSchema.parse({
+        events: [
+          { ...validEvent, imageUrl: '/posters/fete.jpg', imageAlt: 'Quayside at dusk' },
+          { ...validEvent, slug: 'regate', name: 'Régate' },
+        ],
+      }),
+    );
+    const map = new Map(entries.map((e) => [e.key, e.defaultValue]));
+    expect(map.get(eventImageAltKey('fete-du-port'))).toBe('Quayside at dusk');
+    expect(map.has(eventImageAltKey('regate'))).toBe(false);
   });
 });

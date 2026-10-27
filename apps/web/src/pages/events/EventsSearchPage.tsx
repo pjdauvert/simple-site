@@ -18,17 +18,17 @@ import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { buildEventCalendar } from './eventCalendar';
-import { defaultSearchFromDay, searchEvents, type EventSearchCriteria } from './eventSearch';
+import { defaultSearchFromDay, searchEvents, type EventSearchCriteria } from './eventSearchRules';
 import { resolveAgendaDesign } from './eventDisplay';
 import { EventCalendarPanel } from './EventCalendarPanel';
 import { EventSearchBoundChips, EventSearchMonthFields, EventSearchQueryField } from './EventSearchFilters';
 import { EventSearchRow } from './EventSearchRow';
+import { TOUCH_TARGET } from '../../features/theme/muiTheme';
 
 /** Width of the open calendar panel on a wide screen. */
 const PANEL_WIDTH = '19rem';
 
 /** Minimum size of anything the visitor taps. */
-const TOUCH_TARGET = 44;
 
 /**
  * Public /events/search — the agenda's ACTIVE mode: the visitor states what
@@ -51,8 +51,11 @@ export const EventsSearchPage: React.FC = () => {
   const flags = useFeatureFlags();
   const siteContext = useSiteConfig();
   const { siteThemeConfig } = useAppTheme();
-  if (!siteContext) throw new Error('EventsSearchPage must be called within <SiteConfigProvider>');
-  const { config } = siteContext;
+  // The provider guard sits AFTER every hook (see the bottom of this function),
+  // the way the sibling feature pages place it: a conditional throw above a
+  // hook is what `react-hooks/rules-of-hooks` exists to catch, harmless only
+  // for as long as nobody turns the throw into an early return.
+  const config = siteContext?.config;
 
   const enabled = Boolean(flags?.events);
   useDocumentTitle(
@@ -61,8 +64,8 @@ export const EventsSearchPage: React.FC = () => {
       : undefined,
   );
 
-  const events = useMemo(() => config.events?.events ?? [], [config.events]);
-  const design = resolveAgendaDesign(config.events);
+  const events = useMemo(() => config?.events?.events ?? [], [config?.events]);
+  const design = resolveAgendaDesign(config?.events);
   // One instant for the whole render: the default bound and the list must not
   // disagree about what "today" is.
   const now = useMemo(() => new Date(), []);
@@ -104,6 +107,7 @@ export const EventsSearchPage: React.FC = () => {
     rowRefs.current.get(slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
+  if (!siteContext) throw new Error('EventsSearchPage must be called within <SiteConfigProvider>');
   if (flags === null) return <Loading />;
   if (!flags.events) return <NotFoundPage />;
   // Nothing at all to explore — the agenda itself 404s in that case too.

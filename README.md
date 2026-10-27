@@ -43,8 +43,13 @@ the Vite banner says so if you start it that way.
 
 ```bash
 npm run build
-npm run preview      # the production BUILD behind the same stack, http://localhost:3080
+npm run preview      # the production BUILD behind the Netlify stack, http://localhost:3080
 ```
+
+`npm run preview` rebuilds web + functions, then serves `dist/apps/web` as
+static files with `/api/*` on the same port — no Vite, no HMR, hashed bundles,
+the SPA fallback out of the built `_redirects`. It is the closest thing to the
+deployed site you can run locally; `npm run dev` is the one that serves source.
 
 ### Test & lint
 
@@ -52,7 +57,12 @@ npm run preview      # the production BUILD behind the same stack, http://localh
 npm test             # unit tests (Vitest)
 npm run lint         # ESLint
 npm run typecheck    # TypeScript
+npm run audit        # dependency advisories
 ```
+
+All four are **required gates** — CI runs them and the pre-commit hook runs lint +
+typecheck. See [docs/contributing.md](docs/contributing.md#code-quality-commands) for the
+audit thresholds and what to do when one fires.
 
 ## Documentation
 
@@ -62,7 +72,8 @@ npm run typecheck    # TypeScript
 | API reference — all serverless endpoints, request/response shapes, env vars | [docs/api.md](docs/api.md) |
 | Configuration — site config, themes, pages, translations | [docs/configuration.md](docs/configuration.md) |
 | Extending — adding section types, mobile-first patterns | [docs/extending.md](docs/extending.md) |
-| Contributing — guidelines, browser support, troubleshooting, roadmap | [docs/contributing.md](docs/contributing.md) |
+| Media — upload pipeline, CDN renditions, feature flag | [docs/media.md](docs/media.md) |
+| Contributing — guidelines, quality gates, browser support, troubleshooting, roadmap | [docs/contributing.md](docs/contributing.md) |
 
 ## License
 

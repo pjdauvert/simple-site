@@ -2,8 +2,10 @@ import type { SiteEvent } from '@simple-site/interfaces';
 import { eventEnd, eventStart, localDateISO } from './eventDates';
 
 /**
- * Event SEARCH model, shared by the public search page and the admin list tab:
- * how a typed query matches an event's texts, and how a date range selects it.
+ * The event SEARCH RULES — what it MEANS for a query or a date range to match
+ * an event. Shared by the public search page and the admin list tab (whose
+ * list-level sorting and month bounds live in
+ * `components/manage/events/eventsListSearch.ts`, built on top of this).
  * Pure and display-only — nothing here ever reaches the stored config.
  *
  * The public page matches the TRANSLATED texts the visitor reads, the admin

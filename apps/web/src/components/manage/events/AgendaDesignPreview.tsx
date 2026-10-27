@@ -3,7 +3,8 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import { useTheme } from '@mui/material/styles';
 import { brandGradient } from '../../../features/theme/muiTheme';
 import { aspectRatioCss, eventContrastPanelSx } from '../../../pages/events/eventDisplay';
-import { DesignPreviewShell, PreviewBar } from './DesignPreviewShell';
+import { PreviewBar } from '../DesignTabPanels';
+import { DesignPreviewShell } from './DesignPreviewShell';
 import { spotlightSx } from './designSpotlight';
 import type { AgendaDesignDraft, SectionTextsDraft } from './eventsDesign';
 

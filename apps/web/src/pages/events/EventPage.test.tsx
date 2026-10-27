@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import type { EventsConfig, SiteConfig, SiteEvent } from '@simple-site/interfaces';
 import { EventPage } from './EventPage';
-import { mockFeatures } from '../../test/featureFlags';
+import { mockFeatures, mockFeaturesLoading } from '../../test/featureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { renderWithProviders } from '../../test/renderWithProviders';
 
@@ -69,7 +69,7 @@ describe('EventPage (public /events/:slug)', () => {
     expect(mapLink).toHaveAttribute('rel', 'noopener noreferrer');
     expect(mapLink.getAttribute('href')).toContain(encodeURIComponent('Place de la Bourse, Bordeaux'));
 
-    const website = screen.getByRole('link', { name: 'More info' });
+    const website = screen.getByRole('link', { name: /^More info/ });
     expect(website).toHaveAttribute('href', 'https://example.com/festival');
     expect(website).toHaveAttribute('target', '_blank');
 
@@ -155,5 +155,57 @@ describe('EventPage (public /events/:slug)', () => {
     const mapLink = screen.getByRole('link', { name: /traduite/ });
     // The DISPLAYED address is translated; the maps query keeps the canonical one.
     expect(mapLink.getAttribute('href')).toContain(encodeURIComponent('Place de la Bourse, Bordeaux'));
+  });
+
+  // A sighted visitor watches the new tab appear; a screen-reader user gets no
+  // warning and lands somewhere their back button will not return from.
+  it('warns assistive tech that the Maps link and More info open a new tab', () => {
+    renderAt('/events/summer-festival');
+
+    const mapLink = screen.getByRole('link', { name: /Place de la Bourse.*opens in a new tab/ });
+    expect(mapLink).toHaveAttribute('target', '_blank');
+    const website = screen.getByRole('link', { name: /^More info \(opens in a new tab\)$/ });
+    expect(website).toHaveAttribute('target', '_blank');
+
+    // The hint EXTENDS the visible label rather than replacing it: a
+    // speech-control user says what they read.
+    expect(website).toHaveTextContent(/^More info/);
+    expect(website).not.toHaveAttribute('aria-label');
+  });
+
+  describe('illustration alt text', () => {
+    it('leaves the header image unnamed when the event describes no illustration', () => {
+      renderAt('/events/summer-festival');
+      // Empty, not absent: a decorative image a screen reader should skip.
+      expect(document.querySelector('img')).toHaveAttribute('alt', '');
+    });
+
+    it('names the header image with the stored imageAlt', () => {
+      setConfig({ events: [{ ...festival, imageAlt: 'Crowd in front of the main stage' }] });
+      renderAt('/events/summer-festival');
+      expect(screen.getByRole('img', { name: 'Crowd in front of the main stage' })).toBeInTheDocument();
+    });
+
+    it('prefers the translation over the stored imageAlt', () => {
+      setConfig({ events: [{ ...festival, imageAlt: 'Crowd in front of the main stage' }] });
+      renderWithProviders(
+        <Routes>
+          <Route path="/events/:slug" element={<EventPage />} />
+        </Routes>,
+        {
+          route: '/events/summer-festival',
+          theme: true,
+          messages: { 'events.summer-festival.imageAlt': 'Foule devant la scène principale' },
+        },
+      );
+      expect(screen.getByRole('img', { name: 'Foule devant la scène principale' })).toBeInTheDocument();
+    });
+  });
+
+  it('waits instead of 404ing while the feature flags are still loading', () => {
+    mockFeaturesLoading();
+    renderAt('/events/summer-festival');
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.queryByText('Oops — nothing here!')).not.toBeInTheDocument();
   });
 });

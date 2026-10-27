@@ -2,9 +2,10 @@ import dayjs, { type Dayjs } from 'dayjs';
 import {
   EVENT_RESERVED_SLUGS,
   EVENT_SLUG_PATTERN,
-  UrlOrPathSchema,
+  HttpUrlSchema,
   type SiteEvent,
 } from '@simple-site/interfaces';
+import { DEFAULT_EVENT_SORT, sortEvents } from './eventsListSearch';
 
 /**
  * Pure editor-state helpers of the events list tab. Instants are STORED as UTC
@@ -155,7 +156,7 @@ export const validateEvents = (events: readonly EventDraft[]): EventFieldErrors[
     }
     if (!event.location.trim()) errors.location = 'empty';
     const website = event.websiteUrl?.trim();
-    if (website && !UrlOrPathSchema.safeParse(website).success) errors.website = 'invalid';
+    if (website && !HttpUrlSchema.safeParse(website).success) errors.website = 'invalid';
     return errors;
   });
 };
@@ -168,6 +169,7 @@ export const eventsAreValid = (errors: readonly EventFieldErrors[]): boolean =>
 export const normalizeEvent = (draft: EventDraft): SiteEvent => {
   const description = draft.description?.trim();
   const imageUrl = draft.imageUrl?.trim();
+  const imageAlt = draft.imageAlt?.trim();
   const websiteUrl = draft.websiteUrl?.trim();
   return {
     slug: draft.slug.trim(),
@@ -177,6 +179,9 @@ export const normalizeEvent = (draft: EventDraft): SiteEvent => {
     location: draft.location.trim(),
     ...(description ? { description } : {}),
     ...(imageUrl ? { imageUrl } : {}),
+    // An alt with no image describes nothing — it would only leak into the
+    // translation collector as an orphan key.
+    ...(imageUrl && imageAlt ? { imageAlt } : {}),
     ...(websiteUrl ? { websiteUrl } : {}),
   };
 };
@@ -185,8 +190,11 @@ export const normalizeEvent = (draft: EventDraft): SiteEvent => {
  * The editor's display order: start date DESCENDING — the furthest-future
  * event first, past ones sinking to the bottom. There is no manual reorder:
  * public placement is automatic from the dates.
+ *
+ * Delegates to the list tab's own sort so there is ONE implementation of
+ * "start date descending": the two disagreed on an unreadable date (`|| 0`
+ * here against an explicit NaN guard there), which is exactly the blank row a
+ * half-filled draft produces.
  */
 export const sortForEditor = <T extends SiteEvent>(events: readonly T[]): T[] =>
-  [...events].sort(
-    (a, b) => new Date(b.startDateTime || 0).getTime() - new Date(a.startDateTime || 0).getTime(),
-  );
+  sortEvents(events, DEFAULT_EVENT_SORT);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UrlOrPathSchema } from './url.interface.js';
+import { HttpUrlSchema, UrlOrPathSchema } from './url.interface.js';
 import type { I18nEntry } from './sections/section.interface.js';
 
 /**
@@ -115,6 +115,18 @@ export const SiteEventSchema = z
     description: z.string().optional(),
     /** Public URL of the illustration, typically picked from the media library. */
     imageUrl: UrlOrPathSchema.optional(),
+    /**
+     * What the illustration SHOWS, for anyone who cannot see it — a
+     * translation DEFAULT (key: `events.<slug>.imageAlt`). The poster is
+     * content on the surfaces that give it its own space (the detail page's
+     * header, the featured block), so those render it as the image's
+     * accessible name; absent, they fall back to an empty `alt`, which is the
+     * honest answer — a decorative image is better skipped than announced by
+     * its file name. The card grids and search rows always use an empty `alt`:
+     * there the poster sits inside a link already labelled by the event name,
+     * so naming it again would read the same event twice.
+     */
+    imageAlt: z.string().optional(),
     /** When the event starts — UTC instant, see {@link UtcDateTimeSchema}. */
     startDateTime: UtcDateTimeSchema,
     /** When the event ends; absent → single-day event. */
@@ -124,8 +136,13 @@ export const SiteEventSchema = z
      * query — a translation DEFAULT (key: `events.<slug>.location`).
      */
     location: z.string().min(1),
-    /** The event's own website, opened in a new tab; absent → no link shown. */
-    websiteUrl: UrlOrPathSchema.optional(),
+    /**
+     * The event's own website — an ABSOLUTE http(s) URL, opened in a new tab;
+     * absent → no link shown. Not {@link UrlOrPathSchema}: the field means
+     * "somewhere else on the web", so a site-relative path would open this
+     * site in a second tab.
+     */
+    websiteUrl: HttpUrlSchema.optional(),
   })
   .refine((event) => !(EVENT_RESERVED_SLUGS as readonly string[]).includes(event.slug), {
     message: `Reserved slug — the events routes own it (${EVENT_RESERVED_SLUGS.join(', ')})`,
@@ -169,7 +186,7 @@ export const EventsAgendaDesignSchema = z.object({
 
 export type EventsAgendaDesign = z.infer<typeof EventsAgendaDesignSchema>;
 
-export const EventsPageDesignSchema = z.object({
+export const EventPageDesignSchema = z.object({
   /** Ratio of the detail page's header illustration. Absent → {@link DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO}. */
   imageAspectRatio: EventAspectRatioSchema.optional(),
   /**
@@ -187,7 +204,7 @@ export const EventsPageDesignSchema = z.object({
   fullBackgroundImage: z.boolean().optional(),
 });
 
-export type EventsPageDesign = z.infer<typeof EventsPageDesignSchema>;
+export type EventPageDesign = z.infer<typeof EventPageDesignSchema>;
 
 export const EventsConfigSchema = z
   .object({
@@ -212,7 +229,7 @@ export const EventsConfigSchema = z
     design: z
       .object({
         agendaPage: EventsAgendaDesignSchema.optional(),
-        eventPage: EventsPageDesignSchema.optional(),
+        eventPage: EventPageDesignSchema.optional(),
       })
       .optional(),
   })
@@ -241,7 +258,8 @@ export type EventsConfig = z.infer<typeof EventsConfigSchema>;
 // Key layout:
 //  - `events.upcomingTitle|pastTitle`             the agenda section headings
 //  - `events.upcomingHeader|pastHeader`           the section introductions
-//  - `events.<slug>.name|description|location`    per-event texts (slug-scoped,
+//  - `events.<slug>.name|description|location|imageAlt`
+//                                                 per-event texts (slug-scoped,
 //    so reordering the list never re-maps translations — the positional-key
 //    tradeoff the gallery items accepted does not apply here)
 // A slug segment may contain `-` (see EVENT_SLUG_PATTERN); the translation
@@ -269,6 +287,9 @@ export const eventDescriptionKey = (slug: string): string => `${eventScope(slug)
 /** i18n key of an event's location (address). */
 export const eventLocationKey = (slug: string): string => `${eventScope(slug)}.location`;
 
+/** i18n key of the description of an event's illustration (its `alt` text). */
+export const eventImageAltKey = (slug: string): string => `${eventScope(slug)}.imageAlt`;
+
 /**
  * Translatable (key → default value) pairs the events config references.
  * Merged into the Translations editor's expected keys while FEATURE_EVENTS is
@@ -287,6 +308,7 @@ export const collectEventsI18nEntries = (config: EventsConfig): I18nEntry[] => {
     add(eventNameKey(event.slug), event.name);
     add(eventDescriptionKey(event.slug), event.description);
     add(eventLocationKey(event.slug), event.location);
+    add(eventImageAltKey(event.slug), event.imageAlt);
   }
   return entries;
 };

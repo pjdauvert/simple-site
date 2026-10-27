@@ -77,7 +77,7 @@ describe('ConfigModule', () => {
     const res = await handle(
       jsonRequest('https://site.test/api/config', 'POST', { ...storedConfig, pages: [legacyContactPage] }),
     );
-    expect(res.status).toBe(500); // ZodError → CONFIGURATION_ERROR, like every schema rejection
+    expect(res.status).toBe(400); // an invalid BODY is the caller's fault, like every schema rejection
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -114,8 +114,8 @@ describe('ConfigModule', () => {
   it('PUT /api/config/site rejects an invalid site body (missing siteName)', async () => {
     const { store } = seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/site', 'PUT', { logoUrl: '/x.svg' }));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     expect(store.set).not.toHaveBeenCalled();
   });
 
@@ -148,8 +148,8 @@ describe('ConfigModule', () => {
       ],
     };
     const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     expect(store.set).not.toHaveBeenCalled();
   });
 
@@ -163,8 +163,8 @@ describe('ConfigModule', () => {
       ],
     };
     const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     expect(store.set).not.toHaveBeenCalled();
   });
 
@@ -201,8 +201,8 @@ describe('ConfigModule', () => {
   it('PUT /api/config/themes rejects an invalid theme (missing required color)', async () => {
     const { data } = seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config/themes', 'PUT', [{ themeName: 'Bad' }]));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     expect(data.has('config:draft')).toBe(false); // nothing written on a validation failure
   });
 
@@ -236,8 +236,8 @@ describe('ConfigModule', () => {
     const { data } = seedStore();
     const menu = { entries: [{ type: 'page', pageName: 'page.ghost', visible: true }] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -260,8 +260,8 @@ describe('ConfigModule', () => {
       ] },
     ] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', grouped));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
   });
 
   it('PUT /api/config/menu rejects duplicate entries', async () => {
@@ -272,7 +272,7 @@ describe('ConfigModule', () => {
       { type: 'page', pageName: 'page.home', visible: false },
     ] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -307,8 +307,8 @@ describe('ConfigModule', () => {
       ] },
     ] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -322,7 +322,7 @@ describe('ConfigModule', () => {
       ] },
     ] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -333,7 +333,7 @@ describe('ConfigModule', () => {
       { type: 'group', groupId: 'more', menuTitle: 'Other', visible: true, children: [] },
     ] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -345,7 +345,7 @@ describe('ConfigModule', () => {
       ] },
     ] };
     const res = await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', menu));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -357,15 +357,15 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config:draft')!).menu).toEqual(menu);
 
     const bad = { entries: [], groupDisplay: 'sidebar' };
-    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', bad))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', bad))).status).toBe(400);
   });
 
   it('PUT /api/config/menu rejects an invalid groupId and an empty group label', async () => {
     const { data } = seedStore();
     const badId = { entries: [{ type: 'group', groupId: 'my-group', menuTitle: 'More', visible: true, children: [] }] };
-    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', badId))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', badId))).status).toBe(400);
     const emptyLabel = { entries: [{ type: 'group', groupId: 'more', menuTitle: '', visible: true, children: [] }] };
-    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', emptyLabel))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/menu', 'PUT', emptyLabel))).status).toBe(400);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -407,7 +407,7 @@ describe('ConfigModule', () => {
     expect(JSON.parse(data.get('config:draft')!).gallery.design).toEqual(design);
 
     const bad = { items: [], tags: [], design: { itemShowTitle: 'no' } };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(400);
   });
 
   it('PUT /api/config/events writes the DRAFT events and leaves pages/themes/site untouched', async () => {
@@ -451,8 +451,8 @@ describe('ConfigModule', () => {
       { events: [{ ...event, slug: 'Bad_Slug' }] },
     ]) {
       const res = await handle(jsonRequest('https://site.test/api/config/events', 'PUT', events));
-      expect(res.status).toBe(500);
-      expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+      expect(res.status).toBe(400);
+      expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     }
     expect(data.has('config:draft')).toBe(false);
   });
@@ -483,7 +483,7 @@ describe('ConfigModule', () => {
     for (const bad of [{ itemElevation: 30 }, { itemCornerRadius: 60 }, { itemElevation: 2.5 }, { itemElevation: 12 }]) {
       expect(
         (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design: bad }))).status,
-      ).toBe(500);
+      ).toBe(400);
     }
   });
 
@@ -495,7 +495,7 @@ describe('ConfigModule', () => {
 
     for (const itemMaxWidthPercent of [5, 150, 60.5]) {
       const bad = { items: [], tags: [], design: { itemMaxWidthPercent } };
-      expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
+      expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(400);
     }
   });
 
@@ -526,7 +526,7 @@ describe('ConfigModule', () => {
     for (const bad of rejected) {
       expect(
         (await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', { items: [], tags: [], design: bad }))).status,
-      ).toBe(500);
+      ).toBe(400);
     }
   });
 
@@ -551,12 +551,12 @@ describe('ConfigModule', () => {
       { tag: 'nature', displayName: 'Other nature' },
     ] };
     const res = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', duplicated));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
 
     // Tag deletion cascades to the items' references — a dangling one is a client bug.
     const dangling = { items: [{ title: 'Tree', tags: ['gone'] }], tags: [] };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', dangling))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', dangling))).status).toBe(400);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -568,25 +568,25 @@ describe('ConfigModule', () => {
 
     for (const tag of ['mon th\u00e8me', '\u00e9t\u00e9', 'a b', 'x'.repeat(65), '']) {
       const bad = { items: [], tags: [{ tag, displayName: 'Bad' }] };
-      expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(500);
+      expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', bad))).status).toBe(400);
     }
   });
 
   it('PUT /api/config/gallery rejects an empty tag displayName and an empty item title', async () => {
     const { data } = seedStore();
     const emptyName = { items: [], tags: [{ tag: 'ok', displayName: '' }] };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyName))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyName))).status).toBe(400);
     const emptyItem = { items: [{ imageUrl: '/img/a.jpg', title: '' }], tags: [] };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyItem))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', emptyItem))).status).toBe(400);
     expect(data.has('config:draft')).toBe(false);
   });
 
   it('PUT /api/config/gallery rejects unknown design values and a non-json content type', async () => {
     const { data } = seedStore();
     const badDesign = { items: [], tags: [], design: { captionPosition: 'diagonal' } };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badDesign))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badDesign))).status).toBe(400);
     const badMode = { items: [], tags: [], design: { displayMode: 'carousel' } };
-    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badMode))).status).toBe(500);
+    expect((await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', badMode))).status).toBe(400);
     const notJson = await handle(jsonRequest('https://site.test/api/config/gallery', 'PUT', {}, 'text/plain'));
     expect(notJson.status).toBe(400);
     expect((await readJson(notJson)).code).toBe(ErrorCode.INVALID_REQUEST);
@@ -597,8 +597,8 @@ describe('ConfigModule', () => {
     const { data } = seedStore();
     const config = { ...storedConfig, pages: [{ menuTitle: 'Team', pageName: 'page.team', route: '/team', sections: [] }] };
     const res = await handle(jsonRequest('https://site.test/api/config', 'POST', config));
-    expect(res.status).toBe(500);
-    expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    expect(res.status).toBe(400);
+    expect((await readJson(res)).code).toBe(ErrorCode.VALIDATION_FAILED);
     expect(data.has('config:draft')).toBe(false);
   });
 
@@ -850,5 +850,54 @@ describe('ConfigModule', () => {
     seedStore();
     const res = await handle(jsonRequest('https://site.test/api/config', 'PATCH'));
     expect(res.status).toBe(405);
+  });
+
+  // The 400/500 boundary: what the CALLER sent is a 400 naming the fields,
+  // what we had STORED is a 500 — the two must never be confused, because an
+  // admin seeing a 500 has no way to tell a typo from a corrupt blob.
+  describe('invalid body vs corrupt stored data', () => {
+    const bodyRejections: ReadonlyArray<[string, unknown, string]> = [
+      ['site', { logoUrl: '/x.svg' }, 'siteName'],
+      ['themes', [{ themeName: 'Broken' }], '0.primaryColor'],
+      ['menu', { entries: [{ type: 'page', pageName: 'page.nope', visible: true }] }, 'menu.entries.0'],
+      ['gallery', { items: [], tags: [{ tag: 'bad tag', displayName: 'Bad' }] }, 'tags.0.tag'],
+      ['events', { events: [{ slug: 'UPPER', name: 'X', startDateTime: '2027-01-01T00:00:00.000Z', location: 'Y' }] },
+        'events.0.slug'],
+    ];
+
+    it.each(bodyRejections)(
+      'PUT /api/config/%s answers 400 VALIDATION_FAILED naming the field, draft untouched',
+      async (section, body, field) => {
+        const { store } = seedStore();
+        const res = await handle(jsonRequest(`https://site.test/api/config/${section}`, 'PUT', body));
+        expect(res.status).toBe(400);
+        const json = await readJson(res);
+        expect(json.code).toBe(ErrorCode.VALIDATION_FAILED);
+        expect(json.details.errors.map((e: { field: string }) => e.field)).toContain(field);
+        expect(store.set).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['site', 'themes', 'menu', 'gallery', 'events'])(
+      'PUT /api/config/%s answers 400 INVALID_REQUEST on a malformed JSON body',
+      async (section) => {
+        const { store } = seedStore();
+        const res = await handle(jsonRequest(`https://site.test/api/config/${section}`, 'PUT', '{ not json'));
+        expect(res.status).toBe(400);
+        expect((await readJson(res)).code).toBe(ErrorCode.INVALID_REQUEST);
+        expect(store.set).not.toHaveBeenCalled();
+      },
+    );
+
+    it('still answers 500 CONFIGURATION_ERROR when the STORED config is the invalid one', async () => {
+      // A valid body merged over a draft blob we cannot parse: nothing the
+      // caller can fix, so it stays a server error.
+      seedStore({ config: storedConfig, 'config:draft': { site: { siteName: 'Draft' }, themes: 'not-an-array' } });
+      const res = await handle(
+        jsonRequest('https://site.test/api/config/site', 'PUT', { siteName: 'New', logoUrl: '/n.svg' }),
+      );
+      expect(res.status).toBe(500);
+      expect((await readJson(res)).code).toBe(ErrorCode.CONFIGURATION_ERROR);
+    });
   });
 });

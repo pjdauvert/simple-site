@@ -58,12 +58,12 @@ import {
   sortEvents,
   type EventMonthRange,
   type EventSortCriterion,
-} from './eventsSearch';
-import { MONTH_VIEWS, PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../pages/events/datePickers';
+} from './eventsListSearch';
+import { MONTH_VIEWS, PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../utils/datePickers';
 import { EventFormDialog } from './EventFormDialog';
+import { TOUCH_TARGET } from '../../../features/theme/muiTheme';
 
 /** Minimum size of anything the admin taps on a phone. */
-const TOUCH_TARGET = 44;
 
 /** The two bounds as the pickers hold them; `null` is an open side. */
 interface MonthBounds {

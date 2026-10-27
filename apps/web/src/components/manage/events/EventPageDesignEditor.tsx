@@ -13,10 +13,11 @@ import { updateEvents } from '../../../services/eventsService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { AspectRatioChoice } from './AspectRatioChoice';
-import { DesignTabLayout } from './DesignPreviewShell';
+import { DesignTabLayout } from '../DesignTabPanels';
 import { EventPageDesignPreview, type EventPagePreviewTarget } from './EventPageDesignPreview';
 import { useDesignSpotlight } from './designSpotlight';
 import { mergeEventPageDraft, placementLabelKey, toEventPageDraft, type EventPageDesignDraft } from './eventsDesign';
+import { TOUCH_TARGET } from '../../../features/theme/muiTheme';
 
 /** The placement group is labelled by its own rendered label element. */
 const PLACEMENT_LABEL_ID = 'events-page-image-placement-label';
@@ -99,7 +100,7 @@ export const EventPageDesignEditor: React.FC = () => {
               }}
               aria-labelledby={PLACEMENT_LABEL_ID}
               // Touch targets stay at 44 px, and the two labels wrap on a phone.
-              sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: 44, px: 2 } }}
+              sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: TOUCH_TARGET, px: 2 } }}
             >
               {EVENT_IMAGE_PLACEMENTS.map((placement) => (
                 <ToggleButton key={placement} value={placement}>
@@ -123,7 +124,7 @@ export const EventPageDesignEditor: React.FC = () => {
 
           <Box {...spotlight('fullBackground')}>
             <FormControlLabel
-              sx={{ minHeight: 44, mr: 0 }}
+              sx={{ minHeight: TOUCH_TARGET, mr: 0 }}
               control={
                 <Switch
                   checked={design.fullBackgroundImage}

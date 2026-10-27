@@ -204,10 +204,10 @@ export type MenuConfig = z.infer<typeof MenuConfigSchema>;
  */
 export const featurePageTitle = (menu: MenuConfig | undefined, feature: FeaturePageId): string => {
   for (const entry of menu?.entries ?? []) {
-    if (entry.type === "feature" && entry.feature === feature) return featureEntryLabel(entry);
-    if (entry.type === "group") {
-      const child = entry.children.find((c) => c.type === "feature" && c.feature === feature);
-      if (child?.type === "feature") return featureEntryLabel(child);
+    if (entry.type === 'feature' && entry.feature === feature) return featureEntryLabel(entry);
+    if (entry.type === 'group') {
+      const child = entry.children.find((child) => child.type === 'feature' && child.feature === feature);
+      if (child?.type === 'feature') return featureEntryLabel(child);
     }
   }
   return FEATURE_PAGE_DEFAULT_LABELS[feature];

@@ -11,7 +11,7 @@ import {
   normalizeForSearch,
   sortEvents,
   type SearchableEvent,
-} from './eventsSearch';
+} from './eventsListSearch';
 
 /** A searchable event — only the fields the helpers read. */
 const event = (name: string, description?: string, startDateTime = '2026-05-01T10:00:00.000Z'): SearchableEvent => ({

@@ -250,56 +250,56 @@ export class ConfigModule extends BaseHandler {
 
     /** PUT /api/config/site — merge the `site` section into the DRAFT. */
     private updateSite = async (store: Store, body: string, path: string): Promise<Response> => {
-        const site = SiteThemeConfigSchema.parse(JSON.parse(body));
+        const site = this.parseRequest(SiteThemeConfigSchema, this.parseJsonBody(body, path), path);
         const current = await this.readDraft(store, path);
-        const merged = SiteConfigSchema.parse({ ...current, site });
+        const merged = this.parseRequest(SiteConfigSchema, { ...current, site }, path);
         await this.writeDraft(store, merged);
         return this.createSuccessResponse({ message: 'Site settings updated successfully' });
     };
 
     /** PUT /api/config/themes — replace the `themes` array of the DRAFT. */
     private updateThemes = async (store: Store, body: string, path: string): Promise<Response> => {
-        const themes = SiteConfigSchema.shape.themes.parse(JSON.parse(body));
+        const themes = this.parseRequest(SiteConfigSchema.shape.themes, this.parseJsonBody(body, path), path);
         const current = await this.readDraft(store, path);
-        const merged = SiteConfigSchema.parse({ ...current, themes });
+        const merged = this.parseRequest(SiteConfigSchema, { ...current, themes }, path);
         await this.writeDraft(store, merged);
         return this.createSuccessResponse({ message: 'Themes updated successfully' });
     };
 
     /** PUT /api/config/menu — replace the `menu` of the DRAFT. */
     private updateMenu = async (store: Store, body: string, path: string): Promise<Response> => {
-        const menu = MenuConfigSchema.parse(JSON.parse(body));
+        const menu = this.parseRequest(MenuConfigSchema, this.parseJsonBody(body, path), path);
         const current = await this.readDraft(store, path);
         // Full re-parse validates menu integrity (no duplicates, no unknown page refs).
-        const merged = SiteConfigSchema.parse({ ...current, menu });
+        const merged = this.parseRequest(SiteConfigSchema, { ...current, menu }, path);
         await this.writeDraft(store, merged);
         return this.createSuccessResponse({ message: 'Menu updated successfully' });
     };
 
     /** PUT /api/config/gallery — replace the `gallery` of the DRAFT. */
     private updateGallery = async (store: Store, body: string, path: string): Promise<Response> => {
-        const gallery = GalleryConfigSchema.parse(JSON.parse(body));
+        const gallery = this.parseRequest(GalleryConfigSchema, this.parseJsonBody(body, path), path);
         const current = await this.readDraft(store, path);
         // Full re-parse validates gallery integrity (unique tags, valid tag ids,
-  // no item referencing an undeclared tag).
-        const merged = SiteConfigSchema.parse({ ...current, gallery });
+        // no item referencing an undeclared tag).
+        const merged = this.parseRequest(SiteConfigSchema, { ...current, gallery }, path);
         await this.writeDraft(store, merged);
         return this.createSuccessResponse({ message: 'Gallery updated successfully' });
     };
 
     /** PUT /api/config/events — replace the `events` of the DRAFT. */
     private updateEvents = async (store: Store, body: string, path: string): Promise<Response> => {
-        const events = EventsConfigSchema.parse(JSON.parse(body));
+        const events = this.parseRequest(EventsConfigSchema, this.parseJsonBody(body, path), path);
         const current = await this.readDraft(store, path);
         // Full re-parse validates events integrity (unique slugs, UTC instants).
-        const merged = SiteConfigSchema.parse({ ...current, events });
+        const merged = this.parseRequest(SiteConfigSchema, { ...current, events }, path);
         await this.writeDraft(store, merged);
         return this.createSuccessResponse({ message: 'Events updated successfully' });
     };
 
     /** POST /api/config — replace the whole DRAFT (never writes live). */
-    private setDraft = async (store: Store, body: string): Promise<Response> => {
-        const config = SiteConfigSchema.parse(JSON.parse(body));
+    private setDraft = async (store: Store, body: string, path: string): Promise<Response> => {
+        const config = this.parseRequest(SiteConfigSchema, this.parseJsonBody(body, path), path);
         await this.writeDraft(store, config);
         return this.createSuccessResponse({ message: 'Draft updated successfully' });
     };
@@ -345,7 +345,7 @@ export class ConfigModule extends BaseHandler {
 
     /** POST /api/config/import — upload a config as the new named draft. */
     private importDraft = async (store: Store, body: string, path: string): Promise<Response> => {
-        const parsed = ConfigImportRequestSchema.safeParse(JSON.parse(body));
+        const parsed = ConfigImportRequestSchema.safeParse(this.parseJsonBody(body, path));
         if (!parsed.success) {
             throw ErrorResponses.invalidRequest('Invalid configuration file', path);
         }
@@ -366,7 +366,7 @@ export class ConfigModule extends BaseHandler {
 
     /** PUT /api/config/versions/:key — rename a version. */
     private renameVersion = async (store: Store, key: string, body: string, path: string): Promise<Response> => {
-        const { name } = ConfigRenameRequestSchema.parse(JSON.parse(body));
+        const { name } = this.parseRequest(ConfigRenameRequestSchema, this.parseJsonBody(body, path), path);
         const manifest = await this.getManifest(store);
         if (key === 'published') {
             manifest.published.name = name;
@@ -463,7 +463,7 @@ export class ConfigModule extends BaseHandler {
             // Mutations
             if (method === 'POST' && pathname === '/api/config') {
                 this.requireJson(request, path);
-                return await this.setDraft(store, await request.text());
+                return await this.setDraft(store, await request.text(), path);
             }
             if (method === 'PUT' && pathname === '/api/config/site') {
                 this.requireJson(request, path);

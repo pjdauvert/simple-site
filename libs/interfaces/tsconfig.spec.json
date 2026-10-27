@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.lib.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": ["vitest/globals"]
+  },
+  // Typechecks the WHOLE library, tests included — `tsconfig.lib.json` excludes
+  // them so a test never reaches the published declarations.
+  "include": ["src/**/*.ts"]
+}

@@ -10,25 +10,11 @@ import {
   membersAreValid,
   normalizeLocalizedText,
   normalizeSocialLinks,
-  slugify,
   validateMembers,
 } from './teamDraft';
 
 const member = (slug: string, name = 'Jane Doe'): TeamMember =>
   ({ slug, name, jobTitle: {}, biography: {} });
-
-describe('slugify', () => {
-  it('lowercases, kebab-cases and strips diacritics', () => {
-    expect(slugify('Éla Dupont')).toBe('ela-dupont');
-    expect(slugify('  John   Smith  ')).toBe('john-smith');
-    expect(slugify("Zoë O'Brien")).toBe('zoe-o-brien');
-  });
-
-  it('collapses symbol runs and trims dangling hyphens', () => {
-    expect(slugify('--Jane_-_Doe!!')).toBe('jane-doe');
-    expect(slugify('***')).toBe('');
-  });
-});
 
 describe('validateMembers', () => {
   it('accepts a valid team', () => {

@@ -8,8 +8,9 @@
 4. Test on multiple screen sizes
 5. Keep documentation in sync — update the relevant file(s) under `docs/` whenever a PR changes a user-visible capability, API endpoint, configuration schema, or architectural decision
 6. **Show only applicable options** — in admin forms, an option that does not apply to the current context (e.g. a setting irrelevant to the selected display mode) is **hidden, not disabled**; its stored value survives the context switch and resurfaces with it. Disabled states are reserved for *temporary* conditions (invalid input, in-flight save). Preview aids — such as an orientation toggle — never hide design options: they simulate a different **user experience of the same parameters**, not a different design (first applied by the gallery Design tab)
-7. **A form that edits the configuration DRAFT auto-saves — and owns no save button** — it writes on its own through the shared `useDraftAutoSave` hook (`apps/web/src/hooks/useDraftAutoSave.ts`): the value the editor loads is the baseline (loading never writes), an edit settles for 800 ms, then the editor's own save body runs — re-read the fresh draft, merge **only** this editor's own fields, validate, `PUT`/`POST` — so concurrent tabs can never clobber each other. Writes are serialised (an edit landing mid-write goes out right after it), a still-pending edit is flushed on unmount — unless the form holds it back (`enabled: false` below), in which case it is dropped rather than written behind the admin's back — and a failed write waits for the next edit instead of retrying in a loop. Such a form renders **no** status widget of its own: it reports through the admin notification host, by calling the shared `useDraftSaveNotifications(state)` hook (`apps/web/src/hooks/useDraftSaveNotifications.ts`) next to the auto-save one. Every draft write across the admin shares **one keyed toast slot** (`notify(severity, message, { key })` rewrites the toast already on screen instead of stacking another), so an editing session reads as a single line that changes — *saving* then *saved*, auto-dismissed; a failure with its reason, kept until the admin closes it; nothing at all while an edit only waits out the debounce. A form whose current state the schema would reject passes `enabled: false` (empty theme name, duplicate name, out-of-range width, invalid route…) so the edit stays *pending* instead of hammering the API, and flags the offending field **on the spot** rather than after a failed save
-8. **Direct-save forms keep the one shared save button** — the editors that write live, outside the draft → publish cycle (team, contact, translations), render their save action through the shared `StickySaveButton` (`apps/web/src/components/manage/StickySaveButton.tsx`). It has two shapes and picks between them itself: a round icon-only floating button while the form still scrolls (covering as little as possible of the content it hovers over), and the ordinary labelled button once the end of the form is reached, sitting in the flow where a form is expected to end. Both shapes carry the same icon and the same `page.manage.save` label — **one** save wording across the whole admin, never a per-editor one ("Save team", "Save contact"…). The component takes only `onClick`, `type`, `disabled` and `submitting`: pass those and nothing else — never a plain in-flow save button, never a bespoke label
+7. **A form that edits the configuration DRAFT auto-saves — and owns no save button** — it writes through the shared `useDraftAutoSave` hook (`apps/web/src/hooks/useDraftAutoSave.ts`, whose JSDoc is the authority on the mechanics: debounce, serialisation, unmount flush, retry policy). Three rules bind the *form*: it renders no status widget of its own but reports through `useDraftSaveNotifications(state)`, so every draft write in the admin shares one keyed toast slot and an editing session reads as a single line that changes; a state the schema would reject is held back with `enabled: false` and the offending field is flagged **on the spot**, rather than after a failed save; and such a held-back edit is deliberately **dropped** on unmount, not written behind the admin's back
+8. **A link that opens a new tab says so** — any `target="_blank"` link or button renders `<NewTabHint/>` (`apps/web/src/components/NewTabHint.tsx`) after its visible label: a sighted visitor watches the tab appear, a screen-reader user gets no warning at all and lands somewhere their back button will not return from. The hint is **visually hidden text inside the link**, never an `aria-label` — an `aria-label` would replace the visible text, so the accessible name and the rendered label would drift apart, which breaks speech control ("click *More info*"). One platform key, `a11y.opensInNewTab`, in every chrome language
+9. **Direct-save forms keep the one shared save button** — the editors that write live, outside the draft → publish cycle (team, contact, translations), render their save action through the shared `StickySaveButton` (`apps/web/src/components/manage/StickySaveButton.tsx`). It has two shapes and picks between them itself: a round icon-only floating button while the form still scrolls (covering as little as possible of the content it hovers over), and the ordinary labelled button once the end of the form is reached, sitting in the flow where a form is expected to end. Both shapes carry the same icon and the same `page.manage.save` label — **one** save wording across the whole admin, never a per-editor one ("Save team", "Save contact"…). The component takes only `onClick`, `type`, `disabled` and `submitting`: pass those and nothing else — never a plain in-flow save button, never a bespoke label
 
 ## Tests — where they live
 
@@ -17,6 +18,7 @@
 - **Serverless functions: never place a `*.test.ts` at the root of `apps/functions/src`.** Netlify treats every top-level file of the functions directory as a deployable function, so a root test file gets compiled into `dist/apps/functions/*.test.js` and loaded as a function module by `netlify dev` (it ends up bundled under `.netlify/functions-serve/…`). The functions build also excludes `**/*.test.ts` (`tsconfig.build.json`) as a second guard — typechecking still covers tests through `tsconfig.json`.
 - **Function tests live at the `handlers/` level** (`apps/functions/src/handlers/*.test.ts`) and cover project logic only: modules, validation, gates (e.g. `featureGate.ts`, `AuthHandler.ts`).
 - **Never test the framework.** The `*.mts` entrypoints are pure wiring — route → handler chain — and stay logic-free and untested by design; anything worth testing must be extracted into `handlers/` and tested there.
+- **The shared contracts test themselves.** `libs/interfaces` has its own `test` target (`libs/interfaces/vitest.config.ts`, node environment) and its suites sit beside the sources they cover (`src/*.test.ts`). A schema is the agreement between *both* sides, so testing it from one of them would make the suite hostage to that app's structure. `tsconfig.lib.json` excludes `*.test.ts` from the published declarations; `tsconfig.spec.json` typechecks them.
 
 ## Tests — shared kits
 
@@ -78,6 +80,19 @@ proxy_set_header Upgrade    $http_upgrade;
 proxy_set_header Connection "upgrade";
 ```
 
+### `dev` vs `preview`
+
+`npm run dev` runs `netlify dev` over **Vite's dev server** (`netlify.toml`'s
+`[dev]` block: `command = "nx run web:dev"`, proxied from 3080 to 5173) — source
+modules, HMR, no build step.
+
+`npm run preview` rebuilds web + functions, then runs `netlify dev` with
+`-c '' -d dist/apps/web`: no framework command, `dist/apps/web` served as static
+files, `/api/*` from `dist/apps/functions`, the SPA fallback coming from the
+built `_redirects`. That empty `-c` matters — without it `netlify dev` would run
+the `[dev]` command and proxy Vite again, which is what it used to do, so
+`preview` previewed the dev server rather than the build.
+
 ### Suppressed runtime warnings
 
 `npm run dev` / `npm run preview` set `NODE_OPTIONS=--disable-warning=DEP0060`.
@@ -104,6 +119,17 @@ When it fails:
    with a comment-worthy entry in the PR description saying which advisory it
    closes. Never silence an advisory by lowering the gate.
 
+Every override in force is listed here, with the advisory it closes and when it
+can go. Add a row when you add one; delete the row and the override together.
+
+| Override | Pulled in by | Closes | Drop it when |
+|---|---|---|---|
+| `undici: ^7.30.1` | `nx` | GHSA-4w7w-5xrc-9h26 (cache poisoning via cross-origin redirects), GHSA-2m5v-pch6-74hx (TLS certificate-validation bypass), GHSA-qrxm-fqhp-jwvm (DoS via TLS 1.2 renegotiation) — all `high`, patched in 7.30.1 | `nx` depends on `undici >= 7.30.1` itself |
+| `toml: ^5.0.1` | `netlify-cli` (directly and via `@netlify/zip-it-and-ship-it`) | GHSA-4qx8-w7c3-pj3p, GHSA-9j65-hcg3-gc64, GHSA-9qmh-m7c6-f92p — three `high` quadratic-complexity / unbounded-input DoS paths in `toml.parse()`, patched in 5.0.1 | `netlify-cli` and `zip-it-and-ship-it` both depend on `toml >= 5.0.1` |
+
+Both are **dev-only** tooling (the Nx task runner and the Netlify CLI); neither
+reaches the runtime tree, which `npm run audit` checks separately.
+
 ## Continuous Integration
 
 Every pull request runs the same gates in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) on each pushed commit: install, dependency audit, lint, typecheck, tests, and build. A superseded run is cancelled when new commits arrive. All checks must pass before merge — fix the underlying issue rather than re-running.
@@ -127,7 +153,7 @@ React 19 requires more recent browser versions than React 18.
 
 Before merging any UI change:
 
-- [ ] Touch targets are at least 44 × 44 px
+- [ ] Touch targets are at least 44 × 44 px (`TOUCH_TARGET`, `features/theme/muiTheme.ts` — import it, do not retype the number)
 - [ ] Text is readable without zooming (minimum 14 px)
 - [ ] Navigation works with the hamburger menu on mobile
 - [ ] Content adapts to portrait and landscape orientations

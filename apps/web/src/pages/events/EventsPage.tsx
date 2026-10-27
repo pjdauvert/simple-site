@@ -22,6 +22,7 @@ import { classifyEvents, filterVisiblePast } from "./eventDates";
 import { eventsPageTitle, eventsSearchRoute, markdownBodySx, resolveAgendaDesign } from "./eventDisplay";
 import { NextEventSection } from "./NextEventSection";
 import { EventCardGrid } from "./EventCardGrid";
+import { TOUCH_TARGET } from "../../features/theme/muiTheme";
 
 /**
  * One agenda section's chrome: heading (stored title as translation default,
@@ -127,7 +128,7 @@ export const EventsPage: React.FC = () => {
               to={eventsSearchRoute()}
               variant="outlined"
               startIcon={<SearchIcon />}
-              sx={{ minHeight: 44, width: { xs: "100%", sm: "auto" } }}
+              sx={{ minHeight: TOUCH_TARGET, width: { xs: "100%", sm: "auto" } }}
             >
               <FormattedMessage id="page.events.search.link" />
             </Button>
