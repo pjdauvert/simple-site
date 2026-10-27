@@ -42,7 +42,8 @@ export const DRAFT_AUTO_SAVE_DELAY = 800;
  * serialised, so a change landing mid-write is written right after it (never
  * concurrently, which would make two merges race over the same draft). A change
  * still pending when the editor unmounts is flushed, so switching tab or page
- * never silently drops an edit.
+ * never silently drops an edit — unless the form holds it back as invalid
+ * (`enabled: false`), which is a deliberate drop, not a lost edit.
  *
  * Comparison is structural (`JSON.stringify`): editors rebuild their state
  * objects on every render, and re-saving an identical value would spam the API.
@@ -66,10 +67,17 @@ export const useDraftAutoSave = <T>({
   const hasWrittenRef = useRef(false);
   const failedSnapshotRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
+  const enabledRef = useRef(enabled);
   valueRef.current = value;
   saveRef.current = save;
+  enabledRef.current = enabled;
 
   const flush = useCallback(async (): Promise<void> => {
+    // Read from the ref, not the closure: the unmount flush and the post-write
+    // chain run outside the render that armed them, and a form holding an
+    // INVALID value back must not have it written from under them — the server
+    // would refuse it and the editor is already gone to report the failure.
+    if (!enabledRef.current) return;
     const current = valueRef.current;
     if (current === null) return;
     const snapshot = JSON.stringify(current);
@@ -140,7 +148,8 @@ export const useDraftAutoSave = <T>({
     () => () => {
       mountedRef.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
-      // Fire-and-forget: the editor is gone, but the edit must still land.
+      // Fire-and-forget: the editor is gone, but a VALID edit must still land
+      // (`flush` drops it while the form is disabled).
       void flush();
     },
     [flush],

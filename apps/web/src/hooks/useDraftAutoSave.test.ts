@@ -175,4 +175,19 @@ describe('useDraftAutoSave', () => {
     });
     expect(save).toHaveBeenCalledWith({ title: 'B' });
   });
+
+  it('drops — never writes — a change the form holds back as invalid when it unmounts', async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const { rerender, unmount } = renderHook(
+      ({ value, enabled }) => useDraftAutoSave({ value, save, enabled }),
+      { initialProps: { value: { title: 'A' }, enabled: true } },
+    );
+    rerender({ value: { title: '' }, enabled: false }); // a required field emptied
+
+    await act(async () => {
+      unmount();
+    });
+    // The server would refuse it, and the editor is gone to report the failure.
+    expect(save).not.toHaveBeenCalled();
+  });
 });
