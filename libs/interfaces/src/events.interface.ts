@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UrlOrPathSchema } from './url.interface.js';
+import { HttpUrlSchema, UrlOrPathSchema } from './url.interface.js';
 import type { I18nEntry } from './sections/section.interface.js';
 
 /**
@@ -136,8 +136,13 @@ export const SiteEventSchema = z
      * query — a translation DEFAULT (key: `events.<slug>.location`).
      */
     location: z.string().min(1),
-    /** The event's own website, opened in a new tab; absent → no link shown. */
-    websiteUrl: UrlOrPathSchema.optional(),
+    /**
+     * The event's own website — an ABSOLUTE http(s) URL, opened in a new tab;
+     * absent → no link shown. Not {@link UrlOrPathSchema}: the field means
+     * "somewhere else on the web", so a site-relative path would open this
+     * site in a second tab.
+     */
+    websiteUrl: HttpUrlSchema.optional(),
   })
   .refine((event) => !(EVENT_RESERVED_SLUGS as readonly string[]).includes(event.slug), {
     message: `Reserved slug — the events routes own it (${EVENT_RESERVED_SLUGS.join(', ')})`,

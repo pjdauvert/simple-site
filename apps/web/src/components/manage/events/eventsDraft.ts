@@ -2,7 +2,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import {
   EVENT_RESERVED_SLUGS,
   EVENT_SLUG_PATTERN,
-  UrlOrPathSchema,
+  HttpUrlSchema,
   type SiteEvent,
 } from '@simple-site/interfaces';
 import { DEFAULT_EVENT_SORT, sortEvents } from './eventsListSearch';
@@ -156,7 +156,7 @@ export const validateEvents = (events: readonly EventDraft[]): EventFieldErrors[
     }
     if (!event.location.trim()) errors.location = 'empty';
     const website = event.websiteUrl?.trim();
-    if (website && !UrlOrPathSchema.safeParse(website).success) errors.website = 'invalid';
+    if (website && !HttpUrlSchema.safeParse(website).success) errors.website = 'invalid';
     return errors;
   });
 };
