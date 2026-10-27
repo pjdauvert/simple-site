@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { SiteConfig } from '@simple-site/interfaces';
+import type { SiteConfig } from './index.js';
 import {
   EventsConfigSchema,
   I18nDictionarySchema,
@@ -13,7 +13,7 @@ import {
   eventNameKey,
   EVENTS_UPCOMING_TITLE_KEY,
   EVENTS_PAST_HEADER_KEY,
-} from '@simple-site/interfaces';
+} from './index.js';
 
 const validEvent = {
   slug: 'fete-du-port',

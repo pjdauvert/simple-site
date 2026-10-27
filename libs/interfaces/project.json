@@ -5,8 +5,13 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/dist/interfaces"],
-      "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/tsconfig.lib.json"],
+      "outputs": [
+        "{workspaceRoot}/dist/interfaces"
+      ],
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/tsconfig.lib.json"
+      ],
       "options": {
         "commands": [
           "rm -f node_modules/.tmp/tsconfig.interfaces.tsbuildinfo",
@@ -24,7 +29,13 @@
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsc -p libs/interfaces/tsconfig.lib.json --noEmit"
+        "command": "tsc -p libs/interfaces/tsconfig.spec.json --noEmit"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --config libs/interfaces/vitest.config.ts"
       }
     }
   },
