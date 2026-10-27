@@ -5,6 +5,7 @@ import {
   UrlOrPathSchema,
   type SiteEvent,
 } from '@simple-site/interfaces';
+import { DEFAULT_EVENT_SORT, sortEvents } from './eventsListSearch';
 
 /**
  * Pure editor-state helpers of the events list tab. Instants are STORED as UTC
@@ -189,8 +190,11 @@ export const normalizeEvent = (draft: EventDraft): SiteEvent => {
  * The editor's display order: start date DESCENDING — the furthest-future
  * event first, past ones sinking to the bottom. There is no manual reorder:
  * public placement is automatic from the dates.
+ *
+ * Delegates to the list tab's own sort so there is ONE implementation of
+ * "start date descending": the two disagreed on an unreadable date (`|| 0`
+ * here against an explicit NaN guard there), which is exactly the blank row a
+ * half-filled draft produces.
  */
 export const sortForEditor = <T extends SiteEvent>(events: readonly T[]): T[] =>
-  [...events].sort(
-    (a, b) => new Date(b.startDateTime || 0).getTime() - new Date(a.startDateTime || 0).getTime(),
-  );
+  sortEvents(events, DEFAULT_EVENT_SORT);

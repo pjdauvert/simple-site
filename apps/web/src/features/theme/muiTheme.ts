@@ -23,6 +23,15 @@ function buildShadowsArray(): Theme['shadows'] {
 }
 
 /**
+ * Minimum side of anything a finger has to hit, in px. The platform's
+ * mobile-first floor: every interactive surface — buttons, icon buttons, list
+ * rows, picker fields, toggle buttons, menu items — is at least this tall,
+ * however small its label. Declared once so a screen that forgets it is a
+ * visible omission rather than a different magic number.
+ */
+export const TOUCH_TARGET = 44;
+
+/**
  * The brand gradient — the theme's primary → secondary → tertiary sweep used as
  * the placeholder background wherever an image is expected but absent (cards,
  * event posters…). Tertiary falls back to primary on two-color themes.

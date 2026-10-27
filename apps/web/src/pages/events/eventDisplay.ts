@@ -146,11 +146,12 @@ export const eventColumnsSx = (columns: number): { xs: string; sm: string; md: s
   md: `repeat(${columns}, 1fr)`,
 });
 
-/**
- * Right-sized CDN renditions (no-ops on non-ImageKit URLs). Cards and headers
- * ship a responsive `srcSet` of width buckets (the gallery's pattern) with a
- * `sizes` hint, over a mid-bucket `src` fallback.
- */
+// ---------------------------------------------------------------------------
+// Right-sized CDN renditions (no-ops on non-ImageKit URLs). Cards and headers
+// ship a responsive `srcSet` of width buckets (the gallery's pattern) with a
+// `sizes` hint, over a mid-bucket `src` fallback.
+// ---------------------------------------------------------------------------
+
 /** Delivery buckets of the card illustrations — tiles scale with the column count. */
 export const EVENT_CARD_WIDTHS: readonly number[] = [320, 480, 640, 960];
 /** Delivery buckets of the featured poster and detail-page header. */

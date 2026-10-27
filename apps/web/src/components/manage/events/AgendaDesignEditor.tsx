@@ -34,7 +34,7 @@ import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { AgendaDesignPreview, type AgendaPreviewTarget } from './AgendaDesignPreview';
 import { AspectRatioChoice } from './AspectRatioChoice';
-import { DesignTabLayout } from './DesignPreviewShell';
+import { DesignTabLayout } from '../DesignTabPanels';
 import { useDesignSpotlight } from './designSpotlight';
 import {
   mergeAgendaDraft,
@@ -43,6 +43,7 @@ import {
   type AgendaDesignDraft,
   type SectionTextsDraft,
 } from './eventsDesign';
+import { TOUCH_TARGET } from '../../../features/theme/muiTheme';
 
 /** The desktop column counts the editor offers (the schema's bounds, enumerated). */
 const COLUMN_CHOICES = Array.from(
@@ -168,7 +169,7 @@ export const AgendaDesignEditor: React.FC = () => {
               onChange={(e) => setAgenda({ ...agenda, pastEventsMode: e.target.value as PastEventsMode })}
             >
               {PAST_EVENTS_MODES.map((mode) => (
-                <MenuItem key={mode} value={mode} sx={{ minHeight: 44 }}>
+                <MenuItem key={mode} value={mode} sx={{ minHeight: TOUCH_TARGET }}>
                   {intl.formatMessage({ id: `page.manage.events.design.pastEvents.${mode}` })}
                 </MenuItem>
               ))}
@@ -207,7 +208,7 @@ export const AgendaDesignEditor: React.FC = () => {
                 if (columns) setAgenda({ ...agenda, columns });
               }}
               aria-labelledby="events-columns-label"
-              sx={{ '& .MuiToggleButton-root': { minHeight: 44, px: 2.5 } }}
+              sx={{ '& .MuiToggleButton-root': { minHeight: TOUCH_TARGET, px: 2.5 } }}
             >
               {COLUMN_CHOICES.map((count) => (
                 <ToggleButton key={count} value={count}>
@@ -219,7 +220,7 @@ export const AgendaDesignEditor: React.FC = () => {
 
           <Box {...spotlight('location')}>
             <FormControlLabel
-              sx={{ minHeight: 44, mr: 0 }}
+              sx={{ minHeight: TOUCH_TARGET, mr: 0 }}
               control={
                 <Switch
                   checked={agenda.showLocationOnCards}
@@ -236,7 +237,7 @@ export const AgendaDesignEditor: React.FC = () => {
 
           <Box {...spotlight('backdrop')}>
             <FormControlLabel
-              sx={{ minHeight: 44, mr: 0 }}
+              sx={{ minHeight: TOUCH_TARGET, mr: 0 }}
               control={
                 <Switch
                   checked={agenda.showFeaturedBackdrop}
@@ -270,7 +271,7 @@ export const AgendaDesignEditor: React.FC = () => {
                 if (weekStartsOn) setAgenda({ ...agenda, weekStartsOn });
               }}
               aria-labelledby="events-week-start-label"
-              sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: 44, px: 2 } }}
+              sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: TOUCH_TARGET, px: 2 } }}
             >
               {EVENT_WEEK_STARTS.map((day) => (
                 <ToggleButton key={day} value={day}>

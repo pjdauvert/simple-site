@@ -60,7 +60,7 @@ export const EventSearchRow: React.FC<{
         sx={{
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
-          alignItems: { xs: 'stretch', md: 'stretch' },
+          alignItems: 'stretch',
           height: { md: SEARCH_ROW_HEIGHT },
         }}
       >

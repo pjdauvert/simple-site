@@ -23,6 +23,7 @@ import {
   eventRoute,
   markdownBodySx,
 } from "./eventDisplay";
+import { TOUCH_TARGET } from "../../features/theme/muiTheme";
 
 /**
  * The agenda's featured block — the next (or ongoing) event. The section's
@@ -141,7 +142,7 @@ export const NextEventSection: React.FC<{
                     target="_blank"
                     rel="noopener noreferrer"
                     variant="contained"
-                    sx={{ minHeight: 44 }}
+                    sx={{ minHeight: TOUCH_TARGET }}
                   >
                     <FormattedMessage id="page.events.moreInfo" />
                     <NewTabHint />

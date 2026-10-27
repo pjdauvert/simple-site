@@ -7,16 +7,21 @@ import {
   monthFirstDay,
   monthLastDay,
   type EventDayRange,
-} from '../../../pages/events/eventSearch';
+} from '../../../pages/events/eventSearchRules';
 
-/** The search rules themselves are shared with the public search page. */
-export { normalizeForSearch } from '../../../pages/events/eventSearch';
+/** The matching rules themselves are shared with the public search page. */
+export { normalizeForSearch } from '../../../pages/events/eventSearchRules';
 
 /**
- * DISPLAY-ONLY search and sort of the events list tab. Nothing here ever
- * reaches the draft: the stored order stays start-date descending (see
- * `sortForEditor`), these helpers only decide which rows the admin sees and in
- * which order the editor paints them.
+ * How the events LIST TAB narrows and orders what it paints: the admin's sort
+ * selector, and a date filter expressed in whole MONTHS rather than days. The
+ * matching rules it stands on — what a query matches, what a day range selects
+ * — belong to `pages/events/eventSearchRules.ts` and are shared with the
+ * public search page; only the list-level presentation lives here.
+ *
+ * Nothing here ever reaches the draft: the stored order stays start-date
+ * descending (see `sortForEditor`), these helpers only decide which rows the
+ * admin sees and in which order the editor paints them.
  */
 
 /** The event fields search, sort and the date filter read — from the shared contract. */
@@ -34,7 +39,7 @@ export const DEFAULT_EVENT_SORT: EventSortCriterion = 'startDesc';
 /**
  * The admin searches the texts it EDITS — the stored translation defaults —
  * while the public page searches the translations a visitor reads; the
- * matching rules are the same (see `pages/events/eventSearch.ts`).
+ * matching rules are the same (see `pages/events/eventSearchRules.ts`).
  */
 const searchableTexts = (event: SearchableEvent): string[] => [event.name, event.description ?? ''];
 
@@ -80,17 +85,11 @@ const monthRangeDays = (range: EventMonthRange): EventDayRange => ({
   to: monthLastDay(range.to),
 });
 
-/** True when NEITHER bound is usable — the filter then lets every event through. */
+/** `isEmptyDayRange` of the shared rules, read as months. */
 export const isEmptyMonthRange = (range: EventMonthRange): boolean =>
   !monthFirstDay(range.from) && !monthFirstDay(range.to);
 
-/**
- * True when the event's own span overlaps the filtered months — the useful
- * reading of a date filter on a list of intervals: an event running from
- * December to January shows up under either month. An event with no start
- * date yet is ALWAYS kept: it has no date to compare, and it is the one row
- * the admin has to reach (it is what holds the save back).
- */
+/** {@link matchesEventDayRange} over whole months — same overlap rule. */
 export const matchesEventMonthRange = (event: SearchableEvent, range: EventMonthRange): boolean =>
   matchesEventDayRange(event, monthRangeDays(range));
 

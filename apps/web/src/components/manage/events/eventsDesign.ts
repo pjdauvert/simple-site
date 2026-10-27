@@ -12,7 +12,7 @@ import {
   type EventImagePlacement,
   type EventsAgendaDesign,
   type EventsConfig,
-  type EventsPageDesign,
+  type EventPageDesign,
 } from '@simple-site/interfaces';
 import {
   resolveAgendaDesign,
@@ -82,8 +82,15 @@ export const fromAgendaDraft = (draft: AgendaDesignDraft): EventsAgendaDesign | 
   if (draft.pastEventsFromDate) design.pastEventsFromDate = draft.pastEventsFromDate;
   if (draft.cardAspectRatio !== DEFAULT_EVENT_CARD_ASPECT_RATIO) design.cardAspectRatio = draft.cardAspectRatio;
   if (draft.columns !== DEFAULT_EVENT_COLUMNS) design.columns = draft.columns;
-  if (draft.showLocationOnCards !== DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS) design.showLocationOnCards = false;
-  if (draft.showFeaturedBackdrop !== DEFAULT_EVENT_SHOW_FEATURED_BACKDROP) design.showFeaturedBackdrop = false;
+  // Store the VALUE, never the literal that happens to be its opposite today:
+  // flipping a DEFAULT_EVENT_* constant would otherwise silently persist the
+  // wrong thing. The guard already proves it differs from the default.
+  if (draft.showLocationOnCards !== DEFAULT_EVENT_SHOW_LOCATION_ON_CARDS) {
+    design.showLocationOnCards = draft.showLocationOnCards;
+  }
+  if (draft.showFeaturedBackdrop !== DEFAULT_EVENT_SHOW_FEATURED_BACKDROP) {
+    design.showFeaturedBackdrop = draft.showFeaturedBackdrop;
+  }
   if (draft.weekStartsOn !== DEFAULT_EVENT_WEEK_START) design.weekStartsOn = draft.weekStartsOn;
   return Object.keys(design).length > 0 ? design : undefined;
 };
@@ -91,22 +98,25 @@ export const fromAgendaDraft = (draft: AgendaDesignDraft): EventsAgendaDesign | 
 export const toEventPageDraft = (events: EventsConfig | undefined): EventPageDesignDraft =>
   resolveEventPageDesign(events);
 
-export const fromEventPageDraft = (draft: EventPageDesignDraft): EventsPageDesign | undefined => {
-  const design: EventsPageDesign = {};
+export const fromEventPageDraft = (draft: EventPageDesignDraft): EventPageDesign | undefined => {
+  const design: EventPageDesign = {};
   // Both surfaces default to A4 now — a poster shown in its own ratio.
   if (draft.imageAspectRatio !== DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO) {
     design.imageAspectRatio = draft.imageAspectRatio;
   }
   if (draft.imagePlacement !== DEFAULT_EVENT_PAGE_IMAGE_PLACEMENT) design.imagePlacement = draft.imagePlacement;
-  // Opt-in toggle: only `true` is ever stored.
-  if (draft.fullBackgroundImage !== DEFAULT_EVENT_FULL_BACKGROUND_IMAGE) design.fullBackgroundImage = true;
+  // Opt-in toggle: with the default off, only `true` is ever stored — but
+  // store the value, so inverting the constant cannot invert what is written.
+  if (draft.fullBackgroundImage !== DEFAULT_EVENT_FULL_BACKGROUND_IMAGE) {
+    design.fullBackgroundImage = draft.fullBackgroundImage;
+  }
   return Object.keys(design).length > 0 ? design : undefined;
 };
 
 /** The stored `design` block, or undefined when both surfaces are pristine. */
 const composeDesign = (
   agendaPage: EventsAgendaDesign | undefined,
-  eventPage: EventsPageDesign | undefined,
+  eventPage: EventPageDesign | undefined,
 ): EventsConfig['design'] => {
   if (!agendaPage && !eventPage) return undefined;
   return { ...(agendaPage ? { agendaPage } : {}), ...(eventPage ? { eventPage } : {}) };

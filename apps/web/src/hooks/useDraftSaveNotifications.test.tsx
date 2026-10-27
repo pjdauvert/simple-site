@@ -7,7 +7,6 @@ import type { DraftSaveState, DraftSaveStatus } from './useDraftAutoSave';
 const state = (status: DraftSaveStatus, error: string | null = null): DraftSaveState => ({
   status,
   error,
-  saveNow: vi.fn(),
 });
 
 const Probe: React.FC<{ state: DraftSaveState }> = ({ state: value }) => {

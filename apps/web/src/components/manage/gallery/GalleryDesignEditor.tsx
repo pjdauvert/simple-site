@@ -51,6 +51,7 @@ import { updateGallery } from '../../../services/galleryService';
 import { useDraftAutoSave } from '../../../hooks/useDraftAutoSave';
 import { useDraftSaveNotifications } from '../../../hooks/useDraftSaveNotifications';
 import { ColorField } from '../themes/ColorField';
+import { DesignTabLayout } from '../DesignTabPanels';
 import {
   emptyGallery,
   setCaptionPosition,
@@ -260,8 +261,9 @@ export const GalleryDesignEditor: React.FC = () => {
   const tiledMode = displayMode === 'grid' || displayMode === 'mosaic';
 
   return (
-    <Box sx={{ display: 'flex', gap: { md: 4, lg: 6 }, alignItems: 'flex-start', maxWidth: 1100 }}>
-      <Stack spacing={4} sx={{ flex: 1, minWidth: 0 }}>
+    <DesignTabLayout
+      form={
+        <>
         <Box>
           <Typography variant="subtitle2" gutterBottom id="gallery-display-mode-label">
             <FormattedMessage id="page.manage.gallery.displayMode" />
@@ -556,24 +558,9 @@ export const GalleryDesignEditor: React.FC = () => {
             )}
           </Stack>
         </Box>
-      </Stack>
-
-      {/* Symbolic preview of the picked design — right half, desktop only.
-          The settings column is long, so the preview sticks under the fixed
-          admin AppBar (64 px) and stays in view while the form scrolls; a
-          taller skeleton scrolls inside its own box rather than overflowing. */}
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          display: { xs: 'none', md: 'block' },
-          position: 'sticky',
-          top: 88,
-          alignSelf: 'flex-start',
-          maxHeight: 'calc(100vh - 112px)',
-          overflowY: 'auto',
-        }}
-      >
+        </>
+      }
+      preview={
         <GalleryDesignPreview
           displayMode={displayMode}
           captionPosition={captionPosition}
@@ -590,7 +577,7 @@ export const GalleryDesignEditor: React.FC = () => {
           orientation={previewOrientation}
           onOrientationChange={setPreviewOrientation}
         />
-      </Box>
-    </Box>
+      }
+    />
   );
 };

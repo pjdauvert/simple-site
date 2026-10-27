@@ -2,6 +2,7 @@ import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EVENT_ASPECT_RATIOS, type EventAspectRatio } from '@simple-site/interfaces';
 import { aspectLabelKey } from './eventsDesign';
+import { TOUCH_TARGET } from '../../../features/theme/muiTheme';
 
 /**
  * The aspect-ratio picker both events design tabs offer (card images, detail
@@ -36,7 +37,7 @@ export const AspectRatioChoice: React.FC<{
         }}
         aria-labelledby={id}
         // Touch targets stay at 44 px however small the label is.
-        sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: 44, px: 2 } }}
+        sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { minHeight: TOUCH_TARGET, px: 2 } }}
       >
         {EVENT_ASPECT_RATIOS.map((ratio) => (
           <ToggleButton key={ratio} value={ratio} aria-label={intl.formatMessage({ id: aspectLabelKey(ratio) })}>

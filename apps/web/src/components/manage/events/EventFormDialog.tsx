@@ -17,8 +17,9 @@ import { eventDescriptionKey, eventImageAltKey, eventLocationKey, eventNameKey }
 import { MediaUrlField } from '../../media';
 import { TranslateAdornment } from '../TranslateAdornment';
 import { slugify } from '../slugify';
-import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../pages/events/datePickers';
+import { PICKER_BUTTON_SX, PICKER_FIELD_SX, pickerLocale } from '../../../utils/datePickers';
 import { applyWhen, readWhen, type EventDraft, type EventFieldErrors, type EventWhenPatch } from './eventsDraft';
+import { TOUCH_TARGET } from '../../../features/theme/muiTheme';
 
 interface EventFormDialogProps {
   open: boolean;
@@ -274,7 +275,7 @@ export const EventFormDialog: React.FC<EventFormDialogProps> = ({
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ '& .MuiButton-root': { minHeight: 44 } }}>
+        <DialogActions sx={{ '& .MuiButton-root': { minHeight: TOUCH_TARGET } }}>
           <Button onClick={onCancel}>
             <FormattedMessage id="page.manage.events.cancel" />
           </Button>

@@ -181,7 +181,7 @@ export const EventsAgendaDesignSchema = z.object({
 
 export type EventsAgendaDesign = z.infer<typeof EventsAgendaDesignSchema>;
 
-export const EventsPageDesignSchema = z.object({
+export const EventPageDesignSchema = z.object({
   /** Ratio of the detail page's header illustration. Absent → {@link DEFAULT_EVENT_PAGE_IMAGE_ASPECT_RATIO}. */
   imageAspectRatio: EventAspectRatioSchema.optional(),
   /**
@@ -199,7 +199,7 @@ export const EventsPageDesignSchema = z.object({
   fullBackgroundImage: z.boolean().optional(),
 });
 
-export type EventsPageDesign = z.infer<typeof EventsPageDesignSchema>;
+export type EventPageDesign = z.infer<typeof EventPageDesignSchema>;
 
 export const EventsConfigSchema = z
   .object({
@@ -224,7 +224,7 @@ export const EventsConfigSchema = z
     design: z
       .object({
         agendaPage: EventsAgendaDesignSchema.optional(),
-        eventPage: EventsPageDesignSchema.optional(),
+        eventPage: EventPageDesignSchema.optional(),
       })
       .optional(),
   })

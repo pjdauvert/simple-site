@@ -14,8 +14,6 @@ export interface DraftSaveState {
   status: DraftSaveStatus;
   /** Message of the last failure, when `status === 'error'`. */
   error: string | null;
-  /** Flushes a pending change immediately (e.g. before leaving the tab). */
-  saveNow: () => Promise<void>;
 }
 
 interface UseDraftAutoSaveOptions<T> {
@@ -155,5 +153,8 @@ export const useDraftAutoSave = <T>({
     [flush],
   );
 
-  return { status, error, saveNow: flush };
+  // No manual flush is exposed: the unmount effect above already covers the
+  // only case a caller would want one (leaving the tab or the page), and an
+  // editor able to force a write out of band could race the debounce.
+  return { status, error };
 };

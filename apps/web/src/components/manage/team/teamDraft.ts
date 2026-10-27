@@ -67,6 +67,3 @@ export const validateMembers = (members: TeamMember[]): MemberFieldErrors[] => {
 export const membersAreValid = (errors: MemberFieldErrors[]): boolean =>
   errors.every((e) => !e.name && !e.slug);
 
-// Slug derivation moved to the shared manage-level helper; re-exported so
-// existing imports (dialog, tests) keep working.
-export { slugify } from '../slugify';

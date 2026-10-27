@@ -25,6 +25,7 @@ import {
   markdownBodySx,
   resolveEventPageDesign,
 } from './eventDisplay';
+import { TOUCH_TARGET } from '../../features/theme/muiTheme';
 
 /**
  * Public /events/<slug> detail page — the full fiche: the illustration
@@ -52,21 +53,24 @@ export const EventPage: React.FC = () => {
   const siteContext = useSiteConfig();
   const theme = useTheme();
   const { siteThemeConfig } = useAppTheme();
-  if (!siteContext) throw new Error('EventPage must be called within <SiteConfigProvider>');
-  const { config } = siteContext;
+  // The provider guard sits AFTER every hook (just below), the way the sibling
+  // feature pages place it: a conditional throw above a hook is what
+  // `react-hooks/rules-of-hooks` exists to catch.
+  const config = siteContext?.config;
 
-  const event = flags?.events && slug ? eventBySlug(config.events, slug) : undefined;
+  const event = flags?.events && slug ? eventBySlug(config?.events, slug) : undefined;
   useDocumentTitle(
     event
       ? `${intl.formatMessage({ id: eventNameKey(event.slug), defaultMessage: event.name })} – ${siteThemeConfig.siteName}`
       : undefined,
   );
 
+  if (!siteContext) throw new Error('EventPage must be called within <SiteConfigProvider>');
   if (flags === null) return <Loading />;
   if (!flags.events) return <NotFoundPage />;
   if (!event) return <NotFoundPage />;
 
-  const design = resolveEventPageDesign(config.events);
+  const design = resolveEventPageDesign(config?.events);
   // No illustration → nothing to abstract into a background, and nothing to
   // place either: the texts simply own the page.
   const fullBackground = design.fullBackgroundImage && Boolean(event.imageUrl);
@@ -149,7 +153,7 @@ export const EventPage: React.FC = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     variant="contained"
-                    sx={{ minHeight: 44 }}
+                    sx={{ minHeight: TOUCH_TARGET }}
                   >
                     <FormattedMessage id="page.events.moreInfo" />
                     <NewTabHint />

@@ -35,6 +35,6 @@ export const createConfigHandler = (): RequestHandler => {
     if (request.method === 'GET' && pathname === '/api/config') {
       return configModule.handle(request, context);
     }
-    return protectedChain.handle(request, context);
+    return protectedHandler(request, context);
   };
 };
