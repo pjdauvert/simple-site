@@ -152,7 +152,7 @@ Replaces the `gallery` of the **draft** — the tagged image gallery (see [confi
 
 ### `PUT /api/config/events`
 
-Replaces the `events` of the **draft** — the agenda's event list, section texts and design (see [configuration.md](configuration.md#events)). Gated by the **`FEATURE_EVENTS`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `events` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `events` — rejecting duplicate, reserved (`search` — the agenda's own page) or charset-invalid slugs (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, ≤ 64 chars), non-UTC instants (timezone-less, offset or date-only strings), an end before its start, and out-of-range design values — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/events` editor.
+Replaces the `events` of the **draft** — the agenda's event list, section texts and design (see [configuration.md](configuration.md#events)). Gated by the **`FEATURE_EVENTS`** flag: when it is not `"true"` this route returns `404` **before auth**, while the rest of the config surface — including a stored `events` attribute, which `GET /api/config` keeps serving — is unaffected. The server reads the draft (or the published config if no draft exists), swaps in the (Zod-validated) `events` — rejecting duplicate, reserved (`search` — the agenda's own page) or charset-invalid slugs (`^[a-z0-9]+(?:-[a-z0-9]+)*$`, ≤ 64 chars), non-UTC instants (timezone-less, offset or date-only strings), an end before its start, a `websiteUrl` that is not an absolute `http(s)` URL, and out-of-range design values — re-validates the whole `SiteConfig`, then persists the draft. Backs the `/manage/events` editor.
 
 ```json
 // Request body — an EventsConfig object
@@ -165,15 +165,8 @@ Replaces the `events` of the **draft** — the agenda's event list, section text
   "design": { "agendaPage": { "pastEventsMode": "from", "pastEventsFromDate": "2026-01-01" },
               "eventPage": { "fullBackgroundImage": true } } }
 // slugs are immutable public identities (URL + i18n keys); instants are UTC ISO strings
-// (rendered in the visitor's timezone); upcomingTitle/pastTitle and
-// upcomingHeader/pastHeader (markdown) are optional translation defaults
-// (the featured block has neither heading nor introduction of its own);
-// design.agendaPage: pastEventsMode (all — default — | none | from) + pastEventsFromDate
-// (YYYY-MM-DD, kept across mode switches), cardAspectRatio (A4 — portrait poster, default — | 16:9 | 4:3 | 1:1),
-// columns (2-4; default 3), showLocationOnCards / showFeaturedBackdrop (absent = shown);
-// design.eventPage: imageAspectRatio (same ratios; default A4),
-// fullBackgroundImage (absent = off; true paints the illustration as a blurred full background);
-// each /manage/events tab PUTs the whole object, merging its own fields over a fresh draft read
+// (rendered in the visitor's timezone); every `design` value is listed in
+// configuration.md#events — the one place that stays complete
 
 
 // 200 OK

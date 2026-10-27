@@ -291,9 +291,32 @@ Feature pages are public pages shipped by optional features (as opposed to confi
 4. **Register the routes** — add the feature's `<Route>` elements in `apps/web/src/router/AppRouter.tsx` **before** the `*` catch-all. Register them unconditionally and let the page component gate itself on the flag (render `NotFoundPage` when off) — conditional registration flashes a 404 while flags load.
 5. **Expose the feature's own translatable defaults** (only if the feature stores text of its own, like the team's `title`/`presentation` or the events' per-event texts) — the config walk (`collectI18nEntries`) does not descend into feature data. Add a `collect<Feature>I18nEntries(config)` collector next to the feature's schema in `libs/interfaces` (see `collectTeamI18nEntries` / `collectGalleryI18nEntries` / `collectEventsI18nEntries`) and merge it into the `setExpected` call in `apps/web/src/pages/admin/TranslationsPage.tsx` — for an own-blob feature load the blob with `.catch(() => null)` (a 404 just means the flag is off); for a config-stored feature (gallery, events) gate the merge on the runtime flag instead. Give each admin field a `TranslateShortcut` (`apps/web/src/components/manage/TranslateShortcut.tsx`) deep-linking to its key. Scope the keys by a **stable immutable id** (gallery tags, event slugs) rather than list position wherever the items can be reordered.
 
+6. **If the feature's data lives INSIDE the site config** (the gallery and the events both do, rather than owning a blob like the team and the contact), four more things are needed — this is now the common case, not the exception:
+   - **An attribute on `SiteConfigSchema`** — `libs/interfaces/src/site.interface.ts`, optional (`events: EventsConfigSchema.optional()`), so every stored config stays valid. Add it to the canonical `### Schema` block in [configuration.md](configuration.md#schema) in the same change, or the reference will claim the feature is not part of `SiteConfig`.
+   - **A granular `PUT /api/config/<feature>`** — a handler on `ConfigModule` that validates the body, merges it over a **fresh draft read** and re-validates the whole `SiteConfig` (both through `parseRequest`, so an invalid body answers `400`, never `500`). Route it in `apps/functions/src/handlers/configRouting.ts` through `withFeatureGate`, so it **404s before auth** while the flag is off — and test that, since de-gating the route silently would leave every other test green.
+   - **Reads stay ungated.** A stored attribute keeps being served by `GET /api/config` whatever the flag says; only its *interpretation* is gated, client-side. Flipping the flag must never lose data.
+   - **The editor auto-saves** — a config-draft form owns no save button (see [contributing.md](contributing.md#guidelines) guideline 7). Build the admin page on `ManageTabsShell` if it has tabs, and each tab on `useDraftAutoSave` + `useDraftSaveNotifications`, each merging only its own fields over a fresh draft read.
+
 Nothing else is needed for the menu: `reconcileMenu` appends the new feature's entry (hidden) **at the top level** to stored menus once the flag is on, the Menu tab shows it with a *Feature* badge (greyed while the flag is off, without losing its position), and `resolveNavTree` renders it in the public nav when visible and enabled. Admins can then move the entry into a menu group like any other entry — it keeps its flag-gating inside the group. A feature can also expand its own **top-level** entry into a dynamically-populated submenu — the gallery resolves its activated tag collections this way (`galleryNavNode` in `publicMenu.ts`, driven by the entry's `galleryTags` state); the resolved nodes are origin-agnostic, so `MenuBar` needs no change.
 
 > **Reserved-route migration note:** step 1 reserves the route for *incoming* configs only (`SiteConfigSchema`). Stored configs are read with the lenient `StoredSiteConfigSchema`, so a site whose config already used that route keeps working after the upgrade — the admin renames the colliding page from the Pages editor at their own pace.
+
+---
+
+## Shared admin building blocks
+
+Before writing a new admin screen, reach for these — each exists because a
+third copy appeared:
+
+| Brick | Path | Use it for |
+|-------|------|-----------|
+| `ManageTabsShell` | `components/manage/ManageTabsShell.tsx` | Any multi-tab admin page: heading, the page-wide live/publish caption, a scrollable tab bar and the `<Outlet/>`. Tabs are URL sub-routes, so they are deep-linkable. The page becomes a `{ key, labelKey }[]` declaration. |
+| `DesignTabLayout`, `PreviewBar` | `components/manage/DesignTabPanels.tsx` | A design tab: the options column with its sticky, desktop-only skeleton preview; `PreviewBar` is the bar standing for a line of text in such a preview. |
+| `useDraftAutoSave` + `useDraftSaveNotifications` | `hooks/` | Any form writing the config DRAFT — see [contributing.md](contributing.md#guidelines) guideline 7. |
+| `StickySaveButton` | `components/manage/StickySaveButton.tsx` | The one save action of a DIRECT-save form (team, contact, translations) — guideline 9. |
+| `TranslateAdornment` / `TranslateShortcut` | `components/manage/` | The deep link from a translatable admin field to its key on the Translations page. |
+| `slugify` | `components/manage/slugify.ts` | Deriving an immutable public slug from a display name. One implementation — do not re-export it from a feature module. |
+| `TOUCH_TARGET` | `features/theme/muiTheme.ts` | The 44 px floor every interactive surface honours. Import it rather than writing `44`. |
 
 ---
 
@@ -309,4 +332,4 @@ sx={{
 }}
 ```
 
-Touch targets must be at least 44 × 44 px. Test on both portrait and landscape orientations before opening a PR.
+Touch targets must be at least 44 × 44 px — import `TOUCH_TARGET` from `features/theme/muiTheme.ts` rather than writing the number. Test on both portrait and landscape orientations before opening a PR.

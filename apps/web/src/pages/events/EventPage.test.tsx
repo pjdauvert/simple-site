@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import type { EventsConfig, SiteConfig, SiteEvent } from '@simple-site/interfaces';
 import { EventPage } from './EventPage';
-import { mockFeatures } from '../../test/featureFlags';
+import { mockFeatures, mockFeaturesLoading } from '../../test/featureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { renderWithProviders } from '../../test/renderWithProviders';
 
@@ -200,5 +200,12 @@ describe('EventPage (public /events/:slug)', () => {
       );
       expect(screen.getByRole('img', { name: 'Foule devant la scène principale' })).toBeInTheDocument();
     });
+  });
+
+  it('waits instead of 404ing while the feature flags are still loading', () => {
+    mockFeaturesLoading();
+    renderAt('/events/summer-festival');
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.queryByText('Oops — nothing here!')).not.toBeInTheDocument();
   });
 });

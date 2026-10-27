@@ -12,10 +12,16 @@ relevant doc before implementing. This file only indexes and sets process.**
 |-------|------|
 | Tech stack, monorepo layout, runtime config / i18n / auth flows | [docs/architecture.md](docs/architecture.md) |
 | API reference — endpoints, response envelope, auth matrix, env vars | [docs/api.md](docs/api.md) |
-| Configuration — site schema, themes, pages, draft → publish → archive, translations | [docs/configuration.md](docs/configuration.md) |
-| Extending — new section types (step-by-step workflow), mobile-first patterns | [docs/extending.md](docs/extending.md) |
+| Configuration — site schema, themes, pages, draft → publish → archive, translations, **and every config-resident module** (gallery, events) | [docs/configuration.md](docs/configuration.md) |
+| Extending — new section types, new feature pages (step-by-step workflows), mobile-first patterns | [docs/extending.md](docs/extending.md) |
 | Media — upload pipeline, feature flag, code map | [docs/media.md](docs/media.md) |
-| Contributing — quality gates, mobile checklist, roadmap | [docs/contributing.md](docs/contributing.md) |
+| Contributing — quality gates, test layout, mobile checklist, roadmap | [docs/contributing.md](docs/contributing.md) |
+
+**Where a feature is documented follows where its data lives.** A module stored
+inside the site config (gallery, events, and the next one) is a section of
+`configuration.md`; a module with a blob and a service of its own (media) gets
+its own file. Keep that split — do not start a `docs/<feature>.md` for a
+config-resident module.
 
 ## Specialized agents
 

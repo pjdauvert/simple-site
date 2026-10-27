@@ -43,8 +43,13 @@ the Vite banner says so if you start it that way.
 
 ```bash
 npm run build
-npm run preview      # the production BUILD behind the same stack, http://localhost:3080
+npm run preview      # the production BUILD behind the Netlify stack, http://localhost:3080
 ```
+
+`npm run preview` rebuilds web + functions, then serves `dist/apps/web` as
+static files with `/api/*` on the same port — no Vite, no HMR, hashed bundles,
+the SPA fallback out of the built `_redirects`. It is the closest thing to the
+deployed site you can run locally; `npm run dev` is the one that serves source.
 
 ### Test & lint
 

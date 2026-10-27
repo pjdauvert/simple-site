@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import type { EventsConfig, SiteConfig, SiteEvent } from '@simple-site/interfaces';
 import { EventsPage } from './EventsPage';
-import { mockFeatures } from '../../test/featureFlags';
+import { mockFeatures, mockFeaturesLoading } from '../../test/featureFlags';
 import { useSiteConfig } from '../../hooks/useSiteConfig';
 import { renderWithProviders } from '../../test/renderWithProviders';
 
@@ -253,5 +253,15 @@ describe('EventsPage (public /events)', () => {
     expect(screen.queryByRole('img', { name: 'A quiet street' })).not.toBeInTheDocument();
     const card = screen.getByRole('heading', { level: 3, name: 'Later' }).closest('a') as HTMLElement;
     expect(card.querySelector('img')).toHaveAttribute('alt', '');
+  });
+
+  // While /api/features is in flight the flag is neither on nor off. Rendering
+  // the 404 there would flash "nothing here" on a perfectly good agenda.
+  it('waits instead of 404ing while the feature flags are still loading', () => {
+    mockFeaturesLoading();
+    setConfig({ events: [event('next-show', 'Next Show', inDays(5))] });
+    renderPage();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.queryByText('Oops — nothing here!')).not.toBeInTheDocument();
   });
 });

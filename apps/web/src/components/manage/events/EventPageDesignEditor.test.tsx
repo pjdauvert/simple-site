@@ -157,4 +157,34 @@ describe('EventPageDesignEditor (Event page design tab)', () => {
       design: { eventPage: { imageAspectRatio: '16:9' } },
     });
   });
+
+  // Parity with the gallery/team editors: an editor that cannot load, or
+  // cannot save, has to SAY so. Neither path had a test, so an editor that
+  // silently showed an empty form on a failed draft read would have been green.
+  describe('error paths', () => {
+    it('shows the failure instead of an empty form when the draft cannot be read', async () => {
+      vi.mocked(loadDraftConfig).mockRejectedValue(new Error('Draft unavailable'));
+      await renderEditor();
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Draft unavailable');
+      expect(updateEvents).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the bundled message when the rejection carries none', async () => {
+      vi.mocked(loadDraftConfig).mockRejectedValue('nope');
+      await renderEditor();
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not load the events.');
+    });
+
+    it('reports a failed save through the admin notifications', async () => {
+      await renderEditor();
+      vi.mocked(updateEvents).mockRejectedValue(new Error('Server refused the events block'));
+
+      fireEvent.click(screen.getByRole('button', { name: /16:9/ }));
+      await settle();
+
+      expect(updateEvents).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/Could not save: Server refused the events block/)).toBeInTheDocument();
+    });
+  });
 });

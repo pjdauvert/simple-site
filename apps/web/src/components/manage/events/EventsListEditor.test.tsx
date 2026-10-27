@@ -407,4 +407,36 @@ describe('EventsListEditor (List tab)', () => {
       expect(slugField).toBeDisabled();
     });
   });
+
+  // Parity with the gallery/team editors: an editor that cannot load, or
+  // cannot save, has to SAY so rather than show an empty list.
+  describe('error paths', () => {
+    it('shows the failure instead of an empty list when the draft cannot be read', async () => {
+      vi.mocked(loadDraftConfig).mockRejectedValue(new Error('Draft unavailable'));
+      renderEditor();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Draft unavailable');
+      expect(screen.queryByRole('button', { name: /Summer Festival/ })).not.toBeInTheDocument();
+      expect(updateEvents).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the bundled message when the rejection carries none', async () => {
+      vi.mocked(loadDraftConfig).mockRejectedValue('nope');
+      renderEditor();
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the events.');
+    });
+
+    it('reports a failed save through the admin notifications', async () => {
+      renderEditor();
+      await screen.findByRole('button', { name: /Summer Festival/ });
+      vi.mocked(updateEvents).mockRejectedValue(new Error('Server refused the events block'));
+
+      fireEvent.click(screen.getByRole('button', { name: /Summer Festival/ }));
+      fireEvent.change(await screen.findByLabelText(/^name/i), { target: { value: 'Summer Fest' } });
+      fireEvent.click(screen.getByRole('button', { name: /done/i }));
+
+      await waitFor(() => expect(updateEvents).toHaveBeenCalled());
+      expect(await screen.findByText(/Could not save: Server refused the events block/)).toBeInTheDocument();
+    });
+  });
 });
